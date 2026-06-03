@@ -14,20 +14,20 @@ Dựa trên Database Schema mới nhất, dưới đây là bảng phân công c
 **Mục tiêu:** Hoàn thiện 100% Database, Entities, Repositories và các luồng CRUD cơ bản (Test ngay trên Swagger).
 *Tất cả thành viên đồng loạt triển khai phần Master Data của mình.*
 
-- **Thành viên 1 (Auth & User):**
+- **Khải Triệu (Auth & User):**
   - `[ ]` Setup cấu trúc JWT, Spring Security (WebConfig, SecurityConfig).
   - `[ ]` API Authentication (`/login`, `/register`).
   - `[ ]` CRUD cho `Roles` và `Users`.
   
-- **Thành viên 2 (Building & Floor):**
+- **Phương Minh (Building & Floor):**
   - `[ ]` CRUD cho `Buildings` và `Floors`.
   - `[ ]` CRUD cho `Zones` và `ParkingSlots` (Chưa cần real-time status).
 
-- **Thành viên 3 (Vehicle & Reservation):**
+- **Đăng Khôi (Vehicle & Reservation):**
   - `[ ]` CRUD cho `VehicleTypes` và `Vehicles` (xử lý `EngineNumber`, `ChassisNumber` unique).
   - `[ ]` Luồng cơ bản cho `Reservations` (Chưa cần check slot trống thực tế).
 
-- **Thành viên 4 (Pricing):**
+- **Hồ Hữu Vinh (Pricing):**
   - `[ ]` CRUD cho `PricingPolicies` (Cấu hình giá giờ cao điểm, ngoài giờ).
 
 ---
