@@ -2,14 +2,23 @@ package com.parking.management.module.vehicle;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
-@Table(name = "vehicletypes")
+@Table(name = "VehicleTypes")
 public class VehicleType {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "VehicleTypeID")
+    private Integer vehicleTypeId;
 
-    // TODO: Add actual fields mapped to the SQL Schema here
+    @Column(name = "TypeName", unique = true, nullable = false, length = 50)
+    private String typeName;
+
+    @Column(name = "Description", length = 255)
+    private String description;
 }

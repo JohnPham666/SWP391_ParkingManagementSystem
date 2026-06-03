@@ -1,25 +1,27 @@
-package com.parking.management.module.reservation;
+package com.parking.management.module.subscription;
 
 import com.parking.management.module.slot.ParkingSlot;
 import com.parking.management.module.user.User;
 import com.parking.management.module.vehicle.Vehicle;
-import com.parking.management.module.vehicle.VehicleType;
+import com.parking.management.module.zone.Zone;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "Reservations")
-public class Reservation {
+@Table(name = "MonthlySubscriptions")
+public class MonthlySubscription {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "ReservationID")
-    private Integer reservationId;
+    @Column(name = "SubscriptionID")
+    private Integer subscriptionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "UserID", nullable = false)
@@ -30,25 +32,25 @@ public class Reservation {
     private Vehicle vehicle;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "VehicleTypeID", nullable = false)
-    private VehicleType vehicleType;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "SlotID", nullable = false)
+    @JoinColumn(name = "SlotID")
     private ParkingSlot slot;
 
-    @Column(name = "ReservationStart", nullable = false)
-    private LocalDateTime reservationStart;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ZoneID")
+    private Zone zone;
 
-    @Column(name = "ReservationEnd", nullable = false)
-    private LocalDateTime reservationEnd;
+    @Column(name = "StartDate", nullable = false)
+    private LocalDate startDate;
 
-    @Column(name = "Status", length = 20)
+    @Column(name = "EndDate", nullable = false)
+    private LocalDate endDate;
+
+    @Column(name = "MonthlyFee", nullable = false, precision = 10, scale = 2)
+    private BigDecimal monthlyFee;
+
+    @Column(name = "Status", nullable = false, length = 20)
     private String status;
 
     @Column(name = "CreatedAt")
     private LocalDateTime createdAt = LocalDateTime.now();
-
-    @Column(name = "GuestName", length = 100)
-    private String guestName;
 }

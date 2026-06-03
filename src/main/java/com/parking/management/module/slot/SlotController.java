@@ -26,7 +26,7 @@ public class SlotController {
 
     @GetMapping
     public ApiResponse<List<SlotResponse>> getAll() {
-        return ApiResponse.success("Fetched all successfully", List.of());
+        return ApiResponse.success("Fetched all successfully", java.util.Collections.emptyList());
     }
 
     @PutMapping("/{id}")

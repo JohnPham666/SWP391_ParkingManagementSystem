@@ -8,7 +8,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class SlotService implements SlotService  {
+public class SlotService {
     // private final ParkingSlotRepository repository;
 
     // public SlotResponse create(SlotRequest request) { ... }

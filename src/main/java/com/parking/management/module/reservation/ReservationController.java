@@ -26,7 +26,7 @@ public class ReservationController {
 
     @GetMapping
     public ApiResponse<List<ReservationResponse>> getAll() {
-        return ApiResponse.success("Fetched all successfully", List.of());
+        return ApiResponse.success("Fetched all successfully", java.util.Collections.emptyList());
     }
 
     @PutMapping("/{id}")

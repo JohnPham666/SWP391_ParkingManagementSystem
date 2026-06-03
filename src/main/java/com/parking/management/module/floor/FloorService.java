@@ -8,7 +8,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class FloorService implements FloorService  {
+public class FloorService {
     // private final FloorRepository repository;
 
     // public FloorResponse create(FloorRequest request) { ... }

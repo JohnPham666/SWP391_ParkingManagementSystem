@@ -8,7 +8,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class PricingService implements PricingService  {
+public class PricingService {
     // private final PricingPolicyRepository repository;
 
     // public PricingResponse create(PricingRequest request) { ... }

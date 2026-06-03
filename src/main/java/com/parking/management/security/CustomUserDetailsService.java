@@ -15,7 +15,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         // Basic placeholder implementation. Needs to be wired with UserRepository in actual app.
         if ("admin".equals(username)) {
-            return new User("admin", "password", new ArrayList<>());
+            return new User("admin", "password", new ArrayList<org.springframework.security.core.GrantedAuthority>());
         }
         throw new UsernameNotFoundException("User not found with username: " + username);
     }

@@ -8,7 +8,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class ReservationService implements ReservationService  {
+public class ReservationService {
     // private final ReservationRepository repository;
 
     // public ReservationResponse create(ReservationRequest request) { ... }
