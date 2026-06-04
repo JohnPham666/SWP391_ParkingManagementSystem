@@ -5,37 +5,37 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/reservations")
 @RequiredArgsConstructor
 public class ReservationController {
-    
-    // private final ReservationService service;
+
+    private final ReservationService reservationService;
 
     @PostMapping
     public ApiResponse<ReservationResponse> create(@Valid @RequestBody ReservationRequest request) {
-        return ApiResponse.success("Created successfully", new ReservationResponse());
+        return ApiResponse.success("Created successfully", reservationService.create(request));
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<ReservationResponse> getById(@PathVariable Long id) {
-        return ApiResponse.success("Fetched successfully", new ReservationResponse());
+    public ApiResponse<ReservationResponse> getById(@PathVariable Integer id) {
+        return ApiResponse.success("Fetched successfully", reservationService.getById(id));
     }
 
     @GetMapping
-    public ApiResponse<List<ReservationResponse>> getAll() {
-        return ApiResponse.success("Fetched all successfully", java.util.Collections.emptyList());
+    public ApiResponse<?> getAll() {
+        return ApiResponse.success("Fetched all successfully", reservationService.getAll());
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<ReservationResponse> update(@PathVariable Long id, @Valid @RequestBody ReservationRequest request) {
-        return ApiResponse.success("Updated successfully", new ReservationResponse());
+    public ApiResponse<ReservationResponse> update(@PathVariable Integer id,
+                                                   @Valid @RequestBody ReservationRequest request) {
+        return ApiResponse.success("Updated successfully", reservationService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
-        return ApiResponse.success("Deleted successfully", null);
+    public ApiResponse<?> delete(@PathVariable Integer id) {
+        reservationService.cancel(id);
+        return ApiResponse.success("Reservation cancelled successfully", null);
     }
 }
