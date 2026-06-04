@@ -26,7 +26,7 @@ public class VehicleController {
 
     @GetMapping
     public ApiResponse<List<VehicleResponse>> getAll() {
-        return ApiResponse.success("Fetched all successfully", List.of());
+        return ApiResponse.success("Fetched all successfully", java.util.Collections.emptyList());
     }
 
     @PutMapping("/{id}")

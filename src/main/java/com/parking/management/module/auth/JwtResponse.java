@@ -1,9 +1,18 @@
 package com.parking.management.module.auth;
 
 import lombok.Data;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class JwtResponse {
-    private Long id;
-    private String name;
+    private String token;
+    private Integer userId;
+    private String fullName;
+    private String email;
+    private String role;
 }

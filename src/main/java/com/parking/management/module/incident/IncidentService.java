@@ -8,7 +8,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class IncidentService implements IncidentService  {
+public class IncidentService {
     // private final IncidentReportRepository repository;
 
     // public IncidentResponse create(IncidentRequest request) { ... }

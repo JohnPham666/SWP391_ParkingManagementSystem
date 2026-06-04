@@ -8,7 +8,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class BuildingService implements BuildingService  {
+public class BuildingService {
     // private final BuildingRepository repository;
 
     // public BuildingResponse create(BuildingRequest request) { ... }

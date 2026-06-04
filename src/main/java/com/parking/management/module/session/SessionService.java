@@ -8,7 +8,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class SessionService implements SessionService  {
+public class SessionService {
     // private final ParkingSessionRepository repository;
 
     // public SessionResponse create(SessionRequest request) { ... }

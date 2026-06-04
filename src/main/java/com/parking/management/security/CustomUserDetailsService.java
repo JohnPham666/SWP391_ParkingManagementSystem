@@ -1,22 +1,35 @@
 package com.parking.management.security;
 
-import org.springframework.security.core.userdetails.User;
+import com.parking.management.module.user.User;
+import com.parking.management.module.user.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.util.Collections;
 
 @Service
+@RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
-    // TODO: Inject UserRepository to load user from database
+
+    private final UserRepository userRepository;
+
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // Basic placeholder implementation. Needs to be wired with UserRepository in actual app.
-        if ("admin".equals(username)) {
-            return new User("admin", "password", new ArrayList<>());
-        }
-        throw new UsernameNotFoundException("User not found with username: " + username);
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        // Tìm user trong DB theo email
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+        // Chuyển User entity thành Spring Security UserDetails
+        return new org.springframework.security.core.userdetails.User(
+                user.getEmail(),
+                user.getPasswordHash(),
+                Collections.singletonList(
+                    new SimpleGrantedAuthority("ROLE_" + user.getRole().getRoleName())
+                )
+        );
     }
 }

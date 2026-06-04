@@ -8,7 +8,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class PaymentService implements PaymentService  {
+public class PaymentService {
     // private final PaymentRepository repository;
 
     // public PaymentResponse create(PaymentRequest request) { ... }

@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="vi" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gửi Xe Online</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23f97316'/%3E%3Cpath d='M22 50V14h13c8 0 13 5 13 12s-5 12-13 12h-5v12h-8Zm8-20h5c3 0 5-2 5-4s-2-4-5-4h-5v8Z' fill='white'/%3E%3C/svg%3E" />
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script src="assets/vendor/lucide.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  </head>
+  <body class="h-full">
+    <div id="app" class="w-full min-h-full bg-white flex flex-col">
+      <header class="app-header text-white px-8 py-6 flex justify-between items-start">
+        <div class="flex items-start gap-4">
+          <div class="app-logo" aria-hidden="true"><i data-lucide="parking-circle" class="w-8 h-8"></i></div>
+          <div id="header-content">
+            <h1 id="greeting" class="text-2xl font-bold">Xin chào, Nguyễn Văn A</h1>
+            <p class="text-white/80 text-sm mt-1">Chào mừng bạn đến với hệ thống gửi xe thông minh</p>
+          </div>
+        </div>
+        <div class="relative">
+          <button id="user-menu-btn" class="icon-button bg-white/20 hover:bg-white/30" aria-label="Mở menu tài khoản">
+            <i data-lucide="user" class="w-6 h-6"></i>
+          </button>
+          <div id="user-menu" class="hidden absolute right-0 mt-2 w-52 bg-white rounded-lg shadow-lg overflow-hidden z-50">
+            <button data-route="profile" class="menu-item"><i data-lucide="user"></i><span>Xem hồ sơ</span></button>
+            <button data-route="vehicles" class="menu-item"><i data-lucide="car"></i><span>Xem thông tin xe</span></button>
+            <button data-route="settings" class="menu-item"><i data-lucide="settings"></i><span>Cài đặt</span></button>
+            <div class="border-t border-gray-200"></div>
+            <a href="#" class="menu-item text-red-600 font-medium" data-action="logout"><i data-lucide="log-out"></i><span>Đăng xuất</span></a>
+          </div>
+        </div>
+      </header>
+
+      <main id="main-content" class="flex-1 px-8 py-8">
+        <section id="home-page" class="page active-page max-w-4xl mx-auto">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <button type="button" data-route="parking" class="feature-card">
+              <span class="feature-icon"><i data-lucide="map-pin"></i></span>
+              <span>Xem bãi</span>
+            </button>
+            <button type="button" data-route="booking" class="feature-card">
+              <span class="feature-icon"><i data-lucide="calendar-check"></i></span>
+              <span>Đặt chỗ</span>
+            </button>
+            <button type="button" data-route="services" class="feature-card">
+              <span class="feature-icon"><i data-lucide="wrench"></i></span>
+              <span>Dịch vụ</span>
+            </button>
+            <button type="button" data-route="wallet" class="feature-card">
+              <span class="feature-icon"><i data-lucide="wallet"></i></span>
+              <span>Ví tiền</span>
+            </button>
+          </div>
+          <button type="button" data-route="add-vehicle" class="mt-8 w-full border-2 border-dashed border-orange-300 rounded-xl p-5 flex items-center gap-4 hover:bg-orange-50 transition">
+            <span class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white"><i data-lucide="plus" class="w-5 h-5"></i></span>
+            <span id="add-vehicle-text" class="text-gray-700 font-medium text-lg">Thêm thông tin xe</span>
+          </button>
+        </section>
+
+        <section id="booking-page" class="page max-w-4xl mx-auto">
+          <button data-route="home" class="back-button"><i data-lucide="arrow-left"></i><span>Quay lại</span></button>
+          <h2 class="page-title">Đặt chỗ gửi xe</h2>
+          <div class="panel">
+            <form id="booking-search-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <label class="field">Loại xe <select id="booking-vehicle-type" required><option value="">Chọn loại xe</option><option value="4-seater">Xe ô tô 4 chỗ</option><option value="5-seater">Xe ô tô 5 chỗ</option><option value="7-seater">Xe ô tô 7 chỗ</option><option value="pickup">Xe bán tải</option><option value="suv">Xe SUV</option></select></label>
+              <label class="field">Bãi đậu <select id="booking-parking-lot" required><option value="">Chọn bãi đậu</option><option value="center">Bãi Gửi Xe Trung Tâm</option><option value="west">Bãi Gửi Xe Tây Thạnh</option><option value="district7">Bãi Gửi Xe Quận 7</option><option value="binhtan">Bãi Gửi Xe Bình Tân</option></select></label>
+              <label class="field">Thời gian <input type="datetime-local" id="booking-time" required /></label>
+            </form>
+            <div class="flex gap-3 mt-6">
+              <button id="search-slots-btn" class="primary-button flex-1"><i data-lucide="search"></i><span>Tìm chỗ trống</span></button>
+              <button id="clear-booking-btn" class="secondary-button">Xóa</button>
+            </div>
+          </div>
+          <div id="no-results-message" class="empty-state"><i data-lucide="inbox"></i><p>Hãy chọn thông tin và nhấn "Tìm chỗ trống" để tìm kiếm</p></div>
+          <div id="booking-results" class="hidden">
+            <h3 class="section-title">Chỗ trống có sẵn</h3>
+            <div id="slots-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+          </div>
+          <div id="booking-success" class="hidden success-box"><i data-lucide="check-circle"></i><div><p class="font-semibold">Đặt chỗ thành công!</p><p class="text-sm">Chỗ gửi xe của bạn đã được xác nhận.</p></div></div>
+        </section>
+
+        <section id="services-page" class="page max-w-4xl mx-auto">
+          <button data-route="home" class="back-button"><i data-lucide="arrow-left"></i><span>Quay lại</span></button>
+          <h2 class="page-title">Các dịch vụ của chúng tôi</h2>
+          <div id="services-list" class="grid grid-cols-1 gap-6"></div>
+          <div class="panel mt-8 overflow-x-auto">
+            <h3 class="section-title">So sánh các dịch vụ</h3>
+            <table class="w-full text-sm">
+              <thead><tr class="bg-gray-50"><th>Tính năng</th><th>Gửi xe hàng ngày</th><th>Vé tháng</th><th>Đặt chỗ trước</th></tr></thead>
+              <tbody>
+                <tr><td>Thời hạn sử dụng</td><td>1 ngày</td><td>1 tháng</td><td>Linh hoạt</td></tr>
+                <tr><td>Số lần gửi</td><td>1 lần</td><td>Không giới hạn</td><td>1 lần</td></tr>
+                <tr><td>Bảo hiểm</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                <tr><td>Giá</td><td>50.000đ</td><td>1.200.000đ</td><td>10.000đ</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="add-vehicle-page" class="page max-w-4xl mx-auto">
+          <button data-route="home" class="back-button"><i data-lucide="arrow-left"></i><span>Quay lại</span></button>
+          <h2 class="page-title">Đăng ký thông tin xe</h2>
+          <form id="vehicle-registration-form" class="space-y-8">
+            <div class="panel">
+              <h3 class="section-title"><i data-lucide="car"></i>Thông tin xe</h3>
+              <div class="form-grid">
+                <label class="field">Biển số xe <input name="license_plate" required placeholder="VD: 51F-123.45" /></label>
+                <label class="field">Loại xe <select name="vehicle_type" required><option value="">Chọn loại xe</option><option>Xe ô tô 4 chỗ</option><option>Xe ô tô 5 chỗ</option><option>Xe ô tô 7 chỗ</option><option>Xe bán tải</option><option>Xe SUV</option></select></label>
+                <label class="field">Hãng xe <input name="brand" required placeholder="VD: Toyota" /></label>
+                <label class="field">Model xe <input name="model" required placeholder="VD: Vios 2023" /></label>
+                <label class="field">Năm sản xuất <input type="number" name="year" required placeholder="2023" /></label>
+                <label class="field">Màu xe <input name="color" required placeholder="VD: Trắng" /></label>
+                <label class="field md:col-span-2">Số VIN <input name="vin" required placeholder="Nhập số VIN của xe" /></label>
+              </div>
+            </div>
+            <div class="panel">
+              <h3 class="section-title"><i data-lucide="file-text"></i>Thông tin đăng ký</h3>
+              <div class="form-grid">
+                <label class="field">Chủ sở hữu <input name="owner_name" required /></label>
+                <label class="field">Số CMND/CCCD <input name="id_number" required /></label>
+                <label class="field">Số điện thoại <input type="tel" name="phone" required /></label>
+                <label class="field">Email <input type="email" name="email" required /></label>
+                <label class="field md:col-span-2">Địa chỉ đăng ký <textarea name="address" rows="3" required></textarea></label>
+              </div>
+            </div>
+            <div class="panel">
+              <h3 class="section-title"><i data-lucide="upload"></i>Tải lên giấy tờ xe</h3>
+              <div class="space-y-4">
+                <label class="upload-box">Giấy đăng ký xe - mặt trước <input type="file" name="registration_front" accept="image/*" required /><span></span></label>
+                <label class="upload-box">Giấy đăng ký xe - mặt sau <input type="file" name="registration_back" accept="image/*" required /><span></span></label>
+                <label class="upload-box">Giấy bảo hiểm xe <input type="file" name="insurance" accept="image/*" required /><span></span></label>
+                <label class="upload-box">Giấy kiểm định an toàn kỹ thuật <input type="file" name="inspection" accept="image/*" required /><span></span></label>
+              </div>
+            </div>
+            <div class="flex gap-4">
+              <button type="submit" class="primary-button flex-1"><i data-lucide="check"></i><span>Đăng ký xe</span></button>
+              <button type="button" id="cancel-registration" class="secondary-button flex-1">Hủy</button>
+            </div>
+            <div id="form-success" class="hidden success-box"><i data-lucide="check-circle"></i><div><p class="font-semibold">Đăng ký thành công!</p><p class="text-sm">Thông tin xe của bạn đã được gửi để xác minh.</p></div></div>
+          </form>
+        </section>
+
+        <section id="profile-page" class="page max-w-4xl mx-auto">
+          <button data-route="home" class="back-button"><i data-lucide="arrow-left"></i><span>Quay lại</span></button>
+          <div id="profile-content" class="space-y-8"></div>
+        </section>
+
+        <section id="vehicles-page" class="page max-w-4xl mx-auto">
+          <button data-route="home" class="back-button"><i data-lucide="arrow-left"></i><span>Quay lại</span></button>
+          <h2 class="page-title">Thông tin xe của tôi</h2>
+          <div id="vehicles-list" class="grid grid-cols-1 gap-6"></div>
+        </section>
+
+        <section id="settings-page" class="page max-w-4xl mx-auto">
+          <button data-route="home" class="back-button"><i data-lucide="arrow-left"></i><span>Quay lại</span></button>
+          <h2 class="page-title">Cài đặt</h2>
+          <div class="space-y-8">
+            <div class="panel">
+              <h3 class="section-title"><i data-lucide="user-cog"></i>Cài đặt tài khoản</h3>
+              <div class="form-grid"><label class="field">Tên hiển thị <input value="Nguyễn Văn A" /></label><label class="field">Email <input type="email" value="nguyenvana@email.com" /></label><label class="field">Số điện thoại <input value="0912 345 678" /></label></div>
+              <button type="button" class="primary-button mt-4" data-action="change-password">Đổi mật khẩu</button>
+            </div>
+            <div class="panel">
+              <h3 class="section-title"><i data-lucide="bell"></i>Cài đặt thông báo</h3>
+              <div id="notification-settings" class="divide-y divide-gray-200"></div>
+            </div>
+            <div class="panel">
+              <h3 class="section-title"><i data-lucide="palette"></i>Cài đặt giao diện</h3>
+              <div class="space-y-6">
+                <div><p class="settings-label">Chế độ hiển thị</p><label class="mr-6"><input type="radio" name="theme" value="light" checked /> Sáng</label><label><input type="radio" name="theme" value="dark" /> Tối</label></div>
+                <label class="field max-w-xs">Ngôn ngữ <select id="language-select"><option value="vi">Tiếng Việt</option><option value="en">English</option></select></label>
+                <div><p class="settings-label">Kích thước chữ</p><button id="font-smaller" class="small-button">A-</button><span id="font-size-label" class="mx-3">Bình thường</span><button id="font-larger" class="small-button">A+</button></div>
+                <div><p class="settings-label">Màu giao diện</p><div id="color-picker" class="flex gap-3"></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="wallet-page" class="page max-w-4xl mx-auto">
+          <button data-route="home" class="back-button"><i data-lucide="arrow-left"></i><span>Quay lại</span></button>
+          <h2 class="page-title">Ví tiền của tôi</h2>
+          <div class="wallet-card">
+            <p class="text-white/80 text-sm mb-2">Số dư ví</p>
+            <h3 id="wallet-balance" class="text-4xl font-bold">2.500.000đ</h3>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <button id="deposit-btn" class="action-card green"><i data-lucide="plus"></i><span>Nạp tiền</span></button>
+            <button id="withdraw-btn" class="action-card red"><i data-lucide="minus"></i><span>Rút tiền</span></button>
+            <button id="history-btn" class="action-card blue"><i data-lucide="history"></i><span>Lịch sử</span></button>
+          </div>
+          <h3 class="section-title"><i data-lucide="history"></i>Lịch sử giao dịch</h3>
+          <div id="transactions-list" class="panel divide-y divide-gray-200"></div>
+        </section>
+
+        <section id="parking-page" class="page max-w-4xl mx-auto">
+          <button data-route="home" class="back-button"><i data-lucide="arrow-left"></i><span>Quay lại</span></button>
+          <h2 class="page-title">Các bãi gửi xe của chúng tôi</h2>
+          <div id="parking-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+        </section>
+      </main>
+
+      <footer class="bg-gray-50 border-t border-gray-200 px-8 py-6">
+        <div class="max-w-4xl mx-auto flex flex-col md:flex-row gap-4 justify-between items-center">
+          <div class="flex flex-wrap gap-6">
+            <a href="#" class="footer-link" data-action="support"><i data-lucide="phone"></i>Liên hệ hỗ trợ</a>
+            <a href="#" class="footer-link" data-action="feedback"><i data-lucide="mail"></i>Gửi đơn ý kiến</a>
+            <a href="#" class="footer-link" data-action="help"><i data-lucide="help-circle"></i>Trợ giúp</a>
+          </div>
+          <span class="text-gray-400 text-sm">© 2024 Gửi Xe Online</span>
+        </div>
+      </footer>
+    </div>
+
+    <div id="deposit-modal" class="modal hidden">
+      <form id="deposit-form" class="modal-panel">
+        <button type="button" data-close-modal="deposit-modal" class="modal-close"><i data-lucide="x"></i></button>
+        <h3 class="modal-title">Nạp tiền vào ví</h3>
+        <label class="field">Số tiền <input type="number" id="deposit-amount" min="10000" step="10000" required /></label>
+        <label class="field">Phương thức thanh toán <select id="deposit-method" required><option value="">Chọn phương thức</option><option value="card">Thẻ tín dụng / Ghi nợ</option><option value="bank">Chuyển khoản ngân hàng</option><option value="ewallet">Ví điện tử</option></select></label>
+        <button class="primary-button w-full">Tiếp tục</button>
+      </form>
+    </div>
+
+    <div id="withdraw-modal" class="modal hidden">
+      <form id="withdraw-form" class="modal-panel">
+        <button type="button" data-close-modal="withdraw-modal" class="modal-close"><i data-lucide="x"></i></button>
+        <h3 class="modal-title">Rút tiền từ ví</h3>
+        <label class="field">Số tiền rút <input type="number" id="withdraw-amount" min="50000" step="10000" required /></label>
+        <label class="field">Ngân hàng nhận tiền <select id="withdraw-bank" required><option value="">Chọn ngân hàng</option><option value="vietcombank">Vietcombank - 1234567890</option><option value="techcombank">Techcombank - 9876543210</option><option value="bidv">BIDV - 0123456789</option></select></label>
+        <button class="primary-button w-full">Rút tiền</button>
+      </form>
+    </div>
+
+    <script src="assets/js/app.js"></script>
+  </body>
+</html>

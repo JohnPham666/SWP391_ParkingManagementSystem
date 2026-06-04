@@ -8,7 +8,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class VehicleService implements VehicleService  {
+public class VehicleService {
     // private final VehicleRepository repository;
 
     // public VehicleResponse create(VehicleRequest request) { ... }
