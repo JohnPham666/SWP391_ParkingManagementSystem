@@ -6,7 +6,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ZoneRepository extends JpaRepository<Zone, Long> {
+public interface ZoneRepository extends JpaRepository<Zone, Integer> {
     // Custom query 1
     // List<Zone> findBySomeField(String field);
 }

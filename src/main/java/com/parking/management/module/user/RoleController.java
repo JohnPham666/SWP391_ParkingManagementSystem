@@ -8,29 +8,29 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/roles")
 @RequiredArgsConstructor
-public class UserController {
+public class RoleController {
 
-    private final UserService service;
+    private final RoleService service;
 
     @PostMapping
-    public ApiResponse<UserResponse> create(@Valid @RequestBody UserRequest request) {
+    public ApiResponse<RoleResponse> create(@Valid @RequestBody RoleRequest request) {
         return ApiResponse.success("Created successfully", service.create(request));
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<UserResponse> getById(@PathVariable Integer id) {
+    public ApiResponse<RoleResponse> getById(@PathVariable Integer id) {
         return ApiResponse.success("Fetched successfully", service.getById(id));
     }
 
     @GetMapping
-    public ApiResponse<List<UserResponse>> getAll() {
+    public ApiResponse<List<RoleResponse>> getAll() {
         return ApiResponse.success("Fetched all successfully", service.getAll());
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<UserResponse> update(@PathVariable Integer id, @Valid @RequestBody UserRequest request) {
+    public ApiResponse<RoleResponse> update(@PathVariable Integer id, @Valid @RequestBody RoleRequest request) {
         return ApiResponse.success("Updated successfully", service.update(id, request));
     }
 

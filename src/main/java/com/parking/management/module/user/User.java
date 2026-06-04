@@ -26,7 +26,7 @@ public class User {
     @Column(name = "PhoneNumber", length = 20)
     private String phoneNumber;
 
-    @Column(name = "PasswordHash", nullable = false, length = 255)
+    @Column(name = "passwordHash", nullable = false, length = 255)
     private String passwordHash;
 
     @ManyToOne(fetch = FetchType.LAZY)
