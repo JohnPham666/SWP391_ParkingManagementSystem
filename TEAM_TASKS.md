@@ -36,20 +36,20 @@ Dựa trên Database Schema mới nhất, dưới đây là bảng phân công c
 **Deadline: 08/06/2026**
 **Mục tiêu:** Xử lý luồng Check-in, Check-out, Đặt chỗ thực tế và Tính toán chi phí. Toàn bộ API phải gọi thành công trên Swagger.
 
-- **Thành viên 1 (Vehicle & Account):**
+- **Đăng Khôi (Vehicle & Account):**
   - `[ ]` Hoàn thiện API Upload ảnh xe (`VehicleImage`).
   - `[ ]` API cho User quản lý xe cá nhân.
 
-- **Thành viên 2 (Slot Management):**
+- **Phương Minh (Slot Management):**
   - `[ ]` Viết API tìm kiếm Slot đang trống (`AVAILABLE`) cho Thành viên 3 gọi.
   - `[ ]` Cập nhật trạng thái Slot real-time ('OCCUPIED', 'RESERVED').
 
-- **Thành viên 3 (Session & Booking):**
+- **Hữu Vinh (Session & Booking):**
   - `[ ]` Xử lý luồng Đặt chỗ thực tế (Tìm Slot của Thành viên 2 -> Hold Slot).
   - `[ ]` **Check-in:** Khởi tạo `ParkingSession` -> Đổi trạng thái Slot.
   - `[ ]` **Check-out:** Chốt thời gian `ExitTime` -> Gọi Thành viên 4 để tính tiền -> Đổi trạng thái Slot.
 
-- **Thành viên 4 (Pricing Engine & Subscriptions):**
+- **Khải Triệu (Pricing Engine & Subscriptions):**
   - `[ ]` Thuật toán tính `FinalFee` từ `EntryTime` đến `ExitTime` dựa trên khung giờ (`RushHourStart`).
   - `[ ]` Xử lý `MonthlySubscriptions` (Tạo vé tháng).
 
