@@ -12,30 +12,48 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PricingController {
     
-    // private final PricingService service;
+    private final PricingService service;
 
+
+    //Create new Pricing policy
     @PostMapping
     public ApiResponse<PricingResponse> create(@Valid @RequestBody PricingRequest request) {
-        return ApiResponse.success("Created successfully", new PricingResponse());
+        PricingResponse response = service.createNewPricingPolicy(request);
+        return ApiResponse.success("Created successfully", response);
     }
 
+    //READ: Find pricing policy by id
     @GetMapping("/{id}")
     public ApiResponse<PricingResponse> getById(@PathVariable Long id) {
-        return ApiResponse.success("Fetched successfully", new PricingResponse());
+        PricingResponse response = service.getPricingPolicyById(id);
+        return ApiResponse.success("Fetched successfully", response);
     }
 
+    //READ: Find all pricing policy
     @GetMapping
     public ApiResponse<List<PricingResponse>> getAll() {
-        return ApiResponse.success("Fetched all successfully", java.util.Collections.emptyList());
+        List<PricingResponse> responses = service.getAllPricingPolicy();
+        return ApiResponse.success("Fetched all successfully", responses);
     }
 
+    //READ: Get pricing policy by vehicle type id
+    @GetMapping("/vehicle-type/{vehicleTypeId}")
+    public ApiResponse<List<PricingResponse>> getPricingPolicyByVehicleTypeId(@PathVariable Long vehicleTypeId) {
+        List<PricingResponse>response = service.getPricingPolicyByVehicleTypeId(vehicleTypeId);
+        return ApiResponse.success("Fetched by vehicle type id successfully", response);
+    }
+
+    //UPDATE
     @PutMapping("/{id}")
     public ApiResponse<PricingResponse> update(@PathVariable Long id, @Valid @RequestBody PricingRequest request) {
-        return ApiResponse.success("Updated successfully", new PricingResponse());
+        PricingResponse response = service.updatePricingPolicy(id,request);
+        return ApiResponse.success("Updated successfully", response);
     }
 
+    //DELETE
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {
+        service.deletePricingPolicyById(id);
         return ApiResponse.success("Deleted successfully", null);
     }
 }

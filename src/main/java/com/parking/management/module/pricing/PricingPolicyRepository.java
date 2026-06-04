@@ -6,7 +6,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface PricingPolicyRepository extends JpaRepository<PricingPolicy, Integer> {
+public interface PricingPolicyRepository extends JpaRepository<PricingPolicy, Long> {
     // Custom query 1
     // List<PricingPolicy> findBySomeField(String field);
+    List<PricingPolicy> findByVehicleTypeId(Long vehicleTypeId);
 }

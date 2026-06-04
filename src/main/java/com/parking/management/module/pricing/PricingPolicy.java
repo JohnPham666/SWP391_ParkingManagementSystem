@@ -9,6 +9,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,11 +22,10 @@ public class PricingPolicy {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "PricingPolicyID")
-    private Integer pricingPolicyId;
+    private Long pricingPolicyId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "VehicleTypeID", nullable = false)
-    private VehicleType vehicleType;
+    @Column(name = "VehicleTypeID", nullable = false)
+    private Long vehicleTypeId;
 
     @Column(name = "PolicyName", length = 100)
     private String policyName;
