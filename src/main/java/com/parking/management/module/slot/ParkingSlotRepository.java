@@ -6,7 +6,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Long> {
+public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Integer> {
     // Custom query 1
     // List<ParkingSlot> findBySomeField(String field);
 }

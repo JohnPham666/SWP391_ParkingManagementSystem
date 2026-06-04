@@ -6,7 +6,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface FloorRepository extends JpaRepository<Floor, Long> {
+public interface FloorRepository extends JpaRepository<Floor, Integer> {
     // Custom query 1
     // List<Floor> findBySomeField(String field);
 }
