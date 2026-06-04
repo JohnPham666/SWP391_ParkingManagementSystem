@@ -3,13 +3,52 @@ package com.parking.management.module.pricing;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+
 @Data
 @Entity
-@Table(name = "pricingpolicys")
+@Table(name = "PricingPolicies")
 public class PricingPolicy {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "PricingPolicyID")
+    private Long pricingPolicyId;
 
-    // TODO: Add actual fields mapped to the SQL Schema here
+    @Column(name = "VehicleTypeID", nullable = false)
+    private Long vehicleTypeId;
+
+    @Column(name = "PolicyName", length = 100)
+    private String policyName;
+
+    @Column(name = "BasePrice", nullable = false, precision = 10, scale = 2)
+    private BigDecimal basePrice;
+
+    @Column(name = "RushHourPrice", nullable = false, precision = 10, scale = 2)
+    private BigDecimal rushHourPrice;
+
+    @Column(name = "OffPeakPrice", nullable = false, precision = 10, scale = 2)
+    private BigDecimal offPeakPrice;
+
+    @Column(name = "RushHourStart", nullable = false)
+    private LocalTime rushHourStart;
+
+    @Column(name = "RushHourEnd", nullable = false)
+    private LocalTime rushHourEnd;
+
+    @Column(name = "MaxDailyRate", precision = 10, scale = 2)
+    private BigDecimal maxDailyRate;
+
+    @Column(name = "LostTicketFee", precision = 10, scale = 2)
+    private BigDecimal lostTicketFee;
+
+    @Column(name = "OvertimeFeePerHour", precision = 10, scale = 2)
+    private BigDecimal overtimeFeePerHour;
+
+    @Column(name = "EffectiveFrom", nullable = false)
+    private LocalDateTime effectiveFrom;
+
+    @Column(name = "EffectiveTo")
+    private LocalDateTime effectiveTo;
 }

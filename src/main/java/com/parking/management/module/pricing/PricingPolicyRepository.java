@@ -9,4 +9,5 @@ import java.util.List;
 public interface PricingPolicyRepository extends JpaRepository<PricingPolicy, Long> {
     // Custom query 1
     // List<PricingPolicy> findBySomeField(String field);
+    List<PricingPolicy> findByVehicleTypeId(Long vehicleTypeId);
 }
