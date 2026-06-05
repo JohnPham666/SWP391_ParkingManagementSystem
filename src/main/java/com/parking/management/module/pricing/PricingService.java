@@ -4,6 +4,9 @@ import com.parking.management.common.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -113,8 +116,116 @@ public class PricingService {
         repository.delete(pricingPolicy);
     }
 
+    //================================================================================================================
+    // PHASE 2: THUẬT TOÁN TÍNH PHÍ GỬI XE (FEE CALCULATION)
+    //================================================================================================================
 
+    /**
+     * Tính phí gửi xe dựa trên loại xe và thời gian vào/ra.
+     *
+     * LOGIC:
+     * 1. Tìm PricingPolicy đang hiệu lực cho loại xe này.
+     * 2. Duyệt từng giờ từ entryTime -> exitTime.
+     * 3. Nếu giờ đó nằm trong khung rushHour -> tính rushHourPrice.
+     *    Nếu không -> tính offPeakPrice.
+     * 4. Nếu tổng phí > maxDailyRate -> cap lại = maxDailyRate.
+     */
+    public FeeCalculationResponse calculateFee(Long vehicleTypeId,
+                                                LocalDateTime entryTime,
+                                                LocalDateTime exitTime) {
+        
+        // Validation: Thời gian ra phải sau thời gian vào
+        if (exitTime.isBefore(entryTime)) {
+            throw new IllegalArgumentException("Exit time must be after entry time.");
+        }
 
+        // Bước 1: Tìm pricing policy đang hiệu lực
+        PricingPolicy policy = repository.findActivePolicyByVehicleTypeId(
+                vehicleTypeId, LocalDateTime.now())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No active pricing policy found for vehicle type id: " + vehicleTypeId));
+
+        // Bước 2: Đếm số giờ rush hour và off-peak
+        long rushHours = 0;
+        long offPeakHours = 0;
+
+        // Lấy khung giờ cao điểm từ policy
+        LocalTime rushStart = policy.getRushHourStart(); // VD: 07:00
+        LocalTime rushEnd = policy.getRushHourEnd();     // VD: 19:00
+
+        // Duyệt từng giờ từ entryTime đến exitTime
+        // VD: entry = 06:00, exit = 10:00 -> duyệt 06:00, 07:00, 08:00, 09:00 (4 giờ)
+        LocalDateTime currentHour = entryTime;
+        while (currentHour.isBefore(exitTime)) {
+            // Lấy giờ hiện tại (chỉ lấy phần giờ:phút, bỏ ngày tháng)
+            LocalTime timeOfDay = currentHour.toLocalTime();
+
+            // Kiểm tra giờ này có nằm trong khung rush hour không
+            if (isRushHour(timeOfDay, rushStart, rushEnd)) {
+                rushHours++;    // Đếm giờ cao điểm
+            } else {
+                offPeakHours++; // Đếm giờ ngoài cao điểm
+            }
+
+            // Nhảy sang giờ tiếp theo
+            currentHour = currentHour.plusHours(1);
+        }
+
+        // Bước 3: Tính phí
+        // rushHourFee = số giờ cao điểm * giá giờ cao điểm
+        BigDecimal rushHourFee = policy.getRushHourPrice()
+                .multiply(BigDecimal.valueOf(rushHours));
+
+        // offPeakFee = số giờ ngoài cao điểm * giá ngoài cao điểm
+        BigDecimal offPeakFee = policy.getOffPeakPrice()
+                .multiply(BigDecimal.valueOf(offPeakHours));
+
+        // totalFee = rushHourFee + offPeakFee
+        BigDecimal totalFee = rushHourFee.add(offPeakFee);
+
+        // Bước 4: Áp dụng maxDailyRate (nếu có)
+        // Nếu tổng phí vượt quá mức tối đa 1 ngày thì cap lại
+        BigDecimal finalFee = totalFee;
+        if (policy.getMaxDailyRate() != null
+                && totalFee.compareTo(policy.getMaxDailyRate()) > 0) {
+            finalFee = policy.getMaxDailyRate();
+        }
+
+        // Bước 5: Đóng gói kết quả trả về
+        FeeCalculationResponse response = new FeeCalculationResponse();
+        response.setTotalHours(rushHours + offPeakHours);
+        response.setRushHours(rushHours);
+        response.setOffPeakHours(offPeakHours);
+        response.setRushHourFee(rushHourFee);
+        response.setOffPeakFee(offPeakFee);
+        response.setTotalFeeBeforeCap(totalFee);
+        response.setFinalFee(finalFee);
+        response.setPolicyName(policy.getPolicyName());
+
+        return response;
+    }
+
+    /**
+     * Kiểm tra 1 thời điểm có nằm trong khung giờ cao điểm không.
+     * VD: rushStart = 07:00, rushEnd = 19:00
+     *     -> 08:00 = true (trong khung)
+     *     -> 20:00 = false (ngoài khung)
+     *
+     * Cũng xử lý trường hợp rush hour qua đêm:
+     * VD: rushStart = 22:00, rushEnd = 06:00
+     *     -> 23:00 = true, 03:00 = true, 10:00 = false
+     */
+    private boolean isRushHour(LocalTime timeOfDay, LocalTime rushStart, LocalTime rushEnd) {
+        if (rushStart.isBefore(rushEnd)) {
+            // Trường hợp bình thường: VD 07:00 -> 19:00
+            // timeOfDay >= rushStart AND timeOfDay < rushEnd
+            return !timeOfDay.isBefore(rushStart) && timeOfDay.isBefore(rushEnd);
+        } else {
+            // Trường hợp qua đêm: VD 22:00 -> 06:00
+            // timeOfDay >= rushStart OR timeOfDay < rushEnd
+            return !timeOfDay.isBefore(rushStart) || timeOfDay.isBefore(rushEnd);
+        }
+    }
 
 
 
