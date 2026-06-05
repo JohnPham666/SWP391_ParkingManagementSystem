@@ -1,6 +1,8 @@
 package com.parking.management.module.vehicle;
 
 import com.parking.management.common.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -10,30 +12,36 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/vehicles")
 @RequiredArgsConstructor
+@Tag(name = "Vehicle", description = "APIs for managing registered vehicles")
 public class VehicleController {
     
     // private final VehicleService service;
 
+    @Operation(summary = "Create a new vehicle", description = "Register a new vehicle with license plate, type, owner info")
     @PostMapping
     public ApiResponse<VehicleResponse> create(@Valid @RequestBody VehicleRequest request) {
         return ApiResponse.success("Created successfully", new VehicleResponse());
     }
 
+    @Operation(summary = "Get vehicle by ID", description = "Retrieve a specific vehicle by its ID")
     @GetMapping("/{id}")
     public ApiResponse<VehicleResponse> getById(@PathVariable Long id) {
         return ApiResponse.success("Fetched successfully", new VehicleResponse());
     }
 
+    @Operation(summary = "Get all vehicles", description = "Retrieve a list of all registered vehicles")
     @GetMapping
     public ApiResponse<List<VehicleResponse>> getAll() {
         return ApiResponse.success("Fetched all successfully", java.util.Collections.emptyList());
     }
 
+    @Operation(summary = "Update a vehicle", description = "Update an existing vehicle by its ID")
     @PutMapping("/{id}")
     public ApiResponse<VehicleResponse> update(@PathVariable Long id, @Valid @RequestBody VehicleRequest request) {
         return ApiResponse.success("Updated successfully", new VehicleResponse());
     }
 
+    @Operation(summary = "Delete a vehicle", description = "Delete a vehicle by its ID")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         return ApiResponse.success("Deleted successfully", null);
