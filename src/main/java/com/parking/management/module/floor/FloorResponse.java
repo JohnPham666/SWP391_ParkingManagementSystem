@@ -4,6 +4,9 @@ import lombok.Data;
 
 @Data
 public class FloorResponse {
-    private Long id;
-    private String name;
+    private Integer floorId;
+    private Integer buildingId;
+    private String buildingName;
+    private Integer floorNumber;
+    private String floorName;
 }

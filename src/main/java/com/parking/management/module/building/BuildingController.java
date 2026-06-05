@@ -12,30 +12,31 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BuildingController {
     
-    // private final BuildingService service;
+    private final BuildingService service;
 
     @PostMapping
     public ApiResponse<BuildingResponse> create(@Valid @RequestBody BuildingRequest request) {
-        return ApiResponse.success("Created successfully", new BuildingResponse());
+        return ApiResponse.success("Created successfully", service.create(request));
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<BuildingResponse> getById(@PathVariable Long id) {
-        return ApiResponse.success("Fetched successfully", new BuildingResponse());
+    public ApiResponse<BuildingResponse> getById(@PathVariable Integer id) {
+        return ApiResponse.success("Fetched successfully", service.getById(id));
     }
 
     @GetMapping
-    public ApiResponse<List<BuildingResponse>> getAll() {
-        return ApiResponse.success("Fetched all successfully", java.util.Collections.emptyList());
+    public ApiResponse<List<BuildingResponse>> getAll(@RequestParam(required = false) String keyword) {
+        return ApiResponse.success("Fetched all successfully", service.getAll(keyword));
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<BuildingResponse> update(@PathVariable Long id, @Valid @RequestBody BuildingRequest request) {
-        return ApiResponse.success("Updated successfully", new BuildingResponse());
+    public ApiResponse<BuildingResponse> update(@PathVariable Integer id, @Valid @RequestBody BuildingRequest request) {
+        return ApiResponse.success("Updated successfully", service.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable Integer id) {
+        service.delete(id);
         return ApiResponse.success("Deleted successfully", null);
     }
 }

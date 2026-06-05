@@ -12,30 +12,31 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FloorController {
     
-    // private final FloorService service;
+    private final FloorService service;
 
     @PostMapping
     public ApiResponse<FloorResponse> create(@Valid @RequestBody FloorRequest request) {
-        return ApiResponse.success("Created successfully", new FloorResponse());
+        return ApiResponse.success("Created successfully", service.create(request));
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<FloorResponse> getById(@PathVariable Long id) {
-        return ApiResponse.success("Fetched successfully", new FloorResponse());
+    public ApiResponse<FloorResponse> getById(@PathVariable Integer id) {
+        return ApiResponse.success("Fetched successfully", service.getById(id));
     }
 
     @GetMapping
-    public ApiResponse<List<FloorResponse>> getAll() {
-        return ApiResponse.success("Fetched all successfully", java.util.Collections.emptyList());
+    public ApiResponse<List<FloorResponse>> getAll(@RequestParam(required = false) Integer buildingId) {
+        return ApiResponse.success("Fetched all successfully", service.getAll(buildingId));
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<FloorResponse> update(@PathVariable Long id, @Valid @RequestBody FloorRequest request) {
-        return ApiResponse.success("Updated successfully", new FloorResponse());
+    public ApiResponse<FloorResponse> update(@PathVariable Integer id, @Valid @RequestBody FloorRequest request) {
+        return ApiResponse.success("Updated successfully", service.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable Integer id) {
+        service.delete(id);
         return ApiResponse.success("Deleted successfully", null);
     }
 }

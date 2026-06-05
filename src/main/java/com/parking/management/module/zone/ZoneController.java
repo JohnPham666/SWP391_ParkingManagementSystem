@@ -12,30 +12,31 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ZoneController {
     
-    // private final ZoneService service;
+    private final ZoneService service;
 
     @PostMapping
     public ApiResponse<ZoneResponse> create(@Valid @RequestBody ZoneRequest request) {
-        return ApiResponse.success("Created successfully", new ZoneResponse());
+        return ApiResponse.success("Created successfully", service.create(request));
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<ZoneResponse> getById(@PathVariable Long id) {
-        return ApiResponse.success("Fetched successfully", new ZoneResponse());
+    public ApiResponse<ZoneResponse> getById(@PathVariable Integer id) {
+        return ApiResponse.success("Fetched successfully", service.getById(id));
     }
 
     @GetMapping
-    public ApiResponse<List<ZoneResponse>> getAll() {
-        return ApiResponse.success("Fetched all successfully", java.util.Collections.emptyList());
+    public ApiResponse<List<ZoneResponse>> getAll(@RequestParam(required = false) Integer floorId) {
+        return ApiResponse.success("Fetched all successfully", service.getAll(floorId));
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<ZoneResponse> update(@PathVariable Long id, @Valid @RequestBody ZoneRequest request) {
-        return ApiResponse.success("Updated successfully", new ZoneResponse());
+    public ApiResponse<ZoneResponse> update(@PathVariable Integer id, @Valid @RequestBody ZoneRequest request) {
+        return ApiResponse.success("Updated successfully", service.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable Integer id) {
+        service.delete(id);
         return ApiResponse.success("Deleted successfully", null);
     }
 }
