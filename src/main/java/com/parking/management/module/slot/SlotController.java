@@ -31,9 +31,26 @@ public class SlotController {
         return ApiResponse.success("Fetched all successfully", service.getAll(zoneId, vehicleTypeId));
     }
 
+    @GetMapping("/available")
+    public ApiResponse<List<SlotResponse>> getAvailableSlots(
+            @RequestParam(required = false) Integer buildingId,
+            @RequestParam(required = false) Integer floorId,
+            @RequestParam(required = false) Integer zoneId,
+            @RequestParam(required = false) Integer vehicleTypeId) {
+        return ApiResponse.success("Fetched available slots successfully",
+                service.getAvailableSlots(buildingId, floorId, zoneId, vehicleTypeId));
+    }
+
     @PutMapping("/{id}")
     public ApiResponse<SlotResponse> update(@PathVariable Integer id, @Valid @RequestBody SlotRequest request) {
         return ApiResponse.success("Updated successfully", service.update(id, request));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ApiResponse<SlotResponse> updateStatus(
+            @PathVariable Integer id,
+            @Valid @RequestBody SlotStatusUpdateRequest request) {
+        return ApiResponse.success("Slot status updated successfully", service.updateStatus(id, request));
     }
 
     @DeleteMapping("/{id}")
