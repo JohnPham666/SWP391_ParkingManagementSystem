@@ -39,8 +39,9 @@ public class ParkingSlot {
     @Column(name = "CurrentOccupancy", nullable = false)
     private Integer currentOccupancy = 0;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "Status", nullable = false, length = 20)
-    private String status;
+    private SlotStatus status = SlotStatus.AVAILABLE;
 
     @Column(name = "IsActive")
     private Boolean isActive = true;

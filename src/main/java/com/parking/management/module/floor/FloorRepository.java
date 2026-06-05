@@ -7,6 +7,9 @@ import java.util.List;
 
 @Repository
 public interface FloorRepository extends JpaRepository<Floor, Integer> {
-    // Custom query 1
-    // List<Floor> findBySomeField(String field);
+    List<Floor> findByBuilding_BuildingId(Integer buildingId);
+
+    boolean existsByBuilding_BuildingIdAndFloorNumber(Integer buildingId, Integer floorNumber);
+
+    boolean existsByBuilding_BuildingIdAndFloorNumberAndFloorIdNot(Integer buildingId, Integer floorNumber, Integer floorId);
 }
