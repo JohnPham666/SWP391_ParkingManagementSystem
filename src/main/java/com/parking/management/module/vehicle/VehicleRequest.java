@@ -1,11 +1,24 @@
 package com.parking.management.module.vehicle;
 
-import lombok.Data;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import lombok.Data;
 
 @Data
 public class VehicleRequest {
-    @NotNull
-    private String name; // TODO: Adjust fields
+    @NotBlank(message = "License plate is required")
+    private String licensePlate;
+
+    @NotNull(message = "Vehicle type id is required")
+    private Integer vehicleTypeId;
+
+    private String ownerName;
+    private String ownerPhone;
+    private Integer userId;
+    private String brand;
+    private String vehicleColor;
+    private String engineNumber;
+    private String chassisNumber;
+    private Integer manufactureYear;
+    private String vehicleImage;
 }
