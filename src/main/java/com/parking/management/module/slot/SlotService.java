@@ -45,6 +45,14 @@ public class SlotService {
         return slots.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<SlotResponse> getAvailableSlots(Integer buildingId, Integer floorId, Integer zoneId, Integer vehicleTypeId) {
+        return repository.findAvailableSlots(buildingId, floorId, zoneId, vehicleTypeId)
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public SlotResponse update(Integer id, SlotRequest request) {
         validateSlot(request, id);
@@ -57,6 +65,34 @@ public class SlotService {
     public void delete(Integer id) {
         ParkingSlot slot = findEntity(id);
         repository.delete(slot);
+    }
+
+    @Transactional
+    public SlotResponse updateStatus(Integer id, SlotStatusUpdateRequest request) {
+        ParkingSlot slot = findEntity(id);
+        applyStatus(slot, request.getStatus(), request.getCurrentOccupancy());
+        return toResponse(repository.save(slot));
+    }
+
+    @Transactional
+    public ParkingSlot markReserved(Integer id) {
+        ParkingSlot slot = findEntity(id);
+        applyStatus(slot, SlotStatus.RESERVED, slot.getCurrentOccupancy());
+        return repository.save(slot);
+    }
+
+    @Transactional
+    public ParkingSlot markOccupied(Integer id) {
+        ParkingSlot slot = findEntity(id);
+        applyStatus(slot, SlotStatus.OCCUPIED, slot.getCapacity());
+        return repository.save(slot);
+    }
+
+    @Transactional
+    public ParkingSlot markAvailable(Integer id) {
+        ParkingSlot slot = findEntity(id);
+        applyStatus(slot, SlotStatus.AVAILABLE, 0);
+        return repository.save(slot);
     }
 
     public ParkingSlot findEntity(Integer id) {
@@ -90,6 +126,32 @@ public class SlotService {
         if (request.getCurrentOccupancy() > request.getCapacity()) {
             throw new IllegalArgumentException("Current occupancy must not exceed capacity");
         }
+    }
+
+    private void applyStatus(ParkingSlot slot, SlotStatus status, Integer requestedOccupancy) {
+        int occupancy = requestedOccupancy == null ? deriveOccupancy(slot, status) : requestedOccupancy;
+        if (occupancy > slot.getCapacity()) {
+            throw new IllegalArgumentException("Current occupancy must not exceed capacity");
+        }
+        if (status == SlotStatus.AVAILABLE && occupancy >= slot.getCapacity()) {
+            throw new IllegalArgumentException("Available slot must have current occupancy lower than capacity");
+        }
+        if (status == SlotStatus.OCCUPIED && occupancy <= 0) {
+            throw new IllegalArgumentException("Occupied slot must have current occupancy greater than 0");
+        }
+        if (Boolean.FALSE.equals(slot.getIsActive()) && status != SlotStatus.LOCKED) {
+            throw new IllegalArgumentException("Inactive slot can only be set to LOCKED");
+        }
+
+        slot.setStatus(status);
+        slot.setCurrentOccupancy(occupancy);
+    }
+
+    private int deriveOccupancy(ParkingSlot slot, SlotStatus status) {
+        return switch (status) {
+            case AVAILABLE, RESERVED, LOCKED -> 0;
+            case OCCUPIED -> slot.getCapacity();
+        };
     }
 
     private SlotResponse toResponse(ParkingSlot slot) {

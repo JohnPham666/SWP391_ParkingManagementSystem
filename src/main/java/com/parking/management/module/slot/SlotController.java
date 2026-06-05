@@ -37,10 +37,29 @@ public class SlotController {
         return ApiResponse.success("Fetched all successfully", service.getAll(zoneId, vehicleTypeId));
     }
 
+    @Operation(summary = "Get available slots", description = "Retrieve a list of available parking slots based on optional filters")
+    @GetMapping("/available")
+    public ApiResponse<List<SlotResponse>> getAvailableSlots(
+            @RequestParam(required = false) Integer buildingId,
+            @RequestParam(required = false) Integer floorId,
+            @RequestParam(required = false) Integer zoneId,
+            @RequestParam(required = false) Integer vehicleTypeId) {
+        return ApiResponse.success("Fetched available slots successfully",
+                service.getAvailableSlots(buildingId, floorId, zoneId, vehicleTypeId));
+    }
+
     @Operation(summary = "Update a slot", description = "Update an existing parking slot by its ID")
     @PutMapping("/{id}")
     public ApiResponse<SlotResponse> update(@PathVariable Integer id, @Valid @RequestBody SlotRequest request) {
         return ApiResponse.success("Updated successfully", service.update(id, request));
+    }
+
+    @Operation(summary = "Update slot status", description = "Update the status of a specific parking slot")
+    @PatchMapping("/{id}/status")
+    public ApiResponse<SlotResponse> updateStatus(
+            @PathVariable Integer id,
+            @Valid @RequestBody SlotStatusUpdateRequest request) {
+        return ApiResponse.success("Slot status updated successfully", service.updateStatus(id, request));
     }
 
     @Operation(summary = "Delete a slot", description = "Delete a parking slot by its ID")
