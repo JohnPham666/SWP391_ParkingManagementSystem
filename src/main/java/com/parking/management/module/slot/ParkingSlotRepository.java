@@ -4,9 +4,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Integer> {
-    // Custom query 1
-    // List<ParkingSlot> findBySomeField(String field);
+    Optional<ParkingSlot> findFirstByVehicleType_VehicleTypeIdAndStatusAndIsActiveTrue(
+            Integer vehicleTypeId,
+            String status
+    );
 }

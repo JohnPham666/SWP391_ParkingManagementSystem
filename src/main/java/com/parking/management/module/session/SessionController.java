@@ -1,6 +1,7 @@
 package com.parking.management.module.session;
 
 import com.parking.management.common.ApiResponse;
+import com.parking.management.common.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -12,30 +13,38 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SessionController {
     
-    // private final SessionService service;
+    private final SessionService service;
 
-    @PostMapping
-    public ApiResponse<SessionResponse> create(@Valid @RequestBody SessionRequest request) {
-        return ApiResponse.success("Created successfully", new SessionResponse());
+    /*
+     * CHECK-IN
+     *
+     * Tạo ParkingSession từ Reservation đã hold slot.
+     */
+    @PostMapping("/check-in")
+    public ApiResponse<SessionResponse> checkIn(@Valid @RequestBody CheckInRequest request) {
+        try {
+            SessionResponse response = service.checkIn(request);
+            return ApiResponse.success("Check-in successfully", response);
+        } catch (IllegalArgumentException | ResourceNotFoundException e) {
+            return ApiResponse.error(e.getMessage());
+        }
     }
 
-    @GetMapping("/{id}")
-    public ApiResponse<SessionResponse> getById(@PathVariable Long id) {
-        return ApiResponse.success("Fetched successfully", new SessionResponse());
-    }
-
-    @GetMapping
-    public ApiResponse<List<SessionResponse>> getAll() {
-        return ApiResponse.success("Fetched all successfully", java.util.Collections.emptyList());
-    }
-
-    @PutMapping("/{id}")
-    public ApiResponse<SessionResponse> update(@PathVariable Long id, @Valid @RequestBody SessionRequest request) {
-        return ApiResponse.success("Updated successfully", new SessionResponse());
-    }
-
-    @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
-        return ApiResponse.success("Deleted successfully", null);
+    /*
+     * CHECK-OUT
+     *
+     * Kết thúc ParkingSession.
+     */
+    @PostMapping("/{sessionId}/check-out")
+    public ApiResponse<SessionResponse> checkOut(
+            @PathVariable Integer sessionId,
+            @RequestBody CheckOutRequest request
+    ) {
+        try {
+            SessionResponse response = service.checkOut(sessionId, request);
+            return ApiResponse.success("Check-out successfully", response);
+        } catch (IllegalArgumentException | ResourceNotFoundException e) {
+            return ApiResponse.error(e.getMessage());
+        }
     }
 }

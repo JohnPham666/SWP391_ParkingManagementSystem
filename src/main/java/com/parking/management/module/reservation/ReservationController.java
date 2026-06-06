@@ -12,30 +12,41 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReservationController {
     
-    // private final ReservationService service;
+    private final ReservationService service;
 
-    @PostMapping
-    public ApiResponse<ReservationResponse> create(@Valid @RequestBody ReservationRequest request) {
-        return ApiResponse.success("Created successfully", new ReservationResponse());
+    //Hold Slot
+    @PostMapping("/hold-slot")
+    public ApiResponse<ReservationResponse> holdSlot(@Valid @RequestBody ReservationRequest request) {
+        ReservationResponse response = service.holdSlot(request);
+        return ApiResponse.success("hold slot successfully", response);
     }
 
+    // READ: tìm reservation theo id
     @GetMapping("/{id}")
-    public ApiResponse<ReservationResponse> getById(@PathVariable Long id) {
-        return ApiResponse.success("Fetched successfully", new ReservationResponse());
+    public ApiResponse<ReservationResponse> getById(@PathVariable Integer id) {
+        ReservationResponse response = service.getReservationById(id);
+        return ApiResponse.success("Fetched successfully", response);
     }
 
+    // READ: lấy tất cả reservation
     @GetMapping
     public ApiResponse<List<ReservationResponse>> getAll() {
-        return ApiResponse.success("Fetched all successfully", java.util.Collections.emptyList());
+        List<ReservationResponse> responses = service.getAllReservations();
+        return ApiResponse.success("Fetched all successfully", responses);
     }
 
+    // UPDATE
     @PutMapping("/{id}")
-    public ApiResponse<ReservationResponse> update(@PathVariable Long id, @Valid @RequestBody ReservationRequest request) {
-        return ApiResponse.success("Updated successfully", new ReservationResponse());
+    public ApiResponse<ReservationResponse> update(@PathVariable Integer id, @Valid @RequestBody ReservationRequest request
+    ) {
+        ReservationResponse response = service.updateReservation(id, request);
+        return ApiResponse.success("Updated successfully", response);
     }
 
+    // DELETE
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable Integer id) {
+        service.deleteReservation(id);
         return ApiResponse.success("Deleted successfully", null);
     }
 }
