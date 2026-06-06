@@ -2,6 +2,10 @@ package com.parking.management.module.vehicle;
 
 import com.parking.management.module.user.User;
 import com.parking.management.module.user.UserRepository;
+import com.parking.management.module.reservation.ReservationRepository;
+import com.parking.management.module.session.ParkingSessionRepository;
+import com.parking.management.module.subscription.SubscriptionRepository;
+import com.parking.management.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -22,6 +26,10 @@ public class VehicleService {
     private final VehicleRepository vehicleRepository;
     private final VehicleTypeRepository vehicleTypeRepository;
     private final UserRepository userRepository;
+    private final ParkingSessionRepository parkingSessionRepository;
+    private final ReservationRepository reservationRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    private final SecurityUtils securityUtils;
 
     @Value("${file.upload-dir:uploads/vehicles}")
     private String uploadDir;
@@ -34,6 +42,7 @@ public class VehicleService {
 
         User user = null;
         if (request.getUserId() != null) {
+            securityUtils.checkDataOwnership(request.getUserId());
             user = userRepository.findById(request.getUserId())
                     .orElseThrow(() -> new RuntimeException("User not found"));
         }
@@ -57,6 +66,7 @@ public class VehicleService {
     public List<VehicleResponse> getAll() {
         return vehicleRepository.findAll()
                 .stream()
+                .filter(v -> Boolean.TRUE.equals(v.getIsActive()))
                 .map(VehicleResponse::fromEntity)
                 .toList();
     }
@@ -65,12 +75,32 @@ public class VehicleService {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Vehicle not found"));
 
+        if (!Boolean.TRUE.equals(vehicle.getIsActive())) {
+            throw new ResourceNotFoundException("Vehicle not found with id: " + id);
+        }
+
+        if (vehicle.getUser() != null) {
+            securityUtils.checkDataOwnership(vehicle.getUser().getUserId());
+        }
+
         return VehicleResponse.fromEntity(vehicle);
     }
 
     public VehicleResponse update(Integer id, VehicleRequest request) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+
+        if (!Boolean.TRUE.equals(vehicle.getIsActive())) {
+            throw new ResourceNotFoundException("Vehicle not found with id: " + id);
+        }
+
+        if (vehicle.getUser() != null) {
+            securityUtils.checkDataOwnership(vehicle.getUser().getUserId());
+        }
+        
+        if (request.getUserId() != null) {
+            securityUtils.checkDataOwnership(request.getUserId());
+        }
 
         validateUniqueOnUpdate(id, request);
 
@@ -105,12 +135,19 @@ public class VehicleService {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Vehicle not found"));
 
-        try {
+        if (vehicle.getUser() != null) {
+            securityUtils.checkDataOwnership(vehicle.getUser().getUserId());
+        }
+
+        boolean hasParkingSessions = parkingSessionRepository.existsByVehicle_VehicleId(id);
+        boolean hasReservations = reservationRepository.existsByVehicle_VehicleId(id);
+        boolean hasSubscriptions = subscriptionRepository.existsByVehicle_VehicleId(id);
+
+        if (hasParkingSessions || hasReservations || hasSubscriptions) {
+            vehicle.setIsActive(false);
+            vehicleRepository.save(vehicle);
+        } else {
             vehicleRepository.delete(vehicle);
-        } catch (DataIntegrityViolationException e) {
-            throw new IllegalStateException(
-                    "Cannot delete this vehicle because it has related parking sessions or reservations."
-            );
         }
     }
 
@@ -186,12 +223,15 @@ public class VehicleService {
 
         checkVehicleBelongsToUser(vehicle, userId);
 
-        try {
+        boolean hasParkingSessions = parkingSessionRepository.existsByVehicle_VehicleId(vehicleId);
+        boolean hasReservations = reservationRepository.existsByVehicle_VehicleId(vehicleId);
+        boolean hasSubscriptions = subscriptionRepository.existsByVehicle_VehicleId(vehicleId);
+
+        if (hasParkingSessions || hasReservations || hasSubscriptions) {
+            vehicle.setIsActive(false);
+            vehicleRepository.save(vehicle);
+        } else {
             vehicleRepository.delete(vehicle);
-        } catch (DataIntegrityViolationException e) {
-            throw new IllegalStateException(
-                    "Cannot delete this vehicle because it has related parking sessions or reservations."
-            );
         }
     }
 

@@ -9,4 +9,6 @@ import java.util.List;
 public interface ParkingSessionRepository extends JpaRepository<ParkingSession, Integer> {
     // Custom query 1
     // List<ParkingSession> findBySomeField(String field);
+
+    boolean existsByVehicle_VehicleId(Integer vehicleId);
 }

@@ -59,18 +59,18 @@ Dựa trên Database Schema mới nhất, dưới đây là bảng phân công c
 **Deadline: 10/06/2026 (CHỐT HẠ API BE)**
 **Mục tiêu:** Hoàn thiện thanh toán, xử lý ngoại lệ (Sự cố), Báo cáo. Chốt chặn cuối cùng cho Backend trên Swagger.
 
-- **Thành viên 1 (Security & Validation):**
+- **Khải Triệu (Security & Validation):**
   - `[ ]` Hoàn thiện Authorization (Phân quyền chi tiết API nào cho Staff, API nào cho Customer).
   - `[ ]` Đảm bảo Validation toàn hệ thống (Bắt lỗi chuẩn).
 
-- **Thành viên 2 (Monitoring):**
+- **Phương Minh (Monitoring):**
   - `[ ]` API Dashboard xem sơ đồ bãi xe thời gian thực (Bao nhiêu chỗ trống theo Zone/Tầng).
 
-- **Thành viên 3 (Payments):**
+- **Hữu Vinh (Payments):**
   - `[ ]` Xử lý Record `Payments` (Cập nhật `PaymentStatus`).
   - `[ ]` Tích hợp cổng thanh toán VNPay/MoMo (Tùy chọn nâng cao).
 
-- **Thành viên 4 (Incident & Reports):**
+- **Đăng Khôi (Incident & Reports):**
   - `[ ]` Quản lý `IncidentReports` (Sự cố `LOST_TICKET`, `FACILITY_DAMAGE`).
   - `[ ]` Báo cáo doanh thu (`RevenueReport`), tỉ lệ lấp đầy (`OccupancyReport`).
   - `[ ]` API sinh dữ liệu dự đoán `ParkingPredictions`.

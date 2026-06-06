@@ -51,4 +51,7 @@ public class Vehicle {
 
     @Column(name = "VehicleImage", length = 255)
     private String vehicleImage;
+
+    @Column(name = "IsActive")
+    private Boolean isActive = true;
 }
