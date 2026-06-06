@@ -12,9 +12,9 @@ public class VehicleResponse {
     private String licensePlate;
     private Integer vehicleTypeId;
     private String vehicleTypeName;
+    private Integer userId;
     private String ownerName;
     private String ownerPhone;
-    private Integer userId;
     private String brand;
     private String vehicleColor;
     private String engineNumber;
@@ -28,9 +28,9 @@ public class VehicleResponse {
                 vehicle.getLicensePlate(),
                 vehicle.getVehicleType() != null ? vehicle.getVehicleType().getVehicleTypeId() : null,
                 vehicle.getVehicleType() != null ? vehicle.getVehicleType().getTypeName() : null,
+                vehicle.getUser() != null ? vehicle.getUser().getUserId() : null,
                 vehicle.getOwnerName(),
                 vehicle.getOwnerPhone(),
-                vehicle.getUser() != null ? vehicle.getUser().getUserId() : null,
                 vehicle.getBrand(),
                 vehicle.getVehicleColor(),
                 vehicle.getEngineNumber(),
