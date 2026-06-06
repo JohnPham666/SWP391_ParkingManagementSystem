@@ -5,10 +5,6 @@ import lombok.Data;
 
 @Data
 public class SessionRequest {
-    @NotNull(message = "Reservation id is required")
-    private Integer reservationId;
-
-    private String entryGate;
-
-    private String exitGate;
+    @NotNull
+    private String name; // TODO: Adjust fields
 }

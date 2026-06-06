@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 
 @Data
 public class SessionResponse {
+
+    //====
     private Integer sessionId;
 
     private Integer vehicleId;
@@ -25,4 +27,5 @@ public class SessionResponse {
 
     private BigDecimal estimatedFee;
     private BigDecimal finalFee;
+    //====
 }

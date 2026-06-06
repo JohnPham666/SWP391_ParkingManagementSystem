@@ -30,18 +30,18 @@ public class ReservationService {
     @Transactional
     public ReservationResponse holdSlot(ReservationRequest request){
         //Tim xem user id co ton tai hay ko
-        User user = userRepository.findById(request.getUser().getUserId()).orElseThrow(()-> new ResourceNotFoundException("User id is not found"));
+        User user = userRepository.findById(request.getUserId()).orElseThrow(()-> new ResourceNotFoundException("User id is not found"));
         //Tim xem vehicle id co ton tai hay ko
-        Vehicle vehicle = vehicleRepository.findById(request.getVehicle().getVehicleId()).orElseThrow(()-> new ResourceNotFoundException("Vehicle id is not found"));
+        Vehicle vehicle = vehicleRepository.findById(request.getVehicleId()).orElseThrow(()-> new ResourceNotFoundException("Vehicle id is not found"));
         //Tim xem vehicle type id co ton tai hay ko
-        VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleType().getVehicleTypeId()).orElseThrow(()-> new ResourceNotFoundException("Vehicle type id is not found"));
+        VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleTypeId()).orElseThrow(()-> new ResourceNotFoundException("Vehicle type id is not found"));
         //Tim slot available dau tien
         ParkingSlot slot = parkingSlotRepository
                 .findFirstByVehicleType_VehicleTypeIdAndStatusAndIsActiveTrue(
-                        request.getVehicleType().getVehicleTypeId(),
+                        request.getVehicleTypeId(),
                         SlotStatus.AVAILABLE.name()
                 )
-                .orElseThrow(() -> new ResourceNotFoundException("No available slot found for vehicle type id: " + request.getVehicleType().getVehicleTypeId()));
+                .orElseThrow(() -> new ResourceNotFoundException("No available slot found for vehicle type id: " + request.getVehicleTypeId()));
 
         //Update slot status
         //Hold slot AVAILABLE --> RESERVED
@@ -65,61 +65,15 @@ public class ReservationService {
 
         return mapEntityToResponse(savedReservation);
     }
-    // READ: lấy reservation theo id
-    public ReservationResponse getReservationById(Integer reservationId) {
-        Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Reservation not found with id: " + reservationId
-                ));
-
-        return mapEntityToResponse(reservation);
-    }
-
-    // READ: lấy tất cả reservation
-    public List<ReservationResponse> getAllReservations() {
-        List<Reservation> reservations = reservationRepository.findAll();
-        List<ReservationResponse> responses = new ArrayList<>();
-
-        for (Reservation reservation : reservations) {
-            responses.add(mapEntityToResponse(reservation));
-        }
-
-        return responses;
-    }
-
-    // UPDATE: cập nhật reservation
-    public ReservationResponse updateReservation(Integer reservationId, ReservationRequest request) {
-        Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Reservation not found with id: " + reservationId
-                ));
-
-        mapRequestToEntity(request, reservation);
-
-        Reservation updatedReservation = reservationRepository.save(reservation);
-
-        return mapEntityToResponse(updatedReservation);
-    }
-
-    // DELETE: xóa reservation
-    public void deleteReservation(Integer reservationId) {
-        Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Reservation not found with id: " + reservationId
-                ));
-
-        reservationRepository.delete(reservation);
-    }
-
 //========================================================================================================================
     //Supportive function: map entity to response
 
     // Map request sang entity
     private void mapRequestToEntity(ReservationRequest request, Reservation reservation) {
-        validateReservationTime(request);
-        User user = getUserById(request.getUser().getUserId());
-        Vehicle vehicle = getVehicleById(request.getVehicle().getVehicleId());
-        VehicleType vehicleType = getVehicleTypeById(request.getVehicleType().getVehicleTypeId());
+        validateTime(request);
+        User user = getUserById(request.getUserId());
+        Vehicle vehicle = getVehicleById(request.getVehicleId());
+        VehicleType vehicleType = getVehicleTypeById(request.getVehicleTypeId());
 
         reservation.setUser(user);
         reservation.setVehicle(vehicle);
@@ -175,7 +129,7 @@ public class ReservationService {
                 ));
     }
 
-    private void validateReservationTime(ReservationRequest request) {
+    private void validateTime(ReservationRequest request) {
         if (request.getReservationStart().isAfter(request.getReservationEnd())
                 || request.getReservationStart().equals(request.getReservationEnd())) {
             throw new IllegalArgumentException("Reservation start time must be before reservation end time");

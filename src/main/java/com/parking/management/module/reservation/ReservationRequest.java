@@ -11,23 +11,18 @@ import java.time.LocalDateTime;
 
 @Data
 public class ReservationRequest {
-    /*
-     * ReservationRequest dùng để nhận dữ liệu đặt chỗ từ client.
-     * Client chỉ gửi các ID cần thiết như userId, vehicleId, vehicleTypeId.
-     * Service sẽ dùng các ID này để tìm entity thật trong database.
-     *
-     * Không có reservationId vì ID được database tự động tạo khi lưu Reservation.
-     * Không có slotId trong request vì hệ thống sẽ tự tìm slot AVAILABLE phù hợp
-     * rồi hold slot đó cho user.
-     */
+
     @NotNull(message = "User id is required")
-    private User user;
+    private Integer userId;
 
     @NotNull(message = "Vehicle id is required")
-    private Vehicle vehicle;
+    private Integer vehicleId;
 
     @NotNull(message = "Vehicle type id is required")
-    private VehicleType vehicleType;
+    private Integer vehicleTypeId;
+
+    @NotNull(message = "Slot id is required")
+    private Integer slotId;
 
     @NotNull(message = "Reservation start is required")
     private LocalDateTime reservationStart;
@@ -35,7 +30,6 @@ public class ReservationRequest {
     @NotNull(message = "Reservation end is required")
     private LocalDateTime reservationEnd;
 
-    @Size(max = 100, message = "Guest's name must not exceed 100 charaters")
+    @Size(max = 100, message = "Guest's name must not exceed 100 characters")
     private String guestName;
-
 }
