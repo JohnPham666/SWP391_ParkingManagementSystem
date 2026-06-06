@@ -34,4 +34,23 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
             @Param("floorId") Integer floorId,
             @Param("zoneId") Integer zoneId,
             @Param("vehicleTypeId") Integer vehicleTypeId);
+
+    @Query("""
+            select slot
+            from ParkingSlot slot
+            join fetch slot.zone zone
+            join fetch zone.floor floor
+            join fetch floor.building building
+            join fetch slot.vehicleType vehicleType
+            where (:buildingId is null or building.buildingId = :buildingId)
+              and (:floorId is null or floor.floorId = :floorId)
+              and (:zoneId is null or zone.zoneId = :zoneId)
+              and (:vehicleTypeId is null or vehicleType.vehicleTypeId = :vehicleTypeId)
+            order by building.buildingName, floor.floorNumber, zone.zoneName, slot.slotCode
+            """)
+    List<ParkingSlot> findSlotsForMonitoring(
+            @Param("buildingId") Integer buildingId,
+            @Param("floorId") Integer floorId,
+            @Param("zoneId") Integer zoneId,
+            @Param("vehicleTypeId") Integer vehicleTypeId);
 }
