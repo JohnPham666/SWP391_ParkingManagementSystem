@@ -76,7 +76,7 @@ public class VehicleService {
                 .orElseThrow(() -> new RuntimeException("Vehicle not found"));
 
         if (!Boolean.TRUE.equals(vehicle.getIsActive())) {
-            throw new ResourceNotFoundException("Vehicle not found with id: " + id);
+            throw new RuntimeException("Vehicle not found with id: " + id);
         }
 
         if (vehicle.getUser() != null) {
@@ -91,7 +91,7 @@ public class VehicleService {
                 .orElseThrow(() -> new RuntimeException("Vehicle not found"));
 
         if (!Boolean.TRUE.equals(vehicle.getIsActive())) {
-            throw new ResourceNotFoundException("Vehicle not found with id: " + id);
+            throw new RuntimeException("Vehicle not found with id: " + id);
         }
 
         if (vehicle.getUser() != null) {
@@ -188,6 +188,7 @@ public class VehicleService {
     }
 
     public List<VehicleResponse> getVehiclesByUser(Integer userId) {
+        securityUtils.checkDataOwnership(userId);
         if (!userRepository.existsById(userId)) {
             throw new RuntimeException("User not found");
         }
@@ -245,6 +246,7 @@ public class VehicleService {
     }
 
     private void checkVehicleBelongsToUser(Vehicle vehicle, Integer userId) {
+        securityUtils.checkDataOwnership(userId);
         if (vehicle.getUser() == null || !vehicle.getUser().getUserId().equals(userId)) {
             throw new RuntimeException("This vehicle does not belong to this user");
         }
