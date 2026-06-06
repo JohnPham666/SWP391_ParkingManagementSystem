@@ -4,8 +4,10 @@ import com.parking.management.common.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
+@PreAuthorize("hasRole('Admin')")
 @RequestMapping("/api/vehicle-types")
 @RequiredArgsConstructor
 public class VehicleTypeController {

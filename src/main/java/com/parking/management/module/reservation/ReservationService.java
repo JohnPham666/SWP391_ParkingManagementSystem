@@ -9,6 +9,7 @@ import com.parking.management.module.vehicle.Vehicle;
 import com.parking.management.module.vehicle.VehicleRepository;
 import com.parking.management.module.vehicle.VehicleType;
 import com.parking.management.module.vehicle.VehicleTypeRepository;
+import com.parking.management.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,9 +25,11 @@ public class ReservationService {
     private final VehicleRepository vehicleRepository;
     private final VehicleTypeRepository vehicleTypeRepository;
     private final ParkingSlotRepository parkingSlotRepository;
+    private final SecurityUtils securityUtils;
 
     public ReservationResponse create(ReservationRequest request) {
         validateTime(request);
+        securityUtils.checkDataOwnership(request.getUserId());
 
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
@@ -55,8 +58,10 @@ public class ReservationService {
     }
 
     public List<ReservationResponse> getAll() {
+        Integer driverId = securityUtils.getDriverUserId();
         return reservationRepository.findAll()
                 .stream()
+                .filter(r -> driverId == null || (r.getUser() != null && r.getUser().getUserId().equals(driverId)))
                 .map(ReservationResponse::fromEntity)
                 .toList();
     }
@@ -64,6 +69,10 @@ public class ReservationService {
     public ReservationResponse getById(Integer id) {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+
+        if (reservation.getUser() != null) {
+            securityUtils.checkDataOwnership(reservation.getUser().getUserId());
+        }
 
         return ReservationResponse.fromEntity(reservation);
     }
@@ -73,6 +82,11 @@ public class ReservationService {
 
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+
+        if (reservation.getUser() != null) {
+            securityUtils.checkDataOwnership(reservation.getUser().getUserId());
+        }
+        securityUtils.checkDataOwnership(request.getUserId());
 
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
@@ -100,6 +114,10 @@ public class ReservationService {
     public void cancel(Integer id) {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+
+        if (reservation.getUser() != null) {
+            securityUtils.checkDataOwnership(reservation.getUser().getUserId());
+        }
 
         reservation.setStatus("CANCELLED");
         reservationRepository.save(reservation);
