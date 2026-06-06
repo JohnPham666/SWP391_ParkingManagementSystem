@@ -16,4 +16,6 @@ public interface SubscriptionRepository extends JpaRepository<MonthlySubscriptio
 
     // Tìm vé tháng theo trạng thái (VD: tìm tất cả vé đang ACTIVE)
     List<MonthlySubscription> findByStatus(String status);
+
+    boolean existsByVehicle_VehicleId(Integer vehicleId);
 }

@@ -3,6 +3,9 @@ package com.parking.management.module.vehicle;
 import com.parking.management.common.ResourceNotFoundException;
 import com.parking.management.module.user.User;
 import com.parking.management.module.user.UserRepository;
+import com.parking.management.module.reservation.ReservationRepository;
+import com.parking.management.module.session.ParkingSessionRepository;
+import com.parking.management.module.subscription.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +18,9 @@ public class VehicleService {
     private final VehicleRepository vehicleRepository;
     private final VehicleTypeRepository vehicleTypeRepository;
     private final UserRepository userRepository;
+    private final ParkingSessionRepository parkingSessionRepository;
+    private final ReservationRepository reservationRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
     public VehicleResponse create(VehicleRequest request) {
         validateUniqueOnCreate(request);
@@ -47,6 +53,7 @@ public class VehicleService {
     public List<VehicleResponse> getAll() {
         return vehicleRepository.findAll()
                 .stream()
+                .filter(v -> Boolean.TRUE.equals(v.getIsActive()))
                 .map(VehicleResponse::fromEntity)
                 .toList();
     }
@@ -55,12 +62,20 @@ public class VehicleService {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
 
+        if (!Boolean.TRUE.equals(vehicle.getIsActive())) {
+            throw new ResourceNotFoundException("Vehicle not found with id: " + id);
+        }
+
         return VehicleResponse.fromEntity(vehicle);
     }
 
     public VehicleResponse update(Integer id, VehicleRequest request) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
+
+        if (!Boolean.TRUE.equals(vehicle.getIsActive())) {
+            throw new ResourceNotFoundException("Vehicle not found with id: " + id);
+        }
 
         validateUniqueOnUpdate(id, request);
 
@@ -92,7 +107,16 @@ public class VehicleService {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + id));
 
-        vehicleRepository.delete(vehicle);
+        boolean hasParkingSessions = parkingSessionRepository.existsByVehicle_VehicleId(id);
+        boolean hasReservations = reservationRepository.existsByVehicle_VehicleId(id);
+        boolean hasSubscriptions = subscriptionRepository.existsByVehicle_VehicleId(id);
+
+        if (hasParkingSessions || hasReservations || hasSubscriptions) {
+            vehicle.setIsActive(false);
+            vehicleRepository.save(vehicle);
+        } else {
+            vehicleRepository.delete(vehicle);
+        }
     }
 
     private void validateUniqueOnCreate(VehicleRequest request) {
