@@ -6,10 +6,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
 @RestController
+@PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff')")
 @RequestMapping("/api/sessions")
 @RequiredArgsConstructor
 @Tag(name = "Parking Session", description = "APIs for managing parking sessions (check-in / check-out)")

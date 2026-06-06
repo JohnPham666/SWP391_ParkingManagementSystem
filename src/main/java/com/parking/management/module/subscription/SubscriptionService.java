@@ -9,6 +9,7 @@ import com.parking.management.module.vehicle.Vehicle;
 import com.parking.management.module.vehicle.VehicleRepository;
 import com.parking.management.module.zone.Zone;
 import com.parking.management.module.zone.ZoneRepository;
+import com.parking.management.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -25,11 +26,13 @@ public class SubscriptionService {
     private final VehicleRepository vehicleRepository;
     private final ParkingSlotRepository slotRepository;
     private final ZoneRepository zoneRepository;
+    private final SecurityUtils securityUtils;
 
     //================================================================================================================
     // C: CREATE - Tạo vé tháng mới
     //================================================================================================================
     public SubscriptionResponse createSubscription(SubscriptionRequest request) {
+        securityUtils.checkDataOwnership(request.getUserId());
         // Tìm User theo userId, nếu không tìm thấy thì ném exception
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -101,21 +104,28 @@ public class SubscriptionService {
         MonthlySubscription subscription = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Subscription not found with id: " + id));
+        if (subscription.getUser() != null) {
+            securityUtils.checkDataOwnership(subscription.getUser().getUserId());
+        }
         return entityMapToResponse(subscription);
     }
 
     // Lấy tất cả vé tháng
     public List<SubscriptionResponse> getAllSubscriptions() {
+        Integer driverId = securityUtils.getDriverUserId();
         List<MonthlySubscription> subscriptions = repository.findAll();
         List<SubscriptionResponse> responses = new ArrayList<>();
         for (MonthlySubscription sub : subscriptions) {
-            responses.add(entityMapToResponse(sub));
+            if (driverId == null || (sub.getUser() != null && sub.getUser().getUserId().equals(driverId))) {
+                responses.add(entityMapToResponse(sub));
+            }
         }
         return responses;
     }
 
     // Lấy vé tháng theo userId
     public List<SubscriptionResponse> getSubscriptionsByUserId(Integer userId) {
+        securityUtils.checkDataOwnership(userId);
         List<MonthlySubscription> subscriptions = repository.findByUser_UserId(userId);
         List<SubscriptionResponse> responses = new ArrayList<>();
         for (MonthlySubscription sub : subscriptions) {
@@ -132,6 +142,11 @@ public class SubscriptionService {
         MonthlySubscription subscription = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Subscription not found with id: " + id));
+
+        if (subscription.getUser() != null) {
+            securityUtils.checkDataOwnership(subscription.getUser().getUserId());
+        }
+        securityUtils.checkDataOwnership(request.getUserId());
 
         // Cập nhật User
         User user = userRepository.findById(request.getUserId())
@@ -185,6 +200,9 @@ public class SubscriptionService {
         MonthlySubscription subscription = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Subscription not found with id: " + id));
+        if (subscription.getUser() != null) {
+            securityUtils.checkDataOwnership(subscription.getUser().getUserId());
+        }
         repository.delete(subscription);
     }
 

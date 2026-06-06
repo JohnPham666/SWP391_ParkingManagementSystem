@@ -19,4 +19,8 @@ public class ApiResponse<T> {
     public static <U> ApiResponse<U> error(String message) {
         return new ApiResponse<U>(false, message, null);
     }
+
+    public static <U> ApiResponse<U> errorWithData(String message, U data) {
+        return new ApiResponse<U>(false, message, data);
+    }
 }
