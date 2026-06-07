@@ -1,15 +1,15 @@
 package com.parking.management.module.user;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
-@Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
-    // Tìm user theo email (dùng cho Login và kiểm tra trùng)
-    Optional<User> findByEmail(String email);
 
-    // Kiểm tra email đã tồn tại chưa (dùng cho Register)
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.role WHERE u.email = :email")
+    Optional<User> findByEmail(@Param("email") String email);
+
     boolean existsByEmail(String email);
 }

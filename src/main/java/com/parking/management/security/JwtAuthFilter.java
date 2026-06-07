@@ -44,10 +44,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                             userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                    System.out.println("AUTH OK: " + userDetails.getUsername());
+                    System.out.println("AUTHORITIES: " + userDetails.getAuthorities());
                 }
             }
         } catch (Exception e) {
-            // JWT validation failed
+            System.out.println("JWT ERROR: " + e.getMessage());
         }
         filterChain.doFilter(request, response);
     }
