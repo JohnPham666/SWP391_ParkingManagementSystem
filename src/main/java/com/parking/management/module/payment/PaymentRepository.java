@@ -1,12 +1,28 @@
 package com.parking.management.module.payment;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Integer> {
-    // Custom query 1
-    // List<Payment> findBySomeField(String field);
+
+    @Query("""
+           SELECT COALESCE(SUM(p.amount), 0)
+           FROM Payment p
+           WHERE p.paymentStatus = 'PAID'
+             AND p.paidAt BETWEEN :fromDateTime AND :toDateTime
+           """)
+    BigDecimal getTotalRevenue(LocalDateTime fromDateTime, LocalDateTime toDateTime);
+
+    @Query("""
+           SELECT COUNT(p)
+           FROM Payment p
+           WHERE p.paymentStatus = 'PAID'
+             AND p.paidAt BETWEEN :fromDateTime AND :toDateTime
+           """)
+    Long countPaidPayments(LocalDateTime fromDateTime, LocalDateTime toDateTime);
 }

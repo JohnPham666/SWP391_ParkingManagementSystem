@@ -1,13 +1,37 @@
 package com.parking.management.module.report;
 
+import com.parking.management.common.ApiResponse;
+import com.parking.management.module.report.dto.OccupancyReportResponse;
+import com.parking.management.module.report.dto.RevenueReportResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.RestController;
+import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
-@PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
 @RequestMapping("/api/reports")
+@RequiredArgsConstructor
 @Tag(name = "Report", description = "APIs for revenue reports, occupancy reports and parking predictions")
-public class ReportController {}
+public class ReportController {
+
+    private final ReportService reportService;
+
+    @GetMapping("/revenue")
+    public ApiResponse<RevenueReportResponse> getRevenueReport(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+
+        return ApiResponse.success("Fetched revenue report successfully",
+                reportService.getTotalRevenueByDateRange(fromDate, toDate));
+    }
+
+    @GetMapping("/occupancy")
+    public ApiResponse<OccupancyReportResponse> getOccupancyReport(
+            @RequestParam(required = false) Integer floorId) {
+
+        return ApiResponse.success("Fetched occupancy report successfully",
+                reportService.getOccupancyRateByFloor(floorId));
+    }
+}
