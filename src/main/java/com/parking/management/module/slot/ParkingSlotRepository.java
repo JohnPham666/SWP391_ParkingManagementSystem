@@ -13,7 +13,7 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
 
     Optional<ParkingSlot> findFirstByVehicleType_VehicleTypeIdAndStatusAndIsActiveTrue(
             Integer vehicleTypeId,
-            String status
+            SlotStatus status
     );
 
     List<ParkingSlot> findByZone_ZoneId(Integer zoneId);

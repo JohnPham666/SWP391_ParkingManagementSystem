@@ -74,12 +74,12 @@ public class SessionService {
             throw new IllegalArgumentException("Reservation is not valid for check-in, current status: " + reservation.getStatus());
         }
 
-        if (!SlotStatus.RESERVED.name().equals(slot.getStatus())) {
+        if (!SlotStatus.RESERVED.equals(slot.getStatus())) {
             throw new IllegalArgumentException("Slot is not reserved, current status: " + slot.getStatus());
         }
 
         // Slot RESERVED -> OCCUPIED
-        slot.setStatus(SlotStatus.OCCUPIED.name());
+        slot.setStatus(SlotStatus.OCCUPIED);
         parkingSlotRepository.save(slot);
 
         // Reservation RESERVED/PENDING -> CONFIRMED after check-in
@@ -145,7 +145,7 @@ public class SessionService {
         session.setFinalFee(finalFee);
 
         // Slot OCCUPIED -> AVAILABLE
-        slot.setStatus(SlotStatus.AVAILABLE.name());
+        slot.setStatus(SlotStatus.AVAILABLE);
         parkingSlotRepository.save(slot);
 
         ParkingSession updatedSession = parkingSessionRepository.save(session);

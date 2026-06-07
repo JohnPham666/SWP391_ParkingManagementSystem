@@ -43,13 +43,13 @@ public class ReservationService {
         ParkingSlot slot = parkingSlotRepository
                 .findFirstByVehicleType_VehicleTypeIdAndStatusAndIsActiveTrue(
                         request.getVehicleTypeId(),
-                        SlotStatus.AVAILABLE.name()
+                        SlotStatus.AVAILABLE
                 )
                 .orElseThrow(() -> new ResourceNotFoundException("No available slot found for vehicle type id: " + request.getVehicleTypeId()));
 
         //Update slot status
         //Hold slot AVAILABLE --> RESERVED
-        slot.setStatus(SlotStatus.RESERVED.name());
+        slot.setStatus(SlotStatus.RESERVED);
         parkingSlotRepository.save(slot);
 
         Reservation reservation = new Reservation();
