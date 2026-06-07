@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ReservationResponse {
+
     private Integer reservationId;
     private Integer userId;
     private String userFullName;

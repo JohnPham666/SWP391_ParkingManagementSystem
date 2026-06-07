@@ -3,6 +3,7 @@ package com.parking.management.module.reservation;
 import com.parking.management.common.ResourceNotFoundException;
 import com.parking.management.module.slot.ParkingSlot;
 import com.parking.management.module.slot.ParkingSlotRepository;
+import com.parking.management.module.slot.SlotStatus;
 import com.parking.management.module.user.User;
 import com.parking.management.module.user.UserRepository;
 import com.parking.management.module.vehicle.Vehicle;
@@ -10,10 +11,12 @@ import com.parking.management.module.vehicle.VehicleRepository;
 import com.parking.management.module.vehicle.VehicleType;
 import com.parking.management.module.vehicle.VehicleTypeRepository;
 import com.parking.management.security.SecurityUtils;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -26,6 +29,45 @@ public class ReservationService {
     private final VehicleTypeRepository vehicleTypeRepository;
     private final ParkingSlotRepository parkingSlotRepository;
     private final SecurityUtils securityUtils;
+
+    @Transactional
+    public ReservationResponse holdSlot(ReservationRequest request){
+        validateTime(request);
+        //Tim xem user id co ton tai hay ko
+        User user = userRepository.findById(request.getUserId()).orElseThrow(()-> new ResourceNotFoundException("User id is not found"));
+        //Tim xem vehicle id co ton tai hay ko
+        Vehicle vehicle = vehicleRepository.findById(request.getVehicleId()).orElseThrow(()-> new ResourceNotFoundException("Vehicle id is not found"));
+        //Tim xem vehicle type id co ton tai hay ko
+        VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleTypeId()).orElseThrow(()-> new ResourceNotFoundException("Vehicle type id is not found"));
+        //Tim slot available dau tien
+        ParkingSlot slot = parkingSlotRepository
+                .findFirstByVehicleType_VehicleTypeIdAndStatusAndIsActiveTrue(
+                        request.getVehicleTypeId(),
+                        SlotStatus.AVAILABLE
+                )
+                .orElseThrow(() -> new ResourceNotFoundException("No available slot found for vehicle type id: " + request.getVehicleTypeId()));
+
+        //Update slot status
+        //Hold slot AVAILABLE --> RESERVED
+        slot.setStatus(SlotStatus.RESERVED);
+        parkingSlotRepository.save(slot);
+
+        Reservation reservation = new Reservation();
+        reservation.setUser(user);
+        reservation.setVehicle(vehicle);
+        reservation.setVehicleType(vehicleType);
+        reservation.setSlot(slot);
+        reservation.setReservationStart(request.getReservationStart());
+        reservation.setReservationEnd(request.getReservationEnd());
+        reservation.setStatus("RESERVED");
+        reservation.setGuestName(request.getGuestName());
+        reservation.setCreatedAt(LocalDateTime.now());
+
+        //Set to database
+        Reservation savedReservation = reservationRepository.save(reservation);
+
+        return ReservationResponse.fromEntity(savedReservation);
+    }
 
     public ReservationResponse create(ReservationRequest request) {
         validateTime(request);
@@ -106,7 +148,9 @@ public class ReservationService {
         reservation.setSlot(slot);
         reservation.setReservationStart(request.getReservationStart());
         reservation.setReservationEnd(request.getReservationEnd());
+        reservation.setStatus("RESERVED");
         reservation.setGuestName(request.getGuestName());
+        reservation.setCreatedAt(LocalDateTime.now());
 
         return ReservationResponse.fromEntity(reservationRepository.save(reservation));
     }

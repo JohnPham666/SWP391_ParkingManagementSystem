@@ -6,9 +6,16 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Integer> {
+
+    Optional<ParkingSlot> findFirstByVehicleType_VehicleTypeIdAndStatusAndIsActiveTrue(
+            Integer vehicleTypeId,
+            SlotStatus status
+    );
+
     List<ParkingSlot> findByZone_ZoneId(Integer zoneId);
 
     List<ParkingSlot> findByVehicleType_VehicleTypeId(Integer vehicleTypeId);

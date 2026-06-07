@@ -17,6 +17,14 @@ public class ReservationController {
 
     private final ReservationService reservationService;
 
+    //Hold Slot
+    @Operation(summary = "Hold a slot", description = "Hold a parking slot before check-in")
+    @PostMapping("/hold-slot")
+    public ApiResponse<ReservationResponse> holdSlot(@Valid @RequestBody ReservationRequest request) {
+        ReservationResponse response = reservationService.holdSlot(request);
+        return ApiResponse.success("hold slot successfully", response);
+    }
+
     @Operation(summary = "Create a new reservation", description = "Reserve a parking slot for a specific time period")
     @PostMapping
     public ApiResponse<ReservationResponse> create(@Valid @RequestBody ReservationRequest request) {
