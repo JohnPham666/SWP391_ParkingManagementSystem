@@ -6,46 +6,44 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.access.prepost.PreAuthorize;
-
-import java.util.List;
 
 @RestController
-@PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff')")
 @RequestMapping("/api/incidents")
 @RequiredArgsConstructor
-@Tag(name = "Incident Report", description = "APIs for managing parking incidents (lost ticket, facility damage)")
+@Tag(name = "Incident Report", description = "APIs for managing parking incidents")
 public class IncidentController {
-    
-    // private final IncidentService service;
 
-    @Operation(summary = "Create an incident report", description = "Report a new incident such as LOST_TICKET or FACILITY_DAMAGE")
+    private final IncidentService incidentService;
+
+    @Operation(summary = "Create an incident report")
     @PostMapping
     public ApiResponse<IncidentResponse> create(@Valid @RequestBody IncidentRequest request) {
-        return ApiResponse.success("Created successfully", new IncidentResponse());
+        return ApiResponse.success("Created successfully", incidentService.create(request));
     }
 
-    @Operation(summary = "Get incident by ID", description = "Retrieve a specific incident report by its ID")
+    @Operation(summary = "Get incident by ID")
     @GetMapping("/{id}")
-    public ApiResponse<IncidentResponse> getById(@PathVariable Long id) {
-        return ApiResponse.success("Fetched successfully", new IncidentResponse());
+    public ApiResponse<IncidentResponse> getById(@PathVariable Integer id) {
+        return ApiResponse.success("Fetched successfully", incidentService.getById(id));
     }
 
-    @Operation(summary = "Get all incidents", description = "Retrieve a list of all incident reports")
+    @Operation(summary = "Get all incidents")
     @GetMapping
-    public ApiResponse<List<IncidentResponse>> getAll() {
-        return ApiResponse.success("Fetched all successfully", java.util.Collections.emptyList());
+    public ApiResponse<?> getAll() {
+        return ApiResponse.success("Fetched all successfully", incidentService.getAll());
     }
 
-    @Operation(summary = "Update an incident", description = "Update an existing incident report by its ID")
+    @Operation(summary = "Update an incident")
     @PutMapping("/{id}")
-    public ApiResponse<IncidentResponse> update(@PathVariable Long id, @Valid @RequestBody IncidentRequest request) {
-        return ApiResponse.success("Updated successfully", new IncidentResponse());
+    public ApiResponse<IncidentResponse> update(@PathVariable Integer id,
+                                                @Valid @RequestBody IncidentRequest request) {
+        return ApiResponse.success("Updated successfully", incidentService.update(id, request));
     }
 
-    @Operation(summary = "Delete an incident", description = "Delete an incident report by its ID")
+    @Operation(summary = "Delete an incident")
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ApiResponse<?> delete(@PathVariable Integer id) {
+        incidentService.delete(id);
         return ApiResponse.success("Deleted successfully", null);
     }
 }
