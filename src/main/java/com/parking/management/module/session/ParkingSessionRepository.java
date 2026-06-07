@@ -13,4 +13,6 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
      * Dùng để tránh một xe có nhiều session PARKING cùng lúc.
      */
     Optional<ParkingSession> findFirstByVehicle_VehicleIdAndStatus(Integer vehicleId, String status);
+
+    boolean existsByVehicle_VehicleId(Integer vehicleId);
 }

@@ -1,45 +1,47 @@
 package com.parking.management.module.reservation;
 
-import com.parking.management.module.slot.ParkingSlot;
-import com.parking.management.module.user.User;
-import com.parking.management.module.vehicle.Vehicle;
-import com.parking.management.module.vehicle.VehicleType;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class ReservationResponse {
-    // Reservation id
+
     private Integer reservationId;
-
-    // User id
     private Integer userId;
-
-    // Vehicle id
+    private String userFullName;
     private Integer vehicleId;
-
-    // Vehicle type id
+    private String licensePlate;
     private Integer vehicleTypeId;
-
-    // Slot id
+    private String vehicleTypeName;
     private Integer slotId;
-
-    // Slot code
     private String slotCode;
-
-    // Reservation start
     private LocalDateTime reservationStart;
-
-    // Reservation end
     private LocalDateTime reservationEnd;
-
-    // Reservation status
     private String status;
-
-    // Created At
     private LocalDateTime createdAt;
-
-    // Guest name
     private String guestName;
+
+    public static ReservationResponse fromEntity(Reservation reservation) {
+        return new ReservationResponse(
+                reservation.getReservationId(),
+                reservation.getUser() != null ? reservation.getUser().getUserId() : null,
+                reservation.getUser() != null ? reservation.getUser().getFullName() : null,
+                reservation.getVehicle() != null ? reservation.getVehicle().getVehicleId() : null,
+                reservation.getVehicle() != null ? reservation.getVehicle().getLicensePlate() : null,
+                reservation.getVehicleType() != null ? reservation.getVehicleType().getVehicleTypeId() : null,
+                reservation.getVehicleType() != null ? reservation.getVehicleType().getTypeName() : null,
+                reservation.getSlot() != null ? reservation.getSlot().getSlotId() : null,
+                reservation.getSlot() != null ? reservation.getSlot().getSlotCode() : null,
+                reservation.getReservationStart(),
+                reservation.getReservationEnd(),
+                reservation.getStatus(),
+                reservation.getCreatedAt(),
+                reservation.getGuestName()
+        );
+    }
 }

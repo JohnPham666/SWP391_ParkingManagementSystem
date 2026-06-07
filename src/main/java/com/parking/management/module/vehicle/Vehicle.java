@@ -40,10 +40,10 @@ public class Vehicle {
     @Column(name = "VehicleColor", length = 30)
     private String vehicleColor;
 
-    @Column(name = "EngineNumber", length = 50)
+    @Column(name = "EngineNumber", unique = true, length = 50)
     private String engineNumber;
 
-    @Column(name = "ChassisNumber", length = 50)
+    @Column(name = "ChassisNumber", unique = true, length = 50)
     private String chassisNumber;
 
     @Column(name = "ManufactureYear")
@@ -51,4 +51,7 @@ public class Vehicle {
 
     @Column(name = "VehicleImage", length = 255)
     private String vehicleImage;
+
+    @Column(name = "IsActive")
+    private Boolean isActive = true;
 }

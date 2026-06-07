@@ -7,6 +7,9 @@ import java.util.List;
 
 @Repository
 public interface ZoneRepository extends JpaRepository<Zone, Integer> {
-    // Custom query 1
-    // List<Zone> findBySomeField(String field);
+    List<Zone> findByFloor_FloorId(Integer floorId);
+
+    boolean existsByFloor_FloorIdAndZoneNameIgnoreCase(Integer floorId, String zoneName);
+
+    boolean existsByFloor_FloorIdAndZoneNameIgnoreCaseAndZoneIdNot(Integer floorId, String zoneName, Integer zoneId);
 }

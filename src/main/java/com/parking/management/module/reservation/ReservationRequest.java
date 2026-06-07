@@ -1,11 +1,8 @@
 package com.parking.management.module.reservation;
 
-import com.parking.management.module.user.User;
-import com.parking.management.module.vehicle.Vehicle;
-import com.parking.management.module.vehicle.VehicleType;
-import lombok.Data;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.Data;
 
 import java.time.LocalDateTime;
 

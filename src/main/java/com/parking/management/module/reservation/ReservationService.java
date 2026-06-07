@@ -10,6 +10,7 @@ import com.parking.management.module.vehicle.Vehicle;
 import com.parking.management.module.vehicle.VehicleRepository;
 import com.parking.management.module.vehicle.VehicleType;
 import com.parking.management.module.vehicle.VehicleTypeRepository;
+import com.parking.management.security.SecurityUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,14 +22,17 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ReservationService {
+
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
     private final VehicleRepository vehicleRepository;
     private final VehicleTypeRepository vehicleTypeRepository;
     private final ParkingSlotRepository parkingSlotRepository;
+    private final SecurityUtils securityUtils;
 
     @Transactional
     public ReservationResponse holdSlot(ReservationRequest request){
+        validateTime(request);
         //Tim xem user id co ton tai hay ko
         User user = userRepository.findById(request.getUserId()).orElseThrow(()-> new ResourceNotFoundException("User id is not found"));
         //Tim xem vehicle id co ton tai hay ko
@@ -49,7 +53,6 @@ public class ReservationService {
         parkingSlotRepository.save(slot);
 
         Reservation reservation = new Reservation();
-
         reservation.setUser(user);
         reservation.setVehicle(vehicle);
         reservation.setVehicleType(vehicleType);
@@ -63,76 +66,110 @@ public class ReservationService {
         //Set to database
         Reservation savedReservation = reservationRepository.save(reservation);
 
-        return mapEntityToResponse(savedReservation);
+        return ReservationResponse.fromEntity(savedReservation);
     }
-//========================================================================================================================
-    //Supportive function: map entity to response
 
-    // Map request sang entity
-    private void mapRequestToEntity(ReservationRequest request, Reservation reservation) {
+    public ReservationResponse create(ReservationRequest request) {
         validateTime(request);
-        User user = getUserById(request.getUserId());
-        Vehicle vehicle = getVehicleById(request.getVehicleId());
-        VehicleType vehicleType = getVehicleTypeById(request.getVehicleTypeId());
+        securityUtils.checkDataOwnership(request.getUserId());
+
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
+
+        Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + request.getVehicleId()));
+
+        VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle type not found with id: " + request.getVehicleTypeId()));
+
+        ParkingSlot slot = parkingSlotRepository.findById(request.getSlotId())
+                .orElseThrow(() -> new ResourceNotFoundException("Parking slot not found with id: " + request.getSlotId()));
+
+        Reservation reservation = new Reservation();
+        reservation.setUser(user);
+        reservation.setVehicle(vehicle);
+        reservation.setVehicleType(vehicleType);
+        reservation.setSlot(slot);
+        reservation.setReservationStart(request.getReservationStart());
+        reservation.setReservationEnd(request.getReservationEnd());
+        reservation.setGuestName(request.getGuestName());
+        reservation.setStatus("PENDING");
+        reservation.setCreatedAt(LocalDateTime.now());
+
+        return ReservationResponse.fromEntity(reservationRepository.save(reservation));
+    }
+
+    public List<ReservationResponse> getAll() {
+        Integer driverId = securityUtils.getDriverUserId();
+        return reservationRepository.findAll()
+                .stream()
+                .filter(r -> driverId == null || (r.getUser() != null && r.getUser().getUserId().equals(driverId)))
+                .map(ReservationResponse::fromEntity)
+                .toList();
+    }
+
+    public ReservationResponse getById(Integer id) {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+
+        if (reservation.getUser() != null) {
+            securityUtils.checkDataOwnership(reservation.getUser().getUserId());
+        }
+
+        return ReservationResponse.fromEntity(reservation);
+    }
+
+    public ReservationResponse update(Integer id, ReservationRequest request) {
+        validateTime(request);
+
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+
+        if (reservation.getUser() != null) {
+            securityUtils.checkDataOwnership(reservation.getUser().getUserId());
+        }
+        securityUtils.checkDataOwnership(request.getUserId());
+
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
+
+        Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + request.getVehicleId()));
+
+        VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle type not found with id: " + request.getVehicleTypeId()));
+
+        ParkingSlot slot = parkingSlotRepository.findById(request.getSlotId())
+                .orElseThrow(() -> new ResourceNotFoundException("Parking slot not found with id: " + request.getSlotId()));
 
         reservation.setUser(user);
         reservation.setVehicle(vehicle);
         reservation.setVehicleType(vehicleType);
+        reservation.setSlot(slot);
         reservation.setReservationStart(request.getReservationStart());
         reservation.setReservationEnd(request.getReservationEnd());
+        reservation.setStatus("RESERVED");
         reservation.setGuestName(request.getGuestName());
+        reservation.setCreatedAt(LocalDateTime.now());
 
-        if (reservation.getCreatedAt() == null) {
-            reservation.setCreatedAt(LocalDateTime.now());
+        return ReservationResponse.fromEntity(reservationRepository.save(reservation));
+    }
+
+    public void cancel(Integer id) {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+
+        if (reservation.getUser() != null) {
+            securityUtils.checkDataOwnership(reservation.getUser().getUserId());
         }
 
-        if (reservation.getStatus() == null) {
-            reservation.setStatus("CREATED");
-        }
-    }
-    // Map entity sang response để trả ra Swagger/Frontend
-    private ReservationResponse mapEntityToResponse(Reservation reservationEntity){
-        ReservationResponse response = new ReservationResponse();
-
-        response.setReservationId(reservationEntity.getReservationId());
-        response.setUserId(reservationEntity.getUser().getUserId());
-        response.setVehicleId(reservationEntity.getVehicle().getVehicleId());
-        response.setVehicleTypeId(reservationEntity.getVehicleType().getVehicleTypeId());
-        response.setSlotId(reservationEntity.getSlot().getSlotId());
-        response.setReservationStart(reservationEntity.getReservationStart());
-        response.setReservationEnd(reservationEntity.getReservationEnd());
-        response.setStatus(reservationEntity.getStatus());
-        response.setGuestName(reservationEntity.getGuestName());
-        response.setCreatedAt(reservationEntity.getCreatedAt());
-        return response;
-    }
-
-
-    private User getUserById(Integer userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "User not found with id: " + userId
-                ));
-    }
-
-    private Vehicle getVehicleById(Integer vehicleId) {
-        return vehicleRepository.findById(vehicleId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Vehicle not found with id: " + vehicleId
-                ));
-    }
-
-    private VehicleType getVehicleTypeById(Integer vehicleTypeId) {
-        return vehicleTypeRepository.findById(vehicleTypeId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Vehicle type not found with id: " + vehicleTypeId
-                ));
+        reservation.setStatus("CANCELLED");
+        reservationRepository.save(reservation);
     }
 
     private void validateTime(ReservationRequest request) {
-        if (request.getReservationStart().isAfter(request.getReservationEnd())
-                || request.getReservationStart().equals(request.getReservationEnd())) {
-            throw new IllegalArgumentException("Reservation start time must be before reservation end time");
+        if (!request.getReservationEnd().isAfter(request.getReservationStart())) {
+            throw new IllegalArgumentException("Reservation end must be after reservation start");
         }
     }
 }
