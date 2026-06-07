@@ -6,10 +6,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
 @RestController
+@PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff')")
 @RequestMapping("/api/slots")
 @RequiredArgsConstructor
 @Tag(name = "Parking Slot", description = "APIs for managing individual parking slots within zones")
@@ -24,12 +26,14 @@ public class SlotController {
     }
 
     @Operation(summary = "Get slot by ID", description = "Retrieve a specific parking slot by its ID")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff', 'Driver')")
     @GetMapping("/{id}")
     public ApiResponse<SlotResponse> getById(@PathVariable Integer id) {
         return ApiResponse.success("Fetched successfully", service.getById(id));
     }
 
     @Operation(summary = "Get all slots", description = "Retrieve a list of all parking slots")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff', 'Driver')")
     @GetMapping
     public ApiResponse<List<SlotResponse>> getAll(
             @RequestParam(required = false) Integer zoneId,
@@ -38,6 +42,7 @@ public class SlotController {
     }
 
     @Operation(summary = "Get available slots", description = "Retrieve a list of available parking slots based on optional filters")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff', 'Driver')")
     @GetMapping("/available")
     public ApiResponse<List<SlotResponse>> getAvailableSlots(
             @RequestParam(required = false) Integer buildingId,
