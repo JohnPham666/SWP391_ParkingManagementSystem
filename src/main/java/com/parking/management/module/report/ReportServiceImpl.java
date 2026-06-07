@@ -8,7 +8,7 @@ import com.parking.management.module.slot.ParkingSlotRepository;
 import com.parking.management.module.slot.SlotStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
+import com.parking.management.module.report.dto.ParkingPredictionResponse;
 import java.time.LocalDate;
 
 @Service
@@ -54,5 +54,50 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public SessionSummaryResponse getSessionCountByDate(LocalDate date) {
         return new SessionSummaryResponse();
+    }
+    @Override
+    public ParkingPredictionResponse generateParkingPrediction() {
+        long totalSlots = parkingSlotRepository.count();
+        long occupiedSlots = parkingSlotRepository.countByStatus(SlotStatus.OCCUPIED);
+        long reservedSlots = parkingSlotRepository.countByStatus(SlotStatus.RESERVED);
+
+        double currentOccupancyRate = totalSlots == 0
+                ? 0
+                : ((double) (occupiedSlots + reservedSlots) / totalSlots) * 100;
+
+        int currentHour = java.time.LocalDateTime.now().getHour();
+
+        double predictedOccupancyRate = currentOccupancyRate;
+
+        if ((currentHour >= 7 && currentHour <= 9) || (currentHour >= 17 && currentHour <= 19)) {
+            predictedOccupancyRate = Math.min(100, currentOccupancyRate + 15);
+        } else if (currentHour >= 11 && currentHour <= 14) {
+            predictedOccupancyRate = Math.min(100, currentOccupancyRate + 8);
+        } else {
+            predictedOccupancyRate = Math.max(0, currentOccupancyRate - 5);
+        }
+
+        String level;
+        if (predictedOccupancyRate >= 80) {
+            level = "HIGH";
+        } else if (predictedOccupancyRate >= 50) {
+            level = "MEDIUM";
+        } else {
+            level = "LOW";
+        }
+
+        String message = switch (level) {
+            case "HIGH" -> "Parking demand is expected to be high.";
+            case "MEDIUM" -> "Parking demand is expected to be moderate.";
+            default -> "Parking demand is expected to be low.";
+        };
+
+        return new ParkingPredictionResponse(
+                currentOccupancyRate,
+                predictedOccupancyRate,
+                level,
+                message,
+                java.time.LocalDateTime.now()
+        );
     }
 }

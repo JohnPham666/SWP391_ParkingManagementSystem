@@ -34,4 +34,10 @@ public class ReportController {
         return ApiResponse.success("Fetched occupancy report successfully",
                 reportService.getOccupancyRateByFloor(floorId));
     }
+
+    @GetMapping("/predictions/parking")
+    public ApiResponse<?> generateParkingPrediction() {
+        return ApiResponse.success("Generated parking prediction successfully",
+                reportService.generateParkingPrediction());
+    }
 }
