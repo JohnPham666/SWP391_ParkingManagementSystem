@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import com.parking.management.module.slot.SlotStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +24,8 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
     boolean existsBySlotCodeIgnoreCase(String slotCode);
 
     boolean existsBySlotCodeIgnoreCaseAndSlotIdNot(String slotCode, Integer slotId);
+
+    long countByStatus(SlotStatus status);
 
     @Query("""
             select slot

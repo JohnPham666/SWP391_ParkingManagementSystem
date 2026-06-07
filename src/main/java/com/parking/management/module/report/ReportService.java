@@ -7,4 +7,5 @@ public interface ReportService {
     RevenueReportResponse getTotalRevenueByDateRange(LocalDate from, LocalDate to);
     OccupancyReportResponse getOccupancyRateByFloor(Integer floorId);
     SessionSummaryResponse getSessionCountByDate(LocalDate date);
+    ParkingPredictionResponse generateParkingPrediction();
 }
