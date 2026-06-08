@@ -20,6 +20,14 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public RevenueReportResponse getTotalRevenueByDateRange(LocalDate from, LocalDate to) {
+        if (from == null || to == null) {
+            throw new IllegalArgumentException("fromDate and toDate are required");
+        }
+
+        if (to.isBefore(from)) {
+            throw new IllegalArgumentException("toDate must be after or equal to fromDate");
+        }
+
         var fromDateTime = from.atStartOfDay();
         var toDateTime = to.atTime(23, 59, 59);
 
@@ -33,20 +41,33 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public OccupancyReportResponse getOccupancyRateByFloor(Integer floorId) {
-        long totalSlots = parkingSlotRepository.count();
-        long availableSlots = parkingSlotRepository.countByStatus(SlotStatus.AVAILABLE);
-        long occupiedSlots = parkingSlotRepository.countByStatus(SlotStatus.OCCUPIED);
-        long reservedSlots = parkingSlotRepository.countByStatus(SlotStatus.RESERVED);
+        long totalSlots;
+        long availableSlots;
+        long occupiedSlots;
+        long reservedSlots;
+
+        if (floorId == null) {
+            totalSlots = parkingSlotRepository.countByIsActiveTrue();
+            availableSlots = parkingSlotRepository.countByStatusAndIsActiveTrue(SlotStatus.AVAILABLE);
+            occupiedSlots = parkingSlotRepository.countByStatusAndIsActiveTrue(SlotStatus.OCCUPIED);
+            reservedSlots = parkingSlotRepository.countByStatusAndIsActiveTrue(SlotStatus.RESERVED);
+        } else {
+            totalSlots = parkingSlotRepository.countByZone_Floor_FloorIdAndIsActiveTrue(floorId);
+            availableSlots = parkingSlotRepository.countByZone_Floor_FloorIdAndStatusAndIsActiveTrue(floorId, SlotStatus.AVAILABLE);
+            occupiedSlots = parkingSlotRepository.countByZone_Floor_FloorIdAndStatusAndIsActiveTrue(floorId, SlotStatus.OCCUPIED);
+            reservedSlots = parkingSlotRepository.countByZone_Floor_FloorIdAndStatusAndIsActiveTrue(floorId, SlotStatus.RESERVED);
+        }
 
         double occupancyRate = totalSlots == 0
                 ? 0
                 : ((double) (occupiedSlots + reservedSlots) / totalSlots) * 100;
 
         return new OccupancyReportResponse(
-                (int) totalSlots,
-                (int) availableSlots,
-                (int) occupiedSlots,
-                (int) reservedSlots,
+                floorId,
+                totalSlots,
+                availableSlots,
+                occupiedSlots,
+                reservedSlots,
                 occupancyRate
         );
     }

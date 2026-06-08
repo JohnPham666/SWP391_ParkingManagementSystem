@@ -33,7 +33,7 @@ public class IncidentService {
         incident.setSession(session);
         incident.setIncidentType(request.getIncidentType());
         incident.setDescription(request.getDescription());
-        incident.setStatus(request.getStatus() != null ? request.getStatus() : IncidentStatus.OPEN.name());
+        incident.setStatus(IncidentStatus.OPEN.name());
         incident.setCreatedAt(LocalDateTime.now());
         incident.setIncidentImage(request.getIncidentImage());
 

@@ -15,4 +15,5 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Integer> {
     boolean existsByChassisNumberAndVehicleIdNot(String chassisNumber, Integer vehicleId);
 
     List<Vehicle> findByUserUserId(Integer userId);
+    List<Vehicle> findByUserUserIdAndIsActiveTrue(Integer userId);
 }

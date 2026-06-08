@@ -27,6 +27,14 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
 
     long countByStatus(SlotStatus status);
 
+    long countByIsActiveTrue();
+
+    long countByStatusAndIsActiveTrue(SlotStatus status);
+
+    long countByZone_Floor_FloorIdAndIsActiveTrue(Integer floorId);
+
+    long countByZone_Floor_FloorIdAndStatusAndIsActiveTrue(Integer floorId, SlotStatus status);
+
     @Query("""
             select slot
             from ParkingSlot slot
