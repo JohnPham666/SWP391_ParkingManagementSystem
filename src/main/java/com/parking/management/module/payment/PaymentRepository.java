@@ -6,9 +6,12 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Integer> {
+
+    Optional<Payment> findBySession_SessionId(Integer sessionId);
 
     @Query("""
            SELECT COALESCE(SUM(p.amount), 0)
