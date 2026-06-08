@@ -193,7 +193,7 @@ public class VehicleService {
             throw new RuntimeException("User not found");
         }
 
-        return vehicleRepository.findByUserUserId(userId)
+        return vehicleRepository.findByUserUserIdAndIsActiveTrue(userId)
                 .stream()
                 .map(VehicleResponse::fromEntity)
                 .toList();
@@ -287,4 +287,5 @@ public class VehicleService {
             throw new IllegalArgumentException("Chassis number already exists");
         }
     }
+
 }
