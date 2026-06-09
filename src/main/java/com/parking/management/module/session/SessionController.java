@@ -55,33 +55,38 @@ public class SessionController {
         }
     }
 
-    @Operation(summary = "Create a parking session", description = "Manually create a new parking session")
-    @PostMapping
-    public ApiResponse<SessionResponse> create(@Valid @RequestBody SessionRequest request) {
-        return ApiResponse.success("Created successfully", new SessionResponse());
-    }
+//    @Operation(summary = "Create a parking session", description = "Manually create a new parking session")
+//    @PostMapping
+//    public ApiResponse<SessionResponse> create(@Valid @RequestBody SessionRequest request) {
+//        return ApiResponse.success("Created successfully", new SessionResponse());
+//    }
 
     @Operation(summary = "Get session by ID", description = "Retrieve a specific parking session by its ID")
     @GetMapping("/{id}")
-    public ApiResponse<SessionResponse> getById(@PathVariable Long id) {
-        return ApiResponse.success("Fetched successfully", new SessionResponse());
+    public ApiResponse<SessionResponse> getById(@PathVariable Integer id) {
+        try {
+            SessionResponse response = service.getById(id);
+            return ApiResponse.success("Fetched successfully", response);
+        } catch (ResourceNotFoundException e) {
+            return ApiResponse.error(e.getMessage());
+        }
     }
 
     @Operation(summary = "Get all sessions", description = "Retrieve a list of all parking sessions")
     @GetMapping
     public ApiResponse<List<SessionResponse>> getAll() {
-        return ApiResponse.success("Fetched all successfully", java.util.Collections.emptyList());
-    }
-
-    @Operation(summary = "Update a session", description = "Update a parking session")
-    @PutMapping("/{id}")
-    public ApiResponse<SessionResponse> update(@PathVariable Long id, @Valid @RequestBody SessionRequest request) {
-        return ApiResponse.success("Updated successfully", new SessionResponse());
+        List<SessionResponse> responses = service.getAll();
+        return ApiResponse.success("Fetched all successfully", responses);
     }
 
     @Operation(summary = "Delete a session", description = "Delete a parking session by its ID")
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
-        return ApiResponse.success("Deleted successfully", null);
+    public ApiResponse<Void> delete(@PathVariable Integer id) {
+        try {
+            service.delete(id);
+            return ApiResponse.success("Deleted successfully", null);
+        } catch (ResourceNotFoundException e) {
+            return ApiResponse.error(e.getMessage());
+        }
     }
 }

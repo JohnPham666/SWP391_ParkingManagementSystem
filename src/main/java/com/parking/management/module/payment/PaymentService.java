@@ -33,9 +33,12 @@ public class PaymentService {
 
         paymentRepository.findBySession_SessionId(request.getSessionId())
                 .ifPresent(existingPayment -> {
-                    throw new IllegalArgumentException(
-                            "This parking session already has a payment record"
-                    );
+                    if (PaymentStatus.PENDING.name().equals(existingPayment.getPaymentStatus())) {
+                        throw new IllegalArgumentException(
+                                "This parking session already has a PENDING payment record (Payment ID: "
+                                        + existingPayment.getPaymentId() + ")"
+                        );
+                    }
                 });
 
         if (session.getVehicle() == null) {
