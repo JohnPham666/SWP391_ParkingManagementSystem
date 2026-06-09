@@ -10,6 +10,7 @@ public class PaymentResponse {
 
     private Integer paymentId;
     private Integer sessionId;
+    private Integer reservationId;
 
     private BigDecimal amount;
 

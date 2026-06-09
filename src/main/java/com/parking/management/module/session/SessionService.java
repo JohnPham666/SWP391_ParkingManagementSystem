@@ -63,15 +63,11 @@ public class SessionService {
                 });
 
         /*
-         * Nếu reservation đã CONFIRMED thì không cho check-in lại.
-         * Trường hợp này thường xảy ra sau khi xe đã từng check-in.
+         * Nếu reservation chưa thanh toán (PENDING) thì báo lỗi.
+         * Phải CONFIRMED mới được vào.
          */
-        if ("CONFIRMED".equals(reservation.getStatus())) {
-            throw new IllegalArgumentException("This reservation has already been checked in");
-        }
-
-        if (!"RESERVED".equals(reservation.getStatus()) && !"PENDING".equals(reservation.getStatus())) {
-            throw new IllegalArgumentException("Reservation is not valid for check-in, current status: " + reservation.getStatus());
+        if (!"CONFIRMED".equals(reservation.getStatus())) {
+            throw new IllegalArgumentException("Reservation is not CONFIRMED (maybe not paid yet). Current status: " + reservation.getStatus());
         }
 
         if (!SlotStatus.RESERVED.equals(slot.getStatus())) {
@@ -82,9 +78,9 @@ public class SessionService {
         slot.setStatus(SlotStatus.OCCUPIED);
         parkingSlotRepository.save(slot);
 
-        // Reservation RESERVED/PENDING -> CONFIRMED after check-in
-        reservation.setStatus("CONFIRMED");
-        reservationRepository.save(reservation);
+        // Reservation: Tạm giữ nguyên CONFIRMED, sẽ đổi thành COMPLETED khi check-out
+        // reservation.setStatus("CONFIRMED");
+        // reservationRepository.save(reservation);
 
         ParkingSession session = new ParkingSession();
         session.setVehicle(vehicle);
@@ -143,6 +139,17 @@ public class SessionService {
          */
         BigDecimal finalFee = BigDecimal.ZERO;
         session.setFinalFee(finalFee);
+
+        // Cập nhật Reservation liên quan thành COMPLETED
+        reservationRepository.findAll().stream()
+                .filter(r -> r.getVehicle().getVehicleId().equals(session.getVehicle().getVehicleId())
+                          && r.getSlot().getSlotId().equals(slot.getSlotId())
+                          && "CONFIRMED".equals(r.getStatus()))
+                .findFirst()
+                .ifPresent(r -> {
+                    r.setStatus("COMPLETED");
+                    reservationRepository.save(r);
+                });
 
         // Slot OCCUPIED -> AVAILABLE
         slot.setStatus(SlotStatus.AVAILABLE);

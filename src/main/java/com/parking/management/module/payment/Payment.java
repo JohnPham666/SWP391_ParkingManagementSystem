@@ -1,5 +1,6 @@
 package com.parking.management.module.payment;
 
+import com.parking.management.module.reservation.Reservation;
 import com.parking.management.module.session.ParkingSession;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -20,8 +21,12 @@ public class Payment {
     private Integer paymentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "SessionID", nullable = false)
+    @JoinColumn(name = "SessionID", nullable = true)
     private ParkingSession session;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ReservationID", nullable = true)
+    private Reservation reservation;
 
     @Column(name = "Amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
