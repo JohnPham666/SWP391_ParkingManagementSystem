@@ -37,6 +37,22 @@ public class SessionController {
     }
 
     /*
+     * WALK-IN CHECK-IN
+     *
+     * Dành cho khách vãng lai, tạo trực tiếp Session từ biển số xe
+     */
+    @Operation(summary = "Walk-in Check-in", description = "Check in a walk-in guest without prior reservation")
+    @PostMapping("/walk-in")
+    public ApiResponse<SessionResponse> checkInWalkIn(@Valid @RequestBody WalkInRequest request) {
+        try {
+            SessionResponse response = service.checkInWalkIn(request);
+            return ApiResponse.success("Walk-in check-in successfully", response);
+        } catch (IllegalArgumentException | ResourceNotFoundException e) {
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /*
      * CHECK-OUT
      *
      * Kết thúc ParkingSession.

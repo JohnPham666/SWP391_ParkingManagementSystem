@@ -49,4 +49,34 @@ public class VehicleController {
                                                            @RequestParam("file") MultipartFile file) {
         return ApiResponse.success("Uploaded successfully", vehicleService.uploadVehicleImage(id, file));
     }
+
+    // --- SELF-SERVICE ENDPOINTS ---
+
+    @GetMapping("/me")
+    public ApiResponse<?> getMyVehicles() {
+        return ApiResponse.success("Fetched user vehicles successfully", vehicleService.getMyVehicles());
+    }
+
+    @PostMapping("/me")
+    public ApiResponse<VehicleResponse> createMyVehicle(@Valid @RequestBody VehicleRequest request) {
+        return ApiResponse.success("Created successfully", vehicleService.createMyVehicle(request));
+    }
+
+    @PutMapping("/me/{vehicleId}")
+    public ApiResponse<VehicleResponse> updateMyVehicle(@PathVariable Integer vehicleId,
+                                                        @Valid @RequestBody VehicleRequest request) {
+        return ApiResponse.success("Updated successfully", vehicleService.updateMyVehicle(vehicleId, request));
+    }
+
+    @DeleteMapping("/me/{vehicleId}")
+    public ApiResponse<?> deleteMyVehicle(@PathVariable Integer vehicleId) {
+        vehicleService.deleteMyVehicle(vehicleId);
+        return ApiResponse.success("Deleted successfully", null);
+    }
+
+    @PostMapping(value = "/me/{vehicleId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<VehicleResponse> uploadMyVehicleImage(@PathVariable Integer vehicleId,
+                                                             @RequestParam("file") MultipartFile file) {
+        return ApiResponse.success("Uploaded successfully", vehicleService.uploadMyVehicleImage(vehicleId, file));
+    }
 }

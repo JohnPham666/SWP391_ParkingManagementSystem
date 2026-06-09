@@ -9,6 +9,9 @@ import com.parking.management.module.slot.ParkingSlot;
 import com.parking.management.module.slot.ParkingSlotRepository;
 import com.parking.management.module.slot.SlotStatus;
 import com.parking.management.module.vehicle.Vehicle;
+import com.parking.management.module.vehicle.VehicleRepository;
+import com.parking.management.module.vehicle.VehicleType;
+import com.parking.management.module.vehicle.VehicleTypeRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,8 @@ public class SessionService {
     private final ReservationRepository reservationRepository;
     private final ParkingSlotRepository parkingSlotRepository;
     private final PricingService pricingService;
+    private final VehicleRepository vehicleRepository;
+    private final VehicleTypeRepository vehicleTypeRepository;
 
     /*
      * CHECK-IN
@@ -93,6 +98,56 @@ public class SessionService {
         session.setStatus(SessionStatus.PARKING.name());
         session.setEstimatedFee(BigDecimal.ZERO);
         session.setFinalFee(null);
+
+        ParkingSession savedSession = parkingSessionRepository.save(session);
+
+        return mapEntityToResponse(savedSession);
+    }
+
+    /*
+     * WALK-IN CHECK-IN (Khách vãng lai / Không đặt trước)
+     */
+    @Transactional
+    public SessionResponse checkInWalkIn(WalkInRequest request) {
+        // 1. Tìm hoặc tạo Vehicle ẩn danh
+        Vehicle vehicle = vehicleRepository.findByLicensePlate(request.getLicensePlate())
+                .orElseGet(() -> {
+                    VehicleType type = vehicleTypeRepository.findById(request.getVehicleTypeId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Vehicle type not found with id: " + request.getVehicleTypeId()));
+                    Vehicle newVehicle = new Vehicle();
+                    newVehicle.setLicensePlate(request.getLicensePlate());
+                    newVehicle.setVehicleType(type);
+                    newVehicle.setOwnerName(request.getGuestName());
+                    return vehicleRepository.save(newVehicle);
+                });
+
+        // 2. Kiểm tra xe đã có session active chưa
+        parkingSessionRepository
+                .findFirstByVehicle_VehicleIdAndStatus(vehicle.getVehicleId(), SessionStatus.PARKING.name())
+                .ifPresent(existingSession -> {
+                    throw new IllegalArgumentException("This vehicle already has an active parking session");
+                });
+
+        // 3. Tìm Slot trống đầu tiên phù hợp với loại xe
+        ParkingSlot slot = parkingSlotRepository
+                .findFirstByVehicleType_VehicleTypeIdAndStatusAndIsActiveTrue(
+                        request.getVehicleTypeId(),
+                        SlotStatus.AVAILABLE
+                )
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chỗ trống phù hợp cho loại xe này."));
+
+        // 4. Cập nhật trạng thái Slot
+        slot.setStatus(SlotStatus.OCCUPIED);
+        parkingSlotRepository.save(slot);
+
+        // 5. Tạo ParkingSession
+        ParkingSession session = new ParkingSession();
+        session.setVehicle(vehicle);
+        session.setSlot(slot);
+        session.setEntryTime(LocalDateTime.now());
+        session.setEntryGate(request.getEntryGate());
+        session.setStatus(SessionStatus.PARKING.name());
+        session.setEstimatedFee(BigDecimal.ZERO);
 
         ParkingSession savedSession = parkingSessionRepository.save(session);
 

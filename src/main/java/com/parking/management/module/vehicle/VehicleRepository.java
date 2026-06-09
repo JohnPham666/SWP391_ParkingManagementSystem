@@ -16,4 +16,5 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Integer> {
 
     List<Vehicle> findByUserUserId(Integer userId);
     List<Vehicle> findByUserUserIdAndIsActiveTrue(Integer userId);
+    java.util.Optional<Vehicle> findByLicensePlate(String licensePlate);
 }
