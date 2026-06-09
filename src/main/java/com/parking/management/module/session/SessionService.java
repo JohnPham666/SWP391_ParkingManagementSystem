@@ -1,6 +1,8 @@
 package com.parking.management.module.session;
 
 import com.parking.management.common.ResourceNotFoundException;
+import com.parking.management.module.pricing.FeeCalculationResponse;
+import com.parking.management.module.pricing.PricingService;
 import com.parking.management.module.reservation.Reservation;
 import com.parking.management.module.reservation.ReservationRepository;
 import com.parking.management.module.slot.ParkingSlot;
@@ -21,6 +23,7 @@ public class SessionService {
     private final ParkingSessionRepository parkingSessionRepository;
     private final ReservationRepository reservationRepository;
     private final ParkingSlotRepository parkingSlotRepository;
+    private final PricingService pricingService;
 
     /*
      * CHECK-IN
@@ -131,14 +134,15 @@ public class SessionService {
         session.setStatus(SessionStatus.COMPLETED.name());
 
         /*
-         * Sau này gọi PricingService để tính tiền thật.
-         * Ví dụ:
-         * BigDecimal finalFee = pricingService.calculateFinalFee(session);
-         *
-         * Tạm thời set 0 để hoàn thành luồng check-out.
+         * Gọi PricingService để tính phí gửi xe thật.
          */
-        BigDecimal finalFee = BigDecimal.ZERO;
-        session.setFinalFee(finalFee);
+        Long vehicleTypeId = Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId());
+        FeeCalculationResponse feeResponse = pricingService.calculateFee(
+                vehicleTypeId,
+                session.getEntryTime(),
+                exitTime
+        );
+        session.setFinalFee(feeResponse.getFinalFee());
 
         // Cập nhật Reservation liên quan thành COMPLETED
         reservationRepository.findAll().stream()
@@ -158,6 +162,31 @@ public class SessionService {
         ParkingSession updatedSession = parkingSessionRepository.save(session);
 
         return mapEntityToResponse(updatedSession);
+    }
+
+
+    public SessionResponse getById(Integer id) {
+        ParkingSession session = parkingSessionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Parking session not found with id: " + id
+                ));
+        return mapEntityToResponse(session);
+    }
+
+    public List<SessionResponse> getAll() {
+        return parkingSessionRepository.findAll()
+                .stream()
+                .map(this::mapEntityToResponse)
+                .toList();
+    }
+
+    @Transactional
+    public void delete(Integer id) {
+        ParkingSession session = parkingSessionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Parking session not found with id: " + id
+                ));
+        parkingSessionRepository.delete(session);
     }
 
     // SUPPORTIVE FUNCTION: map entity to response

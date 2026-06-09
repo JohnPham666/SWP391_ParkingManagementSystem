@@ -25,3 +25,4 @@ public class FeeCalculationRequest {
     @NotNull(message = "Exit time is required")
     private LocalDateTime exitTime;
 }
+

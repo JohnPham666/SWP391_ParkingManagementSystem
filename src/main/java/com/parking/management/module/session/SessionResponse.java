@@ -27,5 +27,8 @@ public class SessionResponse {
 
     private BigDecimal estimatedFee;
     private BigDecimal finalFee;
+
+    private Integer vehicleTypeId;
+    private String vehicleTypeName;
     //====
 }
