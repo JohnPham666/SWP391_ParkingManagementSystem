@@ -200,15 +200,14 @@ public class SessionService {
         session.setFinalFee(feeResponse.getFinalFee());
 
         // Cập nhật Reservation liên quan thành COMPLETED
-        reservationRepository.findAll().stream()
-                .filter(r -> r.getVehicle().getVehicleId().equals(session.getVehicle().getVehicleId())
-                          && r.getSlot().getSlotId().equals(slot.getSlotId())
-                          && "CONFIRMED".equals(r.getStatus()))
-                .findFirst()
-                .ifPresent(r -> {
-                    r.setStatus("COMPLETED");
-                    reservationRepository.save(r);
-                });
+        reservationRepository.findFirstByVehicle_VehicleIdAndSlot_SlotIdAndStatus(
+                session.getVehicle().getVehicleId(),
+                slot.getSlotId(),
+                "CONFIRMED"
+        ).ifPresent(r -> {
+            r.setStatus("COMPLETED");
+            reservationRepository.save(r);
+        });
 
         // Slot OCCUPIED -> AVAILABLE
         slot.setStatus(SlotStatus.AVAILABLE);

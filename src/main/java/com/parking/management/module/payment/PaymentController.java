@@ -96,16 +96,7 @@ public class PaymentController {
         }
     }
 
-    @Operation(summary = "Simulate online payment success", description = "Simulate successful online payment for bank transfer, e-wallet, or credit card")
-    @PutMapping("/{id}/simulate-success")
-    public ApiResponse<PaymentResponse> simulateOnlinePaymentSuccess(@PathVariable Integer id) {
-        try {
-            PaymentResponse response = service.simulateOnlinePaymentSuccess(id);
-            return ApiResponse.success("Online payment simulated successfully", response);
-        } catch (IllegalArgumentException | ResourceNotFoundException e) {
-            return ApiResponse.error(e.getMessage());
-        }
-    }
+
 
     @Operation(summary = "Create VNPay payment URL", description = "Create VNPay sandbox payment URL for an existing PENDING payment")
     @PostMapping("/{id}/vnpay-url")

@@ -3,6 +3,7 @@ package com.parking.management.module.report;
 import com.parking.management.common.ApiResponse;
 import com.parking.management.module.report.dto.OccupancyReportResponse;
 import com.parking.management.module.report.dto.RevenueReportResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -18,6 +19,7 @@ public class ReportController {
 
     private final ReportService reportService;
 
+    @Operation(summary = "Get revenue report", description = "Get total revenue within a specific date range")
     @GetMapping("/revenue")
     public ApiResponse<RevenueReportResponse> getRevenueReport(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
@@ -27,6 +29,7 @@ public class ReportController {
                 reportService.getTotalRevenueByDateRange(fromDate, toDate));
     }
 
+    @Operation(summary = "Get occupancy report", description = "Get occupancy rate for the whole building or a specific floor")
     @GetMapping("/occupancy")
     public ApiResponse<OccupancyReportResponse> getOccupancyReport(
             @RequestParam(required = false) Integer floorId) {
@@ -35,6 +38,7 @@ public class ReportController {
                 reportService.getOccupancyRateByFloor(floorId));
     }
 
+    @Operation(summary = "Generate parking prediction", description = "Generate parking prediction using machine learning or heuristics")
     @GetMapping("/predictions/parking")
     public ApiResponse<?> generateParkingPrediction() {
         return ApiResponse.success("Generated parking prediction successfully",

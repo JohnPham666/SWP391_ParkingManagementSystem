@@ -172,56 +172,7 @@ public class PaymentService {
         return mapEntityToResponse(updatedPayment);
     }
 
-    @Transactional
-    public PaymentResponse simulateOnlinePaymentSuccess(Integer id) {
-        Payment payment = paymentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Payment not found with id: " + id
-                ));
 
-        if (PaymentMethod.CASH.name().equals(payment.getPaymentMethod())) {
-            throw new IllegalArgumentException("CASH payment must be confirmed by staff");
-        }
-
-        if (PaymentStatus.PAID.name().equals(payment.getPaymentStatus())) {
-            throw new IllegalArgumentException("This payment has already been paid");
-        }
-
-        payment.setPaymentStatus(PaymentStatus.PAID.name());
-        payment.setPaidAt(LocalDateTime.now());
-
-        if (payment.getReservation() != null) {
-            Reservation reservation = payment.getReservation();
-            reservation.setStatus("CONFIRMED");
-            reservationRepository.save(reservation);
-
-            ParkingSlot slot = reservation.getSlot();
-            if (slot.getStatus() == SlotStatus.AVAILABLE) {
-                slot.setStatus(SlotStatus.RESERVED);
-                parkingSlotRepository.save(slot);
-            } else {
-                ParkingSlot newSlot = parkingSlotRepository
-                        .findFirstByVehicleType_VehicleTypeIdAndStatusAndIsActiveTrue(
-                                reservation.getVehicleType().getVehicleTypeId(),
-                                SlotStatus.AVAILABLE
-                        ).orElse(null);
-                
-                if (newSlot != null) {
-                    newSlot.setStatus(SlotStatus.RESERVED);
-                    parkingSlotRepository.save(newSlot);
-                    reservation.setSlot(newSlot);
-                    reservationRepository.save(reservation);
-                } else {
-                    System.err.println("CRITICAL: Payment succeeded but no slots available for Reservation " + reservation.getReservationId());
-                }
-            }
-            System.out.println(">>> Gửi email/SMS xác nhận đặt chỗ thành công cho Reservation ID: " + reservation.getReservationId());
-        }
-
-        Payment updatedPayment = paymentRepository.save(payment);
-
-        return mapEntityToResponse(updatedPayment);
-    }
 
     @Transactional
     public void delete(Integer id) {

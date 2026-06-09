@@ -86,9 +86,15 @@ public class ReservationService {
 
     public List<ReservationResponse> getAll() {
         Integer driverId = securityUtils.getDriverUserId();
-        return reservationRepository.findAll()
-                .stream()
-                .filter(r -> driverId == null || (r.getUser() != null && r.getUser().getUserId().equals(driverId)))
+        
+        List<Reservation> reservations;
+        if (driverId == null) {
+            reservations = reservationRepository.findAll();
+        } else {
+            reservations = reservationRepository.findByUser_UserId(driverId);
+        }
+        
+        return reservations.stream()
                 .map(ReservationResponse::fromEntity)
                 .toList();
     }
