@@ -59,7 +59,7 @@ public class ReservationService {
         reservation.setSlot(slot);
         reservation.setReservationStart(request.getReservationStart());
         reservation.setReservationEnd(request.getReservationEnd());
-        reservation.setStatus("RESERVED");
+        reservation.setStatus("PENDING");
         reservation.setGuestName(request.getGuestName());
         reservation.setCreatedAt(LocalDateTime.now());
 
@@ -148,7 +148,7 @@ public class ReservationService {
         reservation.setSlot(slot);
         reservation.setReservationStart(request.getReservationStart());
         reservation.setReservationEnd(request.getReservationEnd());
-        reservation.setStatus("RESERVED");
+        reservation.setStatus("PENDING");
         reservation.setGuestName(request.getGuestName());
         reservation.setCreatedAt(LocalDateTime.now());
 
