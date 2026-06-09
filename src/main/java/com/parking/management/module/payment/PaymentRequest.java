@@ -9,8 +9,9 @@ import java.math.BigDecimal;
 
 @Data
 public class PaymentRequest {
-    @NotNull(message = "Session ID is required")
     private Integer sessionId;
+    
+    private Integer reservationId;
 
     @NotNull(message = "Payment method is required")
     private PaymentMethod paymentMethod;

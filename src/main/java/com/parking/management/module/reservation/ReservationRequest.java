@@ -18,7 +18,6 @@ public class ReservationRequest {
     @NotNull(message = "Vehicle type id is required")
     private Integer vehicleTypeId;
 
-    @NotNull(message = "Slot id is required")
     private Integer slotId;
 
     @NotNull(message = "Reservation start is required")
