@@ -19,6 +19,8 @@ import java.util.Map;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.parking.management.security.SecurityUtils;
+
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
@@ -30,6 +32,7 @@ public class PaymentService {
     private final PricingService pricingService;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final VnPayService vnPayService;
+    private final SecurityUtils securityUtils;
 
     @Transactional
     public PaymentResponse create(PaymentRequest request) {
@@ -45,6 +48,10 @@ public class PaymentService {
     private PaymentResponse createForSession(PaymentRequest request) {
         ParkingSession session = parkingSessionRepository.findById(request.getSessionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Parking session not found with id: " + request.getSessionId()));
+
+        if (session.getVehicle() != null && session.getVehicle().getUser() != null) {
+            securityUtils.checkDataOwnership(session.getVehicle().getUser().getUserId());
+        }
 
         paymentRepository.findBySession_SessionId(request.getSessionId())
                 .ifPresent(existingPayment -> {
@@ -82,6 +89,10 @@ public class PaymentService {
         Reservation reservation = reservationRepository.findById(request.getReservationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + request.getReservationId()));
 
+        if (reservation.getUser() != null) {
+            securityUtils.checkDataOwnership(reservation.getUser().getUserId());
+        }
+
         if (!"PENDING".equals(reservation.getStatus())) {
             throw new IllegalArgumentException("Reservation is not in PENDING state");
         }
@@ -104,6 +115,8 @@ public class PaymentService {
                         "Payment not found with id: " + id
                 ));
 
+        checkPaymentOwnership(payment);
+
         return mapEntityToResponse(payment);
     }
 
@@ -119,6 +132,8 @@ public class PaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Payment not found for session id: " + sessionId
                 ));
+
+        checkPaymentOwnership(payment);
 
         return mapEntityToResponse(payment);
     }
@@ -250,6 +265,8 @@ public class PaymentService {
                         "Payment not found with id: " + paymentId
                 ));
 
+        checkPaymentOwnership(payment);
+
         if (!PaymentStatus.PENDING.name().equals(payment.getPaymentStatus())) {
             throw new IllegalArgumentException("Only PENDING payment can create VNPay payment URL");
         }
@@ -372,5 +389,13 @@ public class PaymentService {
         }
 
         return response;
+    }
+
+    private void checkPaymentOwnership(Payment payment) {
+        if (payment.getSession() != null && payment.getSession().getVehicle() != null && payment.getSession().getVehicle().getUser() != null) {
+            securityUtils.checkDataOwnership(payment.getSession().getVehicle().getUser().getUserId());
+        } else if (payment.getReservation() != null && payment.getReservation().getUser() != null) {
+            securityUtils.checkDataOwnership(payment.getReservation().getUser().getUserId());
+        }
     }
 }

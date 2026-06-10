@@ -16,4 +16,6 @@ public class WalkInRequest {
     private String entryGate;
     
     private String guestName;
+
+    private String cardId;
 }

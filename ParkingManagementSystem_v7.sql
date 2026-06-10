@@ -27,7 +27,9 @@ CREATE TABLE Users (
     UserID       INT PRIMARY KEY IDENTITY(1,1),
     FullName     NVARCHAR(100) NOT NULL,
     Email        NVARCHAR(100) UNIQUE NOT NULL,
-    PhoneNumber  NVARCHAR(20),
+    PhoneNumber  NVARCHAR(20)  UNIQUE NOT NULL,
+    DateOfBirth  DATE,
+    Address      NVARCHAR(255),
     PasswordHash NVARCHAR(255) NOT NULL,
     RoleID       INT NOT NULL,
     IsActive     BIT DEFAULT 1,
@@ -159,12 +161,23 @@ CREATE TABLE PricingPolicies (
 );
 
 /* =========================================================
+   PARKING CARDS
+========================================================= */
+CREATE TABLE ParkingCards (
+    CardID    NVARCHAR(50) PRIMARY KEY,
+    Status    NVARCHAR(20) NOT NULL DEFAULT 'ACTIVE'
+        CHECK (Status IN ('ACTIVE', 'IN_USE', 'LOST')),
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+/* =========================================================
    PARKING SESSION
 ========================================================= */
 CREATE TABLE ParkingSessions (
     SessionID    INT PRIMARY KEY IDENTITY(1,1),
     VehicleID    INT NOT NULL,
     SlotID       INT NOT NULL,
+    CardID       NVARCHAR(50) NULL,
     EntryTime    DATETIME NOT NULL DEFAULT GETDATE(),
     ExitTime     DATETIME NULL,
     EntryGate    NVARCHAR(50),
@@ -178,6 +191,8 @@ CREATE TABLE ParkingSessions (
         FOREIGN KEY (VehicleID) REFERENCES Vehicles(VehicleID),
     CONSTRAINT FK_ParkingSessions_Slots
         FOREIGN KEY (SlotID)    REFERENCES ParkingSlots(SlotID),
+    CONSTRAINT FK_ParkingSessions_Cards
+        FOREIGN KEY (CardID)    REFERENCES ParkingCards(CardID),
     CONSTRAINT FK_ParkingSessions_Users
         FOREIGN KEY (CreatedBy) REFERENCES Users(UserID)
 );
@@ -336,6 +351,7 @@ DELETE FROM PaymentTransactions;
 DELETE FROM Payments;
 DELETE FROM Reservations;
 DELETE FROM ParkingSessions;
+DELETE FROM ParkingCards;
 DELETE FROM ParkingSlots;
 DELETE FROM Vehicles;
 DELETE FROM PricingPolicies;
@@ -455,23 +471,31 @@ INSERT INTO Vehicles (VehicleID, LicensePlate, VehicleTypeID, OwnerName, OwnerPh
 SET IDENTITY_INSERT Vehicles OFF;
 GO
 
+INSERT INTO ParkingCards (CardID, Status) VALUES
+('CARD-001', 'ACTIVE'),
+('CARD-002', 'ACTIVE'),
+('CARD-003', 'ACTIVE'),
+('CARD-004', 'ACTIVE'),
+('CARD-005', 'ACTIVE');
+GO
+
 SET IDENTITY_INSERT ParkingSessions ON;
 INSERT INTO ParkingSessions
-    (SessionID, VehicleID, SlotID, EntryTime, ExitTime, EntryGate, ExitGate,
+    (SessionID, VehicleID, SlotID, CardID, EntryTime, ExitTime, EntryGate, ExitGate,
      Status, EstimatedFee, FinalFee, CreatedBy)
 VALUES
-(1,  1,  5,  DATEADD(HOUR,-2,GETDATE()), NULL, 'Gate-A', NULL, 'PARKING',  30000, NULL, 3),
-(2,  2,  13, DATEADD(HOUR,-1,GETDATE()), NULL, 'Gate-A', NULL, 'PARKING',  15000, NULL, 3),
-(3,  3,  1,  DATEADD(HOUR,-3,GETDATE()), NULL, 'Gate-B', NULL, 'PARKING',  15000, NULL, 4),
-(4,  4,  1,  DATEADD(HOUR,-2,GETDATE()), NULL, 'Gate-B', NULL, 'PARKING',  10000, NULL, 4),
-(5,  5,  17, DATEADD(HOUR,-5,GETDATE()), NULL, 'Gate-C', NULL, 'PARKING', 100000, NULL, 3),
-(6,  6,  4,  DATEADD(HOUR,-4,GETDATE()), DATEADD(HOUR,-1,GETDATE()), 'Gate-B','Gate-B','COMPLETED', 15000, 15000, 3),
-(7,  7,  6,  DATEADD(HOUR,-6,GETDATE()), DATEADD(HOUR,-2,GETDATE()), 'Gate-A','Gate-A','COMPLETED', 60000, 60000, 4),
-(8,  8,  2,  DATEADD(HOUR,-3,GETDATE()), DATEADD(MINUTE,-30,GETDATE()), 'Gate-B','Gate-B','COMPLETED', 10000, 10000, 3),
-(9,  1,  8,  DATEADD(DAY,-1,DATEADD(HOUR,8,GETDATE())), DATEADD(DAY,-1,DATEADD(HOUR,18,GETDATE())), 'Gate-A','Gate-A','COMPLETED',150000,150000,3),
-(10, 2,  12, DATEADD(DAY,-1,DATEADD(HOUR,7,GETDATE())), DATEADD(DAY,-1,DATEADD(HOUR,12,GETDATE())), 'Gate-A','Gate-A','COMPLETED',75000,75000,4),
-(11, 3,  2,  DATEADD(HOUR,-8,GETDATE()), NULL, 'Gate-B', NULL, 'LOST_TICKET', 40000, NULL, 4),
-(12, 6,  14, DATEADD(DAY,-2,DATEADD(HOUR,10,GETDATE())), DATEADD(DAY,-2,DATEADD(HOUR,22,GETDATE())), 'Gate-B','Gate-B','UNPAID', 60000, 60000, 3);
+(1,  1,  5,  NULL, DATEADD(HOUR,-2,GETDATE()), NULL, 'Gate-A', NULL, 'PARKING',  30000, NULL, 3),
+(2,  2,  13, NULL, DATEADD(HOUR,-1,GETDATE()), NULL, 'Gate-A', NULL, 'PARKING',  15000, NULL, 3),
+(3,  3,  1,  NULL, DATEADD(HOUR,-3,GETDATE()), NULL, 'Gate-B', NULL, 'PARKING',  15000, NULL, 4),
+(4,  4,  1,  NULL, DATEADD(HOUR,-2,GETDATE()), NULL, 'Gate-B', NULL, 'PARKING',  10000, NULL, 4),
+(5,  5,  17, NULL, DATEADD(HOUR,-5,GETDATE()), NULL, 'Gate-C', NULL, 'PARKING', 100000, NULL, 3),
+(6,  6,  4,  NULL, DATEADD(HOUR,-4,GETDATE()), DATEADD(HOUR,-1,GETDATE()), 'Gate-B','Gate-B','COMPLETED', 15000, 15000, 3),
+(7,  7,  6,  NULL, DATEADD(HOUR,-6,GETDATE()), DATEADD(HOUR,-2,GETDATE()), 'Gate-A','Gate-A','COMPLETED', 60000, 60000, 4),
+(8,  8,  2,  NULL, DATEADD(HOUR,-3,GETDATE()), DATEADD(MINUTE,-30,GETDATE()), 'Gate-B','Gate-B','COMPLETED', 10000, 10000, 3),
+(9,  1,  8,  NULL, DATEADD(DAY,-1,DATEADD(HOUR,8,GETDATE())), DATEADD(DAY,-1,DATEADD(HOUR,18,GETDATE())), 'Gate-A','Gate-A','COMPLETED',150000,150000,3),
+(10, 2,  12, NULL, DATEADD(DAY,-1,DATEADD(HOUR,7,GETDATE())), DATEADD(DAY,-1,DATEADD(HOUR,12,GETDATE())), 'Gate-A','Gate-A','COMPLETED',75000,75000,4),
+(11, 3,  2,  NULL, DATEADD(HOUR,-8,GETDATE()), NULL, 'Gate-B', NULL, 'LOST_TICKET', 40000, NULL, 4),
+(12, 6,  14, NULL, DATEADD(DAY,-2,DATEADD(HOUR,10,GETDATE())), DATEADD(DAY,-2,DATEADD(HOUR,22,GETDATE())), 'Gate-B','Gate-B','UNPAID', 60000, 60000, 3);
 SET IDENTITY_INSERT ParkingSessions OFF;
 GO
 
@@ -571,6 +595,7 @@ SELECT 'VehicleTypes',         COUNT(*) FROM VehicleTypes                       
 SELECT 'Vehicles',             COUNT(*) FROM Vehicles                                   UNION ALL
 SELECT 'ParkingSlots',         COUNT(*) FROM ParkingSlots                               UNION ALL
 SELECT 'PricingPolicies',      COUNT(*) FROM PricingPolicies                            UNION ALL
+SELECT 'ParkingCards',         COUNT(*) FROM ParkingCards                               UNION ALL
 SELECT 'ParkingSessions',      COUNT(*) FROM ParkingSessions                            UNION ALL
 SELECT 'Reservations',         COUNT(*) FROM Reservations                               UNION ALL
 SELECT 'Payments',             COUNT(*) FROM Payments                                   UNION ALL

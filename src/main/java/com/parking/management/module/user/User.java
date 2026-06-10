@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -23,8 +24,14 @@ public class User {
     @Column(name = "Email", unique = true, nullable = false, length = 100)
     private String email;
 
-    @Column(name = "PhoneNumber", length = 20)
+    @Column(name = "PhoneNumber", length = 20, unique = true, nullable = false)
     private String phoneNumber;
+
+    @Column(name = "DateOfBirth")
+    private LocalDate dateOfBirth;
+
+    @Column(name = "Address", length = 255)
+    private String address;
 
     @Column(name = "PasswordHash", nullable = false, length = 255)
     private String passwordHash;

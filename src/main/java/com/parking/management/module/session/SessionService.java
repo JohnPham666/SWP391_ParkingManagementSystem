@@ -29,6 +29,7 @@ public class SessionService {
     private final PricingService pricingService;
     private final VehicleRepository vehicleRepository;
     private final VehicleTypeRepository vehicleTypeRepository;
+    private final ParkingCardRepository parkingCardRepository;
 
     /*
      * CHECK-IN
@@ -149,6 +150,14 @@ public class SessionService {
         session.setStatus(SessionStatus.PARKING.name());
         session.setEstimatedFee(BigDecimal.ZERO);
 
+        if (request.getCardId() != null && !request.getCardId().trim().isEmpty()) {
+            ParkingCard card = parkingCardRepository.findByCardIdAndStatus(request.getCardId(), "ACTIVE")
+                    .orElseThrow(() -> new IllegalArgumentException("Parking card is invalid or already in use"));
+            card.setStatus("IN_USE");
+            parkingCardRepository.save(card);
+            session.setCard(card);
+        }
+
         ParkingSession savedSession = parkingSessionRepository.save(session);
 
         return mapEntityToResponse(savedSession);
@@ -188,6 +197,12 @@ public class SessionService {
         session.setExitGate(request.getExitGate());
         session.setStatus(SessionStatus.COMPLETED.name());
 
+        if (session.getCard() != null) {
+            ParkingCard card = session.getCard();
+            card.setStatus("ACTIVE");
+            parkingCardRepository.save(card);
+        }
+
         /*
          * Gọi PricingService để tính phí gửi xe thật.
          */
@@ -197,17 +212,33 @@ public class SessionService {
                 session.getEntryTime(),
                 exitTime
         );
-        session.setFinalFee(feeResponse.getFinalFee());
+        BigDecimal calculatedFinalFee = feeResponse.getFinalFee();
 
         // Cập nhật Reservation liên quan thành COMPLETED
-        reservationRepository.findFirstByVehicle_VehicleIdAndSlot_SlotIdAndStatus(
+        java.util.Optional<Reservation> resOpt = reservationRepository.findFirstByVehicle_VehicleIdAndSlot_SlotIdAndStatus(
                 session.getVehicle().getVehicleId(),
                 slot.getSlotId(),
                 "CONFIRMED"
-        ).ifPresent(r -> {
+        );
+
+        if (resOpt.isPresent()) {
+            Reservation r = resOpt.get();
             r.setStatus("COMPLETED");
             reservationRepository.save(r);
-        });
+
+            // Deduct the reservation fee that was already paid
+            FeeCalculationResponse reservationFeeResponse = pricingService.calculateFee(
+                    Long.valueOf(r.getVehicleType().getVehicleTypeId()),
+                    r.getReservationStart(), r.getReservationEnd());
+            BigDecimal reservationFee = reservationFeeResponse.getFinalFee();
+
+            calculatedFinalFee = calculatedFinalFee.subtract(reservationFee);
+            if (calculatedFinalFee.compareTo(BigDecimal.ZERO) < 0) {
+                calculatedFinalFee = BigDecimal.ZERO;
+            }
+        }
+        
+        session.setFinalFee(calculatedFinalFee);
 
         // Slot OCCUPIED -> AVAILABLE
         slot.setStatus(SlotStatus.AVAILABLE);

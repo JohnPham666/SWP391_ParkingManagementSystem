@@ -29,6 +29,10 @@ public class ParkingSession {
     @JoinColumn(name = "SlotID", nullable = false)
     private ParkingSlot slot;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "CardID")
+    private ParkingCard card;
+
     @Column(name = "EntryTime", nullable = false)
     private LocalDateTime entryTime = LocalDateTime.now();
 

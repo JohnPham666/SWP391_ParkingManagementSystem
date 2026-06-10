@@ -92,11 +92,8 @@ public class SessionController {
         }
     }
 
-//    @Operation(summary = "Create a parking session", description = "Manually create a new parking session")
-//    @PostMapping
-//    public ApiResponse<SessionResponse> create(@Valid @RequestBody SessionRequest request) {
-//        return ApiResponse.success("Created successfully", new SessionResponse());
-//    }
+
+
 
     @Operation(summary = "Get session by ID", description = "Retrieve a specific parking session by its ID")
     @GetMapping("/{id}")

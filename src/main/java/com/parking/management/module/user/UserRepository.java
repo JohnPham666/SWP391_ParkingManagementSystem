@@ -12,4 +12,9 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findByEmail(@Param("email") String email);
 
     boolean existsByEmail(String email);
+
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.role WHERE u.phoneNumber = :phoneNumber")
+    Optional<User> findByPhoneNumber(@Param("phoneNumber") String phoneNumber);
+
+    boolean existsByPhoneNumber(String phoneNumber);
 }

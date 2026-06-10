@@ -253,8 +253,8 @@ public class VehicleService {
         if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
             throw new AccessDeniedException("Access denied: Not authenticated");
         }
-        String email = authentication.getName();
-        return userRepository.findByEmail(email)
+        String phoneNumber = authentication.getName();
+        return userRepository.findByPhoneNumber(phoneNumber)
                 .orElseThrow(() -> new AccessDeniedException("User not found"))
                 .getUserId();
     }

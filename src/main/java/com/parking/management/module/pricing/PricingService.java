@@ -145,55 +145,63 @@ public class PricingService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No active pricing policy found for vehicle type id: " + vehicleTypeId));
 
-        // Bước 2: Đếm số giờ rush hour và off-peak
+        long totalMinutes = java.time.Duration.between(entryTime, exitTime).toMinutes();
+        long totalHours = (long) Math.ceil(totalMinutes / 60.0);
+
         long rushHours = 0;
         long offPeakHours = 0;
 
-        // Lấy khung giờ cao điểm từ policy
-        LocalTime rushStart = policy.getRushHourStart(); // VD: 07:00
-        LocalTime rushEnd = policy.getRushHourEnd();     // VD: 19:00
+        LocalTime rushStart = policy.getRushHourStart(); 
+        LocalTime rushEnd = policy.getRushHourEnd();     
 
-        // Duyệt từng giờ từ entryTime đến exitTime
-        // VD: entry = 06:00, exit = 10:00 -> duyệt 06:00, 07:00, 08:00, 09:00 (4 giờ)
         LocalDateTime currentHour = entryTime;
-        while (currentHour.isBefore(exitTime)) {
-            // Lấy giờ hiện tại (chỉ lấy phần giờ:phút, bỏ ngày tháng)
+        for (int i = 0; i < totalHours; i++) {
             LocalTime timeOfDay = currentHour.toLocalTime();
-
-            // Kiểm tra giờ này có nằm trong khung rush hour không
             if (isRushHour(timeOfDay, rushStart, rushEnd)) {
-                rushHours++;    // Đếm giờ cao điểm
+                rushHours++;
             } else {
-                offPeakHours++; // Đếm giờ ngoài cao điểm
+                offPeakHours++;
             }
-
-            // Nhảy sang giờ tiếp theo
             currentHour = currentHour.plusHours(1);
         }
 
-        // Bước 3: Tính phí
-        // rushHourFee = số giờ cao điểm * giá giờ cao điểm
-        BigDecimal rushHourFee = policy.getRushHourPrice()
-                .multiply(BigDecimal.valueOf(rushHours));
-
-        // offPeakFee = số giờ ngoài cao điểm * giá ngoài cao điểm
-        BigDecimal offPeakFee = policy.getOffPeakPrice()
-                .multiply(BigDecimal.valueOf(offPeakHours));
-
-        // totalFee = rushHourFee + offPeakFee
+        BigDecimal rushHourFee = policy.getRushHourPrice().multiply(BigDecimal.valueOf(rushHours));
+        BigDecimal offPeakFee = policy.getOffPeakPrice().multiply(BigDecimal.valueOf(offPeakHours));
         BigDecimal totalFee = rushHourFee.add(offPeakFee);
 
-        // Bước 4: Áp dụng maxDailyRate (nếu có)
-        // Nếu tổng phí vượt quá mức tối đa 1 ngày thì cap lại
         BigDecimal finalFee = totalFee;
-        if (policy.getMaxDailyRate() != null
-                && totalFee.compareTo(policy.getMaxDailyRate()) > 0) {
-            finalFee = policy.getMaxDailyRate();
+        if (policy.getMaxDailyRate() != null && policy.getMaxDailyRate().compareTo(BigDecimal.ZERO) > 0) {
+            long fullDays = totalHours / 24;
+            long remainingHours = totalHours % 24;
+            
+            BigDecimal fullDaysFee = policy.getMaxDailyRate().multiply(BigDecimal.valueOf(fullDays));
+            
+            // Re-calculate fee just for the remaining hours to cap it
+            long remRush = 0;
+            long remOff = 0;
+            LocalDateTime remTime = entryTime.plusDays(fullDays);
+            for (int i = 0; i < remainingHours; i++) {
+                LocalTime timeOfDay = remTime.toLocalTime();
+                if (isRushHour(timeOfDay, rushStart, rushEnd)) {
+                    remRush++;
+                } else {
+                    remOff++;
+                }
+                remTime = remTime.plusHours(1);
+            }
+            BigDecimal remRushFee = policy.getRushHourPrice().multiply(BigDecimal.valueOf(remRush));
+            BigDecimal remOffFee = policy.getOffPeakPrice().multiply(BigDecimal.valueOf(remOff));
+            BigDecimal remTotalFee = remRushFee.add(remOffFee);
+            
+            if (remTotalFee.compareTo(policy.getMaxDailyRate()) > 0) {
+                remTotalFee = policy.getMaxDailyRate();
+            }
+            
+            finalFee = fullDaysFee.add(remTotalFee);
         }
 
-        // Bước 5: Đóng gói kết quả trả về
         FeeCalculationResponse response = new FeeCalculationResponse();
-        response.setTotalHours(rushHours + offPeakHours);
+        response.setTotalHours(totalHours);
         response.setRushHours(rushHours);
         response.setOffPeakHours(offPeakHours);
         response.setRushHourFee(rushHourFee);

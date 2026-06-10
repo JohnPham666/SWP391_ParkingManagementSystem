@@ -26,9 +26,9 @@ public class AuthService {
      * 4. Tạo JWT token
      */
     public JwtResponse login(LoginRequest request) {
-        // 1. Tìm user theo email
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Email không tồn tại"));
+        // 1. Tìm user theo phoneNumber
+        User user = userRepository.findByPhoneNumber(request.getPhoneNumber())
+                .orElseThrow(() -> new RuntimeException("Số điện thoại không tồn tại"));
 
         // 2. So sánh password
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
@@ -41,7 +41,7 @@ public class AuthService {
         }
 
         // 4. Tạo JWT token
-        String token = jwtUtil.generateToken(user.getEmail());
+        String token = jwtUtil.generateToken(user.getPhoneNumber());
 
         return JwtResponse.builder()
                 .token(token)
@@ -60,9 +60,12 @@ public class AuthService {
      * 4. Lưu DB, tạo JWT token
      */
     public JwtResponse register(RegisterRequest request) {
-        // 1. Kiểm tra email đã tồn tại chưa
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        // 1. Kiểm tra email và số điện thoại đã tồn tại chưa
+        if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email đã được sử dụng");
+        }
+        if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new RuntimeException("Số điện thoại đã được sử dụng");
         }
 
         // 2. Tìm role mặc định cho người dùng mới = DRIVER
@@ -74,6 +77,8 @@ public class AuthService {
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
         user.setPhoneNumber(request.getPhoneNumber());
+        user.setDateOfBirth(request.getDateOfBirth());
+        user.setAddress(request.getAddress());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setRole(driverRole);
 
@@ -81,7 +86,7 @@ public class AuthService {
         User savedUser = userRepository.save(user);
 
         // 5. Tạo JWT token
-        String token = jwtUtil.generateToken(savedUser.getEmail());
+        String token = jwtUtil.generateToken(savedUser.getPhoneNumber());
 
         return JwtResponse.builder()
                 .token(token)
