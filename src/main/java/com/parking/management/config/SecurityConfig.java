@@ -45,15 +45,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/incidents")
                         .authenticated()
 
-                        // Chỉ Staff, Manager, Admin được xem/sửa/xóa incident
+                        // Chỉ Manager, Admin được xem/sửa/xóa incident
                         .requestMatchers(HttpMethod.GET, "/api/incidents/**")
-                        .hasAnyRole("Admin", "ParkingManager", "ParkingStaff")
+                        .hasAnyRole("Admin", "ParkingManager", "ParkingStaff", "Driver")
 
                         .requestMatchers(HttpMethod.PUT, "/api/incidents/**")
-                        .hasAnyRole("Admin", "ParkingManager", "ParkingStaff")
+                        .hasAnyRole("Admin", "ParkingManager")
 
                         .requestMatchers(HttpMethod.DELETE, "/api/incidents/**")
-                        .hasAnyRole("Admin", "ParkingManager", "ParkingStaff")
+                        .hasAnyRole("Admin", "ParkingManager")
 
                         // Reports chỉ Admin và Manager xem
                         .requestMatchers("/api/reports/**")
