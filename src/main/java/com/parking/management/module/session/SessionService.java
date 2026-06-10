@@ -243,6 +243,34 @@ public class SessionService {
         parkingSessionRepository.delete(session);
     }
 
+    /*
+     * GET ACTIVE SESSION BY LICENSE PLATE
+     *
+     * Luồng:
+     * 1. Nhận licensePlate từ camera/staff
+     * 2. Tìm ParkingSession có Vehicle.LicensePlate trùng biển số
+     * 3. Chỉ lấy session đang PARKING
+     * 4. Trả về sessionId và thông tin session để checkout/payment
+     */
+    public SessionResponse getActiveSessionByLicensePlate(String licensePlate) {
+        if (licensePlate == null || licensePlate.trim().isEmpty()) {
+            throw new IllegalArgumentException("License plate is required");
+        }
+
+        String normalizedLicensePlate = licensePlate.trim();
+
+        ParkingSession session = parkingSessionRepository
+                .findFirstByVehicle_LicensePlateIgnoreCaseAndStatusOrderBySessionIdDesc(
+                        normalizedLicensePlate,
+                        SessionStatus.PARKING.name()
+                )
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No active parking session found for license plate: " + normalizedLicensePlate
+                ));
+
+        return mapEntityToResponse(session);
+    }
+
     // SUPPORTIVE FUNCTION: map entity to response
     private SessionResponse mapEntityToResponse(ParkingSession session) {
         SessionResponse response = new SessionResponse();
