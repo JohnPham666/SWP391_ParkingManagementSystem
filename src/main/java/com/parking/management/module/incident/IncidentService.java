@@ -5,6 +5,8 @@ import com.parking.management.module.session.ParkingSessionRepository;
 import com.parking.management.module.user.User;
 import com.parking.management.module.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -19,8 +21,7 @@ public class IncidentService {
     private final UserRepository userRepository;
 
     public IncidentResponse create(IncidentRequest request) {
-        User reportedBy = userRepository.findById(request.getReportedById())
-                .orElseThrow(() -> new RuntimeException("Reporter user not found"));
+        User reportedBy = getCurrentAuthenticatedUser();
 
         ParkingSession session = null;
         if (request.getSessionId() != null) {
@@ -33,7 +34,11 @@ public class IncidentService {
         incident.setSession(session);
         incident.setIncidentType(request.getIncidentType());
         incident.setDescription(request.getDescription());
+
+        // Khi tạo mới incident, hệ thống luôn set OPEN.
+        // User không được tự tạo incident với status RESOLVED.
         incident.setStatus(IncidentStatus.OPEN.name());
+
         incident.setCreatedAt(LocalDateTime.now());
         incident.setIncidentImage(request.getIncidentImage());
 
@@ -58,16 +63,14 @@ public class IncidentService {
         IncidentReport incident = incidentReportRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Incident report not found"));
 
-        User reportedBy = userRepository.findById(request.getReportedById())
-                .orElseThrow(() -> new RuntimeException("Reporter user not found"));
-
         ParkingSession session = null;
         if (request.getSessionId() != null) {
             session = parkingSessionRepository.findById(request.getSessionId())
                     .orElseThrow(() -> new RuntimeException("Parking session not found"));
         }
 
-        incident.setReportedBy(reportedBy);
+        // Update không đổi người báo cáo.
+        // reportedBy vẫn giữ nguyên người đã tạo incident ban đầu.
         incident.setSession(session);
         incident.setIncidentType(request.getIncidentType());
         incident.setDescription(request.getDescription());
@@ -86,5 +89,20 @@ public class IncidentService {
                 .orElseThrow(() -> new RuntimeException("Incident report not found"));
 
         incidentReportRepository.delete(incident);
+    }
+
+    private User getCurrentAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication.getPrincipal().equals("anonymousUser")) {
+            throw new RuntimeException("User is not authenticated");
+        }
+
+        String email = authentication.getName();
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Reporter user not found"));
     }
 }
