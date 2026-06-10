@@ -70,6 +70,27 @@ public class SessionController {
             return ApiResponse.error(e.getMessage());
         }
     }
+    /*
+     * GET ACTIVE SESSION BY LICENSE PLATE
+     *
+     * Dùng cho exit/payment flow:
+     * Camera hoặc staff nhập biển số xe -> hệ thống tìm session đang PARKING.
+     */
+    @Operation(
+            summary = "Get active session by license plate",
+            description = "Find the active parking session by vehicle license plate"
+    )
+    @GetMapping("/active/by-license-plate")
+    public ApiResponse<SessionResponse> getActiveSessionByLicensePlate(
+            @RequestParam String licensePlate
+    ) {
+        try {
+            SessionResponse response = service.getActiveSessionByLicensePlate(licensePlate);
+            return ApiResponse.success("Fetched active session successfully", response);
+        } catch (IllegalArgumentException | ResourceNotFoundException e) {
+            return ApiResponse.error(e.getMessage());
+        }
+    }
 
 //    @Operation(summary = "Create a parking session", description = "Manually create a new parking session")
 //    @PostMapping
