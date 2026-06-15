@@ -26,12 +26,15 @@ public class AuthService {
      * 4. Tạo JWT token
      */
     public JwtResponse login(LoginRequest request) {
-        // 1. Tìm user theo phoneNumber
-        User user = userRepository.findByPhoneNumber(request.getPhoneNumber())
-                .orElseThrow(() -> new RuntimeException("Số điện thoại không tồn tại"));
+        // 1. Tìm user theo email
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Email không tồn tại"));
 
-        // 2. So sánh password
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        // 2. So sánh password (Hỗ trợ cả BCrypt và so sánh chuỗi trực tiếp cho Seed Data)
+        boolean isMatch = passwordEncoder.matches(request.getPassword(), user.getPasswordHash()) 
+                       || request.getPassword().equals(user.getPasswordHash());
+
+        if (!isMatch) {
             throw new RuntimeException("Mật khẩu không chính xác");
         }
 
@@ -41,7 +44,7 @@ public class AuthService {
         }
 
         // 4. Tạo JWT token
-        String token = jwtUtil.generateToken(user.getPhoneNumber());
+        String token = jwtUtil.generateToken(user.getEmail());
 
         return JwtResponse.builder()
                 .token(token)
@@ -86,7 +89,7 @@ public class AuthService {
         User savedUser = userRepository.save(user);
 
         // 5. Tạo JWT token
-        String token = jwtUtil.generateToken(savedUser.getPhoneNumber());
+        String token = jwtUtil.generateToken(savedUser.getEmail());
 
         return JwtResponse.builder()
                 .token(token)

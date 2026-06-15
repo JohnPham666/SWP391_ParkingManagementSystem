@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
-@PreAuthorize("hasRole('Admin')")
 @RequestMapping("/api/vehicle-types")
 @RequiredArgsConstructor
 @Tag(name = "Vehicle Type", description = "APIs for managing vehicle types")
@@ -19,6 +18,7 @@ public class VehicleTypeController {
     private final VehicleTypeService vehicleTypeService;
 
     @Operation(summary = "Create a vehicle type", description = "Admin can create a new vehicle type")
+    @PreAuthorize("hasRole('Admin')")
     @PostMapping
     public ApiResponse<VehicleTypeResponse> create(@Valid @RequestBody VehicleTypeRequest request) {
         return ApiResponse.success("Created successfully", vehicleTypeService.create(request));
@@ -37,6 +37,7 @@ public class VehicleTypeController {
     }
 
     @Operation(summary = "Update a vehicle type", description = "Admin can update a vehicle type")
+    @PreAuthorize("hasRole('Admin')")
     @PutMapping("/{id}")
     public ApiResponse<VehicleTypeResponse> update(@PathVariable Integer id,
                                                    @Valid @RequestBody VehicleTypeRequest request) {
@@ -44,6 +45,7 @@ public class VehicleTypeController {
     }
 
     @Operation(summary = "Delete a vehicle type", description = "Admin can delete a vehicle type")
+    @PreAuthorize("hasRole('Admin')")
     @DeleteMapping("/{id}")
     public ApiResponse<?> delete(@PathVariable Integer id) {
         vehicleTypeService.delete(id);

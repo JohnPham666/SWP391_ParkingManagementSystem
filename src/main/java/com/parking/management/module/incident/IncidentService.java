@@ -100,9 +100,9 @@ public class IncidentService {
             throw new RuntimeException("User is not authenticated");
         }
 
-        String phoneNumber = authentication.getName();
+        String email = authentication.getName();
 
-        return userRepository.findByPhoneNumber(phoneNumber)
+        return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Reporter user not found"));
     }
 }

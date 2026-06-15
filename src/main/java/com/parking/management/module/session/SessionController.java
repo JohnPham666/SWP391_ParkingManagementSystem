@@ -80,6 +80,7 @@ public class SessionController {
             summary = "Get active session by license plate",
             description = "Find the active parking session by vehicle license plate"
     )
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff', 'Driver')")
     @GetMapping("/active/by-license-plate")
     public ApiResponse<SessionResponse> getActiveSessionByLicensePlate(
             @RequestParam String licensePlate
