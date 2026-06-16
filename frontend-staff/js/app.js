@@ -230,21 +230,34 @@ const Pages = {
                 <div class="stat-card">
                     <div class="stat-icon blue"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 9h22M9 21V9"/><rect x="1" y="3" width="22" height="18" rx="2"/></svg></div>
                     <div class="stat-info">
+<<<<<<< HEAD
                         <h3>${sum.totalCapacity}</h3>
                         <p>Tổng số chỗ (sức chứa)</p>
+=======
+                        <h3>${sum.totalSlots}</h3>
+                        <p>Tổng số chỗ</p>
+>>>>>>> origin/main
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon green"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg></div>
                     <div class="stat-info">
+<<<<<<< HEAD
                         <h3>${sum.availableCapacity}</h3>
+=======
+                        <h3>${sum.availableSlots}</h3>
+>>>>>>> origin/main
                         <p>Chỗ trống</p>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon red"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 16H9m10 0h3v-3.15a1 1 0 00-.84-.99L16 11l-2.7-3.6a1 1 0 00-.8-.4H5.24a2 2 0 00-1.8 1.1l-.8 1.63A6 6 0 002 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg></div>
                     <div class="stat-info">
+<<<<<<< HEAD
                         <h3>${sum.currentOccupancy}</h3>
+=======
+                        <h3>${sum.occupiedSlots}</h3>
+>>>>>>> origin/main
                         <p>Đang đỗ</p>
                     </div>
                 </div>
@@ -279,7 +292,11 @@ const Pages = {
                 html += `<div class="card" style="margin-bottom: 24px;">
                     <div class="card-header">
                         <h3 class="card-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16M9 21v-4a2 2 0 012-2h2a2 2 0 012 2v4"/></svg>${b.buildingName}</h3>
+<<<<<<< HEAD
                         <div class="badge badge-blue">Đang đỗ: ${b.summary.currentOccupancy} / ${b.summary.totalCapacity}</div>
+=======
+                        <div class="badge badge-blue">Trống: ${b.summary.availableSlots}</div>
+>>>>>>> origin/main
                     </div>
                     <div class="card-body">
                 `;
@@ -291,7 +308,11 @@ const Pages = {
                         html += `<div style="margin-bottom: 16px; background: var(--bg-page); padding: 16px; border-radius: var(--radius-sm);">
                             <h5 style="font-size: .85rem; font-weight: 600; margin-bottom: 12px; display:flex; justify-content:space-between;">
                                 <span>${z.zoneName} <span style="font-weight:400; color:var(--text-muted)">(${z.description})</span></span>
+<<<<<<< HEAD
                                 <span class="badge badge-gray">Đang đỗ: ${z.summary.currentOccupancy} / Sức chứa: ${z.summary.totalCapacity}</span>
+=======
+                                <span class="badge badge-gray">Trống: ${z.summary.availableSlots}</span>
+>>>>>>> origin/main
                             </h5>
                             <div class="slot-grid">`;
                         
@@ -444,6 +465,7 @@ const Pages = {
                                     <option value="Gate D">Cổng D (Gate D)</option>
                                 </select>
                             </div>
+<<<<<<< HEAD
                             <div class="form-group full-width">
                                 <label>Phương thức thanh toán</label>
                                 <select id="checkout-payment-method">
@@ -452,6 +474,8 @@ const Pages = {
                                     <option value="E_WALLET">Ví điện tử</option>
                                 </select>
                             </div>
+=======
+>>>>>>> origin/main
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline" onclick="document.getElementById('checkout-modal').classList.add('hidden')">Hủy</button>
@@ -544,6 +568,7 @@ const Pages = {
         document.getElementById('checkout-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const sessionId = document.getElementById('checkout-session-id').value;
+<<<<<<< HEAD
             const exitGate = document.getElementById('checkout-gate').value;
             const paymentMethod = document.getElementById('checkout-payment-method').value;
 
@@ -586,6 +611,18 @@ const Pages = {
                 } else {
                     App.showToast(vnRes.message || 'Lỗi tạo link VNPay', 'error');
                 }
+=======
+            const payload = {
+                exitGate: document.getElementById('checkout-gate').value
+            };
+            const r = await Api.checkOut(sessionId, payload);
+            if(r.success) {
+                App.showToast('Check-out thành công', 'success');
+                document.getElementById('checkout-modal').classList.add('hidden');
+                App.renderPage('sessions');
+            } else {
+                App.showToast(r.message, 'error');
+>>>>>>> origin/main
             }
         });
 
@@ -746,6 +783,7 @@ const Pages = {
                                     <td>${r.slotCode || '-'}</td>
                                     <td>${new Date(r.startTime).toLocaleString('vi-VN')}</td>
                                     <td>${new Date(r.endTime).toLocaleString('vi-VN')}</td>
+<<<<<<< HEAD
                                     <td>
                                         ${badge}
                                         ${(App.state.user.role === 'Admin' || App.state.user.role === 'ParkingManager' || App.state.user.role === 'ParkingStaff') ? `
@@ -758,6 +796,9 @@ const Pages = {
                                             </select>
                                         ` : ''}
                                     </td>
+=======
+                                    <td>${badge}</td>
+>>>>>>> origin/main
                                 </tr>`;
                             }).join('')}
                         </tbody>
@@ -765,6 +806,7 @@ const Pages = {
                 </div>
             </div>`;
         container.innerHTML = html;
+<<<<<<< HEAD
 
         window.updateReservationStatus = async (id, status) => {
             if(!status) return;
@@ -776,6 +818,8 @@ const Pages = {
                 App.showToast(r.message || 'Lỗi khi cập nhật', 'error');
             }
         };
+=======
+>>>>>>> origin/main
     },
 
     async renderPayments(container) {
@@ -874,6 +918,7 @@ const Pages = {
                                     <td style="font-weight:600">${i.title || i.description || '-'}</td>
                                     <td>${sevBadge}</td>
                                     <td>${i.incidentType || '-'}</td>
+<<<<<<< HEAD
                                     <td>
                                         ${statBadge}
                                         ${(App.state.user.role === 'Admin' || App.state.user.role === 'ParkingManager') ? `
@@ -886,6 +931,9 @@ const Pages = {
                                             </select>
                                         ` : ''}
                                     </td>
+=======
+                                    <td>${statBadge}</td>
+>>>>>>> origin/main
                                     <td>${i.reporterName || '-'}</td>
                                     <td>${i.reportTime ? new Date(i.reportTime).toLocaleString('vi-VN') : (i.createdAt ? new Date(i.createdAt).toLocaleString('vi-VN') : '-')}</td>
                                 </tr>`;
@@ -957,6 +1005,7 @@ const Pages = {
                 App.showToast(r.message || 'Lỗi khi báo cáo sự cố', 'error');
             }
         });
+<<<<<<< HEAD
 
         window.updateIncidentStatus = async (id, status) => {
             if(!status) return;
@@ -968,6 +1017,8 @@ const Pages = {
                 App.showToast(r.message || 'Lỗi khi cập nhật', 'error');
             }
         };
+=======
+>>>>>>> origin/main
     },
 
     async renderSubscriptions(container) {
@@ -1045,6 +1096,7 @@ const Pages = {
     },
 
     async renderReports(container) {
+<<<<<<< HEAD
         // Fetch data
         container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
         try {
@@ -1211,6 +1263,16 @@ const Pages = {
         } catch (e) {
             container.innerHTML = `<div class="empty-state"><p style="color:var(--red)">Lỗi: ${e.message}</p></div>`;
         }
+=======
+        container.innerHTML = `
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">Báo cáo & Thống kê</h3></div>
+                <div class="card-body">
+                    <p style="color:var(--text-secondary)">Trang báo cáo chuyên sâu đang được cập nhật thêm các biểu đồ chi tiết. Vui lòng xem tổng quan tại tab Dashboard.</p>
+                </div>
+            </div>
+        `;
+>>>>>>> origin/main
     }
 };
 
