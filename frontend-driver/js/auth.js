@@ -32,7 +32,7 @@ const Auth = {
             }
         });
 
-        document.getElementById('toggle-password').addEventListener('click', (e) => {
+        document.getElementById('toggle-password').addEventListener('click', () => {
             const inp = document.getElementById('login-password');
             inp.type = inp.type === 'password' ? 'text' : 'password';
         });
