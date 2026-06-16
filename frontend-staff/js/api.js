@@ -116,10 +116,7 @@ const Api = {
     getIncident(id) { return this.request('GET', '/incidents/' + id); },
     createIncident(data) { return this.request('POST', '/incidents', data); },
     updateIncident(id, data) { return this.request('PUT', '/incidents/' + id, data); },
-<<<<<<< HEAD
     updateIncidentStatus(id, status) { return this.request('PATCH', '/incidents/' + id + '/status?status=' + encodeURIComponent(status)); },
-=======
->>>>>>> origin/main
     deleteIncident(id) { return this.request('DELETE', '/incidents/' + id); },
 
     // Subscriptions
