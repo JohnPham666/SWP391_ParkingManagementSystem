@@ -10,4 +10,6 @@ public interface IncidentReportRepository extends JpaRepository<IncidentReport, 
     List<IncidentReport> findByIncidentType(String incidentType);
 
     List<IncidentReport> findByStatus(String status);
+    
+    List<IncidentReport> findByReportedBy_UserId(Integer userId);
 }

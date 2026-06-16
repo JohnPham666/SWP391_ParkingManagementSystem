@@ -46,6 +46,14 @@ public class IncidentService {
     }
 
     public List<IncidentResponse> getAll() {
+        User currentUser = getCurrentAuthenticatedUser();
+        String roleName = currentUser.getRole().getRoleName();
+        if ("ParkingStaff".equals(roleName)) {
+            return incidentReportRepository.findByReportedBy_UserId(currentUser.getUserId())
+                    .stream()
+                    .map(IncidentResponse::fromEntity)
+                    .toList();
+        }
         return incidentReportRepository.findAll()
                 .stream()
                 .map(IncidentResponse::fromEntity)
@@ -91,6 +99,13 @@ public class IncidentService {
         incidentReportRepository.delete(incident);
     }
 
+    public IncidentResponse updateStatus(Integer id, String status) {
+        IncidentReport incident = incidentReportRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Incident report not found"));
+        incident.setStatus(status);
+        return IncidentResponse.fromEntity(incidentReportRepository.save(incident));
+    }
+
     private User getCurrentAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -100,9 +115,9 @@ public class IncidentService {
             throw new RuntimeException("User is not authenticated");
         }
 
-        String phoneNumber = authentication.getName();
+        String email = authentication.getName();
 
-        return userRepository.findByPhoneNumber(phoneNumber)
+        return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Reporter user not found"));
     }
 }

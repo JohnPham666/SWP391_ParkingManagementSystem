@@ -79,12 +79,17 @@ public class SessionService {
             throw new IllegalArgumentException("Reservation is not CONFIRMED (maybe not paid yet). Current status: " + reservation.getStatus());
         }
 
-        if (!SlotStatus.RESERVED.equals(slot.getStatus())) {
-            throw new IllegalArgumentException("Slot is not reserved, current status: " + slot.getStatus());
+        if (!SlotStatus.RESERVED.equals(slot.getStatus()) && slot.getCurrentOccupancy() >= slot.getCapacity()) {
+            throw new IllegalArgumentException("Slot is full or not reserved properly");
         }
 
-        // Slot RESERVED -> OCCUPIED
-        slot.setStatus(SlotStatus.OCCUPIED);
+        // Increment occupancy
+        slot.setCurrentOccupancy(slot.getCurrentOccupancy() + 1);
+        if (slot.getCurrentOccupancy() >= slot.getCapacity()) {
+            slot.setStatus(SlotStatus.OCCUPIED);
+        } else {
+            slot.setStatus(SlotStatus.AVAILABLE);
+        }
         parkingSlotRepository.save(slot);
 
         // Reservation: Tạm giữ nguyên CONFIRMED, sẽ đổi thành COMPLETED khi check-out
@@ -138,7 +143,10 @@ public class SessionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chỗ trống phù hợp cho loại xe này."));
 
         // 4. Cập nhật trạng thái Slot
-        slot.setStatus(SlotStatus.OCCUPIED);
+        slot.setCurrentOccupancy(slot.getCurrentOccupancy() + 1);
+        if (slot.getCurrentOccupancy() >= slot.getCapacity()) {
+            slot.setStatus(SlotStatus.OCCUPIED);
+        }
         parkingSlotRepository.save(slot);
 
         // 5. Tạo ParkingSession
@@ -240,8 +248,13 @@ public class SessionService {
         
         session.setFinalFee(calculatedFinalFee);
 
-        // Slot OCCUPIED -> AVAILABLE
-        slot.setStatus(SlotStatus.AVAILABLE);
+        // Slot Occupancy Decrement
+        int newOcc = slot.getCurrentOccupancy() - 1;
+        if (newOcc < 0) newOcc = 0;
+        slot.setCurrentOccupancy(newOcc);
+        if (slot.getCurrentOccupancy() < slot.getCapacity()) {
+            slot.setStatus(SlotStatus.AVAILABLE);
+        }
         parkingSlotRepository.save(slot);
 
         ParkingSession updatedSession = parkingSessionRepository.save(session);
