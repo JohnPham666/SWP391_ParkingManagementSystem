@@ -1,61 +1,92 @@
-// ====== DATA & STATE ======
+// ====== DATA STRUCTURES MATCHING V7 DATABASE ======
+const seedSessions = [
+  { id: 1, plate_number: '51A-12345', vehicle_type: 'car',       slot: 5,  card_id: 'CARD-001', check_in_time: new Date(Date.now() - 2*3600000).toISOString(), status: 'parked' },
+  { id: 2, plate_number: '59B-67890', vehicle_type: 'car',       slot: 13, card_id: 'CARD-002', check_in_time: new Date(Date.now() - 1*3600000).toISOString(), status: 'parked' },
+  { id: 3, plate_number: '50L-11111', vehicle_type: 'motorbike', slot: 1,  card_id: 'CARD-003', check_in_time: new Date(Date.now() - 3*3600000).toISOString(), status: 'parked' },
+  { id: 4, plate_number: '29A-99999', vehicle_type: 'motorbike', slot: 1,  card_id: 'CARD-004', check_in_time: new Date(Date.now() - 2*3600000).toISOString(), status: 'parked' },
+  { id: 5, plate_number: '51F-55555', vehicle_type: 'truck',     slot: 17, card_id: 'CARD-005', check_in_time: new Date(Date.now() - 5*3600000).toISOString(), status: 'parked' }
+];
+
+// Provide mock SDKs if missing
+if (!window.dataSdk) {
+  window.dataSdk = {
+    _data: [...seedSessions],
+    _handler: null,
+    async init(handler) {
+      this._handler = handler;
+      if (this._handler && this._handler.onDataChanged) this._handler.onDataChanged(this._data);
+      return { isOk: true };
+    },
+    async create(record) {
+      this._data.push(record);
+      if (this._handler && this._handler.onDataChanged) this._handler.onDataChanged(this._data);
+      return { isOk: true };
+    },
+    async update(record) {
+      const idx = this._data.findIndex(r => (r.plate_number === record.plate_number && r.check_in_time === record.check_in_time) || r.id === record.id);
+      if (idx !== -1) this._data[idx] = record;
+      if (this._handler && this._handler.onDataChanged) this._handler.onDataChanged(this._data);
+      return { isOk: true };
+    }
+  };
+}
+if (!window.elementSdk) {
+  window.elementSdk = {
+    init(config) { if(config && config.onConfigChange) config.onConfigChange(config.defaultConfig || {}); },
+    setConfig(c) {}
+  };
+}
+
 let allRecords = [];
 let currentCheckoutRecord = null;
 
-// Slot structure
 const FLOORS = [
-  { floor: 1, name: 'Tầng 1 - Xe Máy', type: 'motorbike', zones: 10, slotsPerZone: 5, capacityPerSlot: 10, area: '2,000 m²', zoneArea: '200 m²', slotArea: '40 m²' },
-  { floor: 2, name: 'Tầng 2 - Xe Hơi', type: 'car', zones: 10, slotsPerZone: 3, capacityPerSlot: 4, area: '3,000 m²', zoneArea: '300 m²', slotArea: '100 m²' },
-  { floor: 3, name: 'Tầng 3 - Xe Tải', type: 'truck', zones: 10, slotsPerZone: 3, capacityPerSlot: 2, area: '4,000 m²', zoneArea: '400 m²', slotArea: '200 m²' }
+  { floor: 'Tầng 1 - Trệt', name: 'Tầng 1 (Trệt)', area: '2000 m²' },
+  { floor: 'Tầng 2', name: 'Tầng 2', area: '2000 m²' },
+  { floor: 'Tầng 3', name: 'Tầng 3', area: '2000 m²' },
+  { floor: 'Tầng 4 - Mái', name: 'Tầng 4 (Mái)', area: '2000 m²' }
 ];
 
-function generateSlots() {
-  const slots = [];
-  FLOORS.forEach(f => {
-    // Tầng 1 = A1-A10 (Xe máy), Tầng 2 = B1-B10 (Xe hơi), Tầng 3 = C1-C10 (Xe tải)
-    const floorPrefix = f.floor === 1 ? 'A' : f.floor === 2 ? 'B' : 'C';
-    for (let z = 1; z <= f.zones; z++) {
-      const zoneName = `${floorPrefix}${z}`;
-      for (let s = 1; s <= f.slotsPerZone; s++) {
-        const slotNum = String(s).padStart(3, '0');
-        slots.push({
-          id: `${zoneName}-${slotNum}`,  // A1-001, A1-002... A10-001... B1-001, C1-001
-          zone: zoneName,
-          floor: f.floor,
-          type: f.type,
-          capacity: f.capacityPerSlot,
-          occupied: 0,
-          zoneArea: f.zoneArea,
-          slotArea: f.slotArea
-        });
-      }
-    }
-  });
-  return slots;
-}
+const GATES = [
+  { id: 'Gate-A', name: 'Cổng Gate-A (Vào/Ra)', status: 'entry', active: true },
+  { id: 'Gate-B', name: 'Cổng Gate-B (Vào/Ra)', status: 'entry', active: true },
+  { id: 'Gate-C', name: 'Cổng Gate-C (Vào/Ra)', status: 'entry', active: true }
+];
 
-let parkingSlots = generateSlots();
+const CARDS = [
+  { id: 'CARD-001', type: 'hourly', status: 'available', plate: '' },
+  { id: 'CARD-002', type: 'hourly', status: 'available', plate: '' },
+  { id: 'CARD-003', type: 'hourly', status: 'available', plate: '' },
+  { id: 'CARD-004', type: 'monthly', status: 'available', plate: '' },
+  { id: 'CARD-005', type: 'monthly', status: 'available', plate: '' }
+];
 
-// Cards
-const CARDS = [];
-for (let i = 1; i <= 50; i++) {
-  CARDS.push({ id: `HL-${String(i).padStart(4,'0')}`, type: 'hourly', status: 'available', plate: '' });
-}
-for (let i = 1; i <= 30; i++) {
-  CARDS.push({ id: `MT-${String(i).padStart(4,'0')}`, type: 'monthly', status: 'available', plate: '' });
-}
+const parkingSlots = [
+  { id: 1,  code: 'A1',      zoneName: 'Zone A', floor: 'Tầng 1 - Trệt', type: 'motorbike', capacity: 20, occupied: 12, zoneArea: '200 m²', slotArea: '50 m²' },
+  { id: 2,  code: 'A2',      zoneName: 'Zone A', floor: 'Tầng 1 - Trệt', type: 'motorbike', capacity: 15, occupied: 8,  zoneArea: '200 m²', slotArea: '40 m²' },
+  { id: 3,  code: 'A3',      zoneName: 'Zone A', floor: 'Tầng 1 - Trệt', type: 'motorbike', capacity: 10, occupied: 10, zoneArea: '200 m²', slotArea: '30 m²' },
+  { id: 4,  code: 'B-01',    zoneName: 'Zone B', floor: 'Tầng 1 - Trệt', type: 'car',       capacity: 1,  occupied: 0,  zoneArea: '300 m²', slotArea: '15 m²' },
+  { id: 5,  code: 'B-02',    zoneName: 'Zone B', floor: 'Tầng 1 - Trệt', type: 'car',       capacity: 1,  occupied: 1,  zoneArea: '300 m²', slotArea: '15 m²' },
+  { id: 6,  code: 'B-03',    zoneName: 'Zone B', floor: 'Tầng 1 - Trệt', type: 'car',       capacity: 1,  occupied: 0,  zoneArea: '300 m²', slotArea: '15 m²' },
+  { id: 7,  code: 'B-04',    zoneName: 'Zone B', floor: 'Tầng 1 - Trệt', type: 'car',       capacity: 1,  occupied: 0,  zoneArea: '300 m²', slotArea: '15 m²' },
+  { id: 8,  code: 'B-05',    zoneName: 'Zone B', floor: 'Tầng 1 - Trệt', type: 'car',       capacity: 1,  occupied: 0,  zoneArea: '300 m²', slotArea: '15 m²' },
+  { id: 9,  code: 'B-06',    zoneName: 'Zone B', floor: 'Tầng 1 - Trệt', type: 'car',       capacity: 1,  occupied: 0,  zoneArea: '300 m²', slotArea: '15 m²' },
+  { id: 10, code: 'A1-T2',   zoneName: 'Zone A', floor: 'Tầng 2',        type: 'motorbike', capacity: 25, occupied: 10, zoneArea: '200 m²', slotArea: '60 m²' },
+  { id: 11, code: 'A2-T2',   zoneName: 'Zone A', floor: 'Tầng 2',        type: 'motorbike', capacity: 20, occupied: 5,  zoneArea: '200 m²', slotArea: '50 m²' },
+  { id: 12, code: 'B-T2-01', zoneName: 'Zone B', floor: 'Tầng 2',        type: 'car',       capacity: 1,  occupied: 0,  zoneArea: '300 m²', slotArea: '15 m²' },
+  { id: 13, code: 'B-T2-02', zoneName: 'Zone B', floor: 'Tầng 2',        type: 'car',       capacity: 1,  occupied: 1,  zoneArea: '300 m²', slotArea: '15 m²' },
+  { id: 14, code: 'B-T2-03', zoneName: 'Zone B', floor: 'Tầng 2',        type: 'car',       capacity: 1,  occupied: 0,  zoneArea: '300 m²', slotArea: '15 m²' },
+  { id: 15, code: 'A1-T3',   zoneName: 'Zone A', floor: 'Tầng 3',        type: 'motorbike', capacity: 30, occupied: 0,  zoneArea: '200 m²', slotArea: '70 m²' },
+  { id: 16, code: 'A2-T3',   zoneName: 'Zone A', floor: 'Tầng 3',        type: 'motorbike', capacity: 30, occupied: 0,  zoneArea: '200 m²', slotArea: '70 m²' },
+  { id: 17, code: 'E-01',    zoneName: 'Zone A', floor: 'Tầng 4 - Mái',  type: 'truck',     capacity: 1,  occupied: 1,  zoneArea: '400 m²', slotArea: '30 m²' },
+  { id: 18, code: 'E-02',    zoneName: 'Zone A', floor: 'Tầng 4 - Mái',  type: 'truck',     capacity: 1,  occupied: 0,  zoneArea: '400 m²', slotArea: '30 m²' },
+  { id: 19, code: 'E-03',    zoneName: 'Zone A', floor: 'Tầng 4 - Mái',  type: 'truck',     capacity: 1,  occupied: 0,  zoneArea: '400 m²', slotArea: '30 m²' }
+];
 
-// Gates
-const GATES = [];
-for (let i = 1; i <= 16; i++) {
-  GATES.push({ id: `G${String(i).padStart(2,'0')}`, name: `Cổng ${i}`, status: i <= 8 ? 'entry' : 'exit', active: true });
-}
-
-// Pricing (progressive)
 const PRICING = {
-  motorbike: { first2h: 5000, per_hour: 3000, max_day: 30000 },
-  car: { first2h: 20000, per_hour: 10000, max_day: 150000 },
-  truck: { first2h: 30000, per_hour: 15000, max_day: 200000 }
+  motorbike: { first2h: 5000, per_hour: 5000, max_day: 50000 },
+  car: { first2h: 15000, per_hour: 10000, max_day: 150000 },
+  truck: { first2h: 20000, per_hour: 15000, max_day: 200000 }
 };
 
 function calcFee(type, checkInTime) {
@@ -68,17 +99,65 @@ function calcFee(type, checkInTime) {
 // ====== UI HELPERS ======
 function switchTab(tab) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
-  document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('tab-active'); b.classList.add('text-gray-500'); });
-  document.getElementById(`panel-${tab}`).classList.remove('hidden');
-  const btn = document.getElementById(`tab-${tab}`);
-  btn.classList.add('tab-active');
-  btn.classList.remove('text-gray-500');
+  document.querySelectorAll('.tab-btn').forEach(b => { 
+    b.classList.remove('tab-active', 'text-primary'); 
+    b.classList.add('text-slate-600'); 
+  });
+  
+  const panel = document.getElementById(`panel-${tab}`);
+  if(panel) {
+    panel.classList.remove('hidden');
+    // Retrigger animation
+    panel.classList.remove('fade-in');
+    void panel.offsetWidth;
+    panel.classList.add('fade-in');
+  }
+
+  const btns = document.querySelectorAll(`#tab-${tab}`);
+  btns.forEach(btn => {
+    btn.classList.add('tab-active', 'text-primary');
+    btn.classList.remove('text-slate-600');
+  });
+
+  const titles = {
+    'checkin': 'Đón Xe Vào Bãi',
+    'checkout': 'Trả Xe - Check Out',
+    'monthly': 'Quản Lý Vé Tháng',
+    'hourly': 'Xe Đang Gửi (Vé Lượt)',
+    'slots': 'Sơ Đồ Bãi Đỗ',
+    'cards': 'Quản Lý Kho Thẻ',
+    'gates': 'Hệ Thống Cổng (Gates)',
+    'stats': 'Báo Cáo Thống Kê',
+    'search': 'Tra Cứu Thông Tin'
+  };
+  const titleEl = document.getElementById('header-title');
+  if(titleEl) titleEl.textContent = titles[tab] || 'Dashboard';
+
   if (tab === 'slots') renderSlots();
   if (tab === 'cards') renderCards();
   if (tab === 'gates') renderGates();
   if (tab === 'stats') renderStats();
   if (tab === 'monthly') renderMonthly();
   if (tab === 'hourly') renderHourly();
+  
+  // Close mobile menu if open
+  const menu = document.getElementById('mobile-menu');
+  if(menu && !menu.classList.contains('-translate-x-full')) {
+    toggleMobileMenu();
+  }
+}
+
+function toggleMobileMenu() {
+  const menu = document.getElementById('mobile-menu');
+  const overlay = document.getElementById('mobile-menu-overlay');
+  if (!menu || !overlay) return;
+  if(menu.classList.contains('-translate-x-full')) {
+    menu.classList.remove('-translate-x-full');
+    overlay.classList.remove('hidden');
+  } else {
+    menu.classList.add('-translate-x-full');
+    overlay.classList.add('hidden');
+  }
 }
 
 function showToast(msg, type='success') {
@@ -143,7 +222,7 @@ function updateSlotSelect() {
   const type = document.getElementById('ci-vehicle').value;
   const available = parkingSlots.filter(s => s.type === type && s.occupied < s.capacity);
   const sel = document.getElementById('ci-slot');
-  sel.innerHTML = '<option value="">Tự động phân bổ</option>' + available.map(s => `<option value="${s.id}">${s.id} (${s.capacity - s.occupied} chỗ trống)</option>`).join('');
+  sel.innerHTML = '<option value="">Tự động phân bổ</option>' + available.map(s => `<option value="${s.id}">${s.code} (${s.capacity - s.occupied} chỗ trống)</option>`).join('');
 }
 
 document.getElementById('ci-vehicle').addEventListener('change', updateSlotSelect);
@@ -167,7 +246,7 @@ async function handleCheckIn() {
     slot = avail.id;
   }
 
-  const slotObj = parkingSlots.find(s => s.id === slot);
+  const slotObj = parkingSlots.find(s => s.id == slot);
   if (slotObj && slotObj.occupied >= slotObj.capacity) { showToast('Slot đã đầy!', 'error'); return; }
 
   const record = {
@@ -390,20 +469,15 @@ function renderSlots() {
       if (availFilter === 'available') floorSlots = floorSlots.filter(s => s.occupied < s.capacity);
       if (availFilter === 'full') floorSlots = floorSlots.filter(s => s.occupied >= s.capacity);
       
-      // Group by zone, ensuring proper numeric ordering
+      // Group by zoneName
       const zoneGroups = {};
       floorSlots.forEach(s => {
-        if (!zoneGroups[s.zone]) zoneGroups[s.zone] = [];
-        zoneGroups[s.zone].push(s);
+        if (!zoneGroups[s.zoneName]) zoneGroups[s.zoneName] = [];
+        zoneGroups[s.zoneName].push(s);
       });
 
-      // Sort zones properly (A1, A2, A3... A10, not A1, A10, A2...)
-      const sortedZones = Object.keys(zoneGroups).sort((a, b) => {
-        const prefixA = a.charAt(0);
-        const prefixB = b.charAt(0);
-        if (prefixA !== prefixB) return prefixA.localeCompare(prefixB);
-        return parseInt(a.slice(1)) - parseInt(b.slice(1));
-      });
+      // Sort zones properly
+      const sortedZones = Object.keys(zoneGroups).sort();
 
       const section = document.createElement('div');
       section.className = 'col-span-full';
@@ -423,32 +497,30 @@ function renderSlots() {
         for (let j = 0; j < 2 && i + j < sortedZones.length; j++) {
           const zoneName = sortedZones[i + j];
           const slots = zoneGroups[zoneName];
-          const colors = getZoneColor(f.type);
+          const zoneType = slots[0] ? slots[0].type : 'car';
+          const colors = getZoneColor(zoneType);
           
           const zoneDiv = document.createElement('div');
           zoneDiv.className = `${colors.bg} border-2 ${colors.border} rounded-lg p-4`;
           
-          // Zone title with name
-          let zoneHTML = `<p class="text-sm font-bold ${colors.text} mb-3">Zone ${zoneName}</p>`;
+          let zoneHTML = `<p class="text-sm font-bold ${colors.text} mb-3">${zoneName}</p>`;
           zoneHTML += '<div class="grid grid-cols-5 gap-2">';
           
           slots.forEach(s => {
             const pct = (s.occupied / s.capacity) * 100;
-            let statusColor, textColor;
+            let statusColor;
             if (pct >= 100) {
-              // Full slots: darkest color per vehicle type
-              if (f.type === 'motorbike') statusColor = 'border-orange-600 bg-orange-600 text-white';
-              else if (f.type === 'car') statusColor = 'border-gray-800 bg-gray-800 text-white';
-              else if (f.type === 'truck') statusColor = 'border-red-700 bg-red-700 text-white';
+              if (s.type === 'motorbike') statusColor = 'border-orange-600 bg-orange-600 text-white';
+              else if (s.type === 'car') statusColor = 'border-gray-800 bg-gray-800 text-white';
+              else if (s.type === 'truck') statusColor = 'border-red-700 bg-red-700 text-white';
             } else if (pct >= 75) {
               statusColor = 'border-yellow-500 bg-yellow-100 text-yellow-700';
             } else {
               statusColor = 'border-gray-400 bg-white text-gray-700';
             }
-            const slotNumber = s.id.split('-')[1];
             
             zoneHTML += `<div class="border-2 ${statusColor} rounded-lg p-2 text-center cursor-pointer hover:shadow-md transition-all" onclick="openSlotDetail('${s.id}')">
-              <p class="text-xs font-bold">${zoneName}-${slotNumber}</p>
+              <p class="text-xs font-bold">${s.code}</p>
               <p class="text-xs font-semibold">${s.occupied}/${s.capacity}</p>
             </div>`;
           });
@@ -465,25 +537,19 @@ function renderSlots() {
       grid.appendChild(section);
     });
   } else {
-    const floor = FLOORS.find(f => f.floor === parseInt(floorFilter));
-    let floorSlots = parkingSlots.filter(s => s.floor === parseInt(floorFilter));
+    const floor = FLOORS.find(f => f.floor === floorFilter);
+    if (!floor) return;
+    let floorSlots = parkingSlots.filter(s => s.floor === floorFilter);
     if (availFilter === 'available') floorSlots = floorSlots.filter(s => s.occupied < s.capacity);
     if (availFilter === 'full') floorSlots = floorSlots.filter(s => s.occupied >= s.capacity);
 
-    // Group by zone
     const zoneGroups = {};
     floorSlots.forEach(s => {
-      if (!zoneGroups[s.zone]) zoneGroups[s.zone] = [];
-      zoneGroups[s.zone].push(s);
+      if (!zoneGroups[s.zoneName]) zoneGroups[s.zoneName] = [];
+      zoneGroups[s.zoneName].push(s);
     });
 
-    // Sort zones properly
-    const sortedZones = Object.keys(zoneGroups).sort((a, b) => {
-      const prefixA = a.charAt(0);
-      const prefixB = b.charAt(0);
-      if (prefixA !== prefixB) return prefixA.localeCompare(prefixB);
-      return parseInt(a.slice(1)) - parseInt(b.slice(1));
-    });
+    const sortedZones = Object.keys(zoneGroups).sort();
 
     const section = document.createElement('div');
     section.className = 'col-span-full';
@@ -492,7 +558,6 @@ function renderSlots() {
     const zonesContainer = document.createElement('div');
     zonesContainer.className = 'space-y-4';
     
-    // Render 2 zones per row
     for (let i = 0; i < sortedZones.length; i += 2) {
       const rowDiv = document.createElement('div');
       rowDiv.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
@@ -500,12 +565,12 @@ function renderSlots() {
       for (let j = 0; j < 2 && i + j < sortedZones.length; j++) {
         const zoneName = sortedZones[i + j];
         const slots = zoneGroups[zoneName];
-        const colors = getZoneColor(floor.type);
+        const zoneType = slots[0] ? slots[0].type : 'car';
+        const colors = getZoneColor(zoneType);
         
         const zoneDiv = document.createElement('div');
         zoneDiv.className = `${colors.bg} border-2 ${colors.border} rounded-lg p-4`;
         
-        // Zone title with name
         let zoneHTML = `<p class="text-sm font-bold ${colors.text} mb-3">📍 ${zoneName}</p>`;
         zoneHTML += '<div class="grid grid-cols-5 gap-2">';
         
@@ -513,19 +578,17 @@ function renderSlots() {
           const pct = (s.occupied / s.capacity) * 100;
           let statusColor;
           if (pct >= 100) {
-            // Full slots: darkest color per vehicle type
-            if (floor.type === 'motorbike') statusColor = 'border-orange-600 bg-orange-600 text-white';
-            else if (floor.type === 'car') statusColor = 'border-gray-800 bg-gray-800 text-white';
-            else if (floor.type === 'truck') statusColor = 'border-red-700 bg-red-700 text-white';
+            if (s.type === 'motorbike') statusColor = 'border-orange-600 bg-orange-600 text-white';
+            else if (s.type === 'car') statusColor = 'border-gray-800 bg-gray-800 text-white';
+            else if (s.type === 'truck') statusColor = 'border-red-700 bg-red-700 text-white';
           } else if (pct >= 75) {
             statusColor = 'border-yellow-500 bg-yellow-100 text-yellow-700';
           } else {
             statusColor = 'border-gray-400 bg-white text-gray-700';
           }
-          const slotNumber = s.id.split('-')[1];
           
           zoneHTML += `<div class="border-2 ${statusColor} rounded-lg p-2 text-center cursor-pointer hover:shadow-md transition-all" onclick="openSlotDetail('${s.id}')">
-            <p class="text-xs font-bold">${zoneName}-${slotNumber}</p>
+            <p class="text-xs font-bold">${s.code}</p>
             <p class="text-xs font-semibold">${s.occupied}/${s.capacity}</p>
           </div>`;
         });
@@ -544,15 +607,15 @@ function renderSlots() {
 }
 
 function openSlotDetail(slotId) {
-  const slot = parkingSlots.find(s => s.id === slotId);
+  const slot = parkingSlots.find(s => s.id == slotId);
   if (!slot) return;
-  const vehicles = allRecords.filter(r => r.status === 'parked' && r.slot === slotId);
+  const vehicles = allRecords.filter(r => r.status === 'parked' && r.slot == slotId);
   const modal = document.getElementById('slot-modal');
   const content = document.getElementById('slot-modal-content');
   
   content.innerHTML = `
     <div class="flex items-center justify-between mb-4">
-      <h3 class="text-xl font-bold text-dark">Slot ${slot.id}</h3>
+      <h3 class="text-xl font-bold text-dark">Slot ${slot.code}</h3>
       <button onclick="document.getElementById('slot-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
     </div>
     <div class="grid grid-cols-2 gap-3 text-sm mb-4 bg-orange-50 rounded-xl p-4">
@@ -801,16 +864,20 @@ function renderHourly() {
 function handleSearch() {
   const q = document.getElementById('search-input').value.trim().toUpperCase();
   if (!q) return;
-  const results = allRecords.filter(r => r.status === 'parked' && (r.plate_number.includes(q) || r.card_id.toUpperCase().includes(q)));
+  const results = allRecords.filter(r => r.status === 'parked' && (r.plate_number.includes(q) || (r.card_id && r.card_id.toUpperCase().includes(q))));
   const container = document.getElementById('search-results');
   if (!results.length) { container.innerHTML = '<p class="text-gray-400 text-center py-8">Không tìm thấy xe nào</p>'; return; }
   container.innerHTML = results.map(r => {
     const vehicleColor = getVehicleColor(r.vehicle_type);
+    const slotObj = parkingSlots.find(s => s.id === r.slot || s.code === r.slot);
+    const slotCode = slotObj ? slotObj.code : r.slot;
+    const floorText = slotObj ? slotObj.floor : '-';
+    
     return `<div class="bg-orange-50 rounded-xl p-4 mb-3 border border-orange-100">
       <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
         <p><span class="text-gray-500">Biển số:</span> <strong>${r.plate_number}</strong></p>
-        <p><span class="text-gray-500">Slot:</span> <strong>${r.slot}</strong></p>
-        <p><span class="text-gray-500">Tầng:</span> <strong>${r.floor}</strong></p>
+        <p><span class="text-gray-500">Slot:</span> <strong>${slotCode}</strong></p>
+        <p><span class="text-gray-500">Tầng:</span> <strong>${floorText}</strong></p>
         <p><span class="text-gray-500">Loại xe:</span> <span class="${vehicleColor.badge} px-2 py-1 rounded text-xs font-medium">${getVehicleLabel(r.vehicle_type)}</span></p>
         <p><span class="text-gray-500">Giờ vào:</span> <strong>${formatTime(r.check_in_time)}</strong></p>
         <p><span class="text-gray-500">Thẻ:</span> <strong>${r.card_id}</strong></p>
