@@ -568,7 +568,6 @@ const Pages = {
         document.getElementById('checkout-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const sessionId = document.getElementById('checkout-session-id').value;
-<<<<<<< HEAD
             const exitGate = document.getElementById('checkout-gate').value;
             const paymentMethod = document.getElementById('checkout-payment-method').value;
 
@@ -611,18 +610,6 @@ const Pages = {
                 } else {
                     App.showToast(vnRes.message || 'Lỗi tạo link VNPay', 'error');
                 }
-=======
-            const payload = {
-                exitGate: document.getElementById('checkout-gate').value
-            };
-            const r = await Api.checkOut(sessionId, payload);
-            if(r.success) {
-                App.showToast('Check-out thành công', 'success');
-                document.getElementById('checkout-modal').classList.add('hidden');
-                App.renderPage('sessions');
-            } else {
-                App.showToast(r.message, 'error');
->>>>>>> origin/main
             }
         });
 

@@ -101,10 +101,7 @@ const Api = {
     getReservation(id) { return this.request('GET', '/reservations/' + id); },
     createReservation(data) { return this.request('POST', '/reservations', data); },
     updateReservation(id, data) { return this.request('PUT', '/reservations/' + id, data); },
-<<<<<<< HEAD
     updateReservationStatus(id, status) { return this.request('PATCH', '/reservations/' + id + '/status?status=' + encodeURIComponent(status)); },
-=======
->>>>>>> origin/main
     cancelReservation(id) { return this.request('DELETE', '/reservations/' + id); },
 
     // Payments
