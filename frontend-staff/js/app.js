@@ -230,21 +230,34 @@ const Pages = {
                 <div class="stat-card">
                     <div class="stat-icon blue"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 9h22M9 21V9"/><rect x="1" y="3" width="22" height="18" rx="2"/></svg></div>
                     <div class="stat-info">
+<<<<<<< HEAD
+                        <h3>${sum.totalCapacity}</h3>
+                        <p>Tổng số chỗ (sức chứa)</p>
+=======
                         <h3>${sum.totalSlots}</h3>
                         <p>Tổng số chỗ</p>
+>>>>>>> origin/main
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon green"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg></div>
                     <div class="stat-info">
+<<<<<<< HEAD
+                        <h3>${sum.availableCapacity}</h3>
+=======
                         <h3>${sum.availableSlots}</h3>
+>>>>>>> origin/main
                         <p>Chỗ trống</p>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon red"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 16H9m10 0h3v-3.15a1 1 0 00-.84-.99L16 11l-2.7-3.6a1 1 0 00-.8-.4H5.24a2 2 0 00-1.8 1.1l-.8 1.63A6 6 0 002 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg></div>
                     <div class="stat-info">
+<<<<<<< HEAD
+                        <h3>${sum.currentOccupancy}</h3>
+=======
                         <h3>${sum.occupiedSlots}</h3>
+>>>>>>> origin/main
                         <p>Đang đỗ</p>
                     </div>
                 </div>
@@ -279,7 +292,11 @@ const Pages = {
                 html += `<div class="card" style="margin-bottom: 24px;">
                     <div class="card-header">
                         <h3 class="card-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16M9 21v-4a2 2 0 012-2h2a2 2 0 012 2v4"/></svg>${b.buildingName}</h3>
+<<<<<<< HEAD
+                        <div class="badge badge-blue">Đang đỗ: ${b.summary.currentOccupancy} / ${b.summary.totalCapacity}</div>
+=======
                         <div class="badge badge-blue">Trống: ${b.summary.availableSlots}</div>
+>>>>>>> origin/main
                     </div>
                     <div class="card-body">
                 `;
@@ -291,7 +308,11 @@ const Pages = {
                         html += `<div style="margin-bottom: 16px; background: var(--bg-page); padding: 16px; border-radius: var(--radius-sm);">
                             <h5 style="font-size: .85rem; font-weight: 600; margin-bottom: 12px; display:flex; justify-content:space-between;">
                                 <span>${z.zoneName} <span style="font-weight:400; color:var(--text-muted)">(${z.description})</span></span>
+<<<<<<< HEAD
+                                <span class="badge badge-gray">Đang đỗ: ${z.summary.currentOccupancy} / Sức chứa: ${z.summary.totalCapacity}</span>
+=======
                                 <span class="badge badge-gray">Trống: ${z.summary.availableSlots}</span>
+>>>>>>> origin/main
                             </h5>
                             <div class="slot-grid">`;
                         
@@ -444,6 +465,17 @@ const Pages = {
                                     <option value="Gate D">Cổng D (Gate D)</option>
                                 </select>
                             </div>
+<<<<<<< HEAD
+                            <div class="form-group full-width">
+                                <label>Phương thức thanh toán</label>
+                                <select id="checkout-payment-method">
+                                    <option value="CASH">Tiền mặt (Nhận tại quầy)</option>
+                                    <option value="BANK_TRANSFER">Chuyển khoản ngân hàng</option>
+                                    <option value="E_WALLET">Ví điện tử</option>
+                                </select>
+                            </div>
+=======
+>>>>>>> origin/main
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline" onclick="document.getElementById('checkout-modal').classList.add('hidden')">Hủy</button>
@@ -536,6 +568,50 @@ const Pages = {
         document.getElementById('checkout-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const sessionId = document.getElementById('checkout-session-id').value;
+<<<<<<< HEAD
+            const exitGate = document.getElementById('checkout-gate').value;
+            const paymentMethod = document.getElementById('checkout-payment-method').value;
+
+            // Step 1: Tạo thanh toán
+            const paymentPayload = {
+                sessionId: parseInt(sessionId),
+                paymentMethod: paymentMethod
+            };
+            const pRes = await Api.createPayment(paymentPayload);
+            if (!pRes.success && pRes.message && !pRes.message.includes('already has a PENDING payment')) {
+                App.showToast(pRes.message || 'Lỗi tạo thanh toán', 'error');
+                return;
+            }
+
+            const paymentId = pRes.data ? pRes.data.paymentId : null;
+            if (!paymentId) {
+                App.showToast('Không lấy được ID thanh toán.', 'error');
+                return;
+            }
+
+            // Step 2: Xử lý theo phương thức thanh toán
+            if (paymentMethod === 'CASH') {
+                // Tiền mặt: Xác nhận thu tiền ngay, backend sẽ tự động Check-out session
+                const cRes = await Api.confirmCash(paymentId);
+                if (cRes.success) {
+                    App.showToast('Đã thu tiền mặt và check-out thành công!', 'success');
+                    document.getElementById('checkout-modal').classList.add('hidden');
+                    App.renderPage('sessions');
+                } else {
+                    App.showToast(cRes.message || 'Lỗi xác nhận tiền mặt', 'error');
+                }
+            } else {
+                // Chuyển khoản hoặc Ví điện tử: Tạo VNPay URL và mở sang tab mới
+                const vnRes = await Api.createVnPayUrl(paymentId);
+                if (vnRes.success && vnRes.data && vnRes.data.paymentUrl) {
+                    window.open(vnRes.data.paymentUrl, '_blank');
+                    App.showToast('Đã mở cổng thanh toán VNPay. Phiên sẽ tự động check-out khi thanh toán hoàn tất.', 'info');
+                    document.getElementById('checkout-modal').classList.add('hidden');
+                    App.renderPage('sessions');
+                } else {
+                    App.showToast(vnRes.message || 'Lỗi tạo link VNPay', 'error');
+                }
+=======
             const payload = {
                 exitGate: document.getElementById('checkout-gate').value
             };
@@ -546,6 +622,7 @@ const Pages = {
                 App.renderPage('sessions');
             } else {
                 App.showToast(r.message, 'error');
+>>>>>>> origin/main
             }
         });
 
@@ -706,7 +783,22 @@ const Pages = {
                                     <td>${r.slotCode || '-'}</td>
                                     <td>${new Date(r.startTime).toLocaleString('vi-VN')}</td>
                                     <td>${new Date(r.endTime).toLocaleString('vi-VN')}</td>
+<<<<<<< HEAD
+                                    <td>
+                                        ${badge}
+                                        ${(App.state.user.role === 'Admin' || App.state.user.role === 'ParkingManager' || App.state.user.role === 'ParkingStaff') ? `
+                                            <select onchange="window.updateReservationStatus(${r.reservationId}, this.value)" style="font-size:0.75rem; padding:2px; margin-top:4px; width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background-color: var(--bg-card); color: var(--text-main);">
+                                                <option value="">-- Đổi --</option>
+                                                <option value="PENDING">Chờ xác nhận</option>
+                                                <option value="CONFIRMED">Đã xác nhận</option>
+                                                <option value="COMPLETED">Đã hoàn thành</option>
+                                                <option value="CANCELLED">Đã hủy</option>
+                                            </select>
+                                        ` : ''}
+                                    </td>
+=======
                                     <td>${badge}</td>
+>>>>>>> origin/main
                                 </tr>`;
                             }).join('')}
                         </tbody>
@@ -714,6 +806,20 @@ const Pages = {
                 </div>
             </div>`;
         container.innerHTML = html;
+<<<<<<< HEAD
+
+        window.updateReservationStatus = async (id, status) => {
+            if(!status) return;
+            const r = await Api.updateReservationStatus(id, status);
+            if(r.success) {
+                App.showToast('Cập nhật trạng thái đặt chỗ thành công', 'success');
+                App.renderPage('reservations');
+            } else {
+                App.showToast(r.message || 'Lỗi khi cập nhật', 'error');
+            }
+        };
+=======
+>>>>>>> origin/main
     },
 
     async renderPayments(container) {
@@ -812,7 +918,22 @@ const Pages = {
                                     <td style="font-weight:600">${i.title || i.description || '-'}</td>
                                     <td>${sevBadge}</td>
                                     <td>${i.incidentType || '-'}</td>
+<<<<<<< HEAD
+                                    <td>
+                                        ${statBadge}
+                                        ${(App.state.user.role === 'Admin' || App.state.user.role === 'ParkingManager') ? `
+                                            <select onchange="window.updateIncidentStatus(${i.incidentId}, this.value)" style="font-size:0.75rem; padding:2px; margin-top:4px; width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background-color: var(--bg-card); color: var(--text-main);">
+                                                <option value="">-- Đổi --</option>
+                                                <option value="OPEN">Mở</option>
+                                                <option value="IN_PROGRESS">Đang xử lý</option>
+                                                <option value="RESOLVED">Đã giải quyết</option>
+                                                <option value="CLOSED">Đã đóng</option>
+                                            </select>
+                                        ` : ''}
+                                    </td>
+=======
                                     <td>${statBadge}</td>
+>>>>>>> origin/main
                                     <td>${i.reporterName || '-'}</td>
                                     <td>${i.reportTime ? new Date(i.reportTime).toLocaleString('vi-VN') : (i.createdAt ? new Date(i.createdAt).toLocaleString('vi-VN') : '-')}</td>
                                 </tr>`;
@@ -884,6 +1005,20 @@ const Pages = {
                 App.showToast(r.message || 'Lỗi khi báo cáo sự cố', 'error');
             }
         });
+<<<<<<< HEAD
+
+        window.updateIncidentStatus = async (id, status) => {
+            if(!status) return;
+            const r = await Api.updateIncidentStatus(id, status);
+            if(r.success) {
+                App.showToast('Cập nhật trạng thái sự cố thành công', 'success');
+                App.renderPage('incidents');
+            } else {
+                App.showToast(r.message || 'Lỗi khi cập nhật', 'error');
+            }
+        };
+=======
+>>>>>>> origin/main
     },
 
     async renderSubscriptions(container) {
@@ -961,6 +1096,174 @@ const Pages = {
     },
 
     async renderReports(container) {
+<<<<<<< HEAD
+        // Fetch data
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+        try {
+            const [payRes, occRes, preRes] = await Promise.all([
+                Api.getPayments(),
+                Api.getOccupancy(),
+                Api.getPredictions()
+            ]);
+
+            let payments = [];
+            if (payRes.success) payments = payRes.data;
+            
+            // Lọc thanh toán thành công
+            const paidPayments = payments.filter(p => p.paymentStatus === 'PAID');
+            
+            // Xử lý dữ liệu doanh thu theo ngày (7 ngày gần nhất)
+            const last7Days = Array.from({length: 7}, (_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - (6 - i));
+                return d;
+            });
+            
+            const categories = last7Days.map(d => d.toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'}));
+            const revenueData = last7Days.map(d => {
+                const dateStr = d.toISOString().split('T')[0];
+                return paidPayments.filter(p => p.paidAt && p.paidAt.startsWith(dateStr))
+                    .reduce((sum, p) => sum + p.amount, 0);
+            });
+
+            // Doanh thu tháng này
+            const currentMonth = new Date().getMonth();
+            const monthlyRevenue = paidPayments
+                .filter(p => p.paidAt && new Date(p.paidAt).getMonth() === currentMonth)
+                .reduce((sum, p) => sum + p.amount, 0);
+
+            // Tỷ lệ lấp đầy
+            const capacity = occRes.success ? occRes.data.totalCapacity : 0;
+            const occupied = occRes.success ? occRes.data.occupiedSlots : 0;
+            const available = capacity - occupied;
+            const occRate = occRes.success ? occRes.data.occupancyRate : 0;
+
+            let html = `
+                <div style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px;">
+                    
+                    <!-- Left Column: Revenue Chart -->
+                    <div style="grid-column: span 8;">
+                        <div class="card" style="height: 100%;">
+                            <div class="card-header">
+                                <h3 class="card-title">Tổng quan doanh thu (7 ngày)</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="revenue-chart"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Occupancy & Earnings -->
+                    <div style="grid-column: span 4; display: flex; flex-direction: column; gap: 24px;">
+                        
+                        <!-- Yearly Breakup (Occupancy) -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Tỷ lệ lấp đầy hiện tại</h3>
+                            </div>
+                            <div class="card-body">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div>
+                                        <h2 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 8px;">${occRate.toFixed(1)}%</h2>
+                                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                                            <div style="display: flex; align-items: center; gap: 8px;">
+                                                <span style="width:10px; height:10px; border-radius:50%; background:var(--accent);"></span>
+                                                <span style="font-size:0.85rem; color:var(--text-secondary);">Đang đỗ (${occupied})</span>
+                                            </div>
+                                            <div style="display: flex; align-items: center; gap: 8px;">
+                                                <span style="width:10px; height:10px; border-radius:50%; background:#ecf2ff;"></span>
+                                                <span style="font-size:0.85rem; color:var(--text-secondary);">Trống (${available})</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="occupancy-chart"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Earnings -->
+                        <div class="card" style="background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: white;">
+                            <div class="card-body">
+                                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px; opacity: 0.9;">Doanh thu tháng này</h3>
+                                <h2 style="font-size: 2rem; font-weight: 800; margin-bottom: 8px;">${monthlyRevenue.toLocaleString('vi-VN')} đ</h2>
+                                <p style="font-size: 0.85rem; opacity: 0.8;">Cập nhật đến hôm nay</p>
+                            </div>
+                        </div>
+
+                    </div>
+                    
+                    <!-- Prediction Table -->
+                    <div style="grid-column: span 12;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Dự đoán chỗ trống (AI/Heuristics)</h3>
+                            </div>
+                            <div class="card-body no-pad table-wrapper">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Khung giờ</th>
+                                            <th>Trạng thái dự kiến</th>
+                                            <th>Mức độ tin cậy</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${preRes.success && preRes.data ? `
+                                            <tr>
+                                                <td>Trong 1 giờ tới</td>
+                                                <td>${preRes.data.predictionText || 'Bình thường'}</td>
+                                                <td><span class="badge badge-green">Cao</span></td>
+                                            </tr>
+                                        ` : `
+                                            <tr><td colspan="3" style="text-align:center;">Chưa có dữ liệu dự đoán</td></tr>
+                                        `}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            `;
+            container.innerHTML = html;
+
+            // Render ApexCharts
+            if (window.ApexCharts) {
+                // Revenue Chart (Bar)
+                const revOptions = {
+                    series: [{ name: 'Doanh thu', data: revenueData }],
+                    chart: { type: 'bar', height: 350, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
+                    colors: ['#f97316'],
+                    plotOptions: { bar: { borderRadius: 4, columnWidth: '40%' } },
+                    dataLabels: { enabled: false },
+                    stroke: { show: true, width: 2, colors: ['transparent'] },
+                    xaxis: { categories: categories, axisBorder: { show: false } },
+                    yaxis: { labels: { formatter: (val) => val.toLocaleString('vi-VN') + ' đ' } },
+                    grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
+                    fill: { opacity: 1 },
+                    tooltip: { y: { formatter: (val) => val.toLocaleString('vi-VN') + ' đ' } }
+                };
+                new ApexCharts(document.querySelector("#revenue-chart"), revOptions).render();
+
+                // Occupancy Chart (Donut)
+                const occOptions = {
+                    series: [occupied, available],
+                    chart: { type: 'donut', height: 150, fontFamily: 'Inter, sans-serif' },
+                    colors: ['#f97316', '#ecf2ff'],
+                    labels: ['Đang đỗ', 'Trống'],
+                    plotOptions: { pie: { donut: { size: '75%' } } },
+                    dataLabels: { enabled: false },
+                    legend: { show: false },
+                    stroke: { show: false },
+                    tooltip: { theme: 'light' }
+                };
+                new ApexCharts(document.querySelector("#occupancy-chart"), occOptions).render();
+            }
+
+        } catch (e) {
+            container.innerHTML = `<div class="empty-state"><p style="color:var(--red)">Lỗi: ${e.message}</p></div>`;
+        }
+=======
         container.innerHTML = `
             <div class="card">
                 <div class="card-header"><h3 class="card-title">Báo cáo & Thống kê</h3></div>
@@ -969,6 +1272,7 @@ const Pages = {
                 </div>
             </div>
         `;
+>>>>>>> origin/main
     }
 };
 

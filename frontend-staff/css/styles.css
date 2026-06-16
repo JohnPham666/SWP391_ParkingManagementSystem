@@ -47,6 +47,73 @@ td { border-bottom: 1px solid var(--border); }
 tbody tr:hover { background: var(--bg-hover); }
 .hidden { display: none !important; }
 
+<<<<<<< HEAD
+/* ===== LOGIN (ONE REACT TEMPLATE) ===== */
+.auth-page {
+  height: 100vh;
+  background-color: #fff;
+  padding: 0 40px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.auth-page img.backImg {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  max-height: 85%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.widget-auth {
+  background: none;
+  max-width: 360px;
+  width: 100%;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  z-index: 10;
+  height: 100vh;
+}
+
+.widget-auth-info {
+  font-size: 18px;
+  color: #464646;
+  margin-bottom: 20px;
+}
+
+.auth-btn:hover {
+  background-color: #e0a800 !important;
+}
+
+.login-error { 
+  background: rgba(239,68,68,.1); 
+  border: 1px solid rgba(239,68,68,.2); 
+  color: #b91c1c; 
+  padding: 12px; 
+  border-radius: var(--radius-sm); 
+  font-size: .85rem; 
+  margin-bottom: 16px; 
+}
+.btn-loader { 
+  width: 20px; 
+  height: 20px; 
+  border: 2px solid rgba(255,255,255,.3); 
+  border-top-color: #fff; 
+  border-radius: 50%; 
+  animation: spin .6s linear infinite; 
+}
+
+@media (max-width: 768px) {
+  .auth-page { padding: 0 20px; }
+  .auth-page img.backImg { display: none; }
+  .widget-auth { max-width: 100%; }
+}
+=======
 /* ===== LOGIN ===== */
 .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #fff7ed, #ffedd5, #fff7ed); position: relative; overflow: hidden; }
 .login-bg-animation { position: absolute; inset: 0; }
@@ -78,6 +145,7 @@ tbody tr:hover { background: var(--bg-hover); }
 .btn-loader { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .login-footer { text-align: center; margin-top: 24px; color: var(--text-muted); font-size: .8rem; }
+>>>>>>> origin/main
 
 /* ===== APP LAYOUT ===== */
 .app { display: flex; min-height: 100vh; }

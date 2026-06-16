@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/incidents")
@@ -45,5 +46,12 @@ public class IncidentController {
     public ApiResponse<?> delete(@PathVariable Integer id) {
         incidentService.delete(id);
         return ApiResponse.success("Deleted successfully", null);
+    }
+
+    @Operation(summary = "Update incident status")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
+    @PatchMapping("/{id}/status")
+    public ApiResponse<IncidentResponse> updateStatus(@PathVariable Integer id, @RequestParam String status) {
+        return ApiResponse.success("Status updated successfully", incidentService.updateStatus(id, status));
     }
 }

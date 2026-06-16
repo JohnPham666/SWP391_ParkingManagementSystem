@@ -167,10 +167,6 @@ public class PaymentService {
                         "Payment not found with id: " + id
                 ));
 
-        if (!PaymentMethod.CASH.name().equals(payment.getPaymentMethod())) {
-            throw new IllegalArgumentException("Only CASH payment can be confirmed manually by staff");
-        }
-
         if (PaymentStatus.PAID.name().equals(payment.getPaymentStatus())) {
             throw new IllegalArgumentException("This payment has already been paid");
         }
@@ -179,8 +175,39 @@ public class PaymentService {
             throw new IllegalArgumentException("Failed payment cannot be confirmed");
         }
 
+        payment.setPaymentMethod(PaymentMethod.CASH.name());
         payment.setPaymentStatus(PaymentStatus.PAID.name());
         payment.setPaidAt(LocalDateTime.now());
+
+        if (payment.getReservation() != null) {
+            Reservation reservation = payment.getReservation();
+            reservation.setStatus("CONFIRMED");
+            reservationRepository.save(reservation);
+            
+            ParkingSlot slot = reservation.getSlot();
+            if (slot.getStatus() == SlotStatus.AVAILABLE) {
+                slot.setStatus(SlotStatus.RESERVED);
+                parkingSlotRepository.save(slot);
+            }
+        }
+        
+        if (payment.getSession() != null) {
+            ParkingSession session = payment.getSession();
+            if ("PARKING".equals(session.getStatus())) {
+                session.setStatus("COMPLETED");
+                session.setExitTime(LocalDateTime.now());
+                
+                ParkingSlot slot = session.getSlot();
+                int newOcc = slot.getCurrentOccupancy() - 1;
+                if (newOcc < 0) newOcc = 0;
+                slot.setCurrentOccupancy(newOcc);
+                if (slot.getCurrentOccupancy() < slot.getCapacity()) {
+                    slot.setStatus(SlotStatus.AVAILABLE);
+                }
+                parkingSlotRepository.save(slot);
+                parkingSessionRepository.save(session);
+            }
+        }
 
         Payment updatedPayment = paymentRepository.save(payment);
 
@@ -354,6 +381,25 @@ public class PaymentService {
                 }
                 // Giả lập gửi thông báo
                 System.out.println(">>> Gửi email/SMS xác nhận đặt chỗ thành công cho Reservation ID: " + reservation.getReservationId());
+            }
+
+            // Check if it's a session payment
+            if (payment.getSession() != null) {
+                ParkingSession session = payment.getSession();
+                if ("PARKING".equals(session.getStatus())) {
+                    session.setStatus("COMPLETED");
+                    session.setExitTime(LocalDateTime.now());
+                    
+                    ParkingSlot slot = session.getSlot();
+                    int newOcc = slot.getCurrentOccupancy() - 1;
+                    if (newOcc < 0) newOcc = 0;
+                    slot.setCurrentOccupancy(newOcc);
+                    if (slot.getCurrentOccupancy() < slot.getCapacity()) {
+                        slot.setStatus(SlotStatus.AVAILABLE);
+                    }
+                    parkingSlotRepository.save(slot);
+                    parkingSessionRepository.save(session);
+                }
             }
 
             paymentRepository.save(payment);
