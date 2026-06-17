@@ -163,4 +163,25 @@ public class ReservationService {
             throw new IllegalArgumentException("Reservation end must be after reservation start");
         }
     }
+
+    public ReservationResponse updateStatus(Integer id, String status) {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+        reservation.setStatus(status);
+        if ("CONFIRMED".equals(status)) {
+            ParkingSlot slot = reservation.getSlot();
+            if (slot.getStatus() == SlotStatus.AVAILABLE) {
+                slot.setStatus(SlotStatus.RESERVED);
+                parkingSlotRepository.save(slot);
+            }
+        }
+        if ("CANCELLED".equals(status) || "COMPLETED".equals(status)) {
+            ParkingSlot slot = reservation.getSlot();
+            if (slot.getStatus() == SlotStatus.RESERVED) {
+                slot.setStatus(SlotStatus.AVAILABLE);
+                parkingSlotRepository.save(slot);
+            }
+        }
+        return ReservationResponse.fromEntity(reservationRepository.save(reservation));
+    }
 }
