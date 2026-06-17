@@ -46,6 +46,14 @@ public class IncidentService {
     }
 
     public List<IncidentResponse> getAll() {
+        User currentUser = getCurrentAuthenticatedUser();
+        String roleName = currentUser.getRole().getRoleName();
+        if ("ParkingStaff".equals(roleName)) {
+            return incidentReportRepository.findByReportedBy_UserId(currentUser.getUserId())
+                    .stream()
+                    .map(IncidentResponse::fromEntity)
+                    .toList();
+        }
         return incidentReportRepository.findAll()
                 .stream()
                 .map(IncidentResponse::fromEntity)
@@ -89,6 +97,13 @@ public class IncidentService {
                 .orElseThrow(() -> new RuntimeException("Incident report not found"));
 
         incidentReportRepository.delete(incident);
+    }
+
+    public IncidentResponse updateStatus(Integer id, String status) {
+        IncidentReport incident = incidentReportRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Incident report not found"));
+        incident.setStatus(status);
+        return IncidentResponse.fromEntity(incidentReportRepository.save(incident));
     }
 
     private User getCurrentAuthenticatedUser() {

@@ -48,4 +48,11 @@ public class ReservationController {
         reservationService.cancel(id);
         return ApiResponse.success("Reservation cancelled successfully", null);
     }
+
+    @Operation(summary = "Update reservation status")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff')")
+    @PatchMapping("/{id}/status")
+    public ApiResponse<ReservationResponse> updateStatus(@PathVariable Integer id, @RequestParam String status) {
+        return ApiResponse.success("Status updated successfully", reservationService.updateStatus(id, status));
+    }
 }
