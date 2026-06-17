@@ -203,41 +203,66 @@ public class SessionService {
             parkingCardRepository.save(card);
         }
 
-        /*
-         * Gọi PricingService để tính phí gửi xe thật.
-         */
         Long vehicleTypeId = Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId());
-        FeeCalculationResponse feeResponse = pricingService.calculateFee(
-                vehicleTypeId,
-                session.getEntryTime(),
-                exitTime
-        );
-        BigDecimal calculatedFinalFee = feeResponse.getFinalFee();
 
-        // Cập nhật Reservation liên quan thành COMPLETED
+        // Kiểm tra xem session này có reservation đi kèm không
         java.util.Optional<Reservation> resOpt = reservationRepository.findFirstByVehicle_VehicleIdAndSlot_SlotIdAndStatus(
                 session.getVehicle().getVehicleId(),
                 slot.getSlotId(),
                 "CONFIRMED"
         );
 
+        BigDecimal calculatedFinalFee;
+
         if (resOpt.isPresent()) {
             Reservation r = resOpt.get();
             r.setStatus("COMPLETED");
             reservationRepository.save(r);
 
-            // Deduct the reservation fee that was already paid
-            FeeCalculationResponse reservationFeeResponse = pricingService.calculateFee(
-                    Long.valueOf(r.getVehicleType().getVehicleTypeId()),
-                    r.getReservationStart(), r.getReservationEnd());
-            BigDecimal reservationFee = reservationFeeResponse.getFinalFee();
+            /*
+             * Có reservation -> Tính phí 2 giai đoạn:
+             *
+             * Giai đoạn 1 (normal): entryTime -> ReservationEnd
+             *   rush/offpeak rate + BasePrice
+             *
+             * Giai đoạn 2 (overtime): ReservationEnd -> exitTime (nếu xe ra trễ)
+             *   OvertimeFeePerHour x số giờ quá
+             *
+             * Sau đó trừ đi phần đã thanh toán khi đặt chỗ.
+             */
+            FeeCalculationResponse feeResponse = pricingService.calculateFee(
+                    vehicleTypeId,
+                    session.getEntryTime(),
+                    exitTime,
+                    r.getReservationEnd()   // overtimeStart = hết giờ đặt chỗ
+            );
 
-            calculatedFinalFee = calculatedFinalFee.subtract(reservationFee);
+            // Phần phí reservation đã thu trước đó (để trừ ra, tránh tính 2 lần)
+            FeeCalculationResponse reservationFeeResponse = pricingService.calculateFee(
+                    vehicleTypeId,
+                    r.getReservationStart(),
+                    r.getReservationEnd()
+            );
+            BigDecimal reservationAlreadyPaid = reservationFeeResponse.getFinalFee();
+
+            calculatedFinalFee = feeResponse.getFinalFee().subtract(reservationAlreadyPaid);
             if (calculatedFinalFee.compareTo(BigDecimal.ZERO) < 0) {
                 calculatedFinalFee = BigDecimal.ZERO;
             }
+
+        } else {
+            /*
+             * Walk-in hoặc không có reservation
+             * FinalFee = BasePrice + HourlyFee (capped by MaxDailyRate)
+             */
+            FeeCalculationResponse feeResponse = pricingService.calculateFee(
+                    vehicleTypeId,
+                    session.getEntryTime(),
+                    exitTime
+            );
+            calculatedFinalFee = feeResponse.getFinalFee();
         }
-        
+
         session.setFinalFee(calculatedFinalFee);
 
         // Slot OCCUPIED -> AVAILABLE

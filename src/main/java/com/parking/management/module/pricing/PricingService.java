@@ -121,38 +121,63 @@ public class PricingService {
     //================================================================================================================
 
     /**
-     * Tính phí gửi xe dựa trên loại xe và thời gian vào/ra.
+     * Tính phí gửi xe — không có overtime (walk-in hoặc không có reservation).
      *
-     * LOGIC:
-     * 1. Tìm PricingPolicy đang hiệu lực cho loại xe này.
-     * 2. Duyệt từng giờ từ entryTime -> exitTime.
-     * 3. Nếu giờ đó nằm trong khung rushHour -> tính rushHourPrice.
-     *    Nếu không -> tính offPeakPrice.
-     * 4. Nếu tổng phí > maxDailyRate -> cap lại = maxDailyRate.
+     * FinalFee = BasePrice + HourlyFee (capped by MaxDailyRate/ngày)
      */
     public FeeCalculationResponse calculateFee(Long vehicleTypeId,
-                                                LocalDateTime entryTime,
-                                                LocalDateTime exitTime) {
-        
-        // Validation: Thời gian ra phải sau thời gian vào
+                                               LocalDateTime entryTime,
+                                               LocalDateTime exitTime) {
+        return calculateFee(vehicleTypeId, entryTime, exitTime, null);
+    }
+
+    /**
+     * Tính phí gửi xe — có hỗ trợ overtime.
+     *
+     * FinalFee = BasePrice
+     *          + HourlyFee từ entryTime đến normalEnd (capped by MaxDailyRate/ngày)
+     *          + OvertimeFee nếu exitTime > overtimeStart
+     *
+     * @param overtimeStart Thời điểm bắt đầu tính overtime (thường là ReservationEnd).
+     *                      NULL nếu không có reservation.
+     */
+    public FeeCalculationResponse calculateFee(Long vehicleTypeId,
+                                               LocalDateTime entryTime,
+                                               LocalDateTime exitTime,
+                                               LocalDateTime overtimeStart) {
+        // --- Validation ---
         if (exitTime.isBefore(entryTime)) {
             throw new IllegalArgumentException("Exit time must be after entry time.");
         }
 
-        // Bước 1: Tìm pricing policy đang hiệu lực
+        // --- Lấy pricing policy đang hiệu lực ---
         PricingPolicy policy = repository.findActivePolicyByVehicleTypeId(
                 vehicleTypeId, LocalDateTime.now())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No active pricing policy found for vehicle type id: " + vehicleTypeId));
 
-        long totalMinutes = java.time.Duration.between(entryTime, exitTime).toMinutes();
-        long totalHours = (long) Math.ceil(totalMinutes / 60.0);
+        LocalTime rushStart = policy.getRushHourStart();
+        LocalTime rushEnd   = policy.getRushHourEnd();
 
-        long rushHours = 0;
+        // ============================================================
+        // 1. BASE PRICE — phí vào cổng, thu 1 lần khi xe vào
+        // ============================================================
+        BigDecimal baseFee = (policy.getBasePrice() != null)
+                ? policy.getBasePrice()
+                : BigDecimal.ZERO;
+
+        // ============================================================
+        // 2. HOURLY FEE — tính từ entryTime đến normalEnd
+        //    normalEnd = overtimeStart nếu có, ngược lại = exitTime
+        // ============================================================
+        boolean hasOvertime = overtimeStart != null && exitTime.isAfter(overtimeStart);
+        LocalDateTime normalEnd = hasOvertime ? overtimeStart : exitTime;
+
+        long totalMinutes = java.time.Duration.between(entryTime, normalEnd).toMinutes();
+        long totalHours   = (totalMinutes <= 0) ? 0 : (long) Math.ceil(totalMinutes / 60.0);
+
+        long rushHours    = 0;
         long offPeakHours = 0;
-
-        LocalTime rushStart = policy.getRushHourStart(); 
-        LocalTime rushEnd = policy.getRushHourEnd();     
 
         LocalDateTime currentHour = entryTime;
         for (int i = 0; i < totalHours; i++) {
@@ -166,63 +191,101 @@ public class PricingService {
         }
 
         BigDecimal rushHourFee = policy.getRushHourPrice().multiply(BigDecimal.valueOf(rushHours));
-        BigDecimal offPeakFee = policy.getOffPeakPrice().multiply(BigDecimal.valueOf(offPeakHours));
-        BigDecimal totalFee = rushHourFee.add(offPeakFee);
+        BigDecimal offPeakFee  = policy.getOffPeakPrice().multiply(BigDecimal.valueOf(offPeakHours));
+        BigDecimal totalFeeBeforeCap = rushHourFee.add(offPeakFee);
 
-        BigDecimal finalFee = totalFee;
-        if (policy.getMaxDailyRate() != null && policy.getMaxDailyRate().compareTo(BigDecimal.ZERO) > 0) {
-            long fullDays = totalHours / 24;
-            long remainingHours = totalHours % 24;
-            
-            BigDecimal fullDaysFee = policy.getMaxDailyRate().multiply(BigDecimal.valueOf(fullDays));
-            
-            // Re-calculate fee just for the remaining hours to cap it
-            long remRush = 0;
-            long remOff = 0;
-            LocalDateTime remTime = entryTime.plusDays(fullDays);
-            for (int i = 0; i < remainingHours; i++) {
-                LocalTime timeOfDay = remTime.toLocalTime();
-                if (isRushHour(timeOfDay, rushStart, rushEnd)) {
-                    remRush++;
-                } else {
-                    remOff++;
-                }
-                remTime = remTime.plusHours(1);
-            }
-            BigDecimal remRushFee = policy.getRushHourPrice().multiply(BigDecimal.valueOf(remRush));
-            BigDecimal remOffFee = policy.getOffPeakPrice().multiply(BigDecimal.valueOf(remOff));
-            BigDecimal remTotalFee = remRushFee.add(remOffFee);
-            
-            if (remTotalFee.compareTo(policy.getMaxDailyRate()) > 0) {
-                remTotalFee = policy.getMaxDailyRate();
-            }
-            
-            finalFee = fullDaysFee.add(remTotalFee);
+        // --- Áp MaxDailyRate cap theo từng ngày ---
+        BigDecimal cappedHourlyFee = applyDailyCap(totalFeeBeforeCap, totalHours, policy, entryTime, rushStart, rushEnd);
+
+        // ============================================================
+        // 3. OVERTIME FEE — tính cho khoảng thời gian xe ở quá giờ
+        //    Áp dụng khi xe ra sau overtimeStart (ví dụ: sau ReservationEnd)
+        // ============================================================
+        long overtimeHours = 0;
+        BigDecimal overtimeFee = BigDecimal.ZERO;
+
+        if (hasOvertime && policy.getOvertimeFeePerHour() != null
+                && policy.getOvertimeFeePerHour().compareTo(BigDecimal.ZERO) > 0) {
+            long overtimeMinutes = java.time.Duration.between(overtimeStart, exitTime).toMinutes();
+            overtimeHours = (long) Math.ceil(overtimeMinutes / 60.0);
+            overtimeFee = policy.getOvertimeFeePerHour().multiply(BigDecimal.valueOf(overtimeHours));
         }
 
+        // ============================================================
+        // 4. FINAL FEE = BasePrice + CappedHourlyFee + OvertimeFee
+        // ============================================================
+        BigDecimal finalFee = baseFee.add(cappedHourlyFee).add(overtimeFee);
+
+        // --- Build response ---
         FeeCalculationResponse response = new FeeCalculationResponse();
+        response.setPolicyName(policy.getPolicyName());
+        response.setBaseFee(baseFee);
         response.setTotalHours(totalHours);
         response.setRushHours(rushHours);
         response.setOffPeakHours(offPeakHours);
         response.setRushHourFee(rushHourFee);
         response.setOffPeakFee(offPeakFee);
-        response.setTotalFeeBeforeCap(totalFee);
+        response.setTotalFeeBeforeCap(totalFeeBeforeCap);
+        response.setCappedHourlyFee(cappedHourlyFee);
+        response.setOvertimeHours(overtimeHours);
+        response.setOvertimeFee(overtimeFee);
         response.setFinalFee(finalFee);
-        response.setPolicyName(policy.getPolicyName());
 
         return response;
     }
 
     /**
-     * Kiểm tra 1 thời điểm có nằm trong khung giờ cao điểm không.
-     * VD: rushStart = 07:00, rushEnd = 19:00
-     *     -> 08:00 = true (trong khung)
-     *     -> 20:00 = false (ngoài khung)
+     * Áp MaxDailyRate cap theo từng ngày.
      *
-     * Cũng xử lý trường hợp rush hour qua đêm:
-     * VD: rushStart = 22:00, rushEnd = 06:00
-     *     -> 23:00 = true, 03:00 = true, 10:00 = false
+     * Logic:
+     * - Mỗi block 24 giờ bị cap bởi MaxDailyRate.
+     * - Phần giờ lẻ (< 24h) của ngày cuối tính riêng, cũng bị cap nếu vượt MaxDailyRate.
+     *
+     * Ví dụ: gửi 30 giờ, MaxDailyRate = 50.000đ
+     *   - Ngày 1 (24h): tính rush/offpeak ra 80.000đ → cap thành 50.000đ
+     *   - 6h còn lại: tính rush/offpeak ra 30.000đ → không cần cap
+     *   - cappedHourlyFee = 50.000 + 30.000 = 80.000đ
      */
+    private BigDecimal applyDailyCap(BigDecimal totalFeeBeforeCap,
+                                     long totalHours,
+                                     PricingPolicy policy,
+                                     LocalDateTime entryTime,
+                                     LocalTime rushStart,
+                                     LocalTime rushEnd) {
+        if (policy.getMaxDailyRate() == null
+                || policy.getMaxDailyRate().compareTo(BigDecimal.ZERO) <= 0) {
+            // Không có MaxDailyRate → không cap, trả về nguyên
+            return totalFeeBeforeCap;
+        }
+
+        BigDecimal maxDaily = policy.getMaxDailyRate();
+        long fullDays       = totalHours / 24;
+        long remainingHours = totalHours % 24;
+
+        // Phí cho các ngày đầy đủ — mỗi ngày tối đa maxDaily
+        BigDecimal fullDaysFee = maxDaily.multiply(BigDecimal.valueOf(fullDays));
+
+        // Tính phí cho phần giờ lẻ của ngày cuối
+        BigDecimal remainingFee = BigDecimal.ZERO;
+        if (remainingHours > 0) {
+            long remRush = 0, remOff = 0;
+            LocalDateTime remTime = entryTime.plusDays(fullDays);
+            for (int i = 0; i < remainingHours; i++) {
+                if (isRushHour(remTime.toLocalTime(), rushStart, rushEnd)) remRush++;
+                else remOff++;
+                remTime = remTime.plusHours(1);
+            }
+            BigDecimal remFee = policy.getRushHourPrice().multiply(BigDecimal.valueOf(remRush))
+                    .add(policy.getOffPeakPrice().multiply(BigDecimal.valueOf(remOff)));
+
+            // Cap phần giờ lẻ nếu vượt MaxDailyRate
+            remainingFee = remFee.compareTo(maxDaily) > 0 ? maxDaily : remFee;
+        }
+
+        return fullDaysFee.add(remainingFee);
+    }
+
+
     private boolean isRushHour(LocalTime timeOfDay, LocalTime rushStart, LocalTime rushEnd) {
         if (rushStart.isBefore(rushEnd)) {
             // Trường hợp bình thường: VD 07:00 -> 19:00
