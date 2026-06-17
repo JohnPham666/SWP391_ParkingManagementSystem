@@ -1081,9 +1081,9 @@ const Pages = {
                 .reduce((sum, p) => sum + p.amount, 0);
 
             // Tỷ lệ lấp đầy
-            const capacity = occRes.success ? occRes.data.totalCapacity : 0;
+            const capacity = occRes.success ? occRes.data.totalSlots : 0;
             const occupied = occRes.success ? occRes.data.occupiedSlots : 0;
-            const available = capacity - occupied;
+            const available = occRes.success ? occRes.data.availableSlots : 0;
             const occRate = occRes.success ? occRes.data.occupancyRate : 0;
 
             let html = `
@@ -1112,19 +1112,20 @@ const Pages = {
                             <div class="card-body">
                                 <div style="display: flex; align-items: center; justify-content: space-between;">
                                     <div>
-                                        <h2 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 8px;">${occRate.toFixed(1)}%</h2>
-                                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                                        <div style="display: flex; flex-direction: column; gap: 12px;">
                                             <div style="display: flex; align-items: center; gap: 8px;">
-                                                <span style="width:10px; height:10px; border-radius:50%; background:var(--accent);"></span>
-                                                <span style="font-size:0.85rem; color:var(--text-secondary);">Đang đỗ (${occupied})</span>
+                                                <span style="width:12px; height:12px; border-radius:50%; background:var(--accent); box-shadow: 0 0 8px var(--accent-glow);"></span>
+                                                <span style="font-size:0.95rem; font-weight: 500; color:var(--text-secondary);">Đang đỗ: <strong style="color:var(--text-primary); font-size: 1.1rem;">${occupied}</strong></span>
                                             </div>
                                             <div style="display: flex; align-items: center; gap: 8px;">
-                                                <span style="width:10px; height:10px; border-radius:50%; background:#ecf2ff;"></span>
-                                                <span style="font-size:0.85rem; color:var(--text-secondary);">Trống (${available})</span>
+                                                <span style="width:12px; height:12px; border-radius:50%; background:#e2e8f0;"></span>
+                                                <span style="font-size:0.95rem; font-weight: 500; color:var(--text-secondary);">Trống: <strong style="color:var(--text-primary); font-size: 1.1rem;">${available}</strong></span>
                                             </div>
                                         </div>
                                     </div>
-                                    <div id="occupancy-chart"></div>
+                                    <div style="position: relative;">
+                                        <div id="occupancy-chart" style="filter: drop-shadow(0px 8px 16px rgba(249,115,22,0.15));"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1196,14 +1197,44 @@ const Pages = {
                 // Occupancy Chart (Donut)
                 const occOptions = {
                     series: [occupied, available],
-                    chart: { type: 'donut', height: 150, fontFamily: 'Inter, sans-serif' },
-                    colors: ['#f97316', '#ecf2ff'],
+                    chart: { 
+                        type: 'donut', 
+                        height: 180, 
+                        fontFamily: 'Inter, sans-serif',
+                        animations: { enabled: true, easing: 'easeinout', speed: 800, dynamicAnimation: { enabled: true, speed: 350 } }
+                    },
+                    colors: ['#f97316', '#e2e8f0'],
                     labels: ['Đang đỗ', 'Trống'],
-                    plotOptions: { pie: { donut: { size: '75%' } } },
+                    plotOptions: { 
+                        pie: { 
+                            donut: { 
+                                size: '75%',
+                                labels: { 
+                                    show: true,
+                                    name: { show: false },
+                                    value: {
+                                        show: true,
+                                        fontSize: '1.5rem',
+                                        fontWeight: 800,
+                                        color: '#1e293b',
+                                        formatter: function (val) { return val + ' xe' }
+                                    },
+                                    total: {
+                                        show: true,
+                                        showAlways: true,
+                                        label: 'Lấp đầy',
+                                        fontSize: '0.8rem',
+                                        color: '#94a3b8',
+                                        formatter: function (w) { return occRate.toFixed(1) + '%' }
+                                    }
+                                }
+                            } 
+                        } 
+                    },
                     dataLabels: { enabled: false },
                     legend: { show: false },
                     stroke: { show: false },
-                    tooltip: { theme: 'light' }
+                    tooltip: { theme: 'light', y: { formatter: function(val) { return val + " xe" } } }
                 };
                 new ApexCharts(document.querySelector("#occupancy-chart"), occOptions).render();
             }
