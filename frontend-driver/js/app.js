@@ -1,16 +1,142 @@
+/* ===== Landing Hero Carousel ===== */
+const HeroCarousel = {
+    images: [
+        { src: 'assets/images/hero/parking-hero-1.jpg', alt: 'Bãi đỗ xe tự động nhiều tầng' },
+        { src: 'assets/images/hero/parking-hero-2.jpg', alt: 'Hệ thống bãi đỗ xe xoay vòng hiện đại' },
+        { src: 'assets/images/hero/parking-hero-3.jpg', alt: 'Tòa nhà bãi đỗ xe về đêm' },
+        { src: 'assets/images/hero/parking-hero-4.jpg', alt: 'Bãi đỗ xe ngoài trời đông phương tiện' },
+        { src: 'assets/images/hero/parking-hero-5.jpg', alt: 'Thang nâng xe trong bãi đỗ tự động' }
+    ],
+    currentIndex: 0,
+    intervalId: null,
+    touchStartX: 0,
+    isBuilt: false,
+    transitionTimer: null,
+
+    init() {
+        if (!document.getElementById('hero-card-stack')) return;
+        this.build();
+        this.update();
+        this.setupTouch();
+        this.start();
+    },
+
+    build() {
+        if (this.isBuilt) return;
+        const stack = document.getElementById('hero-card-stack');
+        const dots = document.getElementById('hero-carousel-dots');
+        if (!stack || !dots) return;
+
+        stack.innerHTML = `
+            ${this.images.map((image, index) => `
+                <figure class="hero-card" data-hero-index="${index}" aria-hidden="true">
+                    <img src="${image.src}" alt="${image.alt}" loading="${index === 0 ? 'eager' : 'lazy'}">
+                </figure>
+            `).join('')}
+            <div class="hero-parking-icon" aria-hidden="true">P</div>
+        `;
+
+        dots.innerHTML = this.images.map((_, index) => `
+            <button class="hero-dot" type="button" onclick="HeroCarousel.goTo(${index})" aria-label="Chọn ảnh ${index + 1}"></button>
+        `).join('');
+
+        this.isBuilt = true;
+    },
+
+    update() {
+        const carousel = document.getElementById('hero-carousel');
+        const cards = document.querySelectorAll('.hero-card');
+        const dots = document.querySelectorAll('.hero-dot');
+        if (!carousel || !cards.length || !dots.length) return;
+
+        carousel.classList.add('is-transitioning');
+        cards.forEach((card, index) => {
+            const stateClass = this.getCardClass(index);
+            card.className = `hero-card ${stateClass}`;
+            card.setAttribute('aria-hidden', index !== this.currentIndex);
+        });
+
+        dots.forEach((dot, index) => {
+            dot.classList.toggle('active', index === this.currentIndex);
+        });
+
+        const icon = document.querySelector('.hero-parking-icon');
+        const activeCard = document.querySelector('.hero-card.active');
+        if (icon && activeCard) activeCard.appendChild(icon);
+
+        window.clearTimeout(this.transitionTimer);
+        this.transitionTimer = window.setTimeout(() => {
+            carousel.classList.remove('is-transitioning');
+        }, 900);
+    },
+
+    getCardClass(index) {
+        const total = this.images.length;
+        const diff = (index - this.currentIndex + total) % total;
+        if (diff === 0) return 'active';
+        if (diff === 1) return 'right';
+        if (diff === total - 1) return 'left';
+        return diff < total / 2 ? 'deep-right' : 'deep-left';
+    },
+
+    start() {
+        this.stop();
+        this.intervalId = setInterval(() => this.next(false), 4200);
+    },
+
+    stop() {
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+        }
+    },
+
+    next(restart = true) {
+        this.currentIndex = (this.currentIndex + 1) % this.images.length;
+        this.update();
+        if (restart) this.start();
+    },
+
+    prev() {
+        this.currentIndex = (this.currentIndex - 1 + this.images.length) % this.images.length;
+        this.update();
+        this.start();
+    },
+
+    goTo(index) {
+        if (index === this.currentIndex) return;
+        this.currentIndex = index;
+        this.update();
+        this.start();
+    },
+
+    setupTouch() {
+        const carousel = document.getElementById('hero-carousel');
+        if (!carousel || carousel.dataset.touchReady === 'true') return;
+        carousel.dataset.touchReady = 'true';
+
+        carousel.addEventListener('touchstart', (e) => {
+            this.touchStartX = e.touches[0].clientX;
+        }, { passive: true });
+
+        carousel.addEventListener('touchend', (e) => {
+            const endX = e.changedTouches[0].clientX;
+            const diff = endX - this.touchStartX;
+            if (Math.abs(diff) < 42) return;
+            diff < 0 ? this.next() : this.prev();
+        }, { passive: true });
+    }
+};
+
+window.HeroCarousel = HeroCarousel;
+
 /* ===== Driver App Core ===== */
 const App = {
     state: { user: null, currentPage: 'home' },
 
     init() {
-        const auth = Api.init();
-        if (auth && auth.role === 'Driver') {
-            this.state.user = auth;
-            this.showApp();
-        } else {
-            Api.clearAuth();
-            this.showLogin();
-        }
+        Api.init();
+        this.showLanding();
         this.setupGlobal();
     },
 
@@ -23,19 +149,34 @@ const App = {
         });
     },
 
+    showLanding() {
+        document.getElementById('landing-page').classList.remove('hidden');
+        document.getElementById('login-page').classList.add('hidden');
+        document.getElementById('register-page').classList.add('hidden');
+        document.getElementById('app').classList.add('hidden');
+        HeroCarousel.init();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+
     showLogin() {
+        HeroCarousel.stop();
+        document.getElementById('landing-page').classList.add('hidden');
         document.getElementById('login-page').classList.remove('hidden');
         document.getElementById('register-page').classList.add('hidden');
         document.getElementById('app').classList.add('hidden');
     },
 
     showRegister() {
+        HeroCarousel.stop();
+        document.getElementById('landing-page').classList.add('hidden');
         document.getElementById('login-page').classList.add('hidden');
         document.getElementById('register-page').classList.remove('hidden');
         document.getElementById('app').classList.add('hidden');
     },
 
     showApp() {
+        HeroCarousel.stop();
+        document.getElementById('landing-page').classList.add('hidden');
         document.getElementById('login-page').classList.add('hidden');
         document.getElementById('register-page').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
@@ -99,7 +240,7 @@ const App = {
     logout() {
         Api.clearAuth();
         this.state.user = null;
-        this.showLogin();
+        this.showLanding();
     }
 };
 
