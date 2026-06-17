@@ -12,23 +12,29 @@ const Auth = {
             btn.querySelector('.btn-loader').classList.remove('hidden');
             err.classList.add('hidden');
 
-            const res = await Api.login(email, pass);
-            btn.disabled = false;
-            btn.querySelector('span').classList.remove('hidden');
-            btn.querySelector('.btn-loader').classList.add('hidden');
+            try {
+                const res = await Api.login(email, pass);
 
-            if (res.success && res.data) {
-                if (res.data.role !== 'Driver') {
-                    err.textContent = 'Tài khoản này không phải Driver. Vui lòng dùng trang Staff.';
+                if (res.success && res.data) {
+                    const role = String(res.data.role || '').toLowerCase();
+                    if (role !== 'driver') {
+                        err.textContent = 'Tài khoản này không phải Driver. Vui lòng dùng trang Staff.';
+                        err.classList.remove('hidden');
+                        Api.clearAuth();
+                        return;
+                    }
+                    const auth = Api.saveAuth(res.data);
+                    App.state.user = auth;
+                    App.showApp();
+                    App.showToast('Đăng nhập thành công!', 'success');
+                } else {
+                    err.textContent = res.message || 'Đăng nhập thất bại';
                     err.classList.remove('hidden');
-                    return;
                 }
-                Api.saveAuth(res.data);
-                App.state.user = res.data;
-                App.showApp();
-            } else {
-                err.textContent = res.message || 'Đăng nhập thất bại';
-                err.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.querySelector('span').classList.remove('hidden');
+                btn.querySelector('.btn-loader').classList.add('hidden');
             }
         });
 
@@ -65,11 +71,9 @@ const Auth = {
                 return;
             }
             const res = await Api.register(data);
-            if (res.success && res.data) {
-                Api.saveAuth(res.data);
-                App.state.user = res.data;
-                App.showApp();
-                App.showToast('Đăng ký thành công!', 'success');
+            if (res.success) {
+                App.showLogin();
+                App.showToast('Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.', 'success');
             } else {
                 err.textContent = res.message || 'Đăng ký thất bại';
                 err.classList.remove('hidden');

@@ -60,11 +60,13 @@ const MockDB = {
 };
 
 const Api = {
+    baseUrl: '',
+    authStorageKey: 'driver_auth',
     token: null,
     user: null,
 
     init() {
-        const saved = localStorage.getItem('driver_auth');
+        const saved = localStorage.getItem(this.authStorageKey);
         if (!saved) return null;
         try {
             const auth = JSON.parse(saved);
@@ -76,40 +78,134 @@ const Api = {
         }
     },
 
+    getToken() {
+        return this.token || this.user?.token || null;
+    },
+
+    setToken(token) {
+        this.token = token || null;
+    },
+
     saveAuth(data) {
-        this.token = data.token;
-        this.user = data;
-        localStorage.setItem('driver_auth', JSON.stringify(data));
+        const auth = this.normalizeAuth(data);
+        this.token = auth.token;
+        this.user = auth;
+        localStorage.setItem(this.authStorageKey, JSON.stringify(auth));
+        return auth;
     },
 
     clearAuth() {
         this.token = null;
         this.user = null;
-        localStorage.removeItem('driver_auth');
+        localStorage.removeItem(this.authStorageKey);
+    },
+
+    normalizeAuth(data) {
+        if (!data) return null;
+        const role = data.role || data.roleName || 'Driver';
+        return {
+            ...data,
+            token: data.token,
+            userId: data.userId,
+            fullName: data.fullName || 'Tài xế',
+            email: data.email,
+            role,
+            roleName: role,
+            status: data.status || 'ACTIVE'
+        };
+    },
+
+    async request(path, options = {}) {
+        const headers = new Headers(options.headers || {});
+        const isFormData = options.body instanceof FormData;
+
+        if (!isFormData && options.body && !headers.has('Content-Type')) {
+            headers.set('Content-Type', 'application/json');
+        }
+        if (!headers.has('Accept')) {
+            headers.set('Accept', 'application/json');
+        }
+
+        const token = this.getToken();
+        if (token) {
+            headers.set('Authorization', `Bearer ${token}`);
+        }
+
+        try {
+            const response = await fetch(`${this.baseUrl}${path}`, {
+                ...options,
+                headers
+            });
+
+            const text = await response.text();
+            const payload = text ? JSON.parse(text) : { success: response.ok, message: response.statusText, data: null };
+
+            if (!response.ok || payload.success === false) {
+                return {
+                    success: false,
+                    message: payload.message || `Yêu cầu thất bại (${response.status})`,
+                    data: payload.data ?? null,
+                    status: response.status
+                };
+            }
+
+            return payload;
+        } catch (error) {
+            return {
+                success: false,
+                message: 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra Spring Boot đã chạy chưa.',
+                data: null,
+                error
+            };
+        }
     },
 
     async login(email, password) {
-        await this._delay(250);
         if (!email || !password) {
             return { success: false, message: 'Vui lòng nhập email và mật khẩu' };
         }
-        return { success: true, data: { ...MockDB.user, email } };
+        const result = await this.request('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+        });
+
+        if (result.success && result.data) {
+            result.data = this.normalizeAuth(result.data);
+        }
+        return result;
     },
 
     async register(data) {
-        await this._delay(250);
-        if (!data.fullName || !data.email || !data.password) {
+        if (!data.fullName || !data.email || !data.phoneNumber || !data.password) {
             return { success: false, message: 'Vui lòng điền đầy đủ thông tin' };
         }
-        return {
-            success: true,
-            data: {
-                ...MockDB.user,
-                fullName: data.fullName,
-                email: data.email,
-                phoneNumber: data.phoneNumber
-            }
+        const payload = {
+            fullName: data.fullName,
+            email: data.email,
+            phoneNumber: data.phoneNumber,
+            password: data.password
         };
+
+        if (data.dateOfBirth) payload.dateOfBirth = data.dateOfBirth;
+        if (data.address) payload.address = data.address;
+
+        const result = await this.request('/api/auth/register', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+
+        if (result.success && result.data) {
+            result.data = this.normalizeAuth(result.data);
+        }
+        return result;
+    },
+
+    async getCurrentUser() {
+        // Backend hiện chưa có endpoint /api/users/me hoặc /api/auth/me.
+        // Tạm dùng thông tin JwtResponse đã lưu sau login/register; các feature khác vẫn mock.
+        return this.user
+            ? { success: true, message: 'Loaded from local auth state', data: this.user }
+            : { success: false, message: 'Chưa có thông tin tài khoản', data: null };
     },
 
     _delay(ms) {
