@@ -59,6 +59,11 @@ const Auth = {
                 err.classList.remove('hidden');
                 return;
             }
+            if (!document.getElementById('reg-agree').checked) {
+                err.textContent = 'Vui lòng đồng ý với Chính sách bảo mật và Điều khoản sử dụng trước khi đăng ký.';
+                err.classList.remove('hidden');
+                return;
+            }
             const res = await Api.register(data);
             if (res.success && res.data) {
                 Api.saveAuth(res.data);
