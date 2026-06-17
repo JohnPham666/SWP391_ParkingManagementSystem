@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
-@PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff')")
+@PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff', 'Driver')")
 @RequestMapping("/api/monitoring")
 @RequiredArgsConstructor
 @Tag(name = "Monitoring", description = "Real-time parking dashboard APIs")

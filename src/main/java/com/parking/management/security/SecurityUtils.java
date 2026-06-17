@@ -32,8 +32,8 @@ public class SecurityUtils {
         }
 
         // It's a Driver, check ID
-        String phoneNumber = authentication.getName();
-        User currentUser = userRepository.findByPhoneNumber(phoneNumber)
+        String email = authentication.getName();
+        User currentUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AccessDeniedException("Access denied: User not found"));
 
         if (!currentUser.getUserId().equals(dataUserId)) {
@@ -56,7 +56,7 @@ public class SecurityUtils {
             return null; // Staff/Admin have no restriction
         }
 
-        String phoneNumber = authentication.getName();
-        return userRepository.findByPhoneNumber(phoneNumber).map(User::getUserId).orElse(null);
+        String email = authentication.getName();
+        return userRepository.findByEmail(email).map(User::getUserId).orElse(null);
     }
 }
