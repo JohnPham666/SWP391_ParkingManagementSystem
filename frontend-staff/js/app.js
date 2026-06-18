@@ -14,6 +14,46 @@ const App = {
         } else {
             this.showLogin();
         }
+        
+        // Auto Refresh Polling
+        setInterval(() => {
+            if (!this.state.user) return;
+            const openModals = document.querySelectorAll('.modal:not(.hidden)');
+            if (openModals.length > 0) return;
+            const active = document.activeElement;
+            if (active && (active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA')) return;
+            this.silentRefresh();
+        }, 10000);
+    },
+
+    async silentRefresh() {
+        if (!this.state.user) return;
+        try {
+            const searchInput = document.querySelector('.search-input');
+            const searchValue = searchInput ? searchInput.value : '';
+            
+            const c = document.getElementById('page-content');
+            switch (this.state.currentPage) {
+                case 'dashboard': await this.renderDashboard(c); break;
+                case 'sessions': await this.renderSessions(c); break;
+                case 'slots': await this.renderSlots(c); break;
+                case 'vehicles': await this.renderVehicles(c); break;
+                case 'reservations': await this.renderReservations(c); break;
+                case 'payments': await this.renderPayments(c); break;
+                case 'subscriptions': await this.renderSubscriptions(c); break;
+                case 'incidents': await this.renderIncidents(c); break;
+                case 'users': await this.renderUsers(c); break;
+                case 'reports': await this.renderReports(c); break;
+            }
+
+            if (searchValue) {
+                const newSearch = document.querySelector('.search-input');
+                if (newSearch) {
+                    newSearch.value = searchValue;
+                    newSearch.dispatchEvent(new Event('input'));
+                }
+            }
+        } catch(e) { console.error('Silent refresh failed:', e); }
     },
 
     setupEventListeners() {
@@ -558,7 +598,13 @@ const Pages = {
                 return;
             }
 
-            const paymentId = pRes.data ? pRes.data.paymentId : null;
+            let paymentId = pRes.data ? pRes.data.paymentId : null;
+            if (!paymentId && pRes.message && pRes.message.includes('Payment ID:')) {
+                const match = pRes.message.match(/Payment ID:\s*(\d+)/);
+                if (match) {
+                    paymentId = parseInt(match[1], 10);
+                }
+            }
             if (!paymentId) {
                 App.showToast('Không lấy được ID thanh toán.', 'error');
                 return;
@@ -730,14 +776,23 @@ const Pages = {
                         <thead><tr><th>Mã Đặt</th><th>Khách hàng</th><th>Biển số xe</th><th>Chỗ đỗ</th><th>TG Bắt đầu</th><th>TG Kết thúc</th><th>Trạng thái</th></tr></thead>
                         <tbody>
                             ${data.map(r => {
-                                let badge = '';
+                                let badgeClass = '';
                                 switch(r.status) {
-                                    case 'PENDING': badge = '<span class="badge badge-yellow">Chờ xác nhận</span>'; break;
-                                    case 'CONFIRMED': badge = '<span class="badge badge-green">Đã xác nhận</span>'; break;
-                                    case 'CANCELLED': badge = '<span class="badge badge-red">Đã hủy</span>'; break;
-                                    case 'COMPLETED': badge = '<span class="badge badge-blue">Đã hoàn thành</span>'; break;
-                                    default: badge = `<span class="badge badge-gray">${r.status}</span>`;
+                                    case 'PENDING': badgeClass = 'badge-yellow'; break;
+                                    case 'CONFIRMED': badgeClass = 'badge-green'; break;
+                                    case 'CANCELLED': badgeClass = 'badge-red'; break;
+                                    case 'COMPLETED': badgeClass = 'badge-blue'; break;
+                                    default: badgeClass = 'badge-gray';
                                 }
+                                
+                                const canEditRes = (App.state.user.role === 'Admin' || App.state.user.role === 'ParkingManager' || App.state.user.role === 'ParkingStaff');
+                                const resStatusOpts = { 'PENDING': 'Chờ xác nhận', 'CONFIRMED': 'Đã xác nhận', 'COMPLETED': 'Đã hoàn thành', 'CANCELLED': 'Đã hủy' };
+                                const badge = canEditRes ? `
+                                    <select onchange="window.updateReservationStatus(${r.reservationId}, this.value)" class="badge ${badgeClass}" style="border:none; outline:none; cursor:pointer; font-weight:600; text-align:center;">
+                                        ${Object.entries(resStatusOpts).map(([k, v]) => `<option value="${k}" ${r.status === k ? 'selected' : ''}>${v}</option>`).join('')}
+                                    </select>
+                                ` : `<span class="badge ${badgeClass}">${resStatusOpts[r.status] || r.status}</span>`;
+
                                 return `
                                 <tr>
                                     <td>#${r.reservationId}</td>
@@ -746,18 +801,7 @@ const Pages = {
                                     <td>${r.slotCode || '-'}</td>
                                     <td>${new Date(r.startTime).toLocaleString('vi-VN')}</td>
                                     <td>${new Date(r.endTime).toLocaleString('vi-VN')}</td>
-                                    <td>
-                                        ${badge}
-                                        ${(App.state.user.role === 'Admin' || App.state.user.role === 'ParkingManager' || App.state.user.role === 'ParkingStaff') ? `
-                                            <select onchange="window.updateReservationStatus(${r.reservationId}, this.value)" style="font-size:0.75rem; padding:2px; margin-top:4px; width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background-color: var(--bg-card); color: var(--text-main);">
-                                                <option value="">-- Đổi --</option>
-                                                <option value="PENDING">Chờ xác nhận</option>
-                                                <option value="CONFIRMED">Đã xác nhận</option>
-                                                <option value="COMPLETED">Đã hoàn thành</option>
-                                                <option value="CANCELLED">Đã hủy</option>
-                                            </select>
-                                        ` : ''}
-                                    </td>
+                                    <td>${badge}</td>
                                 </tr>`;
                             }).join('')}
                         </tbody>
@@ -859,33 +903,31 @@ const Pages = {
                                     case 'CRITICAL': sevBadge = '<span style="background:#991b1b;color:#fff;padding:4px 10px;border-radius:50px;font-size:.75rem;font-weight:600;">Nghiêm trọng</span>'; break;
                                     default: sevBadge = `<span class="badge badge-gray">${i.severity || '-'}</span>`;
                                 }
-                                let statBadge = '';
+                                let statClass = '';
                                 switch(i.status) {
-                                    case 'REPORTED': statBadge = '<span class="badge badge-yellow">Mới báo cáo</span>'; break;
-                                    case 'OPEN': statBadge = '<span class="badge badge-yellow">Mở</span>'; break;
-                                    case 'IN_PROGRESS': statBadge = '<span class="badge badge-blue">Đang xử lý</span>'; break;
-                                    case 'RESOLVED': statBadge = '<span class="badge badge-green">Đã giải quyết</span>'; break;
-                                    case 'CLOSED': statBadge = '<span class="badge badge-gray">Đã đóng</span>'; break;
-                                    default: statBadge = `<span class="badge badge-gray">${i.status}</span>`;
+                                    case 'REPORTED': statClass = 'badge-yellow'; break;
+                                    case 'OPEN': statClass = 'badge-yellow'; break;
+                                    case 'IN_PROGRESS': statClass = 'badge-blue'; break;
+                                    case 'RESOLVED': statClass = 'badge-green'; break;
+                                    case 'CLOSED': statClass = 'badge-gray'; break;
+                                    default: statClass = 'badge-gray';
                                 }
+                                
+                                const canEditInc = (App.state.user.role === 'Admin' || App.state.user.role === 'ParkingManager');
+                                const incStatusOpts = { 'REPORTED': 'Mới báo cáo', 'OPEN': 'Mở', 'IN_PROGRESS': 'Đang xử lý', 'RESOLVED': 'Đã giải quyết', 'CLOSED': 'Đã đóng' };
+                                const statBadge = canEditInc ? `
+                                    <select onchange="window.updateIncidentStatus(${i.incidentId}, this.value)" class="badge ${statClass}" style="border:none; outline:none; cursor:pointer; font-weight:600; text-align:center;">
+                                        ${Object.entries(incStatusOpts).map(([k, v]) => `<option value="${k}" ${i.status === k ? 'selected' : ''}>${v}</option>`).join('')}
+                                    </select>
+                                ` : `<span class="badge ${statClass}">${incStatusOpts[i.status] || i.status}</span>`;
+
                                 return `
                                 <tr>
                                     <td>#${i.incidentId}</td>
                                     <td style="font-weight:600">${i.title || i.description || '-'}</td>
                                     <td>${sevBadge}</td>
                                     <td>${i.incidentType || '-'}</td>
-                                    <td>
-                                        ${statBadge}
-                                        ${(App.state.user.role === 'Admin' || App.state.user.role === 'ParkingManager') ? `
-                                            <select onchange="window.updateIncidentStatus(${i.incidentId}, this.value)" style="font-size:0.75rem; padding:2px; margin-top:4px; width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background-color: var(--bg-card); color: var(--text-main);">
-                                                <option value="">-- Đổi --</option>
-                                                <option value="OPEN">Mở</option>
-                                                <option value="IN_PROGRESS">Đang xử lý</option>
-                                                <option value="RESOLVED">Đã giải quyết</option>
-                                                <option value="CLOSED">Đã đóng</option>
-                                            </select>
-                                        ` : ''}
-                                    </td>
+                                    <td>${statBadge}</td>
                                     <td>${i.reporterName || '-'}</td>
                                     <td>${i.reportTime ? new Date(i.reportTime).toLocaleString('vi-VN') : (i.createdAt ? new Date(i.createdAt).toLocaleString('vi-VN') : '-')}</td>
                                 </tr>`;
