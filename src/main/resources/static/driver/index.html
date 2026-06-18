@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="ParkSmart - Ứng dụng gửi xe thông minh dành cho tài xế">
+    <title>ParkSmart - Gửi Xe Thông Minh</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23ea580c'/%3E%3Cpath d='M22 50V14h13c8 0 13 5 13 12s-5 12-13 12h-5v12h-8Zm8-20h5c3 0 5-2 5-4s-2-4-5-4h-5v8Z' fill='%23fff'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css?v=hero-stacked-carousel">
+</head>
+<body>
+
+<div id="landing-page" class="landing-page">
+    <nav class="landing-nav">
+        <button class="landing-brand" onclick="document.getElementById('landing-page').scrollIntoView({behavior:'smooth'})" aria-label="ParkSmart">
+            <span class="landing-logo">
+                <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#ea580c"/><path d="M22 50V14h13c8 0 13 5 13 12s-5 12-13 12h-5v12h-8Zm8-20h5c3 0 5-2 5-4s-2-4-5-4h-5v8Z" fill="#fff"/></svg>
+            </span>
+            <span>Smart Parking</span>
+        </button>
+        <div class="landing-links">
+            <a href="#landing-features">Tính năng</a>
+            <a href="#landing-process">Quy trình</a>
+            <a href="#landing-pricing">Bảng giá</a>
+            <button type="button" onclick="App.showLogin()">Đăng nhập</button>
+        </div>
+    </nav>
+
+    <main class="landing-main">
+        <section class="landing-hero">
+            <div class="landing-hero-copy">
+                <span class="landing-kicker">Parking Building Management System</span>
+                <h1>Đặt chỗ đỗ xe nhanh chóng, an toàn và tiện lợi.</h1>
+                <p>Hệ thống hỗ trợ tài xế tìm chỗ trống, đặt chỗ, quản lý phiên gửi xe, thanh toán và xem biên lai chỉ trong vài thao tác.</p>
+                <div class="landing-actions">
+                    <button class="btn btn-primary" type="button" onclick="App.showLogin()">Bắt đầu ngay</button>
+                    <a class="btn btn-outline landing-outline" href="#landing-features">Xem tính năng</a>
+                    <button class="btn btn-outline landing-outline" type="button" onclick="App.showRegister()">Đăng ký</button>
+                </div>
+                <div class="landing-trust">
+                    <span>Mock Driver Prototype</span>
+                    <span>Không kết nối API thật</span>
+                    <span>SWP391</span>
+                </div>
+            </div>
+            <div class="hero-visual" aria-label="Hình ảnh bãi đỗ xe hiện đại">
+                <div class="hero-carousel" id="hero-carousel">
+                    <div class="hero-card-stack" id="hero-card-stack" aria-live="polite"></div>
+                    <button class="hero-carousel-btn hero-carousel-prev" type="button" onclick="HeroCarousel.prev()" aria-label="Ảnh trước">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <button class="hero-carousel-btn hero-carousel-next" type="button" onclick="HeroCarousel.next()" aria-label="Ảnh tiếp theo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                    <div class="hero-carousel-dots" id="hero-carousel-dots" aria-label="Chọn ảnh bãi đỗ xe"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="landing-features" class="landing-section">
+            <div class="landing-section-heading">
+                <span class="landing-kicker">Tính năng</span>
+                <h2>Mọi thao tác gửi xe nằm trong một giao diện gọn gàng.</h2>
+            </div>
+            <div class="landing-feature-grid">
+                <article class="landing-feature-card"><span>01</span><h3>Tìm chỗ trống theo thời gian thực</h3><p>Xem tình trạng slot theo tòa nhà, tầng, khu vực và loại xe.</p></article>
+                <article class="landing-feature-card"><span>02</span><h3>Đặt chỗ trước khi đến bãi</h3><p>Giữ chỗ phù hợp, nhận thông tin tầng, khu vực và mã slot.</p></article>
+                <article class="landing-feature-card"><span>03</span><h3>Quản lý xe và lịch sử gửi xe</h3><p>Theo dõi phương tiện, phiên gửi xe và các biên lai đã phát sinh.</p></article>
+                <article class="landing-feature-card"><span>04</span><h3>Thanh toán và báo cáo sự cố</h3><p>Mô phỏng thanh toán, xem biên lai và gửi báo cáo sự cố nhanh chóng.</p></article>
+                <article class="landing-feature-card"><span>05</span><h3>Theo dõi lịch sử gửi xe</h3><p>Lọc giao dịch, xem chi tiết phiên gửi xe và mở biên lai khi cần.</p></article>
+                <article class="landing-feature-card"><span>06</span><h3>Giao diện thân thiện cho tài xế</h3><p>Tối ưu thao tác nhanh trên điện thoại, tablet và màn hình desktop.</p></article>
+            </div>
+        </section>
+
+        <section id="landing-process" class="landing-section landing-process">
+            <div class="landing-section-heading">
+                <span class="landing-kicker">Quy trình</span>
+                <h2>Ba bước đơn giản cho tài xế.</h2>
+            </div>
+            <div class="landing-step-grid">
+                <div class="landing-step"><strong>1</strong><h3>Đăng nhập hoặc tạo tài khoản</h3><p>Sử dụng tài khoản Driver để truy cập dashboard cá nhân.</p></div>
+                <div class="landing-step"><strong>2</strong><h3>Chọn xe, thời gian và chỗ đỗ phù hợp</h3><p>Tìm slot đang trống và tạo đặt chỗ bằng dữ liệu mô phỏng.</p></div>
+                <div class="landing-step"><strong>3</strong><h3>Bắt đầu phiên gửi xe và thanh toán khi hoàn tất</h3><p>Quản lý phiên gửi xe, checkout và xem biên lai ngay trong UI.</p></div>
+            </div>
+        </section>
+
+        <section id="landing-pricing" class="landing-section landing-price-strip">
+            <div>
+                <span class="landing-kicker">Bảng giá</span>
+                <h2>Chính sách giá minh bạch theo từng loại xe.</h2>
+                <p>Xem giá giờ thường, giờ cao điểm, giới hạn ngày, phí quá giờ và phí mất vé sau khi đăng nhập.</p>
+            </div>
+            <button class="btn btn-primary" type="button" onclick="App.showLogin()">Đăng nhập để xem</button>
+        </section>
+    </main>
+
+    <footer class="landing-footer">
+        <strong>Parking Building Management System</strong>
+        <span>Driver Front-end Prototype</span>
+        <span>Nhóm SWP391</span>
+    </footer>
+</div>
+
+<div id="login-page" class="login-page">
+    <div class="login-bg-animation">
+        <div class="login-bg-shape shape-1"></div>
+        <div class="login-bg-shape shape-2"></div>
+        <div class="login-bg-shape shape-3"></div>
+    </div>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <svg width="48" height="48" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#ea580c"/><path d="M22 50V14h13c8 0 13 5 13 12s-5 12-13 12h-5v12h-8Zm8-20h5c3 0 5-2 5-4s-2-4-5-4h-5v8Z" fill="#fff"/></svg>
+                </div>
+                <h1 class="login-title">ParkSmart</h1>
+                <p class="login-subtitle">Đăng nhập tài khoản Tài xế</p>
+            </div>
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <div class="input-icon-wrapper">
+                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        <input type="email" id="login-email" placeholder="VD: phuc@gmail.com" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Mật khẩu</label>
+                    <div class="input-icon-wrapper">
+                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                        <input type="password" id="login-password" placeholder="Nhập mật khẩu" required>
+                        <button type="button" id="toggle-password" class="toggle-password-btn" aria-label="Hiện mật khẩu">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div id="login-error" class="login-error hidden"></div>
+                <button type="submit" id="login-btn" class="login-submit-btn">
+                    <span>Đăng nhập</span>
+                    <div class="btn-loader hidden"></div>
+                </button>
+            </form>
+            <div class="login-footer">
+                <p>Chưa có tài khoản? <a href="#" id="go-register">Đăng ký ngay</a></p>
+                <button type="button" class="auth-back-link" onclick="App.showLanding()">Quay lại trang giới thiệu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="register-page" class="login-page hidden">
+    <div class="login-bg-animation">
+        <div class="login-bg-shape shape-1"></div>
+        <div class="login-bg-shape shape-2"></div>
+    </div>
+    <div class="login-container">
+        <div class="register-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <svg width="40" height="40" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#ea580c"/><path d="M22 50V14h13c8 0 13 5 13 12s-5 12-13 12h-5v12h-8Zm8-20h5c3 0 5-2 5-4s-2-4-5-4h-5v8Z" fill="#fff"/></svg>
+                </div>
+                <h1 class="login-title" style="font-size:1.6rem">Tạo tài khoản</h1>
+                <p class="login-subtitle">Đăng ký để sử dụng dịch vụ gửi xe</p>
+            </div>
+            <form id="register-form" class="login-form">
+                <div class="form-group">
+                    <label for="reg-name">Họ và tên *</label>
+                    <input type="text" id="reg-name" placeholder="Nguyễn Văn A" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-email">Email *</label>
+                    <input type="email" id="reg-email" placeholder="email@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-phone">Số điện thoại *</label>
+                    <input type="tel" id="reg-phone" placeholder="0912 345 678" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Mật khẩu *</label>
+                    <input type="password" id="reg-password" placeholder="Ít nhất 6 ký tự" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="reg-confirm">Xác nhận mật khẩu *</label>
+                    <input type="password" id="reg-confirm" placeholder="Nhập lại mật khẩu" required>
+                </div>
+                <label class="agreement-check" for="reg-agree">
+                    <input type="checkbox" id="reg-agree">
+                    <span>Tôi đồng ý với <a href="#" onclick="event.preventDefault()">Chính sách bảo mật</a> và <a href="#" onclick="event.preventDefault()">Điều khoản sử dụng</a> của hệ thống.</span>
+                </label>
+                <div id="register-error" class="login-error hidden"></div>
+                <button type="submit" class="login-submit-btn"><span>Đăng ký</span></button>
+            </form>
+            <div class="login-footer">
+                <p>Đã có tài khoản? <a href="#" id="go-login">Đăng nhập</a></p>
+                <button type="button" class="auth-back-link" onclick="App.showLanding()">Quay lại trang giới thiệu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="app" class="app hidden">
+    <header class="app-header">
+        <div class="header-top">
+            <div class="header-brand">
+                <svg width="32" height="32" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#fff"/><path d="M22 50V14h13c8 0 13 5 13 12s-5 12-13 12h-5v12h-8Zm8-20h5c3 0 5-2 5-4s-2-4-5-4h-5v8Z" fill="#ea580c"/></svg>
+                <span class="header-brand-name">ParkSmart</span>
+            </div>
+            <div class="header-actions" style="position:relative">
+                <div id="header-avatar" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;cursor:pointer" onclick="document.getElementById('user-dropdown').classList.toggle('hidden')">A</div>
+                <div id="user-dropdown" class="user-dropdown hidden">
+                    <button class="user-dropdown-item" onclick="App.navigate('account');document.getElementById('user-dropdown').classList.add('hidden')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Tài khoản
+                    </button>
+                    <div class="user-dropdown-divider"></div>
+                    <button class="user-dropdown-item danger" onclick="App.logout()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg> Đăng xuất
+                    </button>
+                </div>
+            </div>
+        </div>
+        <p class="header-greeting">Xin chào, <strong id="header-user-name">Tài xế</strong></p>
+    </header>
+
+    <main class="app-main">
+        <div id="page-content"></div>
+    </main>
+
+    <nav class="bottom-nav">
+        <button class="bottom-nav-item active" data-page="home" onclick="App.navigate('home')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span>Trang chủ</span>
+        </button>
+        <button class="bottom-nav-item" data-page="parking" onclick="App.navigate('parking')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span>Bãi xe</span>
+        </button>
+        <button class="bottom-nav-item" data-page="reservations" onclick="App.navigate('reservations')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <span>Đặt chỗ</span>
+        </button>
+        <button class="bottom-nav-item" data-page="vehicles" onclick="App.navigate('vehicles')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 16H9m10 0h3v-3.15a1 1 0 00-.84-.99L16 11l-2.7-3.6a1 1 0 00-.8-.4H5.24a2 2 0 00-1.8 1.1l-.8 1.63A6 6 0 002 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>
+            <span>Xe của tôi</span>
+        </button>
+        <button class="bottom-nav-item" data-page="account" onclick="App.navigate('account')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>Tài khoản</span>
+        </button>
+    </nav>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="js/api.js"></script>
+<script src="js/pages.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js?v=hero-stacked-carousel"></script>
+</body>
+</html>

@@ -32,7 +32,7 @@ const Auth = {
             }
         });
 
-        document.getElementById('toggle-password').addEventListener('click', (e) => {
+        document.getElementById('toggle-password').addEventListener('click', () => {
             const inp = document.getElementById('login-password');
             inp.type = inp.type === 'password' ? 'text' : 'password';
         });
@@ -56,6 +56,11 @@ const Auth = {
             };
             if (data.password !== document.getElementById('reg-confirm').value) {
                 err.textContent = 'Mật khẩu xác nhận không khớp';
+                err.classList.remove('hidden');
+                return;
+            }
+            if (!document.getElementById('reg-agree').checked) {
+                err.textContent = 'Vui lòng đồng ý với Chính sách bảo mật và Điều khoản sử dụng trước khi đăng ký.';
                 err.classList.remove('hidden');
                 return;
             }
