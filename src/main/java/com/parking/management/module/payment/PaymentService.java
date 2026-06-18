@@ -53,8 +53,15 @@ public class PaymentService {
             securityUtils.checkDataOwnership(session.getVehicle().getUser().getUserId());
         }
 
-        paymentRepository.findBySession_SessionId(request.getSessionId())
+        if ("COMPLETED".equals(session.getStatus())) {
+            throw new IllegalArgumentException("This parking session is already COMPLETED and cannot be checked out again.");
+        }
+
+        paymentRepository.findFirstBySession_SessionIdOrderByPaymentIdDesc(request.getSessionId())
                 .ifPresent(existingPayment -> {
+                    if (PaymentStatus.PAID.name().equals(existingPayment.getPaymentStatus())) {
+                        throw new IllegalArgumentException("This parking session is already PAID.");
+                    }
                     if (PaymentStatus.PENDING.name().equals(existingPayment.getPaymentStatus())) {
                         throw new IllegalArgumentException(
                                 "This parking session already has a PENDING payment record (Payment ID: "
@@ -128,7 +135,7 @@ public class PaymentService {
     }
 
     public PaymentResponse getBySessionId(Integer sessionId) {
-        Payment payment = paymentRepository.findBySession_SessionId(sessionId)
+        Payment payment = paymentRepository.findFirstBySession_SessionIdOrderByPaymentIdDesc(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Payment not found for session id: " + sessionId
                 ));
