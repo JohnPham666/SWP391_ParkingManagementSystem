@@ -69,17 +69,26 @@ const Api = {
         const saved = localStorage.getItem(this.authStorageKey);
         if (!saved) return null;
         try {
-            const auth = JSON.parse(saved);
+            const auth = this.normalizeAuth(JSON.parse(saved));
+            if (!auth?.token) {
+                this.clearAuth();
+                return null;
+            }
             this.token = auth.token;
             this.user = auth;
             return auth;
         } catch {
+            this.clearAuth();
             return null;
         }
     },
 
     getToken() {
-        return this.token || this.user?.token || null;
+        if (this.token || this.user?.token) {
+            return this.token || this.user.token;
+        }
+        const auth = this.init();
+        return auth?.token || null;
     },
 
     setToken(token) {
@@ -88,6 +97,9 @@ const Api = {
 
     saveAuth(data) {
         const auth = this.normalizeAuth(data);
+        if (!auth?.token) {
+            throw new Error('Không tìm thấy token đăng nhập trong phản hồi từ máy chủ.');
+        }
         this.token = auth.token;
         this.user = auth;
         localStorage.setItem(this.authStorageKey, JSON.stringify(auth));
@@ -115,11 +127,23 @@ const Api = {
         };
     },
 
+    isDriverRole(role) {
+        return String(role || '')
+            .trim()
+            .toUpperCase()
+            .replace(/^ROLE_/, '') === 'DRIVER';
+    },
+
     async request(path, options = {}) {
         const headers = new Headers(options.headers || {});
         const isFormData = options.body instanceof FormData;
+        const requestOptions = { ...options };
 
-        if (!isFormData && options.body && !headers.has('Content-Type')) {
+        if (requestOptions.body && !isFormData && typeof requestOptions.body !== 'string') {
+            requestOptions.body = JSON.stringify(requestOptions.body);
+        }
+
+        if (!isFormData && requestOptions.body && !headers.has('Content-Type')) {
             headers.set('Content-Type', 'application/json');
         }
         if (!headers.has('Accept')) {
@@ -133,23 +157,44 @@ const Api = {
 
         try {
             const response = await fetch(`${this.baseUrl}${path}`, {
-                ...options,
+                ...requestOptions,
                 headers
             });
 
             const text = await response.text();
-            const payload = text ? JSON.parse(text) : { success: response.ok, message: response.statusText, data: null };
+            let payload;
+            try {
+                payload = text ? JSON.parse(text) : null;
+            } catch {
+                payload = {
+                    success: response.ok,
+                    message: response.ok ? 'Yêu cầu thành công' : (text || response.statusText),
+                    data: text || null
+                };
+            }
+
+            if (!payload) {
+                payload = { success: response.ok, message: response.statusText || '', data: null };
+            }
 
             if (!response.ok || payload.success === false) {
+                if (response.status === 401) {
+                    this.clearAuth();
+                }
                 return {
                     success: false,
-                    message: payload.message || `Yêu cầu thất bại (${response.status})`,
+                    message: payload.message || this.getHttpErrorMessage(response.status),
                     data: payload.data ?? null,
                     status: response.status
                 };
             }
 
-            return payload;
+            return {
+                success: payload.success !== false,
+                message: payload.message || 'Yêu cầu thành công',
+                data: payload.data ?? null,
+                status: response.status
+            };
         } catch (error) {
             return {
                 success: false,
@@ -157,6 +202,17 @@ const Api = {
                 data: null,
                 error
             };
+        }
+    },
+
+    getHttpErrorMessage(status) {
+        switch (status) {
+            case 400: return 'Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại.';
+            case 401: return 'Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.';
+            case 403: return 'Bạn không có quyền thực hiện thao tác này.';
+            case 404: return 'Không tìm thấy tài nguyên yêu cầu.';
+            case 500: return 'Máy chủ đang gặp lỗi. Vui lòng thử lại sau.';
+            default: return `Yêu cầu thất bại (${status})`;
         }
     },
 
