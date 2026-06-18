@@ -89,6 +89,9 @@ const HeroCarousel = {
             clearInterval(this.intervalId);
             this.intervalId = null;
         }
+        window.clearTimeout(this.transitionTimer);
+        const carousel = document.getElementById('hero-carousel');
+        if (carousel) carousel.classList.remove('is-transitioning');
     },
 
     next(restart = true) {
@@ -135,8 +138,14 @@ const App = {
     state: { user: null, currentPage: 'home' },
 
     init() {
-        Api.init();
-        this.showLanding();
+        const savedAuth = Api.init();
+        if (savedAuth?.token && Api.isDriverRole(savedAuth.role || savedAuth.roleName)) {
+            this.state.user = savedAuth;
+            this.showApp();
+        } else {
+            if (savedAuth) Api.clearAuth();
+            this.showLanding();
+        }
         this.setupGlobal();
     },
 
@@ -180,9 +189,9 @@ const App = {
         document.getElementById('login-page').classList.add('hidden');
         document.getElementById('register-page').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
-        const u = this.state.user;
-        document.getElementById('header-user-name').textContent = u.fullName;
-        document.getElementById('header-avatar').textContent = u.fullName.charAt(0).toUpperCase();
+        const u = this.state.user || Api.user || { fullName: 'Tài xế' };
+        document.getElementById('header-user-name').textContent = u.fullName || 'Tài xế';
+        document.getElementById('header-avatar').textContent = (u.fullName || 'T').charAt(0).toUpperCase();
         this.navigate('home');
     },
 

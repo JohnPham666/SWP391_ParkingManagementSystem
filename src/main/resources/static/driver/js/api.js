@@ -60,56 +60,208 @@ const MockDB = {
 };
 
 const Api = {
+    baseUrl: '',
+    authStorageKey: 'driver_auth',
     token: null,
     user: null,
 
     init() {
-        const saved = localStorage.getItem('driver_auth');
+        const saved = localStorage.getItem(this.authStorageKey);
         if (!saved) return null;
         try {
-            const auth = JSON.parse(saved);
+            const auth = this.normalizeAuth(JSON.parse(saved));
+            if (!auth?.token) {
+                this.clearAuth();
+                return null;
+            }
             this.token = auth.token;
             this.user = auth;
             return auth;
         } catch {
+            this.clearAuth();
             return null;
         }
     },
 
+    getToken() {
+        if (this.token || this.user?.token) {
+            return this.token || this.user.token;
+        }
+        const auth = this.init();
+        return auth?.token || null;
+    },
+
+    setToken(token) {
+        this.token = token || null;
+    },
+
     saveAuth(data) {
-        this.token = data.token;
-        this.user = data;
-        localStorage.setItem('driver_auth', JSON.stringify(data));
+        const auth = this.normalizeAuth(data);
+        if (!auth?.token) {
+            throw new Error('Không tìm thấy token đăng nhập trong phản hồi từ máy chủ.');
+        }
+        this.token = auth.token;
+        this.user = auth;
+        localStorage.setItem(this.authStorageKey, JSON.stringify(auth));
+        return auth;
     },
 
     clearAuth() {
         this.token = null;
         this.user = null;
-        localStorage.removeItem('driver_auth');
+        localStorage.removeItem(this.authStorageKey);
+    },
+
+    normalizeAuth(data) {
+        if (!data) return null;
+        const role = data.role || data.roleName || 'Driver';
+        return {
+            ...data,
+            token: data.token,
+            userId: data.userId,
+            fullName: data.fullName || 'Tài xế',
+            email: data.email,
+            role,
+            roleName: role,
+            status: data.status || 'ACTIVE'
+        };
+    },
+
+    isDriverRole(role) {
+        return String(role || '')
+            .trim()
+            .toUpperCase()
+            .replace(/^ROLE_/, '') === 'DRIVER';
+    },
+
+    async request(path, options = {}) {
+        const headers = new Headers(options.headers || {});
+        const isFormData = options.body instanceof FormData;
+        const requestOptions = { ...options };
+
+        if (requestOptions.body && !isFormData && typeof requestOptions.body !== 'string') {
+            requestOptions.body = JSON.stringify(requestOptions.body);
+        }
+
+        if (!isFormData && requestOptions.body && !headers.has('Content-Type')) {
+            headers.set('Content-Type', 'application/json');
+        }
+        if (!headers.has('Accept')) {
+            headers.set('Accept', 'application/json');
+        }
+
+        const token = this.getToken();
+        if (token) {
+            headers.set('Authorization', `Bearer ${token}`);
+        }
+
+        try {
+            const response = await fetch(`${this.baseUrl}${path}`, {
+                ...requestOptions,
+                headers
+            });
+
+            const text = await response.text();
+            let payload;
+            try {
+                payload = text ? JSON.parse(text) : null;
+            } catch {
+                payload = {
+                    success: response.ok,
+                    message: response.ok ? 'Yêu cầu thành công' : (text || response.statusText),
+                    data: text || null
+                };
+            }
+
+            if (!payload) {
+                payload = { success: response.ok, message: response.statusText || '', data: null };
+            }
+
+            if (!response.ok || payload.success === false) {
+                if (response.status === 401) {
+                    this.clearAuth();
+                }
+                return {
+                    success: false,
+                    message: payload.message || this.getHttpErrorMessage(response.status),
+                    data: payload.data ?? null,
+                    status: response.status
+                };
+            }
+
+            return {
+                success: payload.success !== false,
+                message: payload.message || 'Yêu cầu thành công',
+                data: payload.data ?? null,
+                status: response.status
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra Spring Boot đã chạy chưa.',
+                data: null,
+                error
+            };
+        }
+    },
+
+    getHttpErrorMessage(status) {
+        switch (status) {
+            case 400: return 'Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại.';
+            case 401: return 'Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.';
+            case 403: return 'Bạn không có quyền thực hiện thao tác này.';
+            case 404: return 'Không tìm thấy tài nguyên yêu cầu.';
+            case 500: return 'Máy chủ đang gặp lỗi. Vui lòng thử lại sau.';
+            default: return `Yêu cầu thất bại (${status})`;
+        }
     },
 
     async login(email, password) {
-        await this._delay(250);
         if (!email || !password) {
             return { success: false, message: 'Vui lòng nhập email và mật khẩu' };
         }
-        return { success: true, data: { ...MockDB.user, email } };
+        const result = await this.request('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+        });
+
+        if (result.success && result.data) {
+            result.data = this.normalizeAuth(result.data);
+        }
+        return result;
     },
 
     async register(data) {
-        await this._delay(250);
-        if (!data.fullName || !data.email || !data.password) {
+        if (!data.fullName || !data.email || !data.phoneNumber || !data.password) {
             return { success: false, message: 'Vui lòng điền đầy đủ thông tin' };
         }
-        return {
-            success: true,
-            data: {
-                ...MockDB.user,
-                fullName: data.fullName,
-                email: data.email,
-                phoneNumber: data.phoneNumber
-            }
+        const payload = {
+            fullName: data.fullName,
+            email: data.email,
+            phoneNumber: data.phoneNumber,
+            password: data.password
         };
+
+        if (data.dateOfBirth) payload.dateOfBirth = data.dateOfBirth;
+        if (data.address) payload.address = data.address;
+
+        const result = await this.request('/api/auth/register', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+
+        if (result.success && result.data) {
+            result.data = this.normalizeAuth(result.data);
+        }
+        return result;
+    },
+
+    async getCurrentUser() {
+        // Backend hiện chưa có endpoint /api/users/me hoặc /api/auth/me.
+        // Tạm dùng thông tin JwtResponse đã lưu sau login/register; các feature khác vẫn mock.
+        return this.user
+            ? { success: true, message: 'Loaded from local auth state', data: this.user }
+            : { success: false, message: 'Chưa có thông tin tài khoản', data: null };
     },
 
     _delay(ms) {
