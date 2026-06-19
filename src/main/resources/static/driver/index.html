@@ -9,9 +9,100 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=layout-full-width-2">
+    <link rel="stylesheet" href="css/styles.css?v=hero-stacked-carousel">
 </head>
 <body>
+
+<div id="landing-page" class="landing-page">
+    <nav class="landing-nav">
+        <button class="landing-brand" onclick="document.getElementById('landing-page').scrollIntoView({behavior:'smooth'})" aria-label="ParkSmart">
+            <span class="landing-logo">
+                <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#ea580c"/><path d="M22 50V14h13c8 0 13 5 13 12s-5 12-13 12h-5v12h-8Zm8-20h5c3 0 5-2 5-4s-2-4-5-4h-5v8Z" fill="#fff"/></svg>
+            </span>
+            <span>Smart Parking</span>
+        </button>
+        <div class="landing-links">
+            <a href="#landing-features">Tính năng</a>
+            <a href="#landing-process">Quy trình</a>
+            <a href="#landing-pricing">Bảng giá</a>
+            <button type="button" onclick="App.showLogin()">Đăng nhập</button>
+        </div>
+    </nav>
+
+    <main class="landing-main">
+        <section class="landing-hero">
+            <div class="landing-hero-copy">
+                <span class="landing-kicker">Parking Building Management System</span>
+                <h1>Đặt chỗ đỗ xe nhanh chóng, an toàn và tiện lợi.</h1>
+                <p>Hệ thống hỗ trợ tài xế tìm chỗ trống, đặt chỗ, quản lý phiên gửi xe, thanh toán và xem biên lai chỉ trong vài thao tác.</p>
+                <div class="landing-actions">
+                    <button class="btn btn-primary" type="button" onclick="App.showLogin()">Bắt đầu ngay</button>
+                    <a class="btn btn-outline landing-outline" href="#landing-features">Xem tính năng</a>
+                    <button class="btn btn-outline landing-outline" type="button" onclick="App.showRegister()">Đăng ký</button>
+                </div>
+                <div class="landing-trust">
+                    <span>Mock Driver Prototype</span>
+                    <span>Không kết nối API thật</span>
+                    <span>SWP391</span>
+                </div>
+            </div>
+            <div class="hero-visual" aria-label="Hình ảnh bãi đỗ xe hiện đại">
+                <div class="hero-carousel" id="hero-carousel">
+                    <div class="hero-card-stack" id="hero-card-stack" aria-live="polite"></div>
+                    <button class="hero-carousel-btn hero-carousel-prev" type="button" onclick="HeroCarousel.prev()" aria-label="Ảnh trước">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <button class="hero-carousel-btn hero-carousel-next" type="button" onclick="HeroCarousel.next()" aria-label="Ảnh tiếp theo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                    <div class="hero-carousel-dots" id="hero-carousel-dots" aria-label="Chọn ảnh bãi đỗ xe"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="landing-features" class="landing-section">
+            <div class="landing-section-heading">
+                <span class="landing-kicker">Tính năng</span>
+                <h2>Mọi thao tác gửi xe nằm trong một giao diện gọn gàng.</h2>
+            </div>
+            <div class="landing-feature-grid">
+                <article class="landing-feature-card"><span>01</span><h3>Tìm chỗ trống theo thời gian thực</h3><p>Xem tình trạng slot theo tòa nhà, tầng, khu vực và loại xe.</p></article>
+                <article class="landing-feature-card"><span>02</span><h3>Đặt chỗ trước khi đến bãi</h3><p>Giữ chỗ phù hợp, nhận thông tin tầng, khu vực và mã slot.</p></article>
+                <article class="landing-feature-card"><span>03</span><h3>Quản lý xe và lịch sử gửi xe</h3><p>Theo dõi phương tiện, phiên gửi xe và các biên lai đã phát sinh.</p></article>
+                <article class="landing-feature-card"><span>04</span><h3>Thanh toán và báo cáo sự cố</h3><p>Mô phỏng thanh toán, xem biên lai và gửi báo cáo sự cố nhanh chóng.</p></article>
+                <article class="landing-feature-card"><span>05</span><h3>Theo dõi lịch sử gửi xe</h3><p>Lọc giao dịch, xem chi tiết phiên gửi xe và mở biên lai khi cần.</p></article>
+                <article class="landing-feature-card"><span>06</span><h3>Giao diện thân thiện cho tài xế</h3><p>Tối ưu thao tác nhanh trên điện thoại, tablet và màn hình desktop.</p></article>
+            </div>
+        </section>
+
+        <section id="landing-process" class="landing-section landing-process">
+            <div class="landing-section-heading">
+                <span class="landing-kicker">Quy trình</span>
+                <h2>Ba bước đơn giản cho tài xế.</h2>
+            </div>
+            <div class="landing-step-grid">
+                <div class="landing-step"><strong>1</strong><h3>Đăng nhập hoặc tạo tài khoản</h3><p>Sử dụng tài khoản Driver để truy cập dashboard cá nhân.</p></div>
+                <div class="landing-step"><strong>2</strong><h3>Chọn xe, thời gian và chỗ đỗ phù hợp</h3><p>Tìm slot đang trống và tạo đặt chỗ bằng dữ liệu mô phỏng.</p></div>
+                <div class="landing-step"><strong>3</strong><h3>Bắt đầu phiên gửi xe và thanh toán khi hoàn tất</h3><p>Quản lý phiên gửi xe, checkout và xem biên lai ngay trong UI.</p></div>
+            </div>
+        </section>
+
+        <section id="landing-pricing" class="landing-section landing-price-strip">
+            <div>
+                <span class="landing-kicker">Bảng giá</span>
+                <h2>Chính sách giá minh bạch theo từng loại xe.</h2>
+                <p>Xem giá giờ thường, giờ cao điểm, giới hạn ngày, phí quá giờ và phí mất vé sau khi đăng nhập.</p>
+            </div>
+            <button class="btn btn-primary" type="button" onclick="App.showLogin()">Đăng nhập để xem</button>
+        </section>
+    </main>
+
+    <footer class="landing-footer">
+        <strong>Parking Building Management System</strong>
+        <span>Driver Front-end Prototype</span>
+        <span>Nhóm SWP391</span>
+    </footer>
+</div>
 
 <div id="login-page" class="login-page">
     <div class="login-bg-animation">
@@ -54,6 +145,7 @@
             </form>
             <div class="login-footer">
                 <p>Chưa có tài khoản? <a href="#" id="go-register">Đăng ký ngay</a></p>
+                <button type="button" class="auth-back-link" onclick="App.showLanding()">Quay lại trang giới thiệu</button>
             </div>
         </div>
     </div>
@@ -94,11 +186,16 @@
                     <label for="reg-confirm">Xác nhận mật khẩu *</label>
                     <input type="password" id="reg-confirm" placeholder="Nhập lại mật khẩu" required>
                 </div>
+                <label class="agreement-check" for="reg-agree">
+                    <input type="checkbox" id="reg-agree">
+                    <span>Tôi đồng ý với <a href="#" onclick="event.preventDefault()">Chính sách bảo mật</a> và <a href="#" onclick="event.preventDefault()">Điều khoản sử dụng</a> của hệ thống.</span>
+                </label>
                 <div id="register-error" class="login-error hidden"></div>
                 <button type="submit" class="login-submit-btn"><span>Đăng ký</span></button>
             </form>
             <div class="login-footer">
                 <p>Đã có tài khoản? <a href="#" id="go-login">Đăng nhập</a></p>
+                <button type="button" class="auth-back-link" onclick="App.showLanding()">Quay lại trang giới thiệu</button>
             </div>
         </div>
     </div>
@@ -157,9 +254,9 @@
 
 <div id="toast-container" class="toast-container"></div>
 
-<script src="js/api.js"></script>
+<script src="js/api.js?v=auth-phase1-fixes"></script>
 <script src="js/pages.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/app.js"></script>
+<script src="js/auth.js?v=auth-phase1-fixes"></script>
+<script src="js/app.js?v=auth-phase1-fixes"></script>
 </body>
 </html>
