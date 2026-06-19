@@ -28,4 +28,17 @@ public class AuthController {
         JwtResponse response = authService.register(request);
         return ApiResponse.success("Đăng ký thành công", response);
     }
+    @Operation(summary = "Forgot Password", description = "Send a password reset link to the user's email")
+    @PostMapping("/forgot-password")
+    public ApiResponse<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getEmail());
+        return ApiResponse.success("Nếu email tồn tại trong hệ thống, chúng tôi đã gửi link đặt lại mật khẩu đến email của bạn.", null);
+    }
+
+    @Operation(summary = "Reset Password", description = "Reset user password using token")
+    @PostMapping("/reset-password")
+    public ApiResponse<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.getToken(), request.getNewPassword());
+        return ApiResponse.success("Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.", null);
+    }
 }

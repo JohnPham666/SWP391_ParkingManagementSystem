@@ -80,10 +80,94 @@ const Auth = {
             e.preventDefault();
             App.showLogin();
         });
+    },
+
+    setupForgotPassword() {
+        document.getElementById('go-forgot-password').addEventListener('click', (e) => {
+            e.preventDefault();
+            App.showForgotPassword();
+        });
+
+        document.getElementById('go-login-from-forgot').addEventListener('click', (e) => {
+            e.preventDefault();
+            App.showLogin();
+        });
+
+        document.getElementById('forgot-password-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('forgot-email').value;
+            const btn = document.getElementById('forgot-btn');
+            const err = document.getElementById('forgot-error');
+            btn.disabled = true;
+            btn.querySelector('span').classList.add('hidden');
+            btn.querySelector('.btn-loader').classList.remove('hidden');
+            err.classList.add('hidden');
+
+            const res = await Api.forgotPassword(email);
+            btn.disabled = false;
+            btn.querySelector('span').classList.remove('hidden');
+            btn.querySelector('.btn-loader').classList.add('hidden');
+
+            if (res.success) {
+                App.showToast(res.message, 'success');
+                // clear form
+                document.getElementById('forgot-email').value = '';
+            } else {
+                err.textContent = res.message;
+                err.classList.remove('hidden');
+            }
+        });
+    },
+
+    setupResetPassword() {
+        document.getElementById('go-login-from-reset').addEventListener('click', (e) => {
+            e.preventDefault();
+            // remove token from url
+            window.history.replaceState({}, document.title, window.location.pathname);
+            App.showLogin();
+        });
+
+        document.getElementById('reset-password-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = document.getElementById('reset-token').value;
+            const newPassword = document.getElementById('reset-new-password').value;
+            const confirmPassword = document.getElementById('reset-confirm-password').value;
+            const btn = document.getElementById('reset-btn');
+            const err = document.getElementById('reset-error');
+            
+            err.classList.add('hidden');
+
+            if (newPassword !== confirmPassword) {
+                err.textContent = 'Mật khẩu xác nhận không khớp';
+                err.classList.remove('hidden');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.querySelector('span').classList.add('hidden');
+            btn.querySelector('.btn-loader').classList.remove('hidden');
+
+            const res = await Api.resetPassword(token, newPassword);
+            btn.disabled = false;
+            btn.querySelector('span').classList.remove('hidden');
+            btn.querySelector('.btn-loader').classList.add('hidden');
+
+            if (res.success) {
+                App.showToast(res.message, 'success');
+                // remove token from url
+                window.history.replaceState({}, document.title, window.location.pathname);
+                App.showLogin();
+            } else {
+                err.textContent = res.message;
+                err.classList.remove('hidden');
+            }
+        });
     }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     Auth.setupLogin();
     Auth.setupRegister();
+    Auth.setupForgotPassword();
+    Auth.setupResetPassword();
 });
