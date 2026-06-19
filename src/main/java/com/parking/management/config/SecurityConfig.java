@@ -39,7 +39,16 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/swagger-resources/**",
                                 "/webjars/**",
-                                "/api/payments/vnpay-return"//return to swagger page after payment
+                                "/api/payments/vnpay-return", //return to swagger page after payment
+                                // Static frontend files
+                                "/",
+                                "/index.html",
+                                "/*.html",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/assets/**",
+                                "/parking_management_split/**"
                         ).permitAll()
 
                         // Driver, Staff, Manager, Admin đều được tạo/báo incident
