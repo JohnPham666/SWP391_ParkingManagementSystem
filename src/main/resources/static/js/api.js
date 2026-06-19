@@ -1,5 +1,5 @@
 /* ===== API Service Layer ===== */
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = 'https://swp391-parkingmanagementsystem.onrender.com/api';
 
 const Api = {
     token: null,

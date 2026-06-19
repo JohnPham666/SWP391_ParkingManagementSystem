@@ -60,7 +60,7 @@ const MockDB = {
 };
 
 const Api = {
-    baseUrl: '',
+    baseUrl: 'https://swp391-parkingmanagementsystem.onrender.com',
     authStorageKey: 'driver_auth',
     token: null,
     user: null,
