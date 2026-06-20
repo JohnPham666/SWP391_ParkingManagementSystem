@@ -82,7 +82,7 @@ public class AuthService {
         }
 
         // 2. Tìm role mặc định cho người dùng mới = DRIVER
-        Role driverRole = roleRepository.findByRoleName("DRIVER")
+        Role driverRole = roleRepository.findByRoleNameIgnoreCase("DRIVER")
                 .orElseThrow(() -> new RuntimeException("Role DRIVER chưa được tạo trong Database. Hãy tạo Role trước."));
 
         // 3. Tạo User entity mới
