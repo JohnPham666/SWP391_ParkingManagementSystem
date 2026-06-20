@@ -139,7 +139,10 @@ const App = {
 
     init() {
         const savedAuth = Api.init();
-        if (savedAuth?.token && Api.isDriverRole(savedAuth.role || savedAuth.roleName)) {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('resetToken')) {
+            this.showResetPassword(urlParams.get('resetToken'));
+        } else if (savedAuth?.token && Api.isDriverRole(savedAuth.role || savedAuth.roleName)) {
             this.state.user = savedAuth;
             this.showApp();
         } else {
@@ -162,6 +165,8 @@ const App = {
         document.getElementById('landing-page').classList.remove('hidden');
         document.getElementById('login-page').classList.add('hidden');
         document.getElementById('register-page').classList.add('hidden');
+        document.getElementById('forgot-password-page').classList.add('hidden');
+        document.getElementById('reset-password-page').classList.add('hidden');
         document.getElementById('app').classList.add('hidden');
         HeroCarousel.init();
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -172,6 +177,8 @@ const App = {
         document.getElementById('landing-page').classList.add('hidden');
         document.getElementById('login-page').classList.remove('hidden');
         document.getElementById('register-page').classList.add('hidden');
+        document.getElementById('forgot-password-page').classList.add('hidden');
+        document.getElementById('reset-password-page').classList.add('hidden');
         document.getElementById('app').classList.add('hidden');
     },
 
@@ -180,6 +187,29 @@ const App = {
         document.getElementById('landing-page').classList.add('hidden');
         document.getElementById('login-page').classList.add('hidden');
         document.getElementById('register-page').classList.remove('hidden');
+        document.getElementById('forgot-password-page').classList.add('hidden');
+        document.getElementById('reset-password-page').classList.add('hidden');
+        document.getElementById('app').classList.add('hidden');
+    },
+
+    showForgotPassword() {
+        HeroCarousel.stop();
+        document.getElementById('landing-page').classList.add('hidden');
+        document.getElementById('login-page').classList.add('hidden');
+        document.getElementById('register-page').classList.add('hidden');
+        document.getElementById('forgot-password-page').classList.remove('hidden');
+        document.getElementById('reset-password-page').classList.add('hidden');
+        document.getElementById('app').classList.add('hidden');
+    },
+
+    showResetPassword(token) {
+        HeroCarousel.stop();
+        document.getElementById('reset-token').value = token;
+        document.getElementById('landing-page').classList.add('hidden');
+        document.getElementById('login-page').classList.add('hidden');
+        document.getElementById('register-page').classList.add('hidden');
+        document.getElementById('forgot-password-page').classList.add('hidden');
+        document.getElementById('reset-password-page').classList.remove('hidden');
         document.getElementById('app').classList.add('hidden');
     },
 
@@ -188,6 +218,8 @@ const App = {
         document.getElementById('landing-page').classList.add('hidden');
         document.getElementById('login-page').classList.add('hidden');
         document.getElementById('register-page').classList.add('hidden');
+        document.getElementById('forgot-password-page').classList.add('hidden');
+        document.getElementById('reset-password-page').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
         const u = this.state.user || Api.user || { fullName: 'Tài xế' };
         document.getElementById('header-user-name').textContent = u.fullName || 'Tài xế';

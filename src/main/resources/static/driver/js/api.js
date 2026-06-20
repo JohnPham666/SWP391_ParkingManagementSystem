@@ -264,6 +264,34 @@ const Api = {
             : { success: false, message: 'Chưa có thông tin tài khoản', data: null };
     },
 
+    async forgotPassword(email) {
+        try {
+            const res = await fetch('http://localhost:8080/api/auth/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await res.json();
+            return { success: res.ok, message: data.message || 'Lỗi hệ thống' };
+        } catch (e) {
+            return { success: false, message: 'Không thể kết nối đến server' };
+        }
+    },
+
+    async resetPassword(token, newPassword) {
+        try {
+            const res = await fetch('http://localhost:8080/api/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, newPassword })
+            });
+            const data = await res.json();
+            return { success: res.ok, message: data.message || 'Lỗi hệ thống' };
+        } catch (e) {
+            return { success: false, message: 'Không thể kết nối đến server' };
+        }
+    },
+
     _delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
