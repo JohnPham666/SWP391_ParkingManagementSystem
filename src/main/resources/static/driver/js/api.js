@@ -60,7 +60,7 @@ const MockDB = {
 };
 
 const Api = {
-    baseUrl: 'https://swp391-parkingmanagementsystem.onrender.com',
+    baseUrl: 'http://localhost:8080',
     authStorageKey: 'driver_auth',
     token: null,
     user: null,
@@ -266,7 +266,7 @@ const Api = {
 
     async forgotPassword(email) {
         try {
-            const res = await fetch('http://localhost:8080/api/auth/forgot-password', {
+            const res = await fetch(`${this.baseUrl}/api/auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
@@ -280,7 +280,7 @@ const Api = {
 
     async resetPassword(token, newPassword) {
         try {
-            const res = await fetch('http://localhost:8080/api/auth/reset-password', {
+            const res = await fetch(`${this.baseUrl}/api/auth/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, newPassword })
