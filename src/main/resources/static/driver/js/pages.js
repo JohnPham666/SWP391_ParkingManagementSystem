@@ -686,11 +686,15 @@ const Pages = {
         modal.className = 'modal-overlay';
         modal.innerHTML = `<div class="modal-content">${content}</div>`;
         document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
     },
 
     closeModal() {
         const modal = document.getElementById('page-modal');
-        if (modal) modal.remove();
+        if (modal) {
+            modal.remove();
+            document.body.style.overflow = '';
+        }
     },
 
     formatDateTime(value) {
