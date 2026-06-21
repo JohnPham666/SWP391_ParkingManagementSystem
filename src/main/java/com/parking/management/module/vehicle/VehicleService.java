@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import java.time.LocalDate;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -56,12 +57,22 @@ public class VehicleService {
         vehicle.setUser(user);
         vehicle.setOwnerName(request.getOwnerName());
         vehicle.setOwnerPhone(request.getOwnerPhone());
+        vehicle.setOwnerIdCard(request.getOwnerIdCard());
         vehicle.setBrand(request.getBrand());
         vehicle.setVehicleColor(request.getVehicleColor());
         vehicle.setEngineNumber(request.getEngineNumber());
         vehicle.setChassisNumber(request.getChassisNumber());
         vehicle.setManufactureYear(request.getManufactureYear());
+        vehicle.setRegistrationNumber(request.getRegistrationNumber());
+        if (request.getRegistrationDate() != null && !request.getRegistrationDate().isBlank()) {
+            vehicle.setRegistrationDate(LocalDate.parse(request.getRegistrationDate()));
+        }
+        if (request.getRegistrationExpiry() != null && !request.getRegistrationExpiry().isBlank()) {
+            vehicle.setRegistrationExpiry(LocalDate.parse(request.getRegistrationExpiry()));
+        }
         vehicle.setVehicleImage(request.getVehicleImage());
+        vehicle.setOwnerPortrait(request.getOwnerPortrait());
+        vehicle.setRegistrationPhoto(request.getRegistrationPhoto());
 
         return VehicleResponse.fromEntity(vehicleRepository.save(vehicle));
     }
@@ -121,14 +132,28 @@ public class VehicleService {
         vehicle.setUser(user);
         vehicle.setOwnerName(request.getOwnerName());
         vehicle.setOwnerPhone(request.getOwnerPhone());
+        vehicle.setOwnerIdCard(request.getOwnerIdCard());
         vehicle.setBrand(request.getBrand());
         vehicle.setVehicleColor(request.getVehicleColor());
         vehicle.setEngineNumber(request.getEngineNumber());
         vehicle.setChassisNumber(request.getChassisNumber());
         vehicle.setManufactureYear(request.getManufactureYear());
+        vehicle.setRegistrationNumber(request.getRegistrationNumber());
+        if (request.getRegistrationDate() != null && !request.getRegistrationDate().isBlank()) {
+            vehicle.setRegistrationDate(LocalDate.parse(request.getRegistrationDate()));
+        }
+        if (request.getRegistrationExpiry() != null && !request.getRegistrationExpiry().isBlank()) {
+            vehicle.setRegistrationExpiry(LocalDate.parse(request.getRegistrationExpiry()));
+        }
 
         if (request.getVehicleImage() != null) {
             vehicle.setVehicleImage(request.getVehicleImage());
+        }
+        if (request.getOwnerPortrait() != null) {
+            vehicle.setOwnerPortrait(request.getOwnerPortrait());
+        }
+        if (request.getRegistrationPhoto() != null) {
+            vehicle.setRegistrationPhoto(request.getRegistrationPhoto());
         }
 
         return VehicleResponse.fromEntity(vehicleRepository.save(vehicle));

@@ -7,8 +7,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @PreAuthorize("hasRole('Admin')")
@@ -18,6 +20,28 @@ import java.util.List;
 public class UserController {
 
     private final UserService service;
+
+    // ===== Self-service endpoints (any authenticated user) =====
+
+    @Operation(summary = "Get my profile", description = "Get the profile of the currently authenticated user")
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/me")
+    public ApiResponse<UserResponse> getMyProfile(Authentication authentication) {
+        return ApiResponse.success("Fetched successfully", service.getByEmail(authentication.getName()));
+    }
+
+    @Operation(summary = "Update my profile", description = "Update own profile (fullName, phoneNumber, address only)")
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/me")
+    public ApiResponse<UserResponse> updateMyProfile(Authentication authentication, @RequestBody Map<String, String> body) {
+        String email = authentication.getName();
+        String fullName = body.get("fullName");
+        String phoneNumber = body.get("phoneNumber");
+        String address = body.get("address");
+        return ApiResponse.success("Updated successfully", service.updateOwnProfile(email, fullName, phoneNumber, address));
+    }
+
+    // ===== Admin-only endpoints =====
 
     @Operation(summary = "Create a new user", description = "Create a new user with full name, email, phone and role")
     @PostMapping
@@ -50,3 +74,4 @@ public class UserController {
         return ApiResponse.success("Deleted successfully", null);
     }
 }
+

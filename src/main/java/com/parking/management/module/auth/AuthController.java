@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -41,4 +42,13 @@ public class AuthController {
         authService.resetPassword(request.getToken(), request.getNewPassword());
         return ApiResponse.success("Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.", null);
     }
+
+    @Operation(summary = "Change Password", description = "Change password for the currently authenticated user (requires old password)")
+    @PostMapping("/change-password")
+    public ApiResponse<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request, Authentication authentication) {
+        String email = authentication.getName();
+        authService.changePassword(email, request.getOldPassword(), request.getNewPassword());
+        return ApiResponse.success("Đổi mật khẩu thành công", null);
+    }
 }
+

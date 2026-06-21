@@ -92,19 +92,25 @@ CREATE TABLE VehicleTypes (
 -- VEHICLES
 -- =========================================================
 CREATE TABLE Vehicles (
-    VehicleID       SERIAL PRIMARY KEY,
-    LicensePlate    VARCHAR(20)  NOT NULL UNIQUE,
-    VehicleTypeID   INT NOT NULL,
-    OwnerName       VARCHAR(100) NULL,
-    OwnerPhone      VARCHAR(20)  NULL,
-    UserID          INT          NULL,
-    Brand           VARCHAR(50)  NULL,
-    VehicleColor    VARCHAR(30)  NULL,
-    EngineNumber    VARCHAR(50)  NULL,
-    ChassisNumber   VARCHAR(50)  NULL,
-    ManufactureYear INT          NULL,
-    VehicleImage    VARCHAR(255) NULL,
-    IsActive        BOOLEAN DEFAULT TRUE,
+    VehicleID           SERIAL PRIMARY KEY,
+    LicensePlate        VARCHAR(20)  NOT NULL UNIQUE,
+    VehicleTypeID       INT NOT NULL,
+    OwnerName           VARCHAR(100) NULL,
+    OwnerPhone          VARCHAR(20)  NULL,
+    OwnerIdCard         VARCHAR(20)  NULL,        -- Số CCCD/CMND chủ xe
+    UserID              INT          NULL,
+    Brand               VARCHAR(50)  NULL,
+    VehicleColor        VARCHAR(30)  NULL,
+    EngineNumber        VARCHAR(50)  NULL,
+    ChassisNumber       VARCHAR(50)  NULL,
+    ManufactureYear     INT          NULL,
+    RegistrationNumber  VARCHAR(50)  NULL,        -- Số đăng ký (trên cà vẹt xe)
+    RegistrationDate    DATE         NULL,        -- Ngày đăng ký (trên cà vẹt xe)
+    RegistrationExpiry  DATE         NULL,        -- Ngày hết hạn đăng kiểm
+    VehicleImage        VARCHAR(255) NULL,
+    OwnerPortrait       VARCHAR(500) NULL,        -- Ảnh chân dung người đăng ký
+    RegistrationPhoto   VARCHAR(500) NULL,        -- Ảnh cà vẹt xe (giấy đăng ký xe)
+    IsActive            BOOLEAN DEFAULT TRUE,
     CONSTRAINT FK_Vehicles_VehicleTypes
         FOREIGN KEY (VehicleTypeID) REFERENCES VehicleTypes(VehicleTypeID),
     CONSTRAINT FK_Vehicles_Users

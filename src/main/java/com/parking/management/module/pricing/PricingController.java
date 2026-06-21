@@ -11,7 +11,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 
 @RestController
-@PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
 @RequestMapping("/api/pricings")
 @RequiredArgsConstructor
 @Tag(name = "Pricing Policy", description = "APIs for managing pricing policies and calculating parking fees")
@@ -23,6 +22,7 @@ public class PricingController {
     //Create new Pricing policy
     @Operation(summary = "Create a new pricing policy",
                description = "Create a new pricing policy with base price, rush hour price, off-peak price and time ranges")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
     @PostMapping
     public ApiResponse<PricingResponse> create(@Valid @RequestBody PricingRequest request) {
         PricingResponse response = service.createNewPricingPolicy(request);
@@ -59,6 +59,7 @@ public class PricingController {
     //UPDATE
     @Operation(summary = "Update a pricing policy",
                description = "Update an existing pricing policy by its ID")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
     @PutMapping("/{id}")
     public ApiResponse<PricingResponse> update(@PathVariable Long id, @Valid @RequestBody PricingRequest request) {
         PricingResponse response = service.updatePricingPolicy(id,request);
@@ -68,6 +69,7 @@ public class PricingController {
     //DELETE
     @Operation(summary = "Delete a pricing policy",
                description = "Delete a pricing policy by its ID")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         service.deletePricingPolicyById(id);

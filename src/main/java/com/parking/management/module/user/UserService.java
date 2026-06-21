@@ -55,6 +55,30 @@ public class UserService {
                 .toList();
     }
 
+    public UserResponse getByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+        return toResponse(user);
+    }
+
+    public UserResponse updateOwnProfile(String email, String fullName, String phoneNumber, String address) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+
+        if (fullName != null && !fullName.isBlank()) {
+            user.setFullName(fullName);
+        }
+        if (phoneNumber != null) {
+            user.setPhoneNumber(phoneNumber);
+        }
+        if (address != null) {
+            user.setAddress(address);
+        }
+
+        User saved = userRepository.save(user);
+        return toResponse(saved);
+    }
+
     public UserResponse update(Integer id, UserRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
@@ -90,6 +114,8 @@ public class UserService {
         res.setFullName(user.getFullName());
         res.setEmail(user.getEmail());
         res.setPhoneNumber(user.getPhoneNumber());
+        res.setDateOfBirth(user.getDateOfBirth());
+        res.setAddress(user.getAddress());
         res.setRoleName(user.getRole().getRoleName());
         res.setIsActive(user.getIsActive());
         res.setCreatedAt(user.getCreatedAt());

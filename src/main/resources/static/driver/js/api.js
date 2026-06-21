@@ -139,7 +139,28 @@ const Api = {
     },
 
     async getCurrentUser() {
-        return this.user ? { success: true, message: 'Loaded from local auth state', data: this.user } : { success: false, message: 'Chưa có thông tin tài khoản', data: null };
+        const res = await this.request('/api/users/me');
+        if (res.success && res.data) {
+            // Update local cache with fresh server data
+            const merged = { ...this.user, ...res.data };
+            this.user = merged;
+            const saved = localStorage.getItem(this.authStorageKey);
+            if (saved) {
+                try {
+                    const existing = JSON.parse(saved);
+                    localStorage.setItem(this.authStorageKey, JSON.stringify({ ...existing, ...res.data }));
+                } catch {}
+            }
+        }
+        return res;
+    },
+
+    async updateMyProfile(data) {
+        return this.request('/api/users/me', { method: 'PUT', body: data });
+    },
+
+    async changePassword(oldPassword, newPassword) {
+        return this.request('/api/auth/change-password', { method: 'POST', body: { oldPassword, newPassword } });
     },
 
     async forgotPassword(email) {
@@ -210,3 +231,4 @@ const Api = {
 
     _delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 };
+

@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
@@ -30,6 +31,9 @@ public class Vehicle {
     @Column(name = "OwnerPhone", length = 20)
     private String ownerPhone;
 
+    @Column(name = "OwnerIdCard", length = 20)
+    private String ownerIdCard;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "UserID")
     private User user;
@@ -49,8 +53,23 @@ public class Vehicle {
     @Column(name = "ManufactureYear")
     private Integer manufactureYear;
 
+    @Column(name = "RegistrationNumber", length = 50)
+    private String registrationNumber;
+
+    @Column(name = "RegistrationDate")
+    private LocalDate registrationDate;
+
+    @Column(name = "RegistrationExpiry")
+    private LocalDate registrationExpiry;
+
     @Column(name = "VehicleImage", length = 255)
     private String vehicleImage;
+
+    @Column(name = "OwnerPortrait", length = 500)
+    private String ownerPortrait;
+
+    @Column(name = "RegistrationPhoto", length = 500)
+    private String registrationPhoto;
 
     @Column(name = "IsActive")
     private Boolean isActive = true;

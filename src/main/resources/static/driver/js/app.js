@@ -137,6 +137,9 @@ window.HeroCarousel = HeroCarousel;
 const App = {
     state: { user: null, currentPage: 'home' },
 
+    // Valid pages for URL routing
+    validPages: ['home', 'parking', 'vehicles', 'reservations', 'account', 'session', 'payment', 'pricing', 'history', 'incident'],
+
     init() {
         const savedAuth = Api.init();
         const urlParams = new URLSearchParams(window.location.search);
@@ -150,6 +153,26 @@ const App = {
             this.showLanding();
         }
         this.setupGlobal();
+        this.setupRouting();
+    },
+
+    setupRouting() {
+        // Listen for browser back/forward
+        window.addEventListener('popstate', (e) => {
+            if (e.state && e.state.page && this.state.user) {
+                this.state.currentPage = e.state.page;
+                document.querySelectorAll('.bottom-nav-item').forEach(el => {
+                    el.classList.toggle('active', el.dataset.page === e.state.page);
+                });
+                this.renderPage(e.state.page);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+    },
+
+    getPageFromHash() {
+        const hash = window.location.hash.replace('#', '');
+        return this.validPages.includes(hash) ? hash : 'home';
     },
 
     setupGlobal() {
@@ -224,11 +247,18 @@ const App = {
         const u = this.state.user || Api.user || { fullName: 'Tài xế' };
         document.getElementById('header-user-name').textContent = u.fullName || 'Tài xế';
         document.getElementById('header-avatar').textContent = (u.fullName || 'T').charAt(0).toUpperCase();
-        this.navigate('home');
+        // Restore page from URL hash or default to home
+        const page = this.getPageFromHash();
+        this.navigate(page);
     },
 
     navigate(page) {
         this.state.currentPage = page;
+        // Update URL hash
+        const newHash = '#' + page;
+        if (window.location.hash !== newHash) {
+            history.pushState({ page: page }, '', newHash);
+        }
         document.querySelectorAll('.bottom-nav-item').forEach(el => {
             el.classList.toggle('active', el.dataset.page === page);
         });
@@ -281,6 +311,8 @@ const App = {
     logout() {
         Api.clearAuth();
         this.state.user = null;
+        // Clear URL hash
+        history.replaceState({}, '', window.location.pathname + window.location.search);
         this.showLanding();
     }
 };

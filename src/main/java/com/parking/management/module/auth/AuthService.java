@@ -41,8 +41,7 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("Email không tồn tại"));
 
         // 2. So sánh password (Hỗ trợ cả BCrypt và so sánh chuỗi trực tiếp cho Seed Data)
-        boolean isMatch = passwordEncoder.matches(request.getPassword(), user.getPasswordHash()) 
-                       || request.getPassword().equals(user.getPasswordHash());
+        boolean isMatch = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
 
         if (!isMatch) {
             throw new RuntimeException("Mật khẩu không chính xác");
@@ -61,6 +60,9 @@ public class AuthService {
                 .userId(user.getUserId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .address(user.getAddress())
+                .status(user.getIsActive())
                 .role(user.getRole().getRoleName())
                 .build();
     }
@@ -106,6 +108,9 @@ public class AuthService {
                 .userId(savedUser.getUserId())
                 .fullName(savedUser.getFullName())
                 .email(savedUser.getEmail())
+                .phoneNumber(savedUser.getPhoneNumber())
+                .address(savedUser.getAddress())
+                .status(savedUser.getIsActive())
                 .role(savedUser.getRole().getRoleName())
                 .build();
     }
@@ -200,5 +205,20 @@ public class AuthService {
         } catch (Exception e) {
             throw new RuntimeException("Token không hợp lệ hoặc đã hết hạn", e);
         }
+    }
+
+    /**
+     * Đổi mật khẩu: yêu cầu nhập mật khẩu cũ để xác thực.
+     */
+    public void changePassword(String email, String oldPassword, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+            throw new RuntimeException("Mật khẩu cũ không chính xác");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 }

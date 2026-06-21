@@ -88,8 +88,16 @@ const Auth = {
             try {
                 const res = await Api.register(data);
                 if (res.success) {
-                    App.showLogin();
-                    App.showToast('Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.', 'success');
+                    if (res.data && res.data.token) {
+                        // Auto-login: register API already returns JWT token
+                        const auth = Api.saveAuth(res.data);
+                        App.state.user = auth;
+                        App.showApp();
+                        App.showToast('Đăng ký thành công! Chào mừng bạn.', 'success');
+                    } else {
+                        App.showLogin();
+                        App.showToast('Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.', 'success');
+                    }
                 } else {
                     err.textContent = res.message || 'Đăng ký thất bại';
                     err.classList.remove('hidden');
