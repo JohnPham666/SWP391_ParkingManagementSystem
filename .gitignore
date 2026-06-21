@@ -32,3 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 uploads/ 
+
+# Driver frontend temporary generated files
+src/main/resources/static/driver/js/generate_pages.py
