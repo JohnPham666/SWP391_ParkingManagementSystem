@@ -1,4 +1,5 @@
 const Api = {
+    baseUrl: 'http://localhost:8080',
     authStorageKey: 'driver_auth',
     token: null,
     user: null,
@@ -142,6 +143,31 @@ const Api = {
     },
 
     async forgotPassword(email) {
+        try {
+            const res = await fetch(`${this.baseUrl}/api/auth/forgot-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await res.json();
+            return { success: res.ok, message: data.message || 'Lỗi hệ thống' };
+        } catch (e) {
+            return { success: false, message: 'Không thể kết nối đến server' };
+        }
+    },
+
+    async resetPassword(token, newPassword) {
+        try {
+            const res = await fetch(`${this.baseUrl}/api/auth/reset-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, newPassword })
+            });
+            const data = await res.json();
+            return { success: res.ok, message: data.message || 'Lỗi hệ thống' };
+        } catch (e) {
+            return { success: false, message: 'Không thể kết nối đến server' };
+        }
         return this.request('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
     },
 
