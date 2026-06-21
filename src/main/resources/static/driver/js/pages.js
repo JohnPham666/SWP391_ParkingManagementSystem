@@ -39,6 +39,33 @@ const Pages = {
         return !this.isMotorbikeType(value);
     },
 
+    formatCurrency(value) {
+        if (value === null || value === undefined || value === '') {
+            return 'Chưa có dữ liệu phí';
+        }
+        const num = Number(value);
+        if (isNaN(num)) return 'Chưa có dữ liệu phí';
+        return num.toLocaleString('vi-VN') + ' đ';
+    },
+
+    resolveReservationLocation(r, slots) {
+        if (r.buildingName && r.floorName && r.zoneName) {
+            return `${this.escape(r.buildingName)} - ${this.escape(r.floorName)} - ${this.escape(r.zoneName)}`;
+        }
+        if (r.slotId && slots && slots.length) {
+            const slot = slots.find(s => s.slotId === r.slotId);
+            if (slot && slot.buildingName && slot.floorName && slot.zoneName) {
+                return `${this.escape(slot.buildingName)} - ${this.escape(slot.floorName)} - ${this.escape(slot.zoneName)}`;
+            }
+        }
+        return 'Chưa có thông tin vị trí';
+    },
+
+    resolveReservationFee(r) {
+        let fee = r.amount !== undefined ? r.amount : r.estimatedFee;
+        return this.formatCurrency(fee);
+    },
+
     async home(container) {
         container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
         const [slotsRes, vehiclesRes, resRes] = await Promise.all([
@@ -176,10 +203,11 @@ const Pages = {
 
     async reservations(container) {
         container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
-        const [rRes, vRes, sRes] = await Promise.all([
+        const [rRes, vRes, sRes, allSlotsRes] = await Promise.all([
             Api.getReservations(),
             Api.getMyVehicles(),
-            Api.getAvailableSlots()
+            Api.getAvailableSlots(),
+            Api.request('/api/slots')
         ]);
         
         if(!rRes.success) {
@@ -192,6 +220,7 @@ const Pages = {
         const reservableVehicles = this.state.vehicles.filter(v => this.isReservableVehicleType(v.vehicleTypeName));
         const availableSlots = sRes.success ? (sRes.data || []).filter(s => s.status === 'AVAILABLE' && this.isReservableVehicleType(s.vehicleTypeName)) : [];
         this.state.availableSlots = availableSlots;
+        this.state.allSlots = allSlotsRes.success ? (allSlotsRes.data || []) : [];
         
         container.innerHTML = `
             <div class="page-header"><h2>Đặt chỗ</h2><p>Tạo yêu cầu đặt chỗ và theo dõi trạng thái.</p></div>
@@ -947,10 +976,10 @@ const Pages = {
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 0.9rem; color: var(--text-color);">
                     <div><strong>Loại xe:</strong> ${this.escape(r.vehicleTypeName || '-')}</div>
-                    <div><strong>Vị trí:</strong> ${this.escape(r.buildingName || '-')}, ${this.escape(r.floorName || '-')}, ${this.escape(r.zoneName || '-')}</div>
+                    <div><strong>Vị trí:</strong> ${this.resolveReservationLocation(r, this.state.allSlots)}</div>
                     <div><strong>Thời gian bắt đầu:</strong> ${this.formatDateTime(r.reservationStart)}</div>
                     <div><strong>Thời gian kết thúc:</strong> ${this.formatDateTime(r.reservationEnd)}</div>
-                    <div><strong>Phí dự kiến:</strong> <span style="color: var(--primary-color); font-weight: 600;">${this.money(r.amount || r.estimatedFee || 0)}</span></div>
+                    <div><strong>Phí dự kiến:</strong> <span style="color: var(--primary-color); font-weight: 600;">${this.resolveReservationFee(r)}</span></div>
                 </div>
                 ${actions ? `<div class="button-row" style="margin-top: 4px; justify-content: flex-end;">${actions}</div>` : ''}
             </div>
