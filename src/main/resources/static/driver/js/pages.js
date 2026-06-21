@@ -913,34 +913,96 @@ const Pages = {
     },
 
     renderReservation(r) {
-        const statusBadge = this.statusBadge(r.status);
-        const paymentBadge = r.paymentStatus === 'PAID'
-            ? `<span class="badge badge-green">${this.escape(r.paymentMethod || 'Đã thanh toán')}</span>`
-            : '<span class="badge badge-yellow">Chưa thanh toán</span>';
+        const isPaid = r.paymentStatus === 'PAID' || r.status === 'CONFIRMED' || r.status === 'COMPLETED';
+        const isPending = r.status === 'PENDING' || r.status === 'PENDING_PAYMENT';
+        
+        let statusText = r.status;
+        if (r.status === 'PENDING') statusText = 'Chờ xác nhận';
+        if (r.status === 'PENDING_PAYMENT') statusText = 'Chờ thanh toán';
+        if (r.status === 'CONFIRMED') statusText = 'Đã xác nhận';
+        if (r.status === 'CANCELLED') statusText = 'Đã hủy';
+        if (r.status === 'COMPLETED') statusText = 'Hoàn tất';
+
+        let paymentText = isPaid ? 'Đã thanh toán' : 'Chưa thanh toán';
+        if (r.paymentStatus === 'FAILED') paymentText = 'Thanh toán thất bại';
+
+        const statusBadge = `<span class="badge ${['CONFIRMED', 'COMPLETED'].includes(r.status) ? 'badge-green' : (r.status === 'CANCELLED' ? 'badge-gray' : 'badge-yellow')}">${this.escape(statusText)}</span>`;
+        const paymentBadge = isPaid
+            ? `<span class="badge badge-green">${this.escape(r.paymentMethod || paymentText)}</span>`
+            : `<span class="badge ${r.paymentStatus === 'FAILED' ? 'badge-red' : 'badge-yellow'}">${this.escape(paymentText)}</span>`;
         
         let actions = '';
-        if (['PENDING', 'DRAFT'].includes(r.status)) {
-            // Note: driver can't pay directly if we don't have payment id, 
-            // but we can add a fake prompt or fetch payment by reservation?
-            // Actually, backend has createVnPayUrl by paymentId. 
-            // Without /api/payments/reservation we can't easily get payment id. 
-            actions += `<button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red)" onclick="Pages.cancelReservationSubmit(${r.reservationId})">Hủy</button>`;
-        } else if(r.status === 'CONFIRMED') {
-            actions += `<button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red)" onclick="Pages.cancelReservationSubmit(${r.reservationId})">Hủy</button>`;
+        if (isPending && !isPaid) {
+            actions += `<button id="pay-btn-${r.reservationId}" class="btn btn-primary btn-sm" onclick="Pages.payReservation(${r.reservationId})">Thanh toán ngay</button>`;
+        }
+        if (['PENDING', 'PENDING_PAYMENT', 'CONFIRMED'].includes(r.status)) {
+            actions += `<button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red); margin-left: 8px;" onclick="Pages.cancelReservationSubmit(${r.reservationId})">Hủy</button>`;
         }
         
         return `
-            <div class="list-item">
-                <div class="list-info">
-                    <h4>${this.escape(r.licensePlate)} - ${this.escape(r.slotCode || 'Tự xếp chỗ')}</h4>
-                    <p>${this.escape(r.zoneName || '-')}, ${this.escape(r.floorName || '-')}, ${this.escape(r.buildingName || '-')}</p>
-                    <p>Từ ${this.formatDateTime(r.reservationStart)} đến ${this.formatDateTime(r.reservationEnd)}</p>
-                    <p>Phí dự kiến: <strong>${this.money(r.amount || r.estimatedFee)}</strong></p>
+            <div class="list-item" style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                    <h4 style="margin: 0; font-size: 1.1rem; color: var(--primary-color);">Xe: ${this.escape(r.licensePlate)} - Slot: ${this.escape(r.slotCode || 'Tự xếp chỗ')}</h4>
+                    <div style="display: flex; gap: 6px;">${statusBadge}${paymentBadge}</div>
                 </div>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${statusBadge}${paymentBadge}</div>
-                <div class="button-row" style="margin-top:10px;">${actions}</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 0.9rem; color: var(--text-color);">
+                    <div><strong>Loại xe:</strong> ${this.escape(r.vehicleTypeName || '-')}</div>
+                    <div><strong>Vị trí:</strong> ${this.escape(r.buildingName || '-')}, ${this.escape(r.floorName || '-')}, ${this.escape(r.zoneName || '-')}</div>
+                    <div><strong>Thời gian bắt đầu:</strong> ${this.formatDateTime(r.reservationStart)}</div>
+                    <div><strong>Thời gian kết thúc:</strong> ${this.formatDateTime(r.reservationEnd)}</div>
+                    <div><strong>Phí dự kiến:</strong> <span style="color: var(--primary-color); font-weight: 600;">${this.money(r.amount || r.estimatedFee || 0)}</span></div>
+                </div>
+                ${actions ? `<div class="button-row" style="margin-top: 4px; justify-content: flex-end;">${actions}</div>` : ''}
             </div>
         `;
+    },
+
+    async payReservation(reservationId) {
+        const btn = document.getElementById(`pay-btn-${reservationId}`);
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<div class="btn-loader" style="width: 14px; height: 14px; display: inline-block;"></div>';
+        }
+
+        this.state.createdPayments = this.state.createdPayments || {};
+        let paymentId = this.state.createdPayments[reservationId];
+
+        if (!paymentId) {
+            const payload = {
+                reservationId: reservationId,
+                paymentMethod: 'E_WALLET'
+            };
+
+            const res = await Api.createPayment(payload);
+            
+            if (res.success && res.data) {
+                paymentId = res.data.paymentId;
+                this.state.createdPayments[reservationId] = paymentId;
+            } else {
+                let msg = res.message || 'Không thể tạo thanh toán cho đặt chỗ này.';
+                if (msg.includes('already PAID') || msg.includes('has already been paid') || msg.includes('not in PENDING')) {
+                    msg = 'Đặt chỗ này đã được thanh toán hoặc không thể thanh toán lúc này.';
+                    App.navigate('reservations');
+                }
+                App.showToast(msg, 'error');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Thanh toán ngay';
+                }
+                return;
+            }
+        }
+
+        const vnPayRes = await Api.createVnPayUrl(paymentId);
+        if (vnPayRes.success && vnPayRes.data && vnPayRes.data.paymentUrl) {
+            window.location.href = vnPayRes.data.paymentUrl;
+        } else {
+            App.showToast(vnPayRes.message || 'Không thể mở cổng thanh toán.', 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = 'Thanh toán ngay';
+            }
+        }
     },
 
     renderActiveSession(session) {
