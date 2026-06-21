@@ -251,6 +251,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .modal-close { padding: 6px; border-radius: 6px; color: var(--text-muted); }
 .modal-close:hover { background: var(--bg-page); color: var(--text-primary); }
 .modal-body { padding: 24px; }
+
+/* Custom Scrollbar for Modal Body */
+.slot-detail-modal-body { max-height: calc(90vh - 150px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(249, 115, 22, 0.45) transparent; }
+.slot-detail-modal-body::-webkit-scrollbar { width: 6px; }
+.slot-detail-modal-body::-webkit-scrollbar-track { background: transparent; }
+.slot-detail-modal-body::-webkit-scrollbar-thumb { background-color: rgba(249, 115, 22, 0.45); border-radius: 10px; }
+
 .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
 
 /* ===== FORM ===== */

@@ -8,7 +8,8 @@ const Pages = {
         vehicleTypes: [],
         slots: [],
         reservations: [],
-        incidents: []
+        incidents: [],
+        pendingReservationSlotId: null
     },
 
     async home(container) {
@@ -170,7 +171,7 @@ const Pages = {
                 <form class="card-body" onsubmit="Pages.createReservationSubmit(event)">
                     <div class="form-grid">
                         <div class="form-group"><label>Xe</label><select id="reservation-vehicle" required>${this.state.vehicles.map(v => `<option value="${v.vehicleId}">${this.escape(v.licensePlate)} - ${this.escape(v.vehicleTypeName)}</option>`).join('')}</select></div>
-                        <div class="form-group"><label>Chọn slot</label><select id="reservation-slot"><option value="">Tự động xếp chỗ</option>${availableSlots.map(s => `<option value="${s.slotId}">${this.escape(s.slotCode)} - ${this.escape(s.zoneName)}, ${this.escape(s.floorName)}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Chọn slot</label><select id="reservation-slot"><option value="">Tự động xếp chỗ</option>${availableSlots.map(s => `<option value="${s.slotId}" ${this.state.pendingReservationSlotId === s.slotId ? 'selected' : ''}>${this.escape(s.slotCode)} - ${this.escape(s.zoneName)}, ${this.escape(s.floorName)}</option>`).join('')}</select></div>
                         <div class="form-group"><label>Giờ bắt đầu</label><input id="reservation-start" type="datetime-local" value="${localDateTimeValue(new Date(Date.now() + 3600000))}" required></div>
                         <div class="form-group"><label>Giờ kết thúc</label><input id="reservation-end" type="datetime-local" value="${localDateTimeValue(new Date(Date.now() + 10800000))}" required></div>
                     </div>
@@ -179,6 +180,9 @@ const Pages = {
             </div>
             <div class="card"><div class="card-header"><span class="card-title">Danh sách đặt chỗ</span></div><div class="card-body">${this.state.reservations.map(r => this.renderReservation(r)).join('') || this.emptyState(iconCalendar(), 'Không có dữ liệu đặt chỗ.')}</div></div>
         `;
+        
+        // Reset pending slot after render
+        this.state.pendingReservationSlotId = null;
     },
 
     async createReservationSubmit(event) {
@@ -521,12 +525,19 @@ const Pages = {
         const slot = this.state.slots.find(s => s.slotId === slotId);
         if (!slot) return;
         
+        let actionArea = '';
+        if (slot.status === 'AVAILABLE') {
+            actionArea = `<button type="button" class="btn btn-primary btn-full" style="margin-bottom: 12px;" onclick="Pages.reserveSlot(${slot.slotId})">Đặt chỗ slot này</button>`;
+        } else {
+            actionArea = `<div class="alert alert-warning" style="margin-bottom: 12px; font-size: 0.85rem; text-align: center; color: var(--yellow, #f59e0b); background: var(--yellow-bg, #fffbeb); padding: 10px; border-radius: 6px;">Slot này hiện không thể đặt chỗ.</div>`;
+        }
+
         this.openModal(`
             <div class="modal-header">
                 <h3>Chi tiết Slot</h3>
                 <button class="modal-close" type="button" onclick="Pages.closeModal()">${iconClose()}</button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body slot-detail-modal-body">
                 <div class="card" style="box-shadow: none; border: 1px solid var(--border-color); margin: 0;">
                     <div class="card-body">
                         ${this.infoRow('Mã slot', slot.slotCode)}
@@ -545,10 +556,17 @@ const Pages = {
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline" style="width: 100%;" onclick="Pages.closeModal()">Đóng</button>
+            <div class="modal-footer" style="flex-direction: column;">
+                ${actionArea}
+                <button type="button" class="btn btn-outline btn-full" onclick="Pages.closeModal()">Đóng</button>
             </div>
         `);
+    },
+
+    reserveSlot(slotId) {
+        this.closeModal();
+        this.state.pendingReservationSlotId = slotId;
+        App.navigate('reservations');
     },
 
     renderVehicle(v) {
