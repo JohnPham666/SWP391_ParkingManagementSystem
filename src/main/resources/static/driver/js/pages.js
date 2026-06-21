@@ -508,13 +508,47 @@ const Pages = {
         const cls = slot.status ? slot.status.toLowerCase() : 'unknown';
         const occupancy = `${slot.currentOccupancy || 0}/${slot.capacity || 1}`;
         return `
-            <div class="slot-tile ${cls}">
+            <div class="slot-tile ${cls}" onclick="Pages.showSlotDetail(${slot.slotId})" style="cursor: pointer;">
                 <strong>${this.escape(slot.slotCode)}</strong>
                 ${this.statusBadge(slot.status)}
                 <small>${this.escape(slot.zoneName || '-')}, ${this.escape(slot.floorName || '-')}</small>
                 <small>${this.escape(slot.vehicleTypeName || '-')} - ${occupancy}</small>
             </div>
         `;
+    },
+
+    showSlotDetail(slotId) {
+        const slot = this.state.slots.find(s => s.slotId === slotId);
+        if (!slot) return;
+        
+        this.openModal(`
+            <div class="modal-header">
+                <h3>Chi tiết Slot</h3>
+                <button class="modal-close" type="button" onclick="Pages.closeModal()">${iconClose()}</button>
+            </div>
+            <div class="modal-body">
+                <div class="card" style="box-shadow: none; border: 1px solid var(--border-color); margin: 0;">
+                    <div class="card-body">
+                        ${this.infoRow('Mã slot', slot.slotCode)}
+                        <div class="list-item">
+                            <div class="list-info"><h4>Trạng thái</h4></div>
+                            <div>${this.statusBadge(slot.status)}</div>
+                        </div>
+                        ${this.infoRow('Tòa nhà', slot.buildingName || '-')}
+                        ${this.infoRow('Tầng', slot.floorName || '-')}
+                        ${this.infoRow('Khu vực', slot.zoneName || '-')}
+                        ${this.infoRow('Loại xe', slot.vehicleTypeName || '-')}
+                        ${this.infoRow('Diện tích', slot.area ? slot.area + ' m²' : '-')}
+                        ${this.infoRow('Sức chứa', slot.capacity || 0)}
+                        ${this.infoRow('Đang sử dụng', slot.currentOccupancy || 0)}
+                        ${this.infoRow('Hoạt động', slot.isActive === false ? 'Không' : 'Có')}
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" style="width: 100%;" onclick="Pages.closeModal()">Đóng</button>
+            </div>
+        `);
     },
 
     renderVehicle(v) {
