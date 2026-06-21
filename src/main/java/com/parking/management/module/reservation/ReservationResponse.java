@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -26,6 +27,14 @@ public class ReservationResponse {
     private LocalDateTime createdAt;
     private String guestName;
 
+    private String paymentStatus;
+    private BigDecimal estimatedFee;
+    private Integer paymentId;
+    private BigDecimal amount;
+    private String buildingName;
+    private String floorName;
+    private String zoneName;
+
     public static ReservationResponse fromEntity(Reservation reservation) {
         return new ReservationResponse(
                 reservation.getReservationId(),
@@ -41,7 +50,11 @@ public class ReservationResponse {
                 reservation.getReservationEnd(),
                 reservation.getStatus(),
                 reservation.getCreatedAt(),
-                reservation.getGuestName()
+                reservation.getGuestName(),
+                null, null, null, null,
+                reservation.getSlot() != null && reservation.getSlot().getZone() != null && reservation.getSlot().getZone().getFloor() != null && reservation.getSlot().getZone().getFloor().getBuilding() != null ? reservation.getSlot().getZone().getFloor().getBuilding().getBuildingName() : null,
+                reservation.getSlot() != null && reservation.getSlot().getZone() != null && reservation.getSlot().getZone().getFloor() != null ? reservation.getSlot().getZone().getFloor().getFloorName() : null,
+                reservation.getSlot() != null && reservation.getSlot().getZone() != null ? reservation.getSlot().getZone().getZoneName() : null
         );
     }
 }
