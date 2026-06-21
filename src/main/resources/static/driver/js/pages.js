@@ -467,17 +467,28 @@ const Pages = {
         }
 
         const u = res.data;
+        const userId = u.userId || u.id || u.userid;
+        const fullName = u.fullname || u.fullName || '';
+        const email = u.email || '';
+        const phone = u.phonenumber || u.phoneNumber || '';
+        const dob = u.dateofbirth || u.dateOfBirth || '';
+        const address = u.address || '';
+        const role = u.roleName || u.role || u.rolename || 'Driver';
+        const status = u.status !== undefined ? u.status : (u.isActive !== undefined ? u.isActive : (u.isactive !== undefined ? u.isactive : '-'));
+
         container.innerHTML = `
             <div class="page-header"><h2>Hồ sơ cá nhân</h2><p>Thông tin tài khoản từ hệ thống.</p></div>
             <div class="card">
                 <div class="card-header"><span class="card-title">${iconUser()} Thông tin cơ bản</span></div>
                 <div class="card-body">
-                    ${this.infoRow('Mã người dùng', u.userId || '-')}
-                    ${this.infoRow('Họ tên', u.fullName || '-')}
-                    ${this.infoRow('Email', u.email || '-')}
-                    ${this.infoRow('Số điện thoại', u.phoneNumber || 'Chưa có thông tin')}
-                    ${this.infoRow('Vai trò', u.roleName || u.role || 'Driver')}
-                    ${this.infoRow('Trạng thái tài khoản', u.status || '-')}
+                    ${this.infoRow('Mã người dùng', userId || '-')}
+                    ${this.infoRow('Họ tên', fullName || '-')}
+                    ${this.infoRow('Email', email || '-')}
+                    ${this.infoRow('Số điện thoại', phone || 'Chưa có thông tin')}
+                    ${this.infoRow('Ngày sinh', dob || 'Chưa có thông tin')}
+                    ${this.infoRow('Địa chỉ', address || 'Chưa có thông tin')}
+                    ${this.infoRow('Vai trò', role)}
+                    ${this.infoRow('Trạng thái tài khoản', status)}
                     
                     <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -498,6 +509,11 @@ const Pages = {
         const u = this.state.user || Api.user;
         if (!u) return;
 
+        const fullName = u.fullname || u.fullName || '';
+        const email = u.email || '';
+        const phone = u.phonenumber || u.phoneNumber || '';
+        const address = u.address || '';
+
         this.openModal(`
             <div class="modal-header">
                 <h3>Chỉnh sửa thông tin</h3>
@@ -507,15 +523,19 @@ const Pages = {
                 <div class="form-grid">
                     <div class="form-group full-width">
                         <label>Họ tên</label>
-                        <input id="edit-profile-name" type="text" value="${this.escapeAttr(u.fullName || '')}" required>
+                        <input id="edit-profile-name" type="text" value="${this.escapeAttr(fullName)}" required>
                     </div>
                     <div class="form-group full-width">
-                        <label>Email</label>
-                        <input id="edit-profile-email" type="email" value="${this.escapeAttr(u.email || '')}" required>
+                        <label>Email (Không được sửa)</label>
+                        <input id="edit-profile-email" type="email" value="${this.escapeAttr(email)}" disabled style="background-color: var(--bg-color); cursor: not-allowed;">
                     </div>
                     <div class="form-group full-width">
                         <label>Số điện thoại</label>
-                        <input id="edit-profile-phone" type="tel" value="${this.escapeAttr(u.phoneNumber || '')}">
+                        <input id="edit-profile-phone" type="tel" value="${this.escapeAttr(phone)}">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Địa chỉ</label>
+                        <input id="edit-profile-address" type="text" value="${this.escapeAttr(address)}">
                     </div>
                 </div>
                 <div id="edit-profile-error" class="login-error hidden" style="margin-top: 16px;"></div>
@@ -538,12 +558,17 @@ const Pages = {
         const u = this.state.user || Api.user;
         const payload = {
             fullName: document.getElementById('edit-profile-name').value,
-            email: document.getElementById('edit-profile-email').value,
+            email: u.email,
             phoneNumber: document.getElementById('edit-profile-phone').value,
-            roleId: u.roleId || 3 // Try to derive 3 for Driver if missing to satisfy validation, though backend is source of truth.
+            roleId: u.roleId || u.roleid || 3
         };
+        const addressVal = document.getElementById('edit-profile-address').value;
+        if (addressVal !== undefined) {
+            payload.address = addressVal;
+        }
 
-        const res = await Api.updateUser(u.userId, payload);
+        const userId = u.userId || u.id || u.userid;
+        const res = await Api.updateUser(userId, payload);
         
         if (res.success) {
             App.showToast('Cập nhật thành công', 'success');
@@ -614,14 +639,18 @@ const Pages = {
 
         const u = this.state.user || Api.user;
         const payload = {
-            fullName: u.fullName,
+            fullName: u.fullname || u.fullName || '',
             email: u.email,
-            phoneNumber: u.phoneNumber,
-            roleId: u.roleId || 3,
+            phoneNumber: u.phonenumber || u.phoneNumber || '',
+            roleId: u.roleId || u.roleid || 3,
             password: newPassword
         };
+        if (u.address !== undefined) {
+            payload.address = u.address;
+        }
 
-        const res = await Api.updateUser(u.userId, payload);
+        const userId = u.userId || u.id || u.userid;
+        const res = await Api.updateUser(userId, payload);
         
         if (res.success) {
             App.showToast('Đổi mật khẩu thành công', 'success');
