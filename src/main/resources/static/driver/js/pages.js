@@ -14,16 +14,29 @@ const Pages = {
         availableSlots: []
     },
 
-    isCarType(vehicleTypeName) {
-        if (!vehicleTypeName) return true;
-        const name = String(vehicleTypeName).toLowerCase();
-        return name.includes('ô tô') || name.includes('o to') || name.includes('car');
+    normalizeText(value) {
+        return String(value || "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .replace(/\s+/g, " ")
+            .trim();
     },
 
-    isMotorbikeType(vehicleTypeName) {
-        if (!vehicleTypeName) return false;
-        const name = String(vehicleTypeName).toLowerCase();
-        return name.includes('xe máy') || name.includes('xe may') || name.includes('motorbike') || name.includes('motorcycle');
+    isMotorbikeType(value) {
+        const text = this.normalizeText(value);
+        return (
+            text === "xe may" ||
+            text === "motorbike" ||
+            text === "motorcycle" ||
+            text.includes("xe may") ||
+            text.includes("motorbike") ||
+            text.includes("motorcycle")
+        );
+    },
+
+    isReservableVehicleType(value) {
+        return !this.isMotorbikeType(value);
     },
 
     async home(container) {
@@ -176,7 +189,8 @@ const Pages = {
         
         this.state.reservations = rRes.data || [];
         this.state.vehicles = vRes.success ? (vRes.data || []) : [];
-        const availableSlots = sRes.success ? (sRes.data || []).filter(s => s.status === 'AVAILABLE' && !this.isMotorbikeType(s.vehicleTypeName)) : [];
+        const reservableVehicles = this.state.vehicles.filter(v => this.isReservableVehicleType(v.vehicleTypeName));
+        const availableSlots = sRes.success ? (sRes.data || []).filter(s => s.status === 'AVAILABLE' && this.isReservableVehicleType(s.vehicleTypeName)) : [];
         this.state.availableSlots = availableSlots;
         
         container.innerHTML = `
@@ -185,8 +199,8 @@ const Pages = {
                 <div class="card-header"><span class="card-title">${iconCalendar()} Tạo đặt chỗ mới</span></div>
                 <form class="card-body" onsubmit="Pages.createReservationSubmit(event)">
                     <div class="form-grid">
-                        <div class="form-group"><label>Xe</label><select id="reservation-vehicle" required>${this.state.vehicles.map(v => `<option value="${v.vehicleId}">${this.escape(v.licensePlate)} - ${this.escape(v.vehicleTypeName)}</option>`).join('')}</select></div>
-                        <div class="form-group"><label>Chọn slot</label><select id="reservation-slot">${availableSlots.length === 0 ? '<option value="">Hiện chưa có slot ô tô trống để đặt trước.</option>' : '<option value="">Tự động xếp chỗ</option>' + availableSlots.map(s => `<option value="${s.slotId}" ${this.state.pendingReservationSlotId === s.slotId ? 'selected' : ''}>${this.escape(s.slotCode)} - ${this.escape(s.buildingName || '')} - ${this.escape(s.floorName)} - ${this.escape(s.zoneName)}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Xe</label><select id="reservation-vehicle" required>${reservableVehicles.length === 0 ? '<option value="">Bạn chưa có phương tiện phù hợp để đặt trước.</option>' : reservableVehicles.map(v => `<option value="${v.vehicleId}">${this.escape(v.licensePlate)} - ${this.escape(v.vehicleTypeName)}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Chọn slot</label><select id="reservation-slot">${availableSlots.length === 0 ? '<option value="">Hiện chưa có slot phù hợp để đặt trước.</option>' : '<option value="">Tự động xếp chỗ</option>' + availableSlots.map(s => `<option value="${s.slotId}" ${this.state.pendingReservationSlotId === s.slotId ? 'selected' : ''}>${this.escape(s.slotCode)} - ${this.escape(s.buildingName || '')} - ${this.escape(s.floorName)} - ${this.escape(s.zoneName)}</option>`).join('')}</select></div>
                         <div class="form-group"><label>Giờ bắt đầu</label><input id="reservation-start" type="datetime-local" value="${localDateTimeValue(new Date(Date.now() + 3600000))}" required></div>
                         <div class="form-group"><label>Giờ kết thúc</label><input id="reservation-end" type="datetime-local" value="${localDateTimeValue(new Date(Date.now() + 10800000))}" required></div>
                     </div>
@@ -221,7 +235,7 @@ const Pages = {
             return;
         }
         if (this.isMotorbikeType(selectedVehicle.vehicleTypeName)) {
-            App.showToast('Chỉ được đặt trước chỗ cho ô tô.', 'error');
+            App.showToast('Xe máy không hỗ trợ đặt chỗ trước.', 'error');
             return;
         }
         const vehicleTypeId = selectedVehicle.vehicleTypeId;
@@ -242,7 +256,18 @@ const Pages = {
             return;
         }
         if (this.isMotorbikeType(selectedSlot.vehicleTypeName)) {
-            App.showToast('Vui lòng chọn slot dành cho ô tô.', 'error');
+            App.showToast('Slot xe máy không hỗ trợ đặt trước.', 'error');
+            return;
+        }
+
+        let isMatch = false;
+        if (selectedVehicle.vehicleTypeId != null && selectedSlot.vehicleTypeId != null) {
+            isMatch = (selectedVehicle.vehicleTypeId === selectedSlot.vehicleTypeId);
+        } else {
+            isMatch = (this.normalizeText(selectedVehicle.vehicleTypeName) === this.normalizeText(selectedSlot.vehicleTypeName));
+        }
+        if (!isMatch) {
+            App.showToast('Loại xe không phù hợp với slot đã chọn.', 'error');
             return;
         }
 
