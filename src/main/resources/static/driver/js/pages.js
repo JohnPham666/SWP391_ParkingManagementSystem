@@ -8,8 +8,22 @@ const Pages = {
         vehicleTypes: [],
         slots: [],
         reservations: [],
+        reservations: [],
         incidents: [],
-        pendingReservationSlotId: null
+        pendingReservationSlotId: null,
+        availableSlots: []
+    },
+
+    isCarType(vehicleTypeName) {
+        if (!vehicleTypeName) return true;
+        const name = String(vehicleTypeName).toLowerCase();
+        return name.includes('ô tô') || name.includes('o to') || name.includes('car');
+    },
+
+    isMotorbikeType(vehicleTypeName) {
+        if (!vehicleTypeName) return false;
+        const name = String(vehicleTypeName).toLowerCase();
+        return name.includes('xe máy') || name.includes('xe may') || name.includes('motorbike') || name.includes('motorcycle');
     },
 
     async home(container) {
@@ -162,7 +176,8 @@ const Pages = {
         
         this.state.reservations = rRes.data || [];
         this.state.vehicles = vRes.success ? (vRes.data || []) : [];
-        const availableSlots = sRes.success ? (sRes.data || []) : [];
+        const availableSlots = sRes.success ? (sRes.data || []).filter(s => s.status === 'AVAILABLE' && !this.isMotorbikeType(s.vehicleTypeName)) : [];
+        this.state.availableSlots = availableSlots;
         
         container.innerHTML = `
             <div class="page-header"><h2>Đặt chỗ</h2><p>Tạo yêu cầu đặt chỗ và theo dõi trạng thái.</p></div>
@@ -171,7 +186,7 @@ const Pages = {
                 <form class="card-body" onsubmit="Pages.createReservationSubmit(event)">
                     <div class="form-grid">
                         <div class="form-group"><label>Xe</label><select id="reservation-vehicle" required>${this.state.vehicles.map(v => `<option value="${v.vehicleId}">${this.escape(v.licensePlate)} - ${this.escape(v.vehicleTypeName)}</option>`).join('')}</select></div>
-                        <div class="form-group"><label>Chọn slot</label><select id="reservation-slot"><option value="">Tự động xếp chỗ</option>${availableSlots.map(s => `<option value="${s.slotId}" ${this.state.pendingReservationSlotId === s.slotId ? 'selected' : ''}>${this.escape(s.slotCode)} - ${this.escape(s.zoneName)}, ${this.escape(s.floorName)}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Chọn slot</label><select id="reservation-slot">${availableSlots.length === 0 ? '<option value="">Hiện chưa có slot ô tô trống để đặt trước.</option>' : '<option value="">Tự động xếp chỗ</option>' + availableSlots.map(s => `<option value="${s.slotId}" ${this.state.pendingReservationSlotId === s.slotId ? 'selected' : ''}>${this.escape(s.slotCode)} - ${this.escape(s.buildingName || '')} - ${this.escape(s.floorName)} - ${this.escape(s.zoneName)}</option>`).join('')}</select></div>
                         <div class="form-group"><label>Giờ bắt đầu</label><input id="reservation-start" type="datetime-local" value="${localDateTimeValue(new Date(Date.now() + 3600000))}" required></div>
                         <div class="form-group"><label>Giờ kết thúc</label><input id="reservation-end" type="datetime-local" value="${localDateTimeValue(new Date(Date.now() + 10800000))}" required></div>
                     </div>
@@ -187,13 +202,30 @@ const Pages = {
 
     async createReservationSubmit(event) {
         event.preventDefault();
+        
+        const vehicleId = Number(document.getElementById('reservation-vehicle').value);
+        const selectedVehicle = this.state.vehicles.find(v => v.vehicleId === vehicleId);
+        if (selectedVehicle && this.isMotorbikeType(selectedVehicle.vehicleTypeName)) {
+            App.showToast('Chỉ được đặt trước chỗ cho ô tô.', 'error');
+            return;
+        }
+
+        const slotIdVal = document.getElementById('reservation-slot').value;
+        if (slotIdVal) {
+            const slotId = Number(slotIdVal);
+            const selectedSlot = (this.state.slots || []).find(s => s.slotId === slotId) || (this.state.availableSlots || []).find(s => s.slotId === slotId);
+            if (selectedSlot && this.isMotorbikeType(selectedSlot.vehicleTypeName)) {
+                App.showToast('Vui lòng chọn slot dành cho ô tô.', 'error');
+                return;
+            }
+        }
+
         const data = {
-            vehicleId: Number(document.getElementById('reservation-vehicle').value),
+            vehicleId: vehicleId,
             reservationStart: new Date(document.getElementById('reservation-start').value).toISOString(),
             reservationEnd: new Date(document.getElementById('reservation-end').value).toISOString()
         };
-        const slotId = document.getElementById('reservation-slot').value;
-        if(slotId) data.slotId = Number(slotId);
+        if(slotIdVal) data.slotId = Number(slotIdVal);
 
         const res = await Api.createReservation(data);
         if(res.success) {
@@ -673,10 +705,12 @@ const Pages = {
         if (!slot) return;
         
         let actionArea = '';
-        if (slot.status === 'AVAILABLE') {
-            actionArea = `<button type="button" class="btn btn-primary btn-full" style="margin-bottom: 12px;" onclick="Pages.reserveSlot(${slot.slotId})">Đặt chỗ slot này</button>`;
-        } else {
+        if (slot.status !== 'AVAILABLE') {
             actionArea = `<div class="alert alert-warning" style="margin-bottom: 12px; font-size: 0.85rem; text-align: center; color: var(--yellow, #f59e0b); background: var(--yellow-bg, #fffbeb); padding: 10px; border-radius: 6px;">Slot này hiện không thể đặt chỗ.</div>`;
+        } else if (this.isMotorbikeType(slot.vehicleTypeName)) {
+            actionArea = `<div class="alert alert-warning" style="margin-bottom: 12px; font-size: 0.85rem; text-align: center; color: var(--yellow, #f59e0b); background: var(--yellow-bg, #fffbeb); padding: 10px; border-radius: 6px;">Slot xe máy không hỗ trợ đặt trước.</div>`;
+        } else {
+            actionArea = `<button type="button" class="btn btn-primary btn-full" style="margin-bottom: 12px;" onclick="Pages.reserveSlot(${slot.slotId})">Đặt chỗ slot này</button>`;
         }
 
         this.openModal(`
