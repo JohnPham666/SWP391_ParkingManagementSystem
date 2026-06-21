@@ -450,11 +450,11 @@ const Pages = {
                     ${this.infoRow('Mã người dùng', u.userId || '-')}
                     ${this.infoRow('Họ tên', u.fullName || '-')}
                     ${this.infoRow('Email', u.email || '-')}
+                    ${this.infoRow('Số điện thoại', u.phoneNumber || 'Chưa có thông tin')}
                     ${this.infoRow('Vai trò', u.roleName || u.role || 'Driver')}
                     ${this.infoRow('Trạng thái tài khoản', u.status || '-')}
                     
                     <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
-                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">Chức năng chỉnh sửa hồ sơ hiện chưa có API dành cho Driver.</p>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <button class="account-edit-btn btn btn-outline" onclick="Pages.showEditProfileModal()">Chỉnh sửa thông tin</button>
                             <button class="account-edit-btn btn btn-outline" onclick="Pages.showChangePasswordModal()">Đổi mật khẩu</button>
