@@ -359,9 +359,6 @@ const Pages = {
         const u = res.data;
         container.innerHTML = `
             <div class="page-header"><h2>Hồ sơ cá nhân</h2><p>Thông tin tài khoản từ hệ thống.</p></div>
-            <div class="alert" style="margin-bottom: 16px; padding: 12px; border-radius: 6px; background: rgba(59, 130, 246, 0.1); color: var(--blue, #3b82f6); font-size: 0.9rem;">
-                Backend hiện chưa cung cấp API hồ sơ đầy đủ dành cho Driver. Dữ liệu dưới đây được lấy từ phiên đăng nhập.
-            </div>
             <div class="card">
                 <div class="card-header"><span class="card-title">${iconUser()} Thông tin cơ bản</span></div>
                 <div class="card-body">
@@ -571,18 +568,57 @@ const Pages = {
 
     renderVehicle(v) {
         return `
-            <div class="vehicle-card">
+            <div class="vehicle-card clickable-card" onclick="Pages.showVehicleDetail(${v.vehicleId})">
                 <div class="vehicle-icon">${iconCar()}</div>
                 <div class="vehicle-info">
                     <h3>${this.escape(v.licensePlate)}</h3>
                     <div class="vehicle-meta">${this.escape(v.vehicleTypeName)} - ${this.escape(v.brand || 'Chưa rõ hãng')} - ${this.escape(v.vehicleColor || 'Chưa rõ màu')}</div>
                     <div class="button-row">
-                        <button class="btn btn-outline btn-sm" onclick="Pages.showVehicleModal(${v.vehicleId})">Sửa</button>
-                        <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red)" onclick="Pages.deleteVehicleSubmit(${v.vehicleId})">Xóa</button>
+                        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); Pages.showVehicleModal(${v.vehicleId})">Sửa</button>
+                        <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red)" onclick="event.stopPropagation(); Pages.deleteVehicleSubmit(${v.vehicleId})">Xóa</button>
                     </div>
                 </div>
             </div>
         `;
+    },
+
+    showVehicleDetail(vehicleId) {
+        const v = this.state.vehicles.find(x => x.vehicleId === vehicleId);
+        if(!v) return;
+        
+        let imgHtml = '';
+        if (v.vehicleImage) {
+            imgHtml = `<div class="list-item"><div class="list-info"><h4>Hình ảnh xe</h4><div style="margin-top: 8px;"><img src="${this.escapeAttr(v.vehicleImage)}" style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border-color);" alt="Hình ảnh xe"></div></div></div>`;
+        } else {
+            imgHtml = this.infoRow('Hình ảnh xe', 'Chưa có thông tin');
+        }
+
+        this.openModal(`
+            <div class="modal-header">
+                <h3>Chi tiết xe</h3>
+                <button class="modal-close" type="button" onclick="Pages.closeModal()">${iconClose()}</button>
+            </div>
+            <div class="modal-body">
+                <div class="card" style="box-shadow: none; border: 1px solid var(--border-color); margin: 0;">
+                    <div class="card-body">
+                        ${this.infoRow('Mã xe', v.vehicleId || 'Chưa có thông tin')}
+                        ${this.infoRow('Biển số xe', v.licensePlate || 'Chưa có thông tin')}
+                        ${this.infoRow('Loại xe', v.vehicleTypeName || 'Chưa có thông tin')}
+                        ${this.infoRow('Tên chủ xe', v.ownerName || 'Chưa có thông tin')}
+                        ${this.infoRow('Số điện thoại chủ xe', v.ownerPhone || 'Chưa có thông tin')}
+                        ${this.infoRow('Hãng xe', v.brand || 'Chưa có thông tin')}
+                        ${this.infoRow('Màu xe', v.vehicleColor || 'Chưa có thông tin')}
+                        ${this.infoRow('Số máy', v.engineNumber || 'Chưa có thông tin')}
+                        ${this.infoRow('Số khung', v.chassisNumber || 'Chưa có thông tin')}
+                        ${this.infoRow('Năm sản xuất', v.manufactureYear || 'Chưa có thông tin')}
+                        ${imgHtml}
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline btn-full" onclick="Pages.closeModal()">Đóng</button>
+            </div>
+        `);
     },
 
     renderReservation(r) {
