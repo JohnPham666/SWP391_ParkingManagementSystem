@@ -241,14 +241,17 @@ const Pages = {
             <form onsubmit="Pages.saveVehicle(event, ${vehicleId || 'null'})">
                 <div class="modal-header"><h3>${vehicle ? 'Sửa xe' : 'Thêm xe'}</h3><button class="modal-close" type="button" onclick="Pages.closeModal()">${iconClose()}</button></div>
                 <div class="modal-body">
+                    <div id="vehicle-error" class="alert alert-error" style="display:none; color: var(--red, red); margin-bottom: 10px; padding: 10px; border-radius: 4px; background: rgba(255,0,0,0.1);"></div>
                     <div class="form-grid">
-                        <div class="form-group"><label>Biển số *</label><input id="vehicle-plate" value="${this.escapeAttr(vehicle?.licensePlate || '')}" required></div>
-                        <div class="form-group"><label>Loại xe *</label><select id="vehicle-type">${this.state.vehicleTypes.map(t => `<option value="${t.vehicleTypeId}" ${vehicle?.vehicleTypeId === t.vehicleTypeId ? 'selected' : ''}>${this.escape(t.typeName)}</option>`).join('')}</select></div>
-                        <div class="form-group"><label>Hãng xe</label><input id="vehicle-brand" value="${this.escapeAttr(vehicle?.brand || '')}"></div>
-                        <div class="form-group"><label>Màu xe</label><input id="vehicle-color" value="${this.escapeAttr(vehicle?.vehicleColor || '')}"></div>
-                        <div class="form-group"><label>Năm sản xuất</label><input id="vehicle-year" type="number" value="${vehicle?.manufactureYear || new Date().getFullYear()}"></div>
-                        <div class="form-group"><label>Số khung (Chassis)</label><input id="vehicle-chassis" value="${this.escapeAttr(vehicle?.chassisNumber || '')}"></div>
-                        <div class="form-group"><label>Số máy (Engine)</label><input id="vehicle-engine" value="${this.escapeAttr(vehicle?.engineNumber || '')}"></div>
+                        <div class="form-group"><label>Biển số xe *</label><input id="vehicle-plate" value="${this.escapeAttr(vehicle?.licensePlate || '')}" placeholder="Vui lòng nhập biển số xe"></div>
+                        <div class="form-group"><label>Loại xe *</label><select id="vehicle-type"><option value="">Vui lòng chọn loại xe</option>${this.state.vehicleTypes.map(t => `<option value="${t.vehicleTypeId}" ${vehicle?.vehicleTypeId === t.vehicleTypeId ? 'selected' : ''}>${this.escape(t.typeName)}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Tên chủ xe *</label><input id="vehicle-ownerName" value="${this.escapeAttr(vehicle?.ownerName || '')}" placeholder="Vui lòng nhập tên chủ xe"></div>
+                        <div class="form-group"><label>Số điện thoại chủ xe *</label><input id="vehicle-ownerPhone" value="${this.escapeAttr(vehicle?.ownerPhone || '')}" placeholder="Vui lòng nhập số điện thoại chủ xe"></div>
+                        <div class="form-group"><label>Hãng xe *</label><input id="vehicle-brand" value="${this.escapeAttr(vehicle?.brand || '')}" placeholder="Vui lòng nhập hãng xe"></div>
+                        <div class="form-group"><label>Màu xe *</label><input id="vehicle-color" value="${this.escapeAttr(vehicle?.vehicleColor || '')}" placeholder="Vui lòng nhập màu xe"></div>
+                        <div class="form-group"><label>Số máy *</label><input id="vehicle-engine" value="${this.escapeAttr(vehicle?.engineNumber || '')}" placeholder="Vui lòng nhập số máy"></div>
+                        <div class="form-group"><label>Số khung *</label><input id="vehicle-chassis" value="${this.escapeAttr(vehicle?.chassisNumber || '')}" placeholder="Vui lòng nhập số khung"></div>
+                        <div class="form-group"><label>Năm sản xuất *</label><input id="vehicle-year" type="number" value="${vehicle?.manufactureYear || new Date().getFullYear()}" placeholder="Vui lòng nhập năm sản xuất"></div>
                     </div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="Pages.closeModal()">Hủy</button><button class="btn btn-primary" type="submit">Lưu</button></div>
@@ -258,14 +261,62 @@ const Pages = {
 
     async saveVehicle(event, vehicleId) {
         event.preventDefault();
+        
+        const errorEl = document.getElementById('vehicle-error');
+        if (errorEl) {
+            errorEl.style.display = 'none';
+            errorEl.innerText = '';
+        }
+
+        const showError = (msg) => {
+            if (errorEl) {
+                errorEl.innerText = msg;
+                errorEl.style.display = 'block';
+            } else {
+                App.showToast(msg, 'error');
+            }
+        };
+
+        const licensePlate = document.getElementById('vehicle-plate').value.trim().toUpperCase();
+        const vehicleTypeIdVal = document.getElementById('vehicle-type').value;
+        const ownerName = document.getElementById('vehicle-ownerName').value.trim();
+        const ownerPhone = document.getElementById('vehicle-ownerPhone').value.trim();
+        const brand = document.getElementById('vehicle-brand').value.trim();
+        const vehicleColor = document.getElementById('vehicle-color').value.trim();
+        const engineNumber = document.getElementById('vehicle-engine').value.trim();
+        const chassisNumber = document.getElementById('vehicle-chassis').value.trim();
+        const manufactureYearVal = document.getElementById('vehicle-year').value;
+
+        if (!licensePlate) return showError('Vui lòng nhập biển số xe.');
+        if (!vehicleTypeIdVal) return showError('Vui lòng chọn loại xe.');
+        if (!ownerName) return showError('Vui lòng nhập tên chủ xe.');
+        if (!ownerPhone) return showError('Vui lòng nhập số điện thoại chủ xe.');
+        
+        const phoneRegex = /^[0-9]{9,15}$/;
+        if (!phoneRegex.test(ownerPhone)) return showError('Số điện thoại chủ xe không hợp lệ.');
+        
+        if (!brand) return showError('Vui lòng nhập hãng xe.');
+        if (!vehicleColor) return showError('Vui lòng nhập màu xe.');
+        if (!engineNumber) return showError('Vui lòng nhập số máy.');
+        if (!chassisNumber) return showError('Vui lòng nhập số khung.');
+        if (!manufactureYearVal) return showError('Vui lòng nhập năm sản xuất.');
+
+        const manufactureYear = Number(manufactureYearVal);
+        const currentYear = new Date().getFullYear();
+        if (isNaN(manufactureYear) || manufactureYear < 1900 || manufactureYear > currentYear) {
+            return showError('Năm sản xuất không hợp lệ.');
+        }
+
         const data = {
-            licensePlate: document.getElementById('vehicle-plate').value.trim().toUpperCase(),
-            vehicleTypeId: Number(document.getElementById('vehicle-type').value),
-            brand: document.getElementById('vehicle-brand').value.trim(),
-            vehicleColor: document.getElementById('vehicle-color').value.trim(),
-            manufactureYear: Number(document.getElementById('vehicle-year').value),
-            chassisNumber: document.getElementById('vehicle-chassis').value.trim(),
-            engineNumber: document.getElementById('vehicle-engine').value.trim()
+            licensePlate,
+            vehicleTypeId: Number(vehicleTypeIdVal),
+            ownerName,
+            ownerPhone,
+            brand,
+            vehicleColor,
+            engineNumber,
+            chassisNumber,
+            manufactureYear
         };
         
         const res = vehicleId ? await Api.updateMyVehicle(vehicleId, data) : await Api.createMyVehicle(data);
@@ -274,7 +325,7 @@ const Pages = {
             this.closeModal();
             App.navigate('vehicles');
         } else {
-            App.showToast(res.message, 'error');
+            showError(res.message);
         }
     },
 
