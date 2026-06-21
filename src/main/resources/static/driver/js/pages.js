@@ -371,8 +371,8 @@ const Pages = {
                     <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
                         <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">Chức năng chỉnh sửa hồ sơ hiện chưa có API dành cho Driver.</p>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button class="btn btn-outline" disabled style="opacity: 0.5; cursor: not-allowed;" title="Tính năng chưa hỗ trợ">Chỉnh sửa thông tin</button>
-                            <button class="btn btn-outline" disabled style="opacity: 0.5; cursor: not-allowed;" title="Tính năng chưa hỗ trợ">Đổi mật khẩu</button>
+                            <button class="account-edit-btn btn btn-outline" onclick="Pages.showEditProfileModal()">Chỉnh sửa thông tin</button>
+                            <button class="account-edit-btn btn btn-outline" onclick="Pages.showChangePasswordModal()">Đổi mật khẩu</button>
                         </div>
                     </div>
 
@@ -382,6 +382,156 @@ const Pages = {
                 </div>
             </div>
         `;
+    },
+
+    showEditProfileModal() {
+        const u = this.state.user || Api.user;
+        if (!u) return;
+
+        this.openModal(`
+            <div class="modal-header">
+                <h3>Chỉnh sửa thông tin</h3>
+                <button class="modal-close" type="button" onclick="Pages.closeModal()">${iconClose()}</button>
+            </div>
+            <form class="modal-body" onsubmit="Pages.submitEditProfile(event)">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Họ tên</label>
+                        <input id="edit-profile-name" type="text" value="${this.escapeAttr(u.fullName || '')}" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Email</label>
+                        <input id="edit-profile-email" type="email" value="${this.escapeAttr(u.email || '')}" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Số điện thoại</label>
+                        <input id="edit-profile-phone" type="tel" value="${this.escapeAttr(u.phoneNumber || '')}">
+                    </div>
+                </div>
+                <div id="edit-profile-error" class="login-error hidden" style="margin-top: 16px;"></div>
+                <div class="modal-footer" style="padding-left: 0; padding-right: 0; padding-bottom: 0; border: none; margin-top: 24px;">
+                    <button type="button" class="btn btn-outline" onclick="Pages.closeModal()">Hủy</button>
+                    <button type="submit" class="btn btn-primary" id="edit-profile-submit-btn">Lưu thay đổi</button>
+                </div>
+            </form>
+        `);
+    },
+
+    async submitEditProfile(event) {
+        event.preventDefault();
+        const btn = document.getElementById('edit-profile-submit-btn');
+        const err = document.getElementById('edit-profile-error');
+        btn.disabled = true;
+        btn.innerHTML = '<div class="btn-loader"></div>';
+        err.classList.add('hidden');
+
+        const u = this.state.user || Api.user;
+        const payload = {
+            fullName: document.getElementById('edit-profile-name').value,
+            email: document.getElementById('edit-profile-email').value,
+            phoneNumber: document.getElementById('edit-profile-phone').value,
+            roleId: u.roleId || 3 // Try to derive 3 for Driver if missing to satisfy validation, though backend is source of truth.
+        };
+
+        const res = await Api.updateUser(u.userId, payload);
+        
+        if (res.success) {
+            App.showToast('Cập nhật thành công', 'success');
+            const newUser = { ...u, ...payload };
+            Api.saveAuth(newUser);
+            this.state.user = newUser;
+            this.closeModal();
+            this.account(document.getElementById('page-content'));
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = 'Lưu thay đổi';
+            err.classList.remove('hidden');
+            if (res.status === 403) {
+                err.textContent = 'Tài khoản Driver hiện chưa có quyền cập nhật hồ sơ qua API này.';
+                const editBtns = document.querySelectorAll('.account-edit-btn');
+                editBtns.forEach(b => {
+                    b.disabled = true;
+                    b.title = 'Tài khoản Driver hiện chưa có quyền cập nhật hồ sơ qua API này.';
+                });
+            } else {
+                err.textContent = res.message;
+            }
+        }
+    },
+
+    showChangePasswordModal() {
+        this.openModal(`
+            <div class="modal-header">
+                <h3>Đổi mật khẩu</h3>
+                <button class="modal-close" type="button" onclick="Pages.closeModal()">${iconClose()}</button>
+            </div>
+            <form class="modal-body" onsubmit="Pages.submitChangePassword(event)">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Mật khẩu mới</label>
+                        <input id="change-password-new" type="password" required minlength="6">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Xác nhận mật khẩu mới</label>
+                        <input id="change-password-confirm" type="password" required minlength="6">
+                    </div>
+                </div>
+                <div id="change-password-error" class="login-error hidden" style="margin-top: 16px;"></div>
+                <div class="modal-footer" style="padding-left: 0; padding-right: 0; padding-bottom: 0; border: none; margin-top: 24px;">
+                    <button type="button" class="btn btn-outline" onclick="Pages.closeModal()">Hủy</button>
+                    <button type="submit" class="btn btn-primary" id="change-password-submit-btn">Lưu thay đổi</button>
+                </div>
+            </form>
+        `);
+    },
+
+    async submitChangePassword(event) {
+        event.preventDefault();
+        const newPassword = document.getElementById('change-password-new').value;
+        const confirmPassword = document.getElementById('change-password-confirm').value;
+        const btn = document.getElementById('change-password-submit-btn');
+        const err = document.getElementById('change-password-error');
+
+        if (newPassword !== confirmPassword) {
+            err.textContent = 'Mật khẩu xác nhận không khớp.';
+            err.classList.remove('hidden');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<div class="btn-loader"></div>';
+        err.classList.add('hidden');
+
+        const u = this.state.user || Api.user;
+        const payload = {
+            fullName: u.fullName,
+            email: u.email,
+            phoneNumber: u.phoneNumber,
+            roleId: u.roleId || 3,
+            password: newPassword
+        };
+
+        const res = await Api.updateUser(u.userId, payload);
+        
+        if (res.success) {
+            App.showToast('Đổi mật khẩu thành công', 'success');
+            this.closeModal();
+            // Password not stored locally
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = 'Lưu thay đổi';
+            err.classList.remove('hidden');
+            if (res.status === 403) {
+                err.textContent = 'Tài khoản Driver hiện chưa có quyền cập nhật hồ sơ qua API này.';
+                const editBtns = document.querySelectorAll('.account-edit-btn');
+                editBtns.forEach(b => {
+                    b.disabled = true;
+                    b.title = 'Tài khoản Driver hiện chưa có quyền cập nhật hồ sơ qua API này.';
+                });
+            } else {
+                err.textContent = res.message;
+            }
+        }
     },
 
     async session(container) {

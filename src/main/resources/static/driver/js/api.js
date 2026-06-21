@@ -149,6 +149,10 @@ const Api = {
         return this.request('/api/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, newPassword }) });
     },
 
+    async updateUser(userId, payload) {
+        return this.request(`/api/users/${userId}`, { method: 'PUT', body: payload });
+    },
+
     async getMyVehicles() { return this.request('/api/vehicles/me'); },
     async createMyVehicle(data) { return this.request('/api/vehicles/me', { method: 'POST', body: data }); },
     async updateMyVehicle(id, data) { return this.request(`/api/vehicles/me/${id}`, { method: 'PUT', body: data }); },
