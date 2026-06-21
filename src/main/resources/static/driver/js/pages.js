@@ -203,36 +203,89 @@ const Pages = {
     async createReservationSubmit(event) {
         event.preventDefault();
         
-        const vehicleId = Number(document.getElementById('reservation-vehicle').value);
-        const selectedVehicle = this.state.vehicles.find(v => v.vehicleId === vehicleId);
-        if (selectedVehicle && this.isMotorbikeType(selectedVehicle.vehicleTypeName)) {
-            App.showToast('Chỉ được đặt trước chỗ cho ô tô.', 'error');
+        const userId = this.state.user?.userId || Api.user?.userId;
+        if (!userId) {
+            App.showToast('Không tìm thấy thông tin người dùng.', 'error');
             return;
         }
 
+        const vehicleIdVal = document.getElementById('reservation-vehicle').value;
+        if (!vehicleIdVal) {
+            App.showToast('Vui lòng chọn xe.', 'error');
+            return;
+        }
+        const vehicleId = Number(vehicleIdVal);
+        const selectedVehicle = this.state.vehicles.find(v => v.vehicleId === vehicleId);
+        if (!selectedVehicle) {
+            App.showToast('Vui lòng chọn xe.', 'error');
+            return;
+        }
+        if (this.isMotorbikeType(selectedVehicle.vehicleTypeName)) {
+            App.showToast('Chỉ được đặt trước chỗ cho ô tô.', 'error');
+            return;
+        }
+        const vehicleTypeId = selectedVehicle.vehicleTypeId;
+
         const slotIdVal = document.getElementById('reservation-slot').value;
-        if (slotIdVal) {
-            const slotId = Number(slotIdVal);
-            const selectedSlot = (this.state.slots || []).find(s => s.slotId === slotId) || (this.state.availableSlots || []).find(s => s.slotId === slotId);
-            if (selectedSlot && this.isMotorbikeType(selectedSlot.vehicleTypeName)) {
-                App.showToast('Vui lòng chọn slot dành cho ô tô.', 'error');
-                return;
-            }
+        if (!slotIdVal) {
+            App.showToast('Vui lòng chọn slot.', 'error');
+            return;
+        }
+        const slotId = Number(slotIdVal);
+        const selectedSlot = (this.state.slots || []).find(s => s.slotId === slotId) || (this.state.availableSlots || []).find(s => s.slotId === slotId);
+        if (!selectedSlot) {
+            App.showToast('Vui lòng chọn slot.', 'error');
+            return;
+        }
+        if (selectedSlot.status !== 'AVAILABLE') {
+            App.showToast('Slot này hiện không khả dụng.', 'error');
+            return;
+        }
+        if (this.isMotorbikeType(selectedSlot.vehicleTypeName)) {
+            App.showToast('Vui lòng chọn slot dành cho ô tô.', 'error');
+            return;
         }
 
+        const startVal = document.getElementById('reservation-start').value;
+        if (!startVal) {
+            App.showToast('Vui lòng chọn giờ bắt đầu.', 'error');
+            return;
+        }
+        const endVal = document.getElementById('reservation-end').value;
+        if (!endVal) {
+            App.showToast('Vui lòng chọn giờ kết thúc.', 'error');
+            return;
+        }
+
+        const start = new Date(startVal);
+        const end = new Date(endVal);
+        if (end <= start) {
+            App.showToast('Giờ kết thúc phải sau giờ bắt đầu.', 'error');
+            return;
+        }
+
+        const formatDateTime = (val) => val.length === 16 ? val + ':00' : val;
+
         const data = {
+            userId: userId,
             vehicleId: vehicleId,
-            reservationStart: new Date(document.getElementById('reservation-start').value).toISOString(),
-            reservationEnd: new Date(document.getElementById('reservation-end').value).toISOString()
+            vehicleTypeId: vehicleTypeId,
+            slotId: slotId,
+            reservationStart: formatDateTime(startVal),
+            reservationEnd: formatDateTime(endVal),
+            guestName: Api.user?.fullName || 'Tài xế'
         };
-        if(slotIdVal) data.slotId = Number(slotIdVal);
 
         const res = await Api.createReservation(data);
         if(res.success) {
             App.showToast('Tạo đặt chỗ thành công.', 'success');
             App.navigate('reservations');
         } else {
-            App.showToast(res.message, 'error');
+            let msg = res.message || 'Thông tin đặt chỗ chưa hợp lệ. Vui lòng kiểm tra xe, slot và thời gian đặt chỗ.';
+            if (msg.toLowerCase().includes('validation failed')) {
+                msg = 'Thông tin đặt chỗ chưa hợp lệ. Vui lòng kiểm tra xe, slot và thời gian đặt chỗ.';
+            }
+            App.showToast(msg, 'error');
         }
     },
 
