@@ -44,8 +44,8 @@ public class ReservationService {
         VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle type not found with id: " + request.getVehicleTypeId()));
 
-        if (!"Ô tô".equalsIgnoreCase(vehicleType.getTypeName()) && !"Car".equalsIgnoreCase(vehicleType.getTypeName())) {
-            throw new IllegalArgumentException("Chỉ cho phép xe ô tô sử dụng tính năng đặt chỗ trước");
+        if (isMotorbikeType(vehicleType.getTypeName())) {
+            throw new IllegalArgumentException("Xe máy không hỗ trợ đặt chỗ trước");
         }
 
         ParkingSlot slot;
@@ -65,6 +65,10 @@ public class ReservationService {
             if (slot.getStatus() != SlotStatus.AVAILABLE) {
                 throw new IllegalArgumentException("Ô đỗ này hiện không trống, vui lòng chọn ô khác.");
             }
+        }
+
+        if (isMotorbikeType(slot.getVehicleType().getTypeName())) {
+            throw new IllegalArgumentException("Slot xe máy không hỗ trợ đặt trước");
         }
 
         Reservation reservation = new Reservation();
@@ -133,6 +137,13 @@ public class ReservationService {
         ParkingSlot slot = parkingSlotRepository.findById(request.getSlotId())
                 .orElseThrow(() -> new ResourceNotFoundException("Parking slot not found with id: " + request.getSlotId()));
 
+        if (isMotorbikeType(vehicleType.getTypeName())) {
+            throw new IllegalArgumentException("Xe máy không hỗ trợ đặt chỗ trước");
+        }
+        if (isMotorbikeType(slot.getVehicleType().getTypeName())) {
+            throw new IllegalArgumentException("Slot xe máy không hỗ trợ đặt trước");
+        }
+
         reservation.setUser(user);
         reservation.setVehicle(vehicle);
         reservation.setVehicleType(vehicleType);
@@ -183,5 +194,24 @@ public class ReservationService {
             }
         }
         return ReservationResponse.fromEntity(reservationRepository.save(reservation));
+    }
+
+    private String normalizeVehicleTypeName(String value) {
+        if (value == null) return "";
+        return java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase()
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private boolean isMotorbikeType(String typeName) {
+        String normalized = normalizeVehicleTypeName(typeName);
+        return normalized.equals("xe may")
+                || normalized.equals("motorbike")
+                || normalized.equals("motorcycle")
+                || normalized.contains("xe may")
+                || normalized.contains("motorbike")
+                || normalized.contains("motorcycle");
     }
 }
