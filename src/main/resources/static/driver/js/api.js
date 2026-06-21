@@ -138,7 +138,19 @@ const Api = {
     },
 
     async getCurrentUser() {
-        return this.user ? { success: true, message: 'Loaded from local auth state', data: this.user } : { success: false, message: 'Chưa có thông tin tài khoản', data: null };
+        if (!this.user || (!this.user.userId && !this.user.id && !this.user.userid)) return { success: false, message: 'Chưa có thông tin tài khoản', data: null };
+        const userId = this.user.userId || this.user.id || this.user.userid;
+        try {
+            const res = await this.request(`/api/users/${userId}`);
+            if (res.success && res.data) {
+                const updatedUser = { ...this.user, ...res.data };
+                this.saveAuth(updatedUser);
+                return { success: true, message: 'Fetched from server', data: updatedUser };
+            }
+        } catch (e) {
+            console.warn('Failed to fetch latest user profile, falling back to local state', e);
+        }
+        return { success: true, message: 'Loaded from local auth state', data: this.user };
     },
 
     async forgotPassword(email) {

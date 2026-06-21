@@ -62,7 +62,7 @@ const Pages = {
     },
 
     resolveReservationFee(r) {
-        let fee = r.amount !== undefined ? r.amount : r.estimatedFee;
+        let fee = (r.amount !== undefined && r.amount !== null) ? r.amount : r.estimatedFee;
         return this.formatCurrency(fee);
     },
 
