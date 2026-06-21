@@ -341,17 +341,41 @@ const Pages = {
     },
 
     async account(container) {
+        container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
         const res = await Api.getCurrentUser();
-        const u = res.success ? res.data : { fullName: 'Tài xế', email: '...', phoneNumber: '...' };
+        
+        if (!res.success) {
+            container.innerHTML = `
+                <div class="page-header"><h2>Hồ sơ cá nhân</h2></div>
+                ${this.emptyState(iconUser(), res.message || 'Không thể tải thông tin người dùng.')}
+            `;
+            return;
+        }
+
+        const u = res.data;
         container.innerHTML = `
             <div class="page-header"><h2>Hồ sơ cá nhân</h2><p>Thông tin tài khoản từ hệ thống.</p></div>
+            <div class="alert" style="margin-bottom: 16px; padding: 12px; border-radius: 6px; background: rgba(59, 130, 246, 0.1); color: var(--blue, #3b82f6); font-size: 0.9rem;">
+                Backend hiện chưa cung cấp API hồ sơ đầy đủ dành cho Driver. Dữ liệu dưới đây được lấy từ phiên đăng nhập.
+            </div>
             <div class="card">
-                <div class="card-header"><span class="card-title">${iconUser()} Thông tin tài khoản</span></div>
+                <div class="card-header"><span class="card-title">${iconUser()} Thông tin cơ bản</span></div>
                 <div class="card-body">
-                    ${this.infoRow('Họ tên', u.fullName)}
-                    ${this.infoRow('Email', u.email)}
+                    ${this.infoRow('Mã người dùng', u.userId || '-')}
+                    ${this.infoRow('Họ tên', u.fullName || '-')}
+                    ${this.infoRow('Email', u.email || '-')}
                     ${this.infoRow('Vai trò', u.roleName || u.role || 'Driver')}
-                    <div class="button-row" style="margin-top:20px;">
+                    ${this.infoRow('Trạng thái tài khoản', u.status || '-')}
+                    
+                    <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">Chức năng chỉnh sửa hồ sơ hiện chưa có API dành cho Driver.</p>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn btn-outline" disabled style="opacity: 0.5; cursor: not-allowed;" title="Tính năng chưa hỗ trợ">Chỉnh sửa thông tin</button>
+                            <button class="btn btn-outline" disabled style="opacity: 0.5; cursor: not-allowed;" title="Tính năng chưa hỗ trợ">Đổi mật khẩu</button>
+                        </div>
+                    </div>
+
+                    <div class="button-row" style="margin-top:20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
                         <button class="btn btn-outline" style="color:var(--red);border-color:var(--red)" onclick="App.logout()">Đăng xuất</button>
                     </div>
                 </div>
