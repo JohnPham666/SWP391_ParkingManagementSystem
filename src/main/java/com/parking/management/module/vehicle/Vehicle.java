@@ -15,62 +15,53 @@ import java.time.LocalDate;
 public class Vehicle {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "VehicleID")
+    @Column(name = "vehicleid")
     private Integer vehicleId;
 
-    @Column(name = "LicensePlate", unique = true, nullable = false, length = 20)
+    @Column(name = "licenseplate", unique = true, nullable = false, length = 20)
     private String licensePlate;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "VehicleTypeID", nullable = false)
+    @JoinColumn(name = "vehicletypeid", nullable = false)
     private VehicleType vehicleType;
 
-    @Column(name = "OwnerName", length = 100)
+    @Column(name = "ownername", length = 100)
     private String ownerName;
 
-    @Column(name = "OwnerPhone", length = 20)
+    @Column(name = "ownerphone", length = 20)
     private String ownerPhone;
 
-    @Column(name = "OwnerIdCard", length = 20)
-    private String ownerIdCard;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "UserID")
+    @JoinColumn(name = "userid")
     private User user;
 
-    @Column(name = "Brand", length = 50)
+    @Column(name = "brand", length = 50)
     private String brand;
 
-    @Column(name = "VehicleColor", length = 30)
+    @Column(name = "vehiclecolor", length = 30)
     private String vehicleColor;
 
-    @Column(name = "EngineNumber", unique = true, length = 50)
+    @Column(name = "enginenumber", unique = true, length = 50)
     private String engineNumber;
 
-    @Column(name = "ChassisNumber", unique = true, length = 50)
+    @Column(name = "chassisnumber", unique = true, length = 50)
     private String chassisNumber;
 
-    @Column(name = "ManufactureYear")
+    @Column(name = "manufactureyear")
     private Integer manufactureYear;
 
-    @Column(name = "RegistrationNumber", length = 50)
+    @Column(name = "registrationnumber", length = 50)
     private String registrationNumber;
 
-    @Column(name = "RegistrationDate")
-    private LocalDate registrationDate;
-
-    @Column(name = "RegistrationExpiry")
+    @Column(name = "registrationexpiry")
     private LocalDate registrationExpiry;
 
-    @Column(name = "VehicleImage", length = 255)
+    @Column(name = "vehicleimage", length = 255)
     private String vehicleImage;
 
-    @Column(name = "OwnerPortrait", length = 500)
-    private String ownerPortrait;
-
-    @Column(name = "RegistrationPhoto", length = 500)
+    @Column(name = "registrationphoto", length = 500)
     private String registrationPhoto;
 
-    @Column(name = "IsActive")
+    @Column(name = "isactive")
     private Boolean isActive = true;
 }

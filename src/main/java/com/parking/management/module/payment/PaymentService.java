@@ -100,13 +100,29 @@ public class PaymentService {
             securityUtils.checkDataOwnership(reservation.getUser().getUserId());
         }
 
-        if (!"PENDING".equals(reservation.getStatus())) {
-            throw new IllegalArgumentException("Reservation is not in PENDING state");
+        if (!"PENDING".equals(reservation.getStatus()) && !"PENDING_PAYMENT".equals(reservation.getStatus())) {
+            throw new IllegalArgumentException("Reservation is not in a valid pending state");
         }
 
-        FeeCalculationResponse feeResponse = pricingService.calculateFee(
-                Long.valueOf(reservation.getVehicleType().getVehicleTypeId()),
-                reservation.getReservationStart(), reservation.getReservationEnd());
+        java.util.Optional<Payment> existingPaymentOpt = paymentRepository.findFirstByReservation_ReservationIdOrderByPaymentIdDesc(reservation.getReservationId());
+        if (existingPaymentOpt.isPresent()) {
+            Payment existingPayment = existingPaymentOpt.get();
+            if ("PAID".equals(existingPayment.getPaymentStatus())) {
+                throw new IllegalArgumentException("Reservation is already PAID");
+            }
+            if ("PENDING".equals(existingPayment.getPaymentStatus())) {
+                return mapEntityToResponse(existingPayment);
+            }
+        }
+
+        FeeCalculationResponse feeResponse;
+        try {
+            feeResponse = pricingService.calculateFee(
+                    Long.valueOf(reservation.getVehicleType().getVehicleTypeId()),
+                    reservation.getReservationStart(), reservation.getReservationEnd());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Chưa có chính sách giá phù hợp để tính phí đặt chỗ.");
+        }
 
         Payment payment = new Payment();
         payment.setReservation(reservation);

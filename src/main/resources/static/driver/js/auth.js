@@ -16,17 +16,21 @@ const Auth = {
             btn.querySelector('.btn-loader').classList.remove('hidden');
             err.classList.add('hidden');
 
+            if (!window.Api || typeof window.Api.login !== "function") {
+                throw new Error("Driver API module chưa được tải. Hãy kiểm tra thứ tự script trong index.html.");
+            }
+
             try {
-                const res = await Api.login(email, pass);
+                const res = await window.Api.login(email, pass);
 
                 if (res.success && res.data) {
-                    if (!Api.isDriverRole(res.data.role || res.data.roleName)) {
+                    if (!window.Api.isDriverRole(res.data.role || res.data.roleName)) {
                         err.textContent = 'Tài khoản này không phải Driver. Vui lòng dùng trang Staff.';
                         err.classList.remove('hidden');
-                        Api.clearAuth();
+                        window.Api.clearAuth();
                         return;
                     }
-                    const auth = Api.saveAuth(res.data);
+                    const auth = window.Api.saveAuth(res.data);
                     App.state.user = auth;
                     App.showApp();
                     App.showToast('Đăng nhập thành công!', 'success');
@@ -86,11 +90,11 @@ const Auth = {
                 return;
             }
             try {
-                const res = await Api.register(data);
+                const res = await window.Api.register(data);
                 if (res.success) {
                     if (res.data && res.data.token) {
                         // Auto-login: register API already returns JWT token
-                        const auth = Api.saveAuth(res.data);
+                        const auth = window.Api.saveAuth(res.data);
                         App.state.user = auth;
                         App.showApp();
                         App.showToast('Đăng ký thành công! Chào mừng bạn.', 'success');
@@ -135,7 +139,7 @@ const Auth = {
             btn.querySelector('.btn-loader').classList.remove('hidden');
             err.classList.add('hidden');
 
-            const res = await Api.forgotPassword(email);
+            const res = await window.Api.forgotPassword(email);
             btn.disabled = false;
             btn.querySelector('span').classList.remove('hidden');
             btn.querySelector('.btn-loader').classList.add('hidden');
@@ -179,7 +183,7 @@ const Auth = {
             btn.querySelector('span').classList.add('hidden');
             btn.querySelector('.btn-loader').classList.remove('hidden');
 
-            const res = await Api.resetPassword(token, newPassword);
+            const res = await window.Api.resetPassword(token, newPassword);
             btn.disabled = false;
             btn.querySelector('span').classList.remove('hidden');
             btn.querySelector('.btn-loader').classList.add('hidden');

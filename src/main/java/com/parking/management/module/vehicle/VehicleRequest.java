@@ -14,7 +14,6 @@ public class VehicleRequest {
 
     private String ownerName;
     private String ownerPhone;
-    private String ownerIdCard;          // Số CCCD/CMND
     private Integer userId;
     private String brand;
     private String vehicleColor;
@@ -22,9 +21,7 @@ public class VehicleRequest {
     private String chassisNumber;
     private Integer manufactureYear;
     private String registrationNumber;   // Số đăng ký (trên cà vẹt xe)
-    private String registrationDate;     // Ngày đăng ký (yyyy-MM-dd)
     private String registrationExpiry;   // Ngày hết hạn đăng kiểm (yyyy-MM-dd)
     private String vehicleImage;
-    private String ownerPortrait;        // Ảnh chân dung
     private String registrationPhoto;    // Ảnh cà vẹt xe
 }

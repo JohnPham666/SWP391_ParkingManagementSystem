@@ -1,5 +1,4 @@
 const Api = {
-    baseUrl: 'http://localhost:8080',
     authStorageKey: 'driver_auth',
     token: null,
     user: null,
@@ -139,20 +138,19 @@ const Api = {
     },
 
     async getCurrentUser() {
-        const res = await this.request('/api/users/me');
-        if (res.success && res.data) {
-            // Update local cache with fresh server data
-            const merged = { ...this.user, ...res.data };
-            this.user = merged;
-            const saved = localStorage.getItem(this.authStorageKey);
-            if (saved) {
-                try {
-                    const existing = JSON.parse(saved);
-                    localStorage.setItem(this.authStorageKey, JSON.stringify({ ...existing, ...res.data }));
-                } catch {}
+        if (!this.user || (!this.user.userId && !this.user.id && !this.user.userid)) return { success: false, message: 'Chưa có thông tin tài khoản', data: null };
+        const userId = this.user.userId || this.user.id || this.user.userid;
+        try {
+            const res = await this.request(`/api/users/${userId}`);
+            if (res.success && res.data) {
+                const updatedUser = { ...this.user, ...res.data };
+                this.saveAuth(updatedUser);
+                return { success: true, message: 'Fetched from server', data: updatedUser };
             }
+        } catch (e) {
+            console.warn('Failed to fetch latest user profile, falling back to local state', e);
         }
-        return res;
+        return { success: true, message: 'Loaded from local auth state', data: this.user };
     },
 
     async updateMyProfile(data) {
@@ -163,37 +161,15 @@ const Api = {
         return this.request('/api/auth/change-password', { method: 'POST', body: { oldPassword, newPassword } });
     },
 
+    // ===============================
+    // Auth & User API
+    // ===============================
     async forgotPassword(email) {
-        try {
-            const res = await fetch(`${this.baseUrl}/api/auth/forgot-password`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-            });
-            const data = await res.json();
-            return { success: res.ok, message: data.message || 'Lỗi hệ thống' };
-        } catch (e) {
-            return { success: false, message: 'Không thể kết nối đến server' };
-        }
+        return this.request('/api/auth/forgot-password', { method: 'POST', body: { email } });
     },
 
     async resetPassword(token, newPassword) {
-        try {
-            const res = await fetch(`${this.baseUrl}/api/auth/reset-password`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, newPassword })
-            });
-            const data = await res.json();
-            return { success: res.ok, message: data.message || 'Lỗi hệ thống' };
-        } catch (e) {
-            return { success: false, message: 'Không thể kết nối đến server' };
-        }
-        return this.request('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
-    },
-
-    async resetPassword(token, newPassword) {
-        return this.request('/api/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, newPassword }) });
+        return this.request('/api/auth/reset-password', { method: 'POST', body: { token, newPassword } });
     },
 
     async updateUser(userId, payload) {
@@ -236,4 +212,6 @@ const Api = {
 
     _delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 };
+
+window.Api = Api;
 

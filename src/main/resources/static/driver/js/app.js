@@ -141,15 +141,15 @@ const App = {
     validPages: ['home', 'parking', 'vehicles', 'reservations', 'account', 'session', 'payment', 'pricing', 'history', 'incident'],
 
     init() {
-        const savedAuth = Api.init();
+        const savedAuth = window.Api.init();
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('resetToken')) {
             this.showResetPassword(urlParams.get('resetToken'));
-        } else if (savedAuth?.token && Api.isDriverRole(savedAuth.role || savedAuth.roleName)) {
+        } else if (savedAuth?.token && window.Api.isDriverRole(savedAuth.role || savedAuth.roleName)) {
             this.state.user = savedAuth;
             this.showApp();
         } else {
-            if (savedAuth) Api.clearAuth();
+            if (savedAuth) window.Api.clearAuth();
             this.showLanding();
         }
         this.setupGlobal();
@@ -244,7 +244,7 @@ const App = {
         document.getElementById('forgot-password-page').classList.add('hidden');
         document.getElementById('reset-password-page').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
-        const u = this.state.user || Api.user || { fullName: 'Tài xế' };
+        const u = this.state.user || window.Api.user || { fullName: 'Tài xế' };
         document.getElementById('header-user-name').textContent = u.fullName || 'Tài xế';
         document.getElementById('header-avatar').textContent = (u.fullName || 'T').charAt(0).toUpperCase();
         // Restore page from URL hash or default to home
@@ -309,7 +309,7 @@ const App = {
     },
 
     logout() {
-        Api.clearAuth();
+        window.Api.clearAuth();
         this.state.user = null;
         // Clear URL hash
         history.replaceState({}, '', window.location.pathname + window.location.search);
