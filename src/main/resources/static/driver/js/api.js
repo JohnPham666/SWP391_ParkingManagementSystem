@@ -138,22 +138,6 @@ const Api = {
     },
 
     async getCurrentUser() {
-<<<<<<< HEAD
-        const res = await this.request('/api/users/me');
-        if (res.success && res.data) {
-            // Update local cache with fresh server data
-            const merged = { ...this.user, ...res.data };
-            this.user = merged;
-            const saved = localStorage.getItem(this.authStorageKey);
-            if (saved) {
-                try {
-                    const existing = JSON.parse(saved);
-                    localStorage.setItem(this.authStorageKey, JSON.stringify({ ...existing, ...res.data }));
-                } catch {}
-            }
-        }
-        return res;
-=======
         if (!this.user || (!this.user.userId && !this.user.id && !this.user.userid)) return { success: false, message: 'Chưa có thông tin tài khoản', data: null };
         const userId = this.user.userId || this.user.id || this.user.userid;
         try {
@@ -167,7 +151,6 @@ const Api = {
             console.warn('Failed to fetch latest user profile, falling back to local state', e);
         }
         return { success: true, message: 'Loaded from local auth state', data: this.user };
->>>>>>> d003e276f6b91e4b942f7b4017b61567366be3c4
     },
 
     async updateMyProfile(data) {

@@ -79,12 +79,12 @@ const Pages = {
     async home(container) {
         container.innerHTML = DriverRender.renderLoadingState();
         const [slotsRes, vehiclesRes, resRes] = await Promise.all([
-            Api.getAvailableSlots(), 
-            Api.getMyVehicles(),
-            Api.getReservations()
+            window.Api.getAvailableSlots(), 
+            window.Api.getMyVehicles(),
+            window.Api.getReservations()
         ]);
 
-        const slots = await Api.request('/api/slots').then(res => res.data || []);
+        const slots = await window.Api.request('/api/slots').then(res => res.data || []);
         const vehicles = vehiclesRes.success ? (vehiclesRes.data || []) : [];
         const reservations = resRes.success ? (resRes.data || []) : [];
 
@@ -99,7 +99,7 @@ const Pages = {
 
         let activeSession = null;
         for(let v of vehicles) {
-            const sRes = await Api.getActiveSession(v.licensePlate);
+            const sRes = await window.Api.getActiveSession(v.licensePlate);
             if(sRes.success && sRes.data) {
                 activeSession = sRes.data;
                 break;
@@ -182,7 +182,7 @@ const Pages = {
     // xem tình trạng slot để tài xế dễ dàng tìm kiếm.
     async parking(container) {
         container.innerHTML = DriverRender.renderLoadingState();
-        const res = await Api.request('/api/slots');
+        const res = await window.Api.request('/api/slots');
         if(!res.success) {
              container.innerHTML = `<div class="page-header"><h2>Tìm chỗ đỗ xe</h2></div>` + DriverRender.renderEmptyState(DriverRender.iconMapPin(), res.message);
              return;
@@ -331,10 +331,10 @@ const Pages = {
     async reservations(container) {
         container.innerHTML = DriverRender.renderLoadingState();
         const [rRes, vRes, sRes, allSlotsRes] = await Promise.all([
-            Api.getReservations(),
-            Api.getMyVehicles(),
-            Api.getAvailableSlots(),
-            Api.request('/api/slots')
+            window.Api.getReservations(),
+            window.Api.getMyVehicles(),
+            window.Api.getAvailableSlots(),
+            window.Api.request('/api/slots')
         ]);
         
         if(!rRes.success) {
@@ -382,7 +382,7 @@ const Pages = {
     async createReservationSubmit(event) {
         event.preventDefault();
         
-        const userId = App.state.user?.userId || Api.user?.userId;
+        const userId = App.state.user?.userId || window.Api.user?.userId;
         if (!userId) {
             App.showToast('Không tìm thấy thông tin người dùng.', 'error');
             return;
@@ -463,10 +463,10 @@ const Pages = {
             slotId: slotId,
             reservationStart: formatDateTimeStr(startVal),
             reservationEnd: formatDateTimeStr(endVal),
-            guestName: Api.user?.fullName || 'Tài xế'
+            guestName: window.Api.user?.fullName || 'Tài xế'
         };
 
-        const res = await Api.createReservation(data);
+        const res = await window.Api.createReservation(data);
         if(res.success) {
             App.showToast('Tạo đặt chỗ thành công.', 'success');
             App.navigate('reservations');
@@ -481,7 +481,7 @@ const Pages = {
 
     async cancelReservationSubmit(id) {
         if(!confirm('Bạn có chắc muốn hủy đặt chỗ này?')) return;
-        const res = await Api.cancelReservation(id);
+        const res = await window.Api.cancelReservation(id);
         if(res.success) {
             App.showToast('Đã hủy đặt chỗ.', 'success');
             App.navigate('reservations');
@@ -542,7 +542,7 @@ const Pages = {
                 paymentMethod: 'E_WALLET'
             };
 
-            const res = await Api.createPayment(payload);
+            const res = await window.Api.createPayment(payload);
             
             if (res.success && res.data) {
                 paymentId = res.data.paymentId;
@@ -572,8 +572,8 @@ const Pages = {
     async vehicles(container) {
         container.innerHTML = DriverRender.renderLoadingState();
         const [vRes, tRes] = await Promise.all([
-            Api.getMyVehicles(),
-            Api.getVehicleTypes()
+            window.Api.getMyVehicles(),
+            window.Api.getVehicleTypes()
         ]);
         
         if(!vRes.success) {
@@ -669,16 +669,16 @@ const Pages = {
             vehicleColor
         };
         
-        const res = vehicleId ? await Api.updateMyVehicle(vehicleId, data) : await Api.createMyVehicle(data);
+        const res = vehicleId ? await window.Api.updateMyVehicle(vehicleId, data) : await window.Api.createMyVehicle(data);
         if(res.success) {
             const savedVehicleId = res.data?.vehicleId;
             if (savedVehicleId) {
                 const portraitFile = document.getElementById('vehicle-ownerPortrait-file')?.files[0];
-                if (portraitFile) await Api.uploadMyVehicleImage(savedVehicleId, portraitFile, 'portrait');
+                if (portraitFile) await window.Api.uploadMyVehicleImage(savedVehicleId, portraitFile, 'portrait');
                 const regFile = document.getElementById('vehicle-regPhoto-file')?.files[0];
-                if (regFile) await Api.uploadMyVehicleImage(savedVehicleId, regFile, 'registration');
+                if (regFile) await window.Api.uploadMyVehicleImage(savedVehicleId, regFile, 'registration');
                 const imgFile = document.getElementById('vehicle-image-file')?.files[0];
-                if (imgFile) await Api.uploadMyVehicleImage(savedVehicleId, imgFile, 'vehicle');
+                if (imgFile) await window.Api.uploadMyVehicleImage(savedVehicleId, imgFile, 'vehicle');
             }
             App.showToast(vehicleId ? 'Đã cập nhật xe.' : 'Đã thêm xe.', 'success');
             this.closeModal();
@@ -690,7 +690,7 @@ const Pages = {
 
     async deleteVehicleSubmit(vehicleId) {
         if(!confirm('Bạn có chắc muốn xóa xe này?')) return;
-        const res = await Api.deleteMyVehicle(vehicleId);
+        const res = await window.Api.deleteMyVehicle(vehicleId);
         if(res.success) {
             App.showToast('Đã xóa xe.', 'success');
             App.navigate('vehicles');
@@ -760,7 +760,7 @@ const Pages = {
     // Hiển thị thông tin người dùng và hỗ trợ cập nhật thông tin cá nhân hoặc mật khẩu.
     async account(container) {
         container.innerHTML = DriverRender.renderLoadingState();
-        const res = await Api.getCurrentUser();
+        const res = await window.Api.getCurrentUser();
         
         if (!res.success) {
             container.innerHTML = `
@@ -812,7 +812,7 @@ const Pages = {
     },
 
     showEditProfileModal() {
-        const u = App.state.user || Api.user;
+        const u = App.state.user || window.Api.user;
         if (!u) return;
 
         const fullName = u.fullname || u.fullName || '';
@@ -867,14 +867,14 @@ const Pages = {
             address: document.getElementById('edit-profile-address').value
         };
 
-        const res = await Api.updateMyProfile(payload);
+        const res = await window.Api.updateMyProfile(payload);
         
         if (res.success) {
             App.showToast('Cập nhật thành công', 'success');
             // Update local cache
-            const u = Api.user || {};
+            const u = window.Api.user || {};
             const newUser = { ...u, ...payload };
-            Api.saveAuth(newUser);
+            window.Api.saveAuth(newUser);
             App.state.user = newUser;
             document.getElementById('header-user-name').textContent = payload.fullName || 'Tài xế';
             document.getElementById('header-avatar').textContent = (payload.fullName || 'T').charAt(0).toUpperCase();
@@ -936,7 +936,7 @@ const Pages = {
         btn.innerHTML = '<div class="btn-loader"></div>';
         err.classList.add('hidden');
 
-        const res = await Api.changePassword(oldPassword, newPassword);
+        const res = await window.Api.changePassword(oldPassword, newPassword);
         
         if (res.success) {
             App.showToast('Đổi mật khẩu thành công', 'success');
@@ -955,12 +955,12 @@ const Pages = {
     // Các chức năng khác như xem phiên đang gửi, yêu cầu thanh toán VNPay.
     async session(container) {
         container.innerHTML = DriverRender.renderLoadingState();
-        const resVehicles = await Api.getMyVehicles();
+        const resVehicles = await window.Api.getMyVehicles();
         const vehicles = resVehicles.success ? (resVehicles.data || []) : [];
         
         let activeSession = null;
         for(let v of vehicles) {
-            const sessionRes = await Api.getActiveSession(v.licensePlate);
+            const sessionRes = await window.Api.getActiveSession(v.licensePlate);
             if(sessionRes.success && sessionRes.data) {
                 activeSession = sessionRes.data;
                 break;
@@ -1002,7 +1002,7 @@ const Pages = {
     },
 
     async createVnPayUrl(paymentId) {
-        const res = await Api.createVnPayUrl(paymentId);
+        const res = await window.Api.createVnPayUrl(paymentId);
         if(res.success && res.data && res.data.paymentUrl) {
             window.location.href = res.data.paymentUrl;
         } else {
@@ -1012,7 +1012,7 @@ const Pages = {
 
     async pricing(container) {
         container.innerHTML = DriverRender.renderLoadingState();
-        const res = await Api.request('/api/pricings');
+        const res = await window.Api.request('/api/pricings');
         
         if (!res.success) {
             container.innerHTML = `<div class="page-header"><h2>Chính sách giá</h2></div>` + DriverRender.renderEmptyState(DriverRender.iconTag(), res.message);
@@ -1087,7 +1087,7 @@ const Pages = {
     // Quản lý việc gửi báo cáo sự cố trong bãi xe.
     async incident(container) {
         container.innerHTML = DriverRender.renderLoadingState();
-        const res = await Api.getIncidents();
+        const res = await window.Api.getIncidents();
         
         if(!res.success) {
             container.innerHTML = `<div class="page-header"><h2>Báo cáo sự cố</h2></div>` + DriverRender.renderEmptyState(DriverRender.iconAlert(), res.message);
@@ -1118,7 +1118,7 @@ const Pages = {
             incidentType: document.getElementById('incident-type').value,
             description: document.getElementById('incident-description').value.trim()
         };
-        const res = await Api.createIncident(data);
+        const res = await window.Api.createIncident(data);
         if(res.success) {
             App.showToast('Gửi báo cáo thành công', 'success');
             App.navigate('incident');
