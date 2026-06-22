@@ -1,5 +1,4 @@
 const Api = {
-    baseUrl: 'http://localhost:8080',
     authStorageKey: 'driver_auth',
     token: null,
     user: null,
@@ -163,37 +162,15 @@ const Api = {
         return this.request('/api/auth/change-password', { method: 'POST', body: { oldPassword, newPassword } });
     },
 
+    // ===============================
+    // Auth & User API
+    // ===============================
     async forgotPassword(email) {
-        try {
-            const res = await fetch(`${this.baseUrl}/api/auth/forgot-password`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-            });
-            const data = await res.json();
-            return { success: res.ok, message: data.message || 'Lỗi hệ thống' };
-        } catch (e) {
-            return { success: false, message: 'Không thể kết nối đến server' };
-        }
+        return this.request('/api/auth/forgot-password', { method: 'POST', body: { email } });
     },
 
     async resetPassword(token, newPassword) {
-        try {
-            const res = await fetch(`${this.baseUrl}/api/auth/reset-password`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, newPassword })
-            });
-            const data = await res.json();
-            return { success: res.ok, message: data.message || 'Lỗi hệ thống' };
-        } catch (e) {
-            return { success: false, message: 'Không thể kết nối đến server' };
-        }
-        return this.request('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
-    },
-
-    async resetPassword(token, newPassword) {
-        return this.request('/api/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, newPassword }) });
+        return this.request('/api/auth/reset-password', { method: 'POST', body: { token, newPassword } });
     },
 
     async updateUser(userId, payload) {
@@ -236,4 +213,6 @@ const Api = {
 
     _delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 };
+
+window.Api = Api;
 

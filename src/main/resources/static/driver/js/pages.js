@@ -1,74 +1,85 @@
 /* ===== Driver Pages - API Integrated ===== */
+// ===============================
+// Quản lý trạng thái và giao diện chính
+// ===============================
+// Pages đóng vai trò là controller chính của ứng dụng Driver, 
+// gọi API, quản lý render và xử lý sự kiện người dùng.
+
 const Pages = {
-    state: {
-        parkingFilters: { buildingName: 'all', floorName: 'all', zoneName: 'all', vehicleTypeName: 'all', status: 'all', startTime: '', endTime: '' },
-        historyFilters: { vehicleId: 'all', status: 'all', paymentStatus: 'all', fromDate: '', toDate: '' },
-        pricingFilter: 'all',
-        vehicles: [],
-        vehicleTypes: [],
-        slots: [],
-        reservations: [],
-        incidents: [],
-        pendingReservationSlotId: null,
-        availableSlots: []
-    },
+    // Không còn state nội bộ, sử dụng DriverState thay thế
 
-    normalizeText(value) {
-        return String(value || "")
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .toLowerCase()
-            .replace(/\s+/g, " ")
-            .trim();
-    },
-
-    isMotorbikeType(value) {
-        const text = this.normalizeText(value);
-        return (
-            text === "xe may" ||
-            text === "motorbike" ||
-            text === "motorcycle" ||
-            text.includes("xe may") ||
-            text.includes("motorbike") ||
-            text.includes("motorcycle")
-        );
-    },
-
-    isReservableVehicleType(value) {
-        return !this.isMotorbikeType(value);
-    },
-
-    formatCurrency(value) {
-        if (value === null || value === undefined || value === '') {
-            return 'Chưa có dữ liệu phí';
-        }
-        const num = Number(value);
-        if (isNaN(num)) return 'Chưa có dữ liệu phí';
-        return num.toLocaleString('vi-VN') + ' đ';
-    },
-
+    // ===============================
+    // Helper hiển thị và xử lý nội bộ
+    // ===============================
     resolveReservationLocation(r, slots) {
         if (r.buildingName && r.floorName && r.zoneName) {
-            return `${this.escape(r.buildingName)} - ${this.escape(r.floorName)} - ${this.escape(r.zoneName)}`;
+            return `${DriverUtils.escapeHtml(r.buildingName)} - ${DriverUtils.escapeHtml(r.floorName)} - ${DriverUtils.escapeHtml(r.zoneName)}`;
         }
         if (r.slotId && slots && slots.length) {
             const slot = slots.find(s => s.slotId === r.slotId);
             if (slot && slot.buildingName && slot.floorName && slot.zoneName) {
-                return `${this.escape(slot.buildingName)} - ${this.escape(slot.floorName)} - ${this.escape(slot.zoneName)}`;
+                return `${DriverUtils.escapeHtml(slot.buildingName)} - ${DriverUtils.escapeHtml(slot.floorName)} - ${DriverUtils.escapeHtml(slot.zoneName)}`;
             }
         }
         return 'Chưa có thông tin vị trí';
     },
 
     resolveReservationFee(r) {
-        let fee = r.amount !== undefined ? r.amount : r.estimatedFee;
-        return this.formatCurrency(fee);
+        let fee = DriverConditions.getReservationFee(r);
+        return DriverUtils.formatCurrency(fee);
     },
 
+    statusText(status) {
+        return {
+            AVAILABLE: 'Trống', RESERVED: 'Đã đặt', OCCUPIED: 'Đang sử dụng', LOCKED: 'Khóa',
+            ACTIVE: 'Đang hoạt động', COMPLETED: 'Hoàn tất', PENDING: 'Chờ thanh toán',
+            CONFIRMED: 'Đã xác nhận', CANCELLED: 'Đã hủy', PAID: 'Đã thanh toán', UNPAID: 'Chưa thanh toán'
+        }[status] || status;
+    },
+
+    statusBadge(status) {
+        const cls = {
+            AVAILABLE: 'badge-green', RESERVED: 'badge-yellow', OCCUPIED: 'badge-red',
+            LOCKED: 'badge-gray', PAID: 'badge-green', UNPAID: 'badge-yellow',
+            CONFIRMED: 'badge-green', PENDING: 'badge-yellow', CANCELLED: 'badge-gray'
+        }[status] || 'badge-gray';
+        return DriverRender.renderBadge(this.statusText(status), cls);
+    },
+
+    statCard(color, icon, value, label) {
+        return `<div class="stat-card stat-${color}"><div class="stat-icon">${icon}</div><div class="stat-info"><div class="stat-value">${DriverUtils.escapeHtml(String(value))}</div><div class="stat-label">${DriverUtils.escapeHtml(label)}</div></div></div>`;
+    },
+
+    featureButton(page, icon, label) {
+        return `<button class="feature-card" onclick="App.navigate('${page}')"><div class="feature-card-icon">${icon}</div><span>${DriverUtils.escapeHtml(label)}</span></button>`;
+    },
+
+    openModal(content) {
+        this.closeModal();
+        const modal = document.createElement('div');
+        modal.id = 'page-modal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `<div class="modal-content">${content}</div>`;
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+    },
+
+    closeModal() {
+        const modal = document.getElementById('page-modal');
+        if (modal) {
+            modal.remove();
+            document.body.style.overflow = '';
+        }
+    },
+
+    // ===============================
+    // Block: Trang Chủ (Dashboard)
+    // ===============================
+    // Tổng hợp thông tin cơ bản: xe của tôi, đặt chỗ sắp tới, phiên đang hoạt động.
     async home(container) {
-        container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
+        container.innerHTML = DriverRender.renderLoadingState();
         const [slotsRes, vehiclesRes, resRes] = await Promise.all([
-            Api.getAvailableSlots(), // Note: Driver can get available slots or all slots? We use getAvailableSlots for now, wait getAvailableSlots returns only AVAILABLE. Let's use request('/api/slots')
+            Api.getAvailableSlots(), 
             Api.getMyVehicles(),
             Api.getReservations()
         ]);
@@ -78,7 +89,7 @@ const Pages = {
         const reservations = resRes.success ? (resRes.data || []) : [];
 
         const totalSlots = slots.length;
-        const availableSlots = slots.filter(s => s.status === 'AVAILABLE').length;
+        const availableSlots = slots.filter(s => DriverConditions.isSlotAvailable(s)).length;
         const occupiedSlots = slots.filter(s => s.status === 'OCCUPIED').length;
         const reservedSlots = slots.filter(s => s.status === 'RESERVED').length;
         const occupancyRate = totalSlots ? ((occupiedSlots + reservedSlots) / totalSlots) * 100 : 0;
@@ -99,7 +110,7 @@ const Pages = {
             <section class="dashboard-hero-card">
                 <div>
                     <span class="landing-kicker">Driver Dashboard</span>
-                    <h2>Xin chào, ${this.escape(App.state.user?.fullName || 'Tài xế')}</h2>
+                    <h2>Xin chào, ${DriverUtils.escapeHtml(App.state.user?.fullName || 'Tài xế')}</h2>
                     <p>Theo dõi chỗ trống, đặt chỗ, phiên gửi xe và thanh toán trong một giao diện duy nhất.</p>
                 </div>
                 <div class="dashboard-hero-actions">
@@ -108,23 +119,23 @@ const Pages = {
                 </div>
             </section>
             <div class="stats-grid">
-                ${this.statCard('orange', iconCar(), vehicles.length, 'Xe của tôi')}
-                ${this.statCard('blue', iconCalendar(), activeReservations.length, 'Đặt chỗ sắp tới')}
-                ${this.statCard('green', iconClock(), activeSession ? 1 : 0, 'Phiên đang hoạt động')}
-                ${this.statCard('red', iconMapPin(), availableSlots, 'Chỗ trống')}
+                ${this.statCard('orange', DriverRender.iconCar(), vehicles.length, 'Xe của tôi')}
+                ${this.statCard('blue', DriverRender.iconCalendar(), activeReservations.length, 'Đặt chỗ sắp tới')}
+                ${this.statCard('green', DriverRender.iconClock(), activeSession ? 1 : 0, 'Phiên đang hoạt động')}
+                ${this.statCard('red', DriverRender.iconMapPin(), availableSlots, 'Chỗ trống')}
             </div>
             <div class="dashboard-info-grid">
                 <div class="card dashboard-mini-card">
-                    <div class="card-header"><span class="card-title">${iconClock()} Phiên hiện tại</span></div>
-                    <div class="card-body">${activeSession ? `${this.infoRow('Xe', activeSession.licensePlate)}${this.infoRow('Slot', activeSession.slotCode || 'Vãng lai')}` : this.emptyState(iconClock(), 'Chưa có phiên gửi xe đang hoạt động.')}</div>
+                    <div class="card-header"><span class="card-title">${DriverRender.iconClock()} Phiên hiện tại</span></div>
+                    <div class="card-body">${activeSession ? `${DriverRender.renderInfoRow('Xe', activeSession.licensePlate)}${DriverRender.renderInfoRow('Slot', activeSession.slotCode || 'Vãng lai')}` : DriverRender.renderEmptyState(DriverRender.iconClock(), 'Chưa có phiên gửi xe đang hoạt động.')}</div>
                 </div>
                 <div class="card dashboard-mini-card">
-                    <div class="card-header"><span class="card-title">${iconCalendar()} Đặt chỗ sắp tới</span></div>
-                    <div class="card-body">${upcomingReservation ? `${this.infoRow('Xe', upcomingReservation.licensePlate)}${this.infoRow('Vị trí', upcomingReservation.slotCode ? upcomingReservation.slotCode + ', ' + upcomingReservation.floorName : 'Chưa xếp')}${this.infoRow('Thời gian', this.formatDateTime(upcomingReservation.reservationStart))}` : this.emptyState(iconCalendar(), 'Không có đặt chỗ sắp tới.')}</div>
+                    <div class="card-header"><span class="card-title">${DriverRender.iconCalendar()} Đặt chỗ sắp tới</span></div>
+                    <div class="card-body">${upcomingReservation ? `${DriverRender.renderInfoRow('Xe', upcomingReservation.licensePlate)}${DriverRender.renderInfoRow('Vị trí', upcomingReservation.slotCode ? upcomingReservation.slotCode + ', ' + upcomingReservation.floorName : 'Chưa xếp')}${DriverRender.renderInfoRow('Thời gian', DriverUtils.formatDateTime(upcomingReservation.reservationStart))}` : DriverRender.renderEmptyState(DriverRender.iconCalendar(), 'Không có đặt chỗ sắp tới.')}</div>
                 </div>
             </div>
             <div class="card">
-                <div class="card-header"><span class="card-title">${iconMapPin()} Tổng quan bãi xe</span><button class="btn btn-outline btn-sm" onclick="App.navigate('parking')">Tìm chỗ</button></div>
+                <div class="card-header"><span class="card-title">${DriverRender.iconMapPin()} Tổng quan bãi xe</span><button class="btn btn-outline btn-sm" onclick="App.navigate('parking')">Tìm chỗ</button></div>
                 <div class="card-body">
                     <div class="progress-ring" style="margin:auto">${Math.round(occupancyRate)}%</div>
                     <div class="stats-grid" style="margin-top:16px">
@@ -136,44 +147,49 @@ const Pages = {
                 </div>
             </div>
             <div class="quick-actions">
-                ${this.featureButton('vehicles', iconCar(), 'Xe của tôi')}
-                ${this.featureButton('parking', iconMapPin(), 'Tìm chỗ đỗ xe')}
-                ${this.featureButton('reservations', iconCalendar(), 'Đặt chỗ')}
-                ${this.featureButton('session', iconClock(), 'Phiên gửi xe')}
-                ${this.featureButton('payment', iconWallet(), 'Thanh toán')}
-                ${this.featureButton('pricing', iconTag(), 'Chính sách giá')}
-                ${this.featureButton('history', iconReceipt(), 'Lịch sử')}
-                ${this.featureButton('incident', iconAlert(), 'Báo cáo sự cố')}
+                ${this.featureButton('vehicles', DriverRender.iconCar(), 'Xe của tôi')}
+                ${this.featureButton('parking', DriverRender.iconMapPin(), 'Tìm chỗ đỗ xe')}
+                ${this.featureButton('reservations', DriverRender.iconCalendar(), 'Đặt chỗ')}
+                ${this.featureButton('session', DriverRender.iconClock(), 'Phiên gửi xe')}
+                ${this.featureButton('payment', DriverRender.iconWallet(), 'Thanh toán')}
+                ${this.featureButton('pricing', DriverRender.iconTag(), 'Chính sách giá')}
+                ${this.featureButton('history', DriverRender.iconReceipt(), 'Lịch sử')}
+                ${this.featureButton('incident', DriverRender.iconAlert(), 'Báo cáo sự cố')}
             </div>
             ${vehicles.length ? `
             <div class="card">
-                <div class="card-header"><span class="card-title">${iconCar()} Xe của tôi</span><button class="btn btn-primary btn-sm" onclick="App.navigate('vehicles')">Quản lý xe</button></div>
+                <div class="card-header"><span class="card-title">${DriverRender.iconCar()} Xe của tôi</span><button class="btn btn-primary btn-sm" onclick="App.navigate('vehicles')">Quản lý xe</button></div>
                 <div class="card-body">${vehicles.slice(0, 3).map(v => `
                     <div class="list-item">
                         <div class="list-info">
-                            <h4>${this.escape(v.licensePlate)}</h4>
-                            <p>${this.escape(v.vehicleTypeName || '-')} - ${this.escape(v.brand || 'Chưa rõ hãng')} - ${this.escape(v.vehicleColor || '')}</p>
+                            <h4>${DriverUtils.escapeHtml(v.licensePlate)}</h4>
+                            <p>${DriverUtils.escapeHtml(v.vehicleTypeName || '-')} - ${DriverUtils.escapeHtml(v.brand || 'Chưa rõ hãng')} - ${DriverUtils.escapeHtml(v.vehicleColor || '')}</p>
                         </div>
                     </div>
                 `).join('')}${vehicles.length > 3 ? `<p style="text-align:center;margin-top:8px;font-size:0.85rem;color:var(--text-muted)">... và ${vehicles.length - 3} xe khác</p>` : ''}</div>
             </div>` : `
             <div class="card">
-                <div class="card-header"><span class="card-title">${iconCar()} Xe của tôi</span></div>
-                <div class="card-body">${this.emptyState(iconCar(), 'Chưa có phương tiện nào.')}<button class="btn btn-primary btn-full" style="margin-top:12px" onclick="App.navigate('vehicles')">Đăng ký xe ngay</button></div>
+                <div class="card-header"><span class="card-title">${DriverRender.iconCar()} Xe của tôi</span></div>
+                <div class="card-body">${DriverRender.renderEmptyState(DriverRender.iconCar(), 'Chưa có phương tiện nào.')}<button class="btn btn-primary btn-full" style="margin-top:12px" onclick="App.navigate('vehicles')">Đăng ký xe ngay</button></div>
             </div>`}
         `;
     },
 
+    // ===============================
+    // Block: Tìm Chỗ (Parking)
+    // ===============================
+    // Lấy danh sách toàn bộ slot trong bãi đỗ và hiển thị giao diện lọc, 
+    // xem tình trạng slot để tài xế dễ dàng tìm kiếm.
     async parking(container) {
-        container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
+        container.innerHTML = DriverRender.renderLoadingState();
         const res = await Api.request('/api/slots');
         if(!res.success) {
-             container.innerHTML = `<div class="page-header"><h2>Tìm chỗ đỗ xe</h2></div>` + this.emptyState(iconMapPin(), res.message);
+             container.innerHTML = `<div class="page-header"><h2>Tìm chỗ đỗ xe</h2></div>` + DriverRender.renderEmptyState(DriverRender.iconMapPin(), res.message);
              return;
         }
         
         const allSlots = res.data || [];
-        this.state.slots = allSlots;
+        DriverState.slots = allSlots;
         
         const buildings = new Set();
         const floors = new Set();
@@ -187,7 +203,7 @@ const Pages = {
             if(s.vehicleTypeName) vTypes.add(s.vehicleTypeName);
         });
 
-        const f = this.state.parkingFilters;
+        const f = DriverState.parkingFilters;
         
         const filtered = allSlots.filter(s => {
             if (f.buildingName !== 'all' && s.buildingName !== f.buildingName) return false;
@@ -201,23 +217,119 @@ const Pages = {
         container.innerHTML = `
             <div class="page-header"><h2>Tìm chỗ đỗ xe</h2><p>Kiểm tra tình trạng chỗ trống.</p></div>
             <div class="card">
-                <div class="card-header"><span class="card-title">${iconFilter()} Bộ lọc</span><button class="btn btn-outline btn-sm" onclick="Pages.resetParkingFilters()">Đặt lại</button></div>
+                <div class="card-header"><span class="card-title">${DriverRender.iconFilter()} Bộ lọc</span><button class="btn btn-outline btn-sm" onclick="Pages.resetParkingFilters()">Đặt lại</button></div>
                 <div class="card-body">
                     <div class="form-grid">
-                        <div class="form-group"><label>Tòa nhà</label><select onchange="Pages.updateParkingFilter('buildingName', this.value)"><option value="all">Tất cả</option>${[...buildings].map(b => `<option value="${b}" ${b === f.buildingName ? 'selected' : ''}>${this.escape(b)}</option>`).join('')}</select></div>
-                        <div class="form-group"><label>Tầng</label><select onchange="Pages.updateParkingFilter('floorName', this.value)"><option value="all">Tất cả</option>${[...floors].map(fl => `<option value="${fl}" ${fl === f.floorName ? 'selected' : ''}>${this.escape(fl)}</option>`).join('')}</select></div>
-                        <div class="form-group"><label>Khu vực</label><select onchange="Pages.updateParkingFilter('zoneName', this.value)"><option value="all">Tất cả</option>${[...zones].map(z => `<option value="${z}" ${z === f.zoneName ? 'selected' : ''}>${this.escape(z)}</option>`).join('')}</select></div>
-                        <div class="form-group"><label>Loại xe</label><select onchange="Pages.updateParkingFilter('vehicleTypeName', this.value)"><option value="all">Tất cả</option>${[...vTypes].map(t => `<option value="${t}" ${t === f.vehicleTypeName ? 'selected' : ''}>${this.escape(t)}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Tòa nhà</label><select onchange="Pages.updateParkingFilter('buildingName', this.value)"><option value="all">Tất cả</option>${[...buildings].map(b => `<option value="${b}" ${b === f.buildingName ? 'selected' : ''}>${DriverUtils.escapeHtml(b)}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Tầng</label><select onchange="Pages.updateParkingFilter('floorName', this.value)"><option value="all">Tất cả</option>${[...floors].map(fl => `<option value="${fl}" ${fl === f.floorName ? 'selected' : ''}>${DriverUtils.escapeHtml(fl)}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Khu vực</label><select onchange="Pages.updateParkingFilter('zoneName', this.value)"><option value="all">Tất cả</option>${[...zones].map(z => `<option value="${z}" ${z === f.zoneName ? 'selected' : ''}>${DriverUtils.escapeHtml(z)}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Loại xe</label><select onchange="Pages.updateParkingFilter('vehicleTypeName', this.value)"><option value="all">Tất cả</option>${[...vTypes].map(t => `<option value="${t}" ${t === f.vehicleTypeName ? 'selected' : ''}>${DriverUtils.escapeHtml(t)}</option>`).join('')}</select></div>
                         <div class="form-group"><label>Trạng thái</label><select onchange="Pages.updateParkingFilter('status', this.value)"><option value="all">Tất cả</option><option value="AVAILABLE" ${f.status === 'AVAILABLE' ? 'selected' : ''}>Trống</option><option value="OCCUPIED" ${f.status === 'OCCUPIED' ? 'selected' : ''}>Đang sử dụng</option><option value="RESERVED" ${f.status === 'RESERVED' ? 'selected' : ''}>Đã đặt</option><option value="LOCKED" ${f.status === 'LOCKED' ? 'selected' : ''}>Khóa</option></select></div>
                     </div>
                 </div>
             </div>
-            <div class="card"><div class="card-header"><span class="card-title">${iconMapPin()} Danh sách slot (${filtered.length})</span></div><div class="card-body">${this.renderSlotGroups(filtered)}</div></div>
+            <div class="card"><div class="card-header"><span class="card-title">${DriverRender.iconMapPin()} Danh sách slot (${filtered.length})</span></div><div class="card-body">${this.renderSlotGroups(filtered)}</div></div>
         `;
     },
 
+    updateParkingFilter(key, value) {
+        DriverState.parkingFilters[key] = value;
+        App.navigate('parking');
+    },
+
+    resetParkingFilters() {
+        DriverState.parkingFilters = { buildingName: 'all', floorName: 'all', zoneName: 'all', vehicleTypeName: 'all', status: 'all', startTime: '', endTime: '' };
+        App.navigate('parking');
+    },
+
+    renderSlotGroups(slots) {
+        if (!slots.length) return DriverRender.renderEmptyState(DriverRender.iconMapPin(), 'Không có slot phù hợp với bộ lọc.');
+        const buildings = [...new Set(slots.map(s => s.buildingName || 'Khu vực chung'))];
+        return buildings.map(bName => {
+            const bSlots = slots.filter(s => (s.buildingName || 'Khu vực chung') === bName);
+            if (!bSlots.length) return '';
+            return `
+                <div class="zone-group">
+                    <h3>${DriverUtils.escapeHtml(bName)}</h3>
+                    <div class="slot-grid">${bSlots.map(slot => this.renderSlot(slot)).join('')}</div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    renderSlot(slot) {
+        const cls = slot.status ? slot.status.toLowerCase() : 'unknown';
+        const isMotorbike = DriverConditions.isMotorbikeSlot(slot);
+        const iconSvg = isMotorbike 
+            ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28" style="opacity: 0.8; margin-bottom: 4px;"><circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M15 6h5M12.5 12.5l3.5-6.5M5.5 13L9 6h3"/></svg>`
+            : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28" style="opacity: 0.8; margin-bottom: 4px;"><path d="M14 16H9m10 0h3v-3.15a1 1 0 00-.84-.99L16 11l-2.7-3.6a1 1 0 00-.8-.4H5.24a2 2 0 00-1.8 1.1l-.8 1.63A6 6 0 002 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>`;
+        
+        return `
+            <div class="slot-tile ${cls}" onclick="Pages.showSlotDetail(${slot.slotId})" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; gap: 4px;">
+                ${iconSvg}
+                <strong style="font-size: 1.1rem;">${DriverUtils.escapeHtml(slot.slotCode)}</strong>
+                <small style="font-weight: 500; opacity: 0.9; text-align: center;">${DriverUtils.escapeHtml(slot.vehicleTypeName || '-')}<br/>${slot.currentOccupancy || 0} / ${slot.capacity || 1}</small>
+                ${this.statusBadge(slot.status)}
+            </div>
+        `;
+    },
+
+    showSlotDetail(slotId) {
+        const slot = DriverState.slots.find(s => s.slotId === slotId);
+        if (!slot) return;
+        
+        let actionArea = '';
+        if (!DriverConditions.isSlotAvailable(slot)) {
+            actionArea = `<div class="alert alert-warning" style="margin-bottom: 12px; font-size: 0.85rem; text-align: center; color: var(--yellow, #f59e0b); background: var(--yellow-bg, #fffbeb); padding: 10px; border-radius: 6px;">Slot này hiện không thể đặt chỗ.</div>`;
+        } else if (DriverConditions.isMotorbikeSlot(slot)) {
+            actionArea = `<div class="alert alert-warning" style="margin-bottom: 12px; font-size: 0.85rem; text-align: center; color: var(--yellow, #f59e0b); background: var(--yellow-bg, #fffbeb); padding: 10px; border-radius: 6px;">Slot xe máy không hỗ trợ đặt trước.</div>`;
+        } else {
+            actionArea = DriverRender.renderActionButton('Đặt chỗ slot này', `Pages.reserveSlot(${slot.slotId})`, 'btn-primary btn-full', 'margin-bottom: 12px;');
+        }
+
+        this.openModal(`
+            <div class="modal-header">
+                <h3>Chi tiết Slot</h3>
+                <button class="modal-close" type="button" onclick="Pages.closeModal()">${DriverRender.iconClose()}</button>
+            </div>
+            <div class="modal-body slot-detail-modal-body">
+                <div class="card" style="box-shadow: none; border: 1px solid var(--border-color); margin: 0;">
+                    <div class="card-body">
+                        ${DriverRender.renderInfoRow('Mã slot', slot.slotCode)}
+                        <div class="list-item">
+                            <div class="list-info"><h4>Trạng thái</h4></div>
+                            <div>${this.statusBadge(slot.status)}</div>
+                        </div>
+                        ${DriverRender.renderInfoRow('Tòa nhà', slot.buildingName || '-')}
+                        ${DriverRender.renderInfoRow('Tầng', slot.floorName || '-')}
+                        ${DriverRender.renderInfoRow('Khu vực', slot.zoneName || '-')}
+                        ${DriverRender.renderInfoRow('Loại xe', slot.vehicleTypeName || '-')}
+                        ${DriverRender.renderInfoRow('Diện tích', slot.area ? slot.area + ' m²' : '-')}
+                        ${DriverRender.renderInfoRow('Sức chứa', slot.capacity || 0)}
+                        ${DriverRender.renderInfoRow('Đang sử dụng', slot.currentOccupancy || 0)}
+                        ${DriverRender.renderInfoRow('Hoạt động', slot.isActive === false ? 'Không' : 'Có')}
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="flex-direction: column;">
+                ${actionArea}
+                <button type="button" class="btn btn-outline btn-full" onclick="Pages.closeModal()">Đóng</button>
+            </div>
+        `);
+    },
+
+    reserveSlot(slotId) {
+        this.closeModal();
+        DriverState.pendingReservationSlotId = slotId;
+        App.navigate('reservations');
+    },
+
+    // ===============================
+    // Block: Đặt Chỗ (Reservations)
+    // ===============================
+    // Quản lý việc đặt trước chỗ đỗ xe. Form tạo đặt chỗ và danh sách đặt chỗ.
     async reservations(container) {
-        container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
+        container.innerHTML = DriverRender.renderLoadingState();
         const [rRes, vRes, sRes, allSlotsRes] = await Promise.all([
             Api.getReservations(),
             Api.getMyVehicles(),
@@ -226,24 +338,24 @@ const Pages = {
         ]);
         
         if(!rRes.success) {
-            container.innerHTML = `<div class="page-header"><h2>Đặt chỗ</h2></div>` + this.emptyState(iconCalendar(), rRes.message);
+            container.innerHTML = `<div class="page-header"><h2>Đặt chỗ</h2></div>` + DriverRender.renderEmptyState(DriverRender.iconCalendar(), rRes.message);
             return;
         }
         
-        this.state.reservations = rRes.data || [];
-        this.state.vehicles = vRes.success ? (vRes.data || []) : [];
-        const reservableVehicles = this.state.vehicles.filter(v => this.isReservableVehicleType(v.vehicleTypeName));
-        const availableSlots = sRes.success ? (sRes.data || []).filter(s => s.status === 'AVAILABLE' && this.isReservableVehicleType(s.vehicleTypeName)) : [];
-        this.state.availableSlots = availableSlots;
-        this.state.allSlots = allSlotsRes.success ? (allSlotsRes.data || []) : [];
+        DriverState.reservations = rRes.data || [];
+        DriverState.vehicles = vRes.success ? (vRes.data || []) : [];
+        const reservableVehicles = DriverState.vehicles.filter(v => DriverConditions.isReservableVehicleType(v.vehicleTypeName));
+        const availableSlots = sRes.success ? (sRes.data || []).filter(s => DriverConditions.canReserveSlot(s)) : [];
+        DriverState.availableSlots = availableSlots;
+        DriverState.allSlots = allSlotsRes.success ? (allSlotsRes.data || []) : [];
         
         container.innerHTML = `
             <div class="page-header"><h2>Đặt chỗ</h2><p>Tạo yêu cầu đặt chỗ và theo dõi trạng thái.</p></div>
             <div class="card">
-                <div class="card-header"><span class="card-title">${iconCalendar()} Tạo đặt chỗ mới</span></div>
+                <div class="card-header"><span class="card-title">${DriverRender.iconCalendar()} Tạo đặt chỗ mới</span></div>
                 ${reservableVehicles.length === 0 ? `
                 <div class="card-body">
-                    ${this.emptyState(iconCar(), 'Bạn chưa có phương tiện phù hợp (ô tô) để đặt chỗ trước.')}
+                    ${DriverRender.renderEmptyState(DriverRender.iconCar(), 'Bạn chưa có phương tiện phù hợp (ô tô) để đặt chỗ trước.')}
                     <div style="margin-top: 16px; text-align: center;">
                         <button type="button" class="btn btn-primary" onclick="App.navigate('vehicles')">Đăng ký xe ngay</button>
                     </div>
@@ -251,26 +363,26 @@ const Pages = {
                 ` : `
                 <form class="card-body" onsubmit="Pages.createReservationSubmit(event)">
                     <div class="form-grid">
-                        <div class="form-group"><label>Xe</label><select id="reservation-vehicle" required>${reservableVehicles.map(v => `<option value="${v.vehicleId}">${this.escape(v.licensePlate)} - ${this.escape(v.vehicleTypeName)}</option>`).join('')}</select></div>
-                        <div class="form-group"><label>Chọn slot</label><select id="reservation-slot">${availableSlots.length === 0 ? '<option value="">Hiện chưa có slot phù hợp để đặt trước.</option>' : '<option value="">Tự động xếp chỗ</option>' + availableSlots.map(s => `<option value="${s.slotId}" ${this.state.pendingReservationSlotId === s.slotId ? 'selected' : ''}>${this.escape(s.slotCode)} - ${this.escape(s.buildingName || '')} - ${this.escape(s.floorName)} - ${this.escape(s.zoneName)}</option>`).join('')}</select></div>
-                        <div class="form-group"><label>Giờ bắt đầu</label><input id="reservation-start" type="datetime-local" value="${localDateTimeValue(new Date(Date.now() + 3600000))}" required></div>
-                        <div class="form-group"><label>Giờ kết thúc</label><input id="reservation-end" type="datetime-local" value="${localDateTimeValue(new Date(Date.now() + 10800000))}" required></div>
+                        <div class="form-group"><label>Xe</label><select id="reservation-vehicle" required>${reservableVehicles.map(v => `<option value="${v.vehicleId}">${DriverUtils.escapeHtml(v.licensePlate)} - ${DriverUtils.escapeHtml(v.vehicleTypeName)}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Chọn slot</label><select id="reservation-slot">${availableSlots.length === 0 ? '<option value="">Hiện chưa có slot phù hợp để đặt trước.</option>' : '<option value="">Tự động xếp chỗ</option>' + availableSlots.map(s => `<option value="${s.slotId}" ${DriverState.pendingReservationSlotId === s.slotId ? 'selected' : ''}>${DriverUtils.escapeHtml(s.slotCode)} - ${DriverUtils.escapeHtml(s.buildingName || '')} - ${DriverUtils.escapeHtml(s.floorName)} - ${DriverUtils.escapeHtml(s.zoneName)}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Giờ bắt đầu</label><input id="reservation-start" type="datetime-local" value="${DriverUtils.localDateTimeValue(new Date(Date.now() + 3600000))}" required></div>
+                        <div class="form-group"><label>Giờ kết thúc</label><input id="reservation-end" type="datetime-local" value="${DriverUtils.localDateTimeValue(new Date(Date.now() + 10800000))}" required></div>
                     </div>
                     <div class="button-row" style="margin-top:16px"><button class="btn btn-primary btn-full" type="submit" ${availableSlots.length === 0 ? 'disabled' : ''}>Đặt chỗ</button></div>
                 </form>
                 `}
             </div>
-            <div class="card"><div class="card-header"><span class="card-title">Danh sách đặt chỗ</span></div><div class="card-body">${this.state.reservations.map(r => this.renderReservation(r)).join('') || this.emptyState(iconCalendar(), 'Không có dữ liệu đặt chỗ.')}</div></div>
+            <div class="card"><div class="card-header"><span class="card-title">Danh sách đặt chỗ</span></div><div class="card-body">${DriverState.reservations.map(r => this.renderReservation(r)).join('') || DriverRender.renderEmptyState(DriverRender.iconCalendar(), 'Không có dữ liệu đặt chỗ.')}</div></div>
         `;
         
         // Reset pending slot after render
-        this.state.pendingReservationSlotId = null;
+        DriverState.pendingReservationSlotId = null;
     },
 
     async createReservationSubmit(event) {
         event.preventDefault();
         
-        const userId = this.state.user?.userId || Api.user?.userId;
+        const userId = App.state.user?.userId || Api.user?.userId;
         if (!userId) {
             App.showToast('Không tìm thấy thông tin người dùng.', 'error');
             return;
@@ -282,12 +394,12 @@ const Pages = {
             return;
         }
         const vehicleId = Number(vehicleIdVal);
-        const selectedVehicle = this.state.vehicles.find(v => v.vehicleId === vehicleId);
+        const selectedVehicle = DriverState.vehicles.find(v => v.vehicleId === vehicleId);
         if (!selectedVehicle) {
             App.showToast('Vui lòng chọn xe.', 'error');
             return;
         }
-        if (this.isMotorbikeType(selectedVehicle.vehicleTypeName)) {
+        if (DriverConditions.isMotorbikeType(selectedVehicle.vehicleTypeName)) {
             App.showToast('Xe máy không hỗ trợ đặt chỗ trước.', 'error');
             return;
         }
@@ -299,16 +411,16 @@ const Pages = {
             return;
         }
         const slotId = Number(slotIdVal);
-        const selectedSlot = (this.state.slots || []).find(s => s.slotId === slotId) || (this.state.availableSlots || []).find(s => s.slotId === slotId);
+        const selectedSlot = (DriverState.slots || []).find(s => s.slotId === slotId) || (DriverState.availableSlots || []).find(s => s.slotId === slotId);
         if (!selectedSlot) {
             App.showToast('Vui lòng chọn slot.', 'error');
             return;
         }
-        if (selectedSlot.status !== 'AVAILABLE') {
+        if (!DriverConditions.isSlotAvailable(selectedSlot)) {
             App.showToast('Slot này hiện không khả dụng.', 'error');
             return;
         }
-        if (this.isMotorbikeType(selectedSlot.vehicleTypeName)) {
+        if (DriverConditions.isMotorbikeSlot(selectedSlot)) {
             App.showToast('Slot xe máy không hỗ trợ đặt trước.', 'error');
             return;
         }
@@ -317,7 +429,7 @@ const Pages = {
         if (selectedVehicle.vehicleTypeId != null && selectedSlot.vehicleTypeId != null) {
             isMatch = (selectedVehicle.vehicleTypeId === selectedSlot.vehicleTypeId);
         } else {
-            isMatch = (this.normalizeText(selectedVehicle.vehicleTypeName) === this.normalizeText(selectedSlot.vehicleTypeName));
+            isMatch = (DriverUtils.normalizeText(selectedVehicle.vehicleTypeName) === DriverUtils.normalizeText(selectedSlot.vehicleTypeName));
         }
         if (!isMatch) {
             App.showToast('Loại xe không phù hợp với slot đã chọn.', 'error');
@@ -342,15 +454,15 @@ const Pages = {
             return;
         }
 
-        const formatDateTime = (val) => val.length === 16 ? val + ':00' : val;
+        const formatDateTimeStr = (val) => val.length === 16 ? val + ':00' : val;
 
         const data = {
             userId: userId,
             vehicleId: vehicleId,
             vehicleTypeId: vehicleTypeId,
             slotId: slotId,
-            reservationStart: formatDateTime(startVal),
-            reservationEnd: formatDateTime(endVal),
+            reservationStart: formatDateTimeStr(startVal),
+            reservationEnd: formatDateTimeStr(endVal),
             guestName: Api.user?.fullName || 'Tài xế'
         };
 
@@ -378,45 +490,124 @@ const Pages = {
         }
     },
 
+    renderReservation(r) {
+        let statusTextStr = this.statusText(r.status);
+
+        let paymentText = DriverConditions.isReservationPaid(r) ? 'Đã thanh toán' : 'Chưa thanh toán';
+        if (r.paymentStatus === 'FAILED') paymentText = 'Thanh toán thất bại';
+
+        const statusBadgeStr = this.statusBadge(r.status);
+        const paymentBadgeCls = DriverConditions.isReservationPaid(r) ? 'badge-green' : (r.paymentStatus === 'FAILED' ? 'badge-red' : 'badge-yellow');
+        const paymentBadgeStr = DriverRender.renderBadge(DriverConditions.isReservationPaid(r) ? (r.paymentMethod || paymentText) : paymentText, paymentBadgeCls);
+        
+        let actions = '';
+        if (DriverConditions.canPayReservation(r)) {
+            actions += `<button id="pay-btn-${r.reservationId}" class="btn btn-primary btn-sm" onclick="Pages.payReservation(${r.reservationId})">Thanh toán ngay</button>`;
+        }
+        if (DriverConditions.canCancelReservation(r)) {
+            actions += `<button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red); margin-left: 8px;" onclick="Pages.cancelReservationSubmit(${r.reservationId})">Hủy</button>`;
+        }
+        
+        return `
+            <div class="list-item" style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                    <h4 style="margin: 0; font-size: 1.1rem; color: var(--primary-color);">Xe: ${DriverUtils.escapeHtml(r.licensePlate)} - Slot: ${DriverUtils.escapeHtml(r.slotCode || 'Tự xếp chỗ')}</h4>
+                    <div style="display: flex; gap: 6px;">${statusBadgeStr}${paymentBadgeStr}</div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 0.9rem; color: var(--text-color);">
+                    <div><strong>Loại xe:</strong> ${DriverUtils.escapeHtml(r.vehicleTypeName || '-')}</div>
+                    <div><strong>Vị trí:</strong> ${this.resolveReservationLocation(r, DriverState.allSlots)}</div>
+                    <div><strong>Thời gian bắt đầu:</strong> ${DriverUtils.formatDateTime(r.reservationStart)}</div>
+                    <div><strong>Thời gian kết thúc:</strong> ${DriverUtils.formatDateTime(r.reservationEnd)}</div>
+                    <div><strong>Phí dự kiến:</strong> <span style="color: var(--primary-color); font-weight: 600;">${this.resolveReservationFee(r)}</span></div>
+                </div>
+                ${actions ? `<div class="button-row" style="margin-top: 4px; justify-content: flex-end;">${actions}</div>` : ''}
+            </div>
+        `;
+    },
+
+    async payReservation(reservationId) {
+        const btn = document.getElementById(`pay-btn-${reservationId}`);
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<div class="btn-loader" style="width: 14px; height: 14px; display: inline-block;"></div>';
+        }
+
+        DriverState.createdPayments = DriverState.createdPayments || {};
+        let paymentId = DriverState.createdPayments[reservationId];
+
+        if (!paymentId) {
+            const payload = {
+                reservationId: reservationId,
+                paymentMethod: 'E_WALLET'
+            };
+
+            const res = await Api.createPayment(payload);
+            
+            if (res.success && res.data) {
+                paymentId = res.data.paymentId;
+                DriverState.createdPayments[reservationId] = paymentId;
+            } else {
+                let msg = res.message || 'Không thể tạo thanh toán cho đặt chỗ này.';
+                if (msg.includes('already PAID') || msg.includes('has already been paid') || msg.includes('not in PENDING')) {
+                    msg = 'Đặt chỗ này đã được thanh toán hoặc không thể thanh toán lúc này.';
+                    App.navigate('reservations');
+                }
+                App.showToast(msg, 'error');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Thanh toán ngay';
+                }
+                return;
+            }
+        }
+
+        this.createVnPayUrl(paymentId);
+    },
+
+    // ===============================
+    // Block: Quản Lý Xe (Vehicles)
+    // ===============================
+    // Liệt kê các phương tiện của tài xế. Thêm, sửa, xóa phương tiện và xem chi tiết.
     async vehicles(container) {
-        container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
+        container.innerHTML = DriverRender.renderLoadingState();
         const [vRes, tRes] = await Promise.all([
             Api.getMyVehicles(),
             Api.getVehicleTypes()
         ]);
         
         if(!vRes.success) {
-            container.innerHTML = `<div class="page-header"><h2>Quản lý xe</h2></div>` + this.emptyState(iconCar(), vRes.message);
+            container.innerHTML = `<div class="page-header"><h2>Quản lý xe</h2></div>` + DriverRender.renderEmptyState(DriverRender.iconCar(), vRes.message);
             return;
         }
         
-        this.state.vehicles = vRes.data || [];
-        this.state.vehicleTypes = tRes.success ? (tRes.data || []) : [];
+        DriverState.vehicles = vRes.data || [];
+        DriverState.vehicleTypes = tRes.success ? (tRes.data || []) : [];
         
         container.innerHTML = `
             <div class="page-header"><h2>Quản lý xe</h2><p>Thêm, sửa, xóa phương tiện của bạn.</p></div>
             <div class="card">
-                <div class="card-header"><span class="card-title">${iconCar()} Xe của tôi</span><button class="btn btn-primary btn-sm" onclick="Pages.showVehicleModal()">Thêm xe</button></div>
-                <div class="card-body">${this.state.vehicles.length ? this.state.vehicles.map(v => this.renderVehicle(v)).join('') : this.emptyState(iconCar(), 'Chưa có phương tiện nào.')}</div>
+                <div class="card-header"><span class="card-title">${DriverRender.iconCar()} Xe của tôi</span><button class="btn btn-primary btn-sm" onclick="Pages.showVehicleModal()">Thêm xe</button></div>
+                <div class="card-body">${DriverState.vehicles.length ? DriverState.vehicles.map(v => this.renderVehicle(v)).join('') : DriverRender.renderEmptyState(DriverRender.iconCar(), 'Chưa có phương tiện nào.')}</div>
             </div>
         `;
     },
 
     showVehicleModal(vehicleId = null) {
-        const vehicle = vehicleId ? this.state.vehicles.find(v => v.vehicleId === vehicleId) : null;
+        const vehicle = vehicleId ? DriverState.vehicles.find(v => v.vehicleId === vehicleId) : null;
         this.openModal(`
             <form onsubmit="Pages.saveVehicle(event, ${vehicleId || 'null'})" style="display: flex; flex-direction: column; min-height: 0; flex: 1;">
-                <div class="modal-header"><h3>${vehicle ? 'Sửa xe' : 'Thêm xe'}</h3><button class="modal-close" type="button" onclick="Pages.closeModal()">${iconClose()}</button></div>
+                <div class="modal-header"><h3>${vehicle ? 'Sửa xe' : 'Thêm xe'}</h3><button class="modal-close" type="button" onclick="Pages.closeModal()">${DriverRender.iconClose()}</button></div>
                 <div class="modal-body">
                     <div id="vehicle-error" class="alert alert-error" style="display:none; color: var(--red, red); margin-bottom: 10px; padding: 10px; border-radius: 4px; background: rgba(255,0,0,0.1);"></div>
                     <div class="form-grid">
-                        <div class="form-group"><label>Biển số xe <span style="color: var(--red);">*</span></label><input id="vehicle-plate" value="${this.escapeAttr(vehicle?.licensePlate || '')}" placeholder="Vui lòng nhập biển số xe"></div>
-                        <div class="form-group"><label>Loại xe <span style="color: var(--red);">*</span></label><select id="vehicle-type"><option value="">Vui lòng chọn loại xe</option>${this.state.vehicleTypes.map(t => `<option value="${t.vehicleTypeId}" ${vehicle?.vehicleTypeId === t.vehicleTypeId ? 'selected' : ''}>${this.escape(t.typeName)}</option>`).join('')}</select></div>
-                        <div class="form-group"><label>Tên chủ xe <span style="color: var(--red);">*</span></label><input id="vehicle-ownerName" value="${this.escapeAttr(vehicle?.ownerName || '')}" placeholder="Vui lòng nhập tên chủ xe"></div>
-                        <div class="form-group"><label>SĐT chủ xe <span style="color: var(--red);">*</span></label><input id="vehicle-ownerPhone" value="${this.escapeAttr(vehicle?.ownerPhone || '')}" placeholder="Vui lòng nhập số điện thoại"></div>
-                        <div class="form-group"><label>Số CCCD/CMND <span style="color: var(--red);">*</span></label><input id="vehicle-idCard" value="${this.escapeAttr(vehicle?.ownerIdCard || '')}" placeholder="Vui lòng nhập số CCCD"></div>
-                        <div class="form-group"><label>Hãng xe <span style="color: var(--red);">*</span></label><input id="vehicle-brand" value="${this.escapeAttr(vehicle?.brand || '')}" placeholder="Vui lòng nhập hãng xe"></div>
-                        <div class="form-group"><label>Màu xe <span style="color: var(--red);">*</span></label><input id="vehicle-color" value="${this.escapeAttr(vehicle?.vehicleColor || '')}" placeholder="Vui lòng nhập màu xe"></div>
+                        <div class="form-group"><label>Biển số xe <span style="color: var(--red);">*</span></label><input id="vehicle-plate" value="${DriverUtils.escapeAttr(vehicle?.licensePlate || '')}" placeholder="Vui lòng nhập biển số xe"></div>
+                        <div class="form-group"><label>Loại xe <span style="color: var(--red);">*</span></label><select id="vehicle-type"><option value="">Vui lòng chọn loại xe</option>${DriverState.vehicleTypes.map(t => `<option value="${t.vehicleTypeId}" ${vehicle?.vehicleTypeId === t.vehicleTypeId ? 'selected' : ''}>${DriverUtils.escapeHtml(t.typeName)}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Tên chủ xe <span style="color: var(--red);">*</span></label><input id="vehicle-ownerName" value="${DriverUtils.escapeAttr(vehicle?.ownerName || '')}" placeholder="Vui lòng nhập tên chủ xe"></div>
+                        <div class="form-group"><label>SĐT chủ xe <span style="color: var(--red);">*</span></label><input id="vehicle-ownerPhone" value="${DriverUtils.escapeAttr(vehicle?.ownerPhone || '')}" placeholder="Vui lòng nhập số điện thoại"></div>
+                        <div class="form-group"><label>Số CCCD/CMND <span style="color: var(--red);">*</span></label><input id="vehicle-idCard" value="${DriverUtils.escapeAttr(vehicle?.ownerIdCard || '')}" placeholder="Vui lòng nhập số CCCD"></div>
+                        <div class="form-group"><label>Hãng xe <span style="color: var(--red);">*</span></label><input id="vehicle-brand" value="${DriverUtils.escapeAttr(vehicle?.brand || '')}" placeholder="Vui lòng nhập hãng xe"></div>
+                        <div class="form-group"><label>Màu xe <span style="color: var(--red);">*</span></label><input id="vehicle-color" value="${DriverUtils.escapeAttr(vehicle?.vehicleColor || '')}" placeholder="Vui lòng nhập màu xe"></div>
                         <div class="form-group full-width"><label>Ảnh chân dung <span style="color: var(--red);">*</span></label><input id="vehicle-ownerPortrait-file" type="file" accept="image/*" ${vehicle?.ownerPortrait ? '' : 'required'}>
                         ${vehicle?.ownerPortrait ? `<div style="margin-top: 4px;"><a href="${vehicle.ownerPortrait}" target="_blank">Xem ảnh hiện tại</a></div>` : ''}</div>
                         <div class="form-group full-width"><label>Ảnh cà vẹt xe <span style="color: var(--red);">*</span></label><input id="vehicle-regPhoto-file" type="file" accept="image/*" ${vehicle?.registrationPhoto ? '' : 'required'}>
@@ -455,7 +646,6 @@ const Pages = {
         const ownerIdCard = document.getElementById('vehicle-idCard').value.trim();
         const brand = document.getElementById('vehicle-brand').value.trim();
         const vehicleColor = document.getElementById('vehicle-color').value.trim();
-        // File inputs handles images
 
         if (!licensePlate) return showError('Vui lòng nhập biển số xe.');
         if (!vehicleTypeIdVal) return showError('Vui lòng chọn loại xe.');
@@ -509,14 +699,73 @@ const Pages = {
         }
     },
 
+    renderVehicle(v) {
+        return `
+            <div class="vehicle-card clickable-card" onclick="Pages.showVehicleDetail(${v.vehicleId})">
+                <div class="vehicle-icon">${DriverRender.iconCar()}</div>
+                <div class="vehicle-info">
+                    <h3>${DriverUtils.escapeHtml(v.licensePlate)}</h3>
+                    <div class="vehicle-meta">${DriverUtils.escapeHtml(v.vehicleTypeName)} - ${DriverUtils.escapeHtml(v.brand || 'Chưa rõ hãng')} - ${DriverUtils.escapeHtml(v.vehicleColor || 'Chưa rõ màu')}</div>
+                    <div class="button-row">
+                        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); Pages.showVehicleModal(${v.vehicleId})">Sửa</button>
+                        <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red)" onclick="event.stopPropagation(); Pages.deleteVehicleSubmit(${v.vehicleId})">Xóa</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    showVehicleDetail(vehicleId) {
+        const v = DriverState.vehicles.find(x => x.vehicleId === vehicleId);
+        if(!v) return;
+        
+        let imgHtml = '';
+        if (v.vehicleImage) {
+            imgHtml = `<div class="list-item"><div class="list-info"><h4>Hình ảnh xe</h4><div style="margin-top: 8px;"><img src="${DriverUtils.escapeAttr(v.vehicleImage)}" style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border-color);" alt="Hình ảnh xe"></div></div></div>`;
+        } else {
+            imgHtml = DriverRender.renderInfoRow('Hình ảnh xe', 'Chưa có thông tin');
+        }
+
+        this.openModal(`
+            <div class="modal-header">
+                <h3>Chi tiết xe</h3>
+                <button class="modal-close" type="button" onclick="Pages.closeModal()">${DriverRender.iconClose()}</button>
+            </div>
+            <div class="modal-body">
+                <div class="card" style="box-shadow: none; border: 1px solid var(--border-color); margin: 0;">
+                    <div class="card-body">
+                        ${DriverRender.renderInfoRow('Mã xe', v.vehicleId || 'Chưa có thông tin')}
+                        ${DriverRender.renderInfoRow('Biển số xe', v.licensePlate || 'Chưa có thông tin')}
+                        ${DriverRender.renderInfoRow('Loại xe', v.vehicleTypeName || 'Chưa có thông tin')}
+                        ${DriverRender.renderInfoRow('Tên chủ xe', v.ownerName || 'Chưa có thông tin')}
+                        ${DriverRender.renderInfoRow('Số điện thoại chủ xe', v.ownerPhone || 'Chưa có thông tin')}
+                        ${DriverRender.renderInfoRow('Hãng xe', v.brand || 'Chưa có thông tin')}
+                        ${DriverRender.renderInfoRow('Màu xe', v.vehicleColor || 'Chưa có thông tin')}
+                        ${DriverRender.renderInfoRow('Số máy', v.engineNumber || 'Chưa có thông tin')}
+                        ${DriverRender.renderInfoRow('Số khung', v.chassisNumber || 'Chưa có thông tin')}
+                        ${DriverRender.renderInfoRow('Năm sản xuất', v.manufactureYear || 'Chưa có thông tin')}
+                        ${imgHtml}
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline btn-full" onclick="Pages.closeModal()">Đóng</button>
+            </div>
+        `);
+    },
+
+    // ===============================
+    // Block: Hồ Sơ Cá Nhân (Account)
+    // ===============================
+    // Hiển thị thông tin người dùng và hỗ trợ cập nhật thông tin cá nhân hoặc mật khẩu.
     async account(container) {
-        container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
+        container.innerHTML = DriverRender.renderLoadingState();
         const res = await Api.getCurrentUser();
         
         if (!res.success) {
             container.innerHTML = `
                 <div class="page-header"><h2>Hồ sơ cá nhân</h2></div>
-                ${this.emptyState(iconUser(), res.message || 'Không thể tải thông tin người dùng.')}
+                ${DriverRender.renderEmptyState(DriverRender.iconUser(), res.message || 'Không thể tải thông tin người dùng.')}
             `;
             return;
         }
@@ -536,16 +785,16 @@ const Pages = {
         container.innerHTML = `
             <div class="page-header"><h2>Hồ sơ cá nhân</h2><p>Thông tin tài khoản từ hệ thống.</p></div>
             <div class="card">
-                <div class="card-header"><span class="card-title">${iconUser()} Thông tin cơ bản</span></div>
+                <div class="card-header"><span class="card-title">${DriverRender.iconUser()} Thông tin cơ bản</span></div>
                 <div class="card-body">
-                    ${this.infoRow('Mã người dùng', userId || '-')}
-                    ${this.infoRow('Họ tên', fullName || '-')}
-                    ${this.infoRow('Email', email || '-')}
-                    ${this.infoRow('Số điện thoại', phone || 'Chưa có thông tin')}
-                    ${this.infoRow('Ngày sinh', dob || 'Chưa có thông tin')}
-                    ${this.infoRow('Địa chỉ', address || 'Chưa có thông tin')}
-                    ${this.infoRow('Vai trò', role)}
-                    ${this.infoRow('Trạng thái tài khoản', status)}
+                    ${DriverRender.renderInfoRow('Mã người dùng', userId || '-')}
+                    ${DriverRender.renderInfoRow('Họ tên', fullName || '-')}
+                    ${DriverRender.renderInfoRow('Email', email || '-')}
+                    ${DriverRender.renderInfoRow('Số điện thoại', phone || 'Chưa có thông tin')}
+                    ${DriverRender.renderInfoRow('Ngày sinh', dob || 'Chưa có thông tin')}
+                    ${DriverRender.renderInfoRow('Địa chỉ', address || 'Chưa có thông tin')}
+                    ${DriverRender.renderInfoRow('Vai trò', role)}
+                    ${DriverRender.renderInfoRow('Trạng thái tài khoản', status)}
                     
                     <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -563,7 +812,7 @@ const Pages = {
     },
 
     showEditProfileModal() {
-        const u = this.state.user || Api.user;
+        const u = App.state.user || Api.user;
         if (!u) return;
 
         const fullName = u.fullname || u.fullName || '';
@@ -574,25 +823,25 @@ const Pages = {
         this.openModal(`
             <div class="modal-header">
                 <h3>Chỉnh sửa thông tin</h3>
-                <button class="modal-close" type="button" onclick="Pages.closeModal()">${iconClose()}</button>
+                <button class="modal-close" type="button" onclick="Pages.closeModal()">${DriverRender.iconClose()}</button>
             </div>
             <form class="modal-body" onsubmit="Pages.submitEditProfile(event)">
                 <div class="form-grid">
                     <div class="form-group full-width">
                         <label>Họ tên</label>
-                        <input id="edit-profile-name" type="text" value="${this.escapeAttr(fullName)}" required>
+                        <input id="edit-profile-name" type="text" value="${DriverUtils.escapeAttr(fullName)}" required>
                     </div>
                     <div class="form-group full-width">
                         <label>Email (Không được sửa)</label>
-                        <input id="edit-profile-email" type="email" value="${this.escapeAttr(email)}" disabled style="background-color: var(--bg-color); cursor: not-allowed;">
+                        <input id="edit-profile-email" type="email" value="${DriverUtils.escapeAttr(email)}" disabled style="background-color: var(--bg-color); cursor: not-allowed;">
                     </div>
                     <div class="form-group full-width">
                         <label>Số điện thoại</label>
-                        <input id="edit-profile-phone" type="tel" value="${this.escapeAttr(phone)}">
+                        <input id="edit-profile-phone" type="tel" value="${DriverUtils.escapeAttr(phone)}">
                     </div>
                     <div class="form-group full-width">
                         <label>Địa chỉ</label>
-                        <input id="edit-profile-address" type="text" value="${this.escapeAttr(address)}">
+                        <input id="edit-profile-address" type="text" value="${DriverUtils.escapeAttr(address)}">
                     </div>
                 </div>
                 <div id="edit-profile-error" class="login-error hidden" style="margin-top: 16px;"></div>
@@ -643,7 +892,7 @@ const Pages = {
         this.openModal(`
             <div class="modal-header">
                 <h3>Đổi mật khẩu</h3>
-                <button class="modal-close" type="button" onclick="Pages.closeModal()">${iconClose()}</button>
+                <button class="modal-close" type="button" onclick="Pages.closeModal()">${DriverRender.iconClose()}</button>
             </div>
             <form class="modal-body" onsubmit="Pages.submitChangePassword(event)">
                 <div class="form-grid">
@@ -700,8 +949,12 @@ const Pages = {
         }
     },
 
+    // ===============================
+    // Block: Quản lý Phiên (Session) & Thanh Toán & Lịch sử
+    // ===============================
+    // Các chức năng khác như xem phiên đang gửi, yêu cầu thanh toán VNPay.
     async session(container) {
-        container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
+        container.innerHTML = DriverRender.renderLoadingState();
         const resVehicles = await Api.getMyVehicles();
         const vehicles = resVehicles.success ? (resVehicles.data || []) : [];
         
@@ -716,7 +969,24 @@ const Pages = {
 
         container.innerHTML = `
             <div class="page-header"><h2>Phiên gửi xe</h2><p>Chỉ xem phiên gửi xe đang hoạt động. Check-in / Check-out do nhân viên thực hiện.</p></div>
-            ${activeSession ? this.renderActiveSession(activeSession) : this.emptyState(iconClock(), 'Không có phiên gửi xe nào đang hoạt động.')}
+            ${activeSession ? this.renderActiveSession(activeSession) : DriverRender.renderEmptyState(DriverRender.iconClock(), 'Không có phiên gửi xe nào đang hoạt động.')}
+        `;
+    },
+
+    renderActiveSession(session) {
+        return `
+            <div class="card">
+                <div class="card-header"><span class="card-title">${DriverRender.iconClock()} Phiên đang hoạt động</span><span class="badge badge-green">Đang đỗ</span></div>
+                <div class="card-body">
+                    <div class="stats-grid">
+                        ${this.statCard('orange', DriverRender.iconCar(), session.licensePlate, 'Biển số')}
+                        ${this.statCard('blue', DriverRender.iconMapPin(), session.slotCode, 'Mã slot')}
+                    </div>
+                    ${DriverRender.renderInfoRow('Vị trí', `${session.zoneName || '-'}, ${session.floorName || '-'}, ${session.buildingName || '-'}`)}
+                    ${DriverRender.renderInfoRow('Giờ vào', DriverUtils.formatDateTime(session.entryTime))}
+                    ${DriverRender.renderInfoRow('Trạng thái', this.statusText(session.status))}
+                </div>
+            </div>
         `;
     },
 
@@ -741,11 +1011,11 @@ const Pages = {
     },
 
     async pricing(container) {
-        container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
+        container.innerHTML = DriverRender.renderLoadingState();
         const res = await Api.request('/api/pricings');
         
         if (!res.success) {
-            container.innerHTML = `<div class="page-header"><h2>Chính sách giá</h2></div>` + this.emptyState(iconTag(), res.message);
+            container.innerHTML = `<div class="page-header"><h2>Chính sách giá</h2></div>` + DriverRender.renderEmptyState(DriverRender.iconTag(), res.message);
             return;
         }
 
@@ -754,9 +1024,9 @@ const Pages = {
         container.innerHTML = `
             <div class="page-header"><h2>Chính sách giá</h2><p>Bảng giá dịch vụ đỗ xe hiện tại.</p></div>
             <div class="card">
-                <div class="card-header"><span class="card-title">${iconTag()} Danh sách bảng giá</span></div>
+                <div class="card-header"><span class="card-title">${DriverRender.iconTag()} Danh sách bảng giá</span></div>
                 <div class="card-body" style="padding: 0; overflow-x: auto;">
-                    ${policies.length === 0 ? `<div style="padding: 20px;">${this.emptyState(iconTag(), 'Chưa có chính sách giá nào.')}</div>` : `
+                    ${policies.length === 0 ? `<div style="padding: 20px;">${DriverRender.renderEmptyState(DriverRender.iconTag(), 'Chưa có chính sách giá nào.')}</div>` : `
                         <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
                             <thead>
                                 <tr style="background-color: var(--bg-color); border-bottom: 2px solid var(--border-color);">
@@ -773,23 +1043,23 @@ const Pages = {
                             <tbody>
                                 ${policies.map(p => `
                                     <tr style="border-bottom: 1px solid var(--border-color);">
-                                        <td style="padding: 12px 16px; font-weight: 600;">${this.escape(p.vehicleTypeName || 'Tất cả')}</td>
-                                        <td style="padding: 12px 16px; color: var(--text-color);">${this.formatCurrency(p.basePrice)}</td>
+                                        <td style="padding: 12px 16px; font-weight: 600;">${DriverUtils.escapeHtml(p.vehicleTypeName || 'Tất cả')}</td>
+                                        <td style="padding: 12px 16px; color: var(--text-color);">${DriverUtils.formatCurrency(p.basePrice)}</td>
                                         <td style="padding: 12px 16px; color: var(--text-color);">
-                                            ${this.formatCurrency(p.rushHourPrice)}
+                                            ${DriverUtils.formatCurrency(p.rushHourPrice)}
                                             <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">(${p.rushHourStart || '-'} - ${p.rushHourEnd || '-'})</div>
                                         </td>
                                         <td style="padding: 12px 16px; color: var(--text-color);">
-                                            ${this.formatCurrency(p.offPeakPrice)}
+                                            ${DriverUtils.formatCurrency(p.offPeakPrice)}
                                         </td>
                                         <td style="padding: 12px 16px; color: var(--primary-color); font-weight: 500;">
-                                            ${p.maxDailyRate ? this.formatCurrency(p.maxDailyRate) : 'Không giới hạn'}
+                                            ${p.maxDailyRate ? DriverUtils.formatCurrency(p.maxDailyRate) : 'Không giới hạn'}
                                         </td>
                                         <td style="padding: 12px 16px; color: var(--red); font-weight: 500;">
-                                            ${p.overtimeFeePerHour ? this.formatCurrency(p.overtimeFeePerHour) + '/h' : '-'}
+                                            ${p.overtimeFeePerHour ? DriverUtils.formatCurrency(p.overtimeFeePerHour) + '/h' : '-'}
                                         </td>
                                         <td style="padding: 12px 16px; color: var(--text-color);">
-                                            ${p.lostTicketFee ? this.formatCurrency(p.lostTicketFee) : '-'}
+                                            ${p.lostTicketFee ? DriverUtils.formatCurrency(p.lostTicketFee) : '-'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: center;">
                                             <span class="badge ${p.isActive ? 'badge-success' : 'badge-danger'}">${p.isActive ? 'Áp dụng' : 'Ngừng'}</span>
@@ -807,25 +1077,29 @@ const Pages = {
     async history(container) {
         container.innerHTML = `
             <div class="page-header"><h2>Lịch sử gửi xe</h2><p>Lịch sử gửi xe.</p></div>
-            <div class="empty-state">${iconReceipt()}<p>Chưa có API Lịch sử gửi xe cho Driver. Vui lòng xem ở Đặt chỗ.</p></div>
+            <div class="empty-state">${DriverRender.iconReceipt()}<p>Chưa có API Lịch sử gửi xe cho Driver. Vui lòng xem ở Đặt chỗ.</p></div>
         `;
     },
 
+    // ===============================
+    // Block: Báo Cáo Sự Cố (Incident)
+    // ===============================
+    // Quản lý việc gửi báo cáo sự cố trong bãi xe.
     async incident(container) {
-        container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
+        container.innerHTML = DriverRender.renderLoadingState();
         const res = await Api.getIncidents();
         
         if(!res.success) {
-            container.innerHTML = `<div class="page-header"><h2>Báo cáo sự cố</h2></div>` + this.emptyState(iconAlert(), res.message);
+            container.innerHTML = `<div class="page-header"><h2>Báo cáo sự cố</h2></div>` + DriverRender.renderEmptyState(DriverRender.iconAlert(), res.message);
             return;
         }
         
-        this.state.incidents = res.data || [];
+        DriverState.incidents = res.data || [];
         
         container.innerHTML = `
             <div class="page-header"><h2>Báo cáo sự cố</h2><p>Gửi báo cáo sự cố trong bãi xe.</p></div>
             <div class="card">
-                <div class="card-header"><span class="card-title">${iconAlert()} Tạo báo cáo</span></div>
+                <div class="card-header"><span class="card-title">${DriverRender.iconAlert()} Tạo báo cáo</span></div>
                 <form class="card-body" onsubmit="Pages.submitIncident(event)">
                     <div class="form-grid">
                         <div class="form-group"><label>Loại sự cố *</label><select id="incident-type" required><option value="">Chọn loại sự cố</option><option>Chỗ đỗ hư hỏng</option><option>Xe bị chắn lối</option><option>Vấn đề thanh toán</option><option>Mất vé</option><option>Điều kiện không an toàn</option><option>Khác</option></select></div>
@@ -834,7 +1108,7 @@ const Pages = {
                     <button class="btn btn-primary btn-full" type="submit" style="margin-top:10px;">Gửi báo cáo</button>
                 </form>
             </div>
-            <div class="card"><div class="card-header"><span class="card-title">Sự cố đã gửi</span></div><div class="card-body">${this.state.incidents.length ? this.state.incidents.map(i => this.renderIncident(i)).join('') : this.emptyState(iconAlert(), 'Chưa có báo cáo sự cố.')}</div></div>
+            <div class="card"><div class="card-header"><span class="card-title">Sự cố đã gửi</span></div><div class="card-body">${DriverState.incidents.length ? DriverState.incidents.map(i => this.renderIncident(i)).join('') : DriverRender.renderEmptyState(DriverRender.iconAlert(), 'Chưa có báo cáo sự cố.')}</div></div>
         `;
     },
 
@@ -853,361 +1127,18 @@ const Pages = {
         }
     },
 
-    updateParkingFilter(key, value) {
-        this.state.parkingFilters[key] = value;
-        App.navigate('parking');
-    },
-
-    resetParkingFilters() {
-        this.state.parkingFilters = { buildingName: 'all', floorName: 'all', zoneName: 'all', vehicleTypeName: 'all', status: 'all', startTime: '', endTime: '' };
-        App.navigate('parking');
-    },
-
-    renderSlotGroups(slots) {
-        if (!slots.length) return this.emptyState(iconMapPin(), 'Không có slot phù hợp với bộ lọc.');
-        const buildings = [...new Set(slots.map(s => s.buildingName || 'Khu vực chung'))];
-        return buildings.map(bName => {
-            const bSlots = slots.filter(s => (s.buildingName || 'Khu vực chung') === bName);
-            if (!bSlots.length) return '';
-            return `
-                <div class="zone-group">
-                    <h3>${this.escape(bName)}</h3>
-                    <div class="slot-grid">${bSlots.map(slot => this.renderSlot(slot)).join('')}</div>
-                </div>
-            `;
-        }).join('');
-    },
-
-    renderSlot(slot) {
-        const cls = slot.status ? slot.status.toLowerCase() : 'unknown';
-        const isMotorbike = this.isMotorbikeType(slot.vehicleTypeName);
-        const iconSvg = isMotorbike 
-            ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28" style="opacity: 0.8; margin-bottom: 4px;"><circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M15 6h5M12.5 12.5l3.5-6.5M5.5 13L9 6h3"/></svg>`
-            : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28" style="opacity: 0.8; margin-bottom: 4px;"><path d="M14 16H9m10 0h3v-3.15a1 1 0 00-.84-.99L16 11l-2.7-3.6a1 1 0 00-.8-.4H5.24a2 2 0 00-1.8 1.1l-.8 1.63A6 6 0 002 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>`;
-        
-        return `
-            <div class="slot-tile ${cls}" onclick="Pages.showSlotDetail(${slot.slotId})" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; gap: 4px;">
-                ${iconSvg}
-                <strong style="font-size: 1.1rem;">${this.escape(slot.slotCode)}</strong>
-                <small style="font-weight: 500; opacity: 0.9; text-align: center;">${this.escape(slot.vehicleTypeName || '-')}<br/>${slot.currentOccupancy || 0} / ${slot.capacity || 1}</small>
-                ${this.statusBadge(slot.status)}
-            </div>
-        `;
-    },
-
-    showSlotDetail(slotId) {
-        const slot = this.state.slots.find(s => s.slotId === slotId);
-        if (!slot) return;
-        
-        let actionArea = '';
-        if (slot.status !== 'AVAILABLE') {
-            actionArea = `<div class="alert alert-warning" style="margin-bottom: 12px; font-size: 0.85rem; text-align: center; color: var(--yellow, #f59e0b); background: var(--yellow-bg, #fffbeb); padding: 10px; border-radius: 6px;">Slot này hiện không thể đặt chỗ.</div>`;
-        } else if (this.isMotorbikeType(slot.vehicleTypeName)) {
-            actionArea = `<div class="alert alert-warning" style="margin-bottom: 12px; font-size: 0.85rem; text-align: center; color: var(--yellow, #f59e0b); background: var(--yellow-bg, #fffbeb); padding: 10px; border-radius: 6px;">Slot xe máy không hỗ trợ đặt trước.</div>`;
-        } else {
-            actionArea = `<button type="button" class="btn btn-primary btn-full" style="margin-bottom: 12px;" onclick="Pages.reserveSlot(${slot.slotId})">Đặt chỗ slot này</button>`;
-        }
-
-        this.openModal(`
-            <div class="modal-header">
-                <h3>Chi tiết Slot</h3>
-                <button class="modal-close" type="button" onclick="Pages.closeModal()">${iconClose()}</button>
-            </div>
-            <div class="modal-body slot-detail-modal-body">
-                <div class="card" style="box-shadow: none; border: 1px solid var(--border-color); margin: 0;">
-                    <div class="card-body">
-                        ${this.infoRow('Mã slot', slot.slotCode)}
-                        <div class="list-item">
-                            <div class="list-info"><h4>Trạng thái</h4></div>
-                            <div>${this.statusBadge(slot.status)}</div>
-                        </div>
-                        ${this.infoRow('Tòa nhà', slot.buildingName || '-')}
-                        ${this.infoRow('Tầng', slot.floorName || '-')}
-                        ${this.infoRow('Khu vực', slot.zoneName || '-')}
-                        ${this.infoRow('Loại xe', slot.vehicleTypeName || '-')}
-                        ${this.infoRow('Diện tích', slot.area ? slot.area + ' m²' : '-')}
-                        ${this.infoRow('Sức chứa', slot.capacity || 0)}
-                        ${this.infoRow('Đang sử dụng', slot.currentOccupancy || 0)}
-                        ${this.infoRow('Hoạt động', slot.isActive === false ? 'Không' : 'Có')}
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer" style="flex-direction: column;">
-                ${actionArea}
-                <button type="button" class="btn btn-outline btn-full" onclick="Pages.closeModal()">Đóng</button>
-            </div>
-        `);
-    },
-
-    reserveSlot(slotId) {
-        this.closeModal();
-        this.state.pendingReservationSlotId = slotId;
-        App.navigate('reservations');
-    },
-
-    renderVehicle(v) {
-        return `
-            <div class="vehicle-card clickable-card" onclick="Pages.showVehicleDetail(${v.vehicleId})">
-                <div class="vehicle-icon">${iconCar()}</div>
-                <div class="vehicle-info">
-                    <h3>${this.escape(v.licensePlate)}</h3>
-                    <div class="vehicle-meta">${this.escape(v.vehicleTypeName)} - ${this.escape(v.brand || 'Chưa rõ hãng')} - ${this.escape(v.vehicleColor || 'Chưa rõ màu')}</div>
-                    <div class="button-row">
-                        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); Pages.showVehicleModal(${v.vehicleId})">Sửa</button>
-                        <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red)" onclick="event.stopPropagation(); Pages.deleteVehicleSubmit(${v.vehicleId})">Xóa</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    },
-
-    showVehicleDetail(vehicleId) {
-        const v = this.state.vehicles.find(x => x.vehicleId === vehicleId);
-        if(!v) return;
-        
-        let imgHtml = '';
-        if (v.vehicleImage) {
-            imgHtml = `<div class="list-item"><div class="list-info"><h4>Hình ảnh xe</h4><div style="margin-top: 8px;"><img src="${this.escapeAttr(v.vehicleImage)}" style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border-color);" alt="Hình ảnh xe"></div></div></div>`;
-        } else {
-            imgHtml = this.infoRow('Hình ảnh xe', 'Chưa có thông tin');
-        }
-
-        this.openModal(`
-            <div class="modal-header">
-                <h3>Chi tiết xe</h3>
-                <button class="modal-close" type="button" onclick="Pages.closeModal()">${iconClose()}</button>
-            </div>
-            <div class="modal-body">
-                <div class="card" style="box-shadow: none; border: 1px solid var(--border-color); margin: 0;">
-                    <div class="card-body">
-                        ${this.infoRow('Mã xe', v.vehicleId || 'Chưa có thông tin')}
-                        ${this.infoRow('Biển số xe', v.licensePlate || 'Chưa có thông tin')}
-                        ${this.infoRow('Loại xe', v.vehicleTypeName || 'Chưa có thông tin')}
-                        ${this.infoRow('Tên chủ xe', v.ownerName || 'Chưa có thông tin')}
-                        ${this.infoRow('Số điện thoại chủ xe', v.ownerPhone || 'Chưa có thông tin')}
-                        ${this.infoRow('Hãng xe', v.brand || 'Chưa có thông tin')}
-                        ${this.infoRow('Màu xe', v.vehicleColor || 'Chưa có thông tin')}
-                        ${this.infoRow('Số máy', v.engineNumber || 'Chưa có thông tin')}
-                        ${this.infoRow('Số khung', v.chassisNumber || 'Chưa có thông tin')}
-                        ${this.infoRow('Năm sản xuất', v.manufactureYear || 'Chưa có thông tin')}
-                        ${imgHtml}
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline btn-full" onclick="Pages.closeModal()">Đóng</button>
-            </div>
-        `);
-    },
-
-    renderReservation(r) {
-        const isPaid = r.paymentStatus === 'PAID' || r.status === 'CONFIRMED' || r.status === 'COMPLETED';
-        const isPending = r.status === 'PENDING' || r.status === 'PENDING_PAYMENT';
-        
-        let statusText = r.status;
-        if (r.status === 'PENDING') statusText = 'Chờ xác nhận';
-        if (r.status === 'PENDING_PAYMENT') statusText = 'Chờ thanh toán';
-        if (r.status === 'CONFIRMED') statusText = 'Đã xác nhận';
-        if (r.status === 'CANCELLED') statusText = 'Đã hủy';
-        if (r.status === 'COMPLETED') statusText = 'Hoàn tất';
-
-        let paymentText = isPaid ? 'Đã thanh toán' : 'Chưa thanh toán';
-        if (r.paymentStatus === 'FAILED') paymentText = 'Thanh toán thất bại';
-
-        const statusBadge = `<span class="badge ${['CONFIRMED', 'COMPLETED'].includes(r.status) ? 'badge-green' : (r.status === 'CANCELLED' ? 'badge-gray' : 'badge-yellow')}">${this.escape(statusText)}</span>`;
-        const paymentBadge = isPaid
-            ? `<span class="badge badge-green">${this.escape(r.paymentMethod || paymentText)}</span>`
-            : `<span class="badge ${r.paymentStatus === 'FAILED' ? 'badge-red' : 'badge-yellow'}">${this.escape(paymentText)}</span>`;
-        
-        let actions = '';
-        if (isPending && !isPaid) {
-            actions += `<button id="pay-btn-${r.reservationId}" class="btn btn-primary btn-sm" onclick="Pages.payReservation(${r.reservationId})">Thanh toán ngay</button>`;
-        }
-        if (['PENDING', 'PENDING_PAYMENT', 'CONFIRMED'].includes(r.status)) {
-            actions += `<button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red); margin-left: 8px;" onclick="Pages.cancelReservationSubmit(${r.reservationId})">Hủy</button>`;
-        }
-        
-        return `
-            <div class="list-item" style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
-                    <h4 style="margin: 0; font-size: 1.1rem; color: var(--primary-color);">Xe: ${this.escape(r.licensePlate)} - Slot: ${this.escape(r.slotCode || 'Tự xếp chỗ')}</h4>
-                    <div style="display: flex; gap: 6px;">${statusBadge}${paymentBadge}</div>
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 0.9rem; color: var(--text-color);">
-                    <div><strong>Loại xe:</strong> ${this.escape(r.vehicleTypeName || '-')}</div>
-                    <div><strong>Vị trí:</strong> ${this.resolveReservationLocation(r, this.state.allSlots)}</div>
-                    <div><strong>Thời gian bắt đầu:</strong> ${this.formatDateTime(r.reservationStart)}</div>
-                    <div><strong>Thời gian kết thúc:</strong> ${this.formatDateTime(r.reservationEnd)}</div>
-                    <div><strong>Phí dự kiến:</strong> <span style="color: var(--primary-color); font-weight: 600;">${this.resolveReservationFee(r)}</span></div>
-                </div>
-                ${actions ? `<div class="button-row" style="margin-top: 4px; justify-content: flex-end;">${actions}</div>` : ''}
-            </div>
-        `;
-    },
-
-    async payReservation(reservationId) {
-        const btn = document.getElementById(`pay-btn-${reservationId}`);
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<div class="btn-loader" style="width: 14px; height: 14px; display: inline-block;"></div>';
-        }
-
-        this.state.createdPayments = this.state.createdPayments || {};
-        let paymentId = this.state.createdPayments[reservationId];
-
-        if (!paymentId) {
-            const payload = {
-                reservationId: reservationId,
-                paymentMethod: 'E_WALLET'
-            };
-
-            const res = await Api.createPayment(payload);
-            
-            if (res.success && res.data) {
-                paymentId = res.data.paymentId;
-                this.state.createdPayments[reservationId] = paymentId;
-            } else {
-                let msg = res.message || 'Không thể tạo thanh toán cho đặt chỗ này.';
-                if (msg.includes('already PAID') || msg.includes('has already been paid') || msg.includes('not in PENDING')) {
-                    msg = 'Đặt chỗ này đã được thanh toán hoặc không thể thanh toán lúc này.';
-                    App.navigate('reservations');
-                }
-                App.showToast(msg, 'error');
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = 'Thanh toán ngay';
-                }
-                return;
-            }
-        }
-
-        const vnPayRes = await Api.createVnPayUrl(paymentId);
-        if (vnPayRes.success && vnPayRes.data && vnPayRes.data.paymentUrl) {
-            window.location.href = vnPayRes.data.paymentUrl;
-        } else {
-            App.showToast(vnPayRes.message || 'Không thể mở cổng thanh toán.', 'error');
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = 'Thanh toán ngay';
-            }
-        }
-    },
-
-    renderActiveSession(session) {
-        return `
-            <div class="card">
-                <div class="card-header"><span class="card-title">${iconClock()} Phiên đang hoạt động</span><span class="badge badge-green">Đang đỗ</span></div>
-                <div class="card-body">
-                    <div class="stats-grid">
-                        ${this.statCard('orange', iconCar(), session.licensePlate, 'Biển số')}
-                        ${this.statCard('blue', iconMapPin(), session.slotCode, 'Mã slot')}
-                    </div>
-                    ${this.infoRow('Vị trí', `${session.zoneName || '-'}, ${session.floorName || '-'}, ${session.buildingName || '-'}`)}
-                    ${this.infoRow('Giờ vào', this.formatDateTime(session.entryTime))}
-                    ${this.infoRow('Trạng thái', this.statusText(session.status))}
-                </div>
-            </div>
-        `;
-    },
-
     renderIncident(item) {
         return `
             <div class="list-item">
                 <div class="list-info">
-                    <h4>ID: ${item.incidentId} - ${this.escape(item.incidentType || item.type)}</h4>
-                    <p>${this.escape(item.description)}</p>
-                    <p style="font-size:.75rem;color:var(--text-muted);margin-top:8px">${this.formatDateTime(item.createdAt)} - Báo cáo bởi: ${this.escape(item.reportedByName || '-')}</p>
+                    <h4>ID: ${item.incidentId} - ${DriverUtils.escapeHtml(item.incidentType || item.type)}</h4>
+                    <p>${DriverUtils.escapeHtml(item.description)}</p>
+                    <p style="font-size:.75rem;color:var(--text-muted);margin-top:8px">${DriverUtils.formatDateTime(item.createdAt)} - Báo cáo bởi: ${DriverUtils.escapeHtml(item.reportedByName || '-')}</p>
                 </div>
-                <span class="badge badge-yellow">${this.escape(item.status)}</span>
+                <span class="badge badge-yellow">${DriverUtils.escapeHtml(item.status)}</span>
             </div>
         `;
-    },
-
-    statusText(status) {
-        return {
-            AVAILABLE: 'Trống', RESERVED: 'Đã đặt', OCCUPIED: 'Đang sử dụng', LOCKED: 'Khóa',
-            ACTIVE: 'Đang hoạt động', COMPLETED: 'Hoàn tất', PENDING: 'Chờ thanh toán',
-            CONFIRMED: 'Đã xác nhận', CANCELLED: 'Đã hủy', PAID: 'Đã thanh toán', UNPAID: 'Chưa thanh toán'
-        }[status] || status;
-    },
-
-    statusBadge(status) {
-        const cls = {
-            AVAILABLE: 'badge-green', RESERVED: 'badge-yellow', OCCUPIED: 'badge-red',
-            LOCKED: 'badge-gray', PAID: 'badge-green', UNPAID: 'badge-yellow',
-            CONFIRMED: 'badge-green', PENDING: 'badge-yellow', CANCELLED: 'badge-gray'
-        }[status] || 'badge-gray';
-        return `<span class="badge ${cls}">${this.escape(this.statusText(status))}</span>`;
-    },
-
-    statCard(color, icon, value, label) {
-        return `<div class="stat-card stat-${color}"><div class="stat-icon">${icon}</div><div class="stat-info"><div class="stat-value">${this.escape(String(value))}</div><div class="stat-label">${this.escape(label)}</div></div></div>`;
-    },
-
-    featureButton(page, icon, label) {
-        return `<button class="feature-card" onclick="App.navigate('${page}')"><div class="feature-card-icon">${icon}</div><span>${this.escape(label)}</span></button>`;
-    },
-
-    infoRow(label, value) {
-        return `<div class="list-item"><div class="list-info"><h4>${this.escape(label)}</h4><p>${this.escape(String(value ?? '-'))}</p></div></div>`;
-    },
-
-    emptyState(icon, message) {
-        return `<div class="empty-state">${icon}<p>${this.escape(message)}</p></div>`;
-    },
-
-    openModal(content) {
-        this.closeModal();
-        const modal = document.createElement('div');
-        modal.id = 'page-modal';
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `<div class="modal-content">${content}</div>`;
-        document.body.appendChild(modal);
-        document.body.style.overflow = 'hidden';
-    },
-
-    closeModal() {
-        const modal = document.getElementById('page-modal');
-        if (modal) {
-            modal.remove();
-            document.body.style.overflow = '';
-        }
-    },
-
-    formatDateTime(value) {
-        if(!value) return '-';
-        return new Date(value).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
-    },
-
-    money(value) {
-        return Number(value || 0).toLocaleString('vi-VN') + ' đ';
-    },
-
-    escape(value) {
-        return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-    },
-
-    escapeAttr(value) {
-        return this.escape(value);
     }
 };
-
-function localDateTimeValue(date) {
-    const offset = date.getTimezoneOffset();
-    return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16);
-}
-
-function iconSvg(path) { return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${path}</svg>`; }
-function iconCar() { return iconSvg('<path d="M14 16H9m10 0h3v-3.15a1 1 0 00-.84-.99L16 11l-2.7-3.6a1 1 0 00-.8-.4H5.24a2 2 0 00-1.8 1.1l-.8 1.63A6 6 0 002 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/>'); }
-function iconCalendar() { return iconSvg('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'); }
-function iconMapPin() { return iconSvg('<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>'); }
-function iconClock() { return iconSvg('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'); }
-function iconWallet() { return iconSvg('<path d="M20 7H5a2 2 0 010-4h14v4z"/><path d="M5 7h16v14H5a2 2 0 01-2-2V5"/><path d="M16 14h2"/>'); }
-function iconTag() { return iconSvg('<path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><circle cx="7" cy="7" r="1"/>'); }
-function iconReceipt() { return iconSvg('<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2H4z"/><path d="M8 7h8M8 11h8M8 15h5"/>'); }
-function iconAlert() { return iconSvg('<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/>'); }
-function iconUser() { return iconSvg('<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>'); }
-function iconFilter() { return iconSvg('<path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>'); }
-function iconClose() { return iconSvg('<path d="M18 6L6 18M6 6l12 12"/>'); }
 
 window.Pages = Pages;
