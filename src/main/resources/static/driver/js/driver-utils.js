@@ -120,8 +120,11 @@ const DriverUtils = {
 
     sortAndRecommendSlots(filteredSlots) {
         filteredSlots.forEach(s => s.isRecommended = false);
-        if (filteredSlots.length > 0) {
-            const sorted = [...filteredSlots].sort((a, b) => {
+        
+        const reservableSlots = filteredSlots.filter(s => DriverConditions.canReserveSlot(s));
+        
+        if (reservableSlots.length > 0) {
+            const sorted = [...reservableSlots].sort((a, b) => {
                 const floorA = a.floorName || '';
                 const floorB = b.floorName || '';
                 if (floorA !== floorB) return floorA.localeCompare(floorB);

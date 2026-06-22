@@ -286,8 +286,8 @@ const Pages = {
         const defaultEnd = filterEnd || DriverUtils.localDateTimeValue(new Date(Date.now() + 10800000));
 
         // 2. Đồng bộ Slot đề xuất
-        // Lấy slot đã được thuật toán đánh dấu "isRecommended" = true
-        const recommendedSlot = (DriverState.slots || []).find(s => s.isRecommended);
+        // Lấy slot đã được thuật toán đánh dấu "isRecommended" = true và có thể đặt trước
+        const recommendedSlot = (DriverState.slots || []).find(s => s.isRecommended && DriverConditions.canReserveSlot(s));
         
         // Nếu người dùng chủ động click "Đặt chỗ slot này" từ Modal chi tiết (pendingReservationSlotId), thì ưu tiên chọn ID đó.
         // Ngược lại, nếu có Slot đề xuất từ bộ lọc thời gian thì tự động pre-select slot đề xuất đó.
