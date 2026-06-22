@@ -577,7 +577,8 @@ const Pages = {
         ]);
         
         if(!vRes.success) {
-            container.innerHTML = `<div class="page-header"><h2>Quản lý xe</h2></div>` + DriverRender.renderEmptyState(DriverRender.iconCar(), vRes.message);
+            console.error(vRes.message);
+            container.innerHTML = `<div class="page-header"><h2>Quản lý xe</h2></div>` + DriverRender.renderEmptyState(DriverRender.iconCar(), "Không thể tải dữ liệu xe. Vui lòng thử lại sau.");
             return;
         }
         
@@ -605,11 +606,8 @@ const Pages = {
                         <div class="form-group"><label>Loại xe <span style="color: var(--red);">*</span></label><select id="vehicle-type"><option value="">Vui lòng chọn loại xe</option>${DriverState.vehicleTypes.map(t => `<option value="${t.vehicleTypeId}" ${vehicle?.vehicleTypeId === t.vehicleTypeId ? 'selected' : ''}>${DriverUtils.escapeHtml(t.typeName)}</option>`).join('')}</select></div>
                         <div class="form-group"><label>Tên chủ xe <span style="color: var(--red);">*</span></label><input id="vehicle-ownerName" value="${DriverUtils.escapeAttr(vehicle?.ownerName || '')}" placeholder="Vui lòng nhập tên chủ xe"></div>
                         <div class="form-group"><label>SĐT chủ xe <span style="color: var(--red);">*</span></label><input id="vehicle-ownerPhone" value="${DriverUtils.escapeAttr(vehicle?.ownerPhone || '')}" placeholder="Vui lòng nhập số điện thoại"></div>
-                        <div class="form-group"><label>Số CCCD/CMND <span style="color: var(--red);">*</span></label><input id="vehicle-idCard" value="${DriverUtils.escapeAttr(vehicle?.ownerIdCard || '')}" placeholder="Vui lòng nhập số CCCD"></div>
                         <div class="form-group"><label>Hãng xe <span style="color: var(--red);">*</span></label><input id="vehicle-brand" value="${DriverUtils.escapeAttr(vehicle?.brand || '')}" placeholder="Vui lòng nhập hãng xe"></div>
                         <div class="form-group"><label>Màu xe <span style="color: var(--red);">*</span></label><input id="vehicle-color" value="${DriverUtils.escapeAttr(vehicle?.vehicleColor || '')}" placeholder="Vui lòng nhập màu xe"></div>
-                        <div class="form-group full-width"><label>Ảnh chân dung <span style="color: var(--red);">*</span></label><input id="vehicle-ownerPortrait-file" type="file" accept="image/*" ${vehicle?.ownerPortrait ? '' : 'required'}>
-                        ${vehicle?.ownerPortrait ? `<div style="margin-top: 4px;"><a href="${vehicle.ownerPortrait}" target="_blank">Xem ảnh hiện tại</a></div>` : ''}</div>
                         <div class="form-group full-width"><label>Ảnh cà vẹt xe <span style="color: var(--red);">*</span></label><input id="vehicle-regPhoto-file" type="file" accept="image/*" ${vehicle?.registrationPhoto ? '' : 'required'}>
                         ${vehicle?.registrationPhoto ? `<div style="margin-top: 4px;"><a href="${vehicle.registrationPhoto}" target="_blank">Xem ảnh hiện tại</a></div>` : ''}</div>
                         <div class="form-group full-width"><label>Ảnh biển số xe <span style="color: var(--red);">*</span></label><input id="vehicle-image-file" type="file" accept="image/*" ${vehicle?.vehicleImage ? '' : 'required'}>
@@ -643,7 +641,6 @@ const Pages = {
         const vehicleTypeIdVal = document.getElementById('vehicle-type').value;
         const ownerName = document.getElementById('vehicle-ownerName').value.trim();
         const ownerPhone = document.getElementById('vehicle-ownerPhone').value.trim();
-        const ownerIdCard = document.getElementById('vehicle-idCard').value.trim();
         const brand = document.getElementById('vehicle-brand').value.trim();
         const vehicleColor = document.getElementById('vehicle-color').value.trim();
 
@@ -651,7 +648,6 @@ const Pages = {
         if (!vehicleTypeIdVal) return showError('Vui lòng chọn loại xe.');
         if (!ownerName) return showError('Vui lòng nhập tên chủ xe.');
         if (!ownerPhone) return showError('Vui lòng nhập số điện thoại chủ xe.');
-        if (!ownerIdCard) return showError('Vui lòng nhập số CCCD chủ xe.');
         
         const phoneRegex = /^[0-9]{9,15}$/;
         if (!phoneRegex.test(ownerPhone)) return showError('Số điện thoại chủ xe không hợp lệ.');
@@ -664,7 +660,6 @@ const Pages = {
             vehicleTypeId: Number(vehicleTypeIdVal),
             ownerName,
             ownerPhone,
-            ownerIdCard,
             brand,
             vehicleColor
         };
@@ -673,8 +668,6 @@ const Pages = {
         if(res.success) {
             const savedVehicleId = res.data?.vehicleId;
             if (savedVehicleId) {
-                const portraitFile = document.getElementById('vehicle-ownerPortrait-file')?.files[0];
-                if (portraitFile) await window.Api.uploadMyVehicleImage(savedVehicleId, portraitFile, 'portrait');
                 const regFile = document.getElementById('vehicle-regPhoto-file')?.files[0];
                 if (regFile) await window.Api.uploadMyVehicleImage(savedVehicleId, regFile, 'registration');
                 const imgFile = document.getElementById('vehicle-image-file')?.files[0];
