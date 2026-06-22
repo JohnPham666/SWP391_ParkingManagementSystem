@@ -97,14 +97,9 @@ const Pages = {
         const activeReservations = reservations.filter(r => ['PENDING', 'CONFIRMED'].includes(r.status));
         const upcomingReservation = activeReservations[0];
 
-        let activeSession = null;
-        for(let v of vehicles) {
-            const sRes = await window.Api.getActiveSession(v.licensePlate);
-            if(sRes.success && sRes.data) {
-                activeSession = sRes.data;
-                break;
-            }
-        }
+        const activeSessionsRes = await window.Api.getMyActiveSessions();
+        const activeSessions = activeSessionsRes.success ? (activeSessionsRes.data || []) : [];
+        const activeSession = activeSessions.length > 0 ? activeSessions[0] : null;
 
         container.innerHTML = `
             <section class="dashboard-hero-card">
@@ -1157,14 +1152,9 @@ const Pages = {
         const resVehicles = await window.Api.getMyVehicles();
         const vehicles = resVehicles.success ? (resVehicles.data || []) : [];
         
-        let activeSession = null;
-        for(let v of vehicles) {
-            const sessionRes = await window.Api.getActiveSession(v.licensePlate);
-            if(sessionRes.success && sessionRes.data) {
-                activeSession = sessionRes.data;
-                break;
-            }
-        }
+        const activeSessionsRes = await window.Api.getMyActiveSessions();
+        const activeSessions = activeSessionsRes.success ? (activeSessionsRes.data || []) : [];
+        const activeSession = activeSessions.length > 0 ? activeSessions[0] : null;
 
         container.innerHTML = `
             <div class="page-header"><h2>Phiên gửi xe</h2><p>Chỉ xem phiên gửi xe đang hoạt động. Check-in / Check-out do nhân viên thực hiện.</p></div>

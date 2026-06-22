@@ -1,7 +1,6 @@
 package com.parking.management.module.payment;
 
 import com.parking.management.common.ApiResponse;
-import com.parking.management.common.ResourceNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -9,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.Map;
 import java.util.List;
 
 @RestController
@@ -24,24 +22,16 @@ public class PaymentController {
     @PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff', 'Driver')")
     @PostMapping
     public ApiResponse<PaymentResponse> create(@Valid @RequestBody PaymentRequest request) {
-        try {
-            PaymentResponse response = service.create(request);
-            return ApiResponse.success("Created payment successfully", response);
-        } catch (IllegalArgumentException | ResourceNotFoundException e) {
-            return ApiResponse.error(e.getMessage());
-        }
+        PaymentResponse response = service.create(request);
+        return ApiResponse.success("Created payment successfully", response);
     }
 
     @Operation(summary = "Get payment by ID", description = "Retrieve a specific payment record by its ID")
     @PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff', 'Driver')")
     @GetMapping("/{id}")
     public ApiResponse<PaymentResponse> getById(@PathVariable Integer id) {
-        try {
-            PaymentResponse response = service.getById(id);
-            return ApiResponse.success("Fetched payment successfully", response);
-        } catch (ResourceNotFoundException e) {
-            return ApiResponse.error(e.getMessage());
-        }
+        PaymentResponse response = service.getById(id);
+        return ApiResponse.success("Fetched payment successfully", response);
     }
 
     @Operation(summary = "Get all payments", description = "Retrieve a list of all payment records")
@@ -56,12 +46,8 @@ public class PaymentController {
     @PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff', 'Driver')")
     @GetMapping("/session/{sessionId}")
     public ApiResponse<PaymentResponse> getBySessionId(@PathVariable Integer sessionId) {
-        try {
-            PaymentResponse response = service.getBySessionId(sessionId);
-            return ApiResponse.success("Fetched payment by session successfully", response);
-        } catch (ResourceNotFoundException e) {
-            return ApiResponse.error(e.getMessage());
-        }
+        PaymentResponse response = service.getBySessionId(sessionId);
+        return ApiResponse.success("Fetched payment by session successfully", response);
     }
 
     @Operation(summary = "Update payment status", description = "Update payment status such as PENDING, PAID, FAILED")
@@ -71,38 +57,25 @@ public class PaymentController {
             @PathVariable Integer id,
             @Valid @RequestBody PaymentStatusUpdateRequest request
     ) {
-        try {
-            PaymentResponse response = service.updateStatus(id, request);
-            return ApiResponse.success("Updated payment status successfully", response);
-        } catch (ResourceNotFoundException e) {
-            return ApiResponse.error(e.getMessage());
-        }
+        PaymentResponse response = service.updateStatus(id, request);
+        return ApiResponse.success("Updated payment status successfully", response);
     }
 
     @Operation(summary = "Delete a payment", description = "Delete a payment record by its ID")
     @PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Integer id) {
-        try {
-            service.delete(id);
-            return ApiResponse.success("Deleted payment successfully", null);
-        } catch (ResourceNotFoundException e) {
-            return ApiResponse.error(e.getMessage());
-        }
+        service.delete(id);
+        return ApiResponse.success("Deleted payment successfully", null);
     }
+
     @Operation(summary = "Confirm cash payment", description = "Staff confirms that cash payment has been received")
     @PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff')")
     @PutMapping("/{id}/confirm-cash")
     public ApiResponse<PaymentResponse> confirmCashPayment(@PathVariable Integer id) {
-        try {
-            PaymentResponse response = service.confirmCashPayment(id);
-            return ApiResponse.success("Cash payment confirmed successfully", response);
-        } catch (IllegalArgumentException | ResourceNotFoundException e) {
-            return ApiResponse.error(e.getMessage());
-        }
+        PaymentResponse response = service.confirmCashPayment(id);
+        return ApiResponse.success("Cash payment confirmed successfully", response);
     }
-
-
 
     @Operation(summary = "Create VNPay payment URL", description = "Create VNPay sandbox payment URL for an existing PENDING payment")
     @PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff', 'Driver')")
@@ -111,11 +84,7 @@ public class PaymentController {
             @PathVariable Integer id,
             HttpServletRequest request
     ) {
-        try {
-            PaymentGatewayResponse response = service.createVnPayPaymentUrl(id, request);
-            return ApiResponse.success("VNPay payment URL created successfully", response);
-        } catch (IllegalArgumentException | ResourceNotFoundException e) {
-            return ApiResponse.error(e.getMessage());
-        }
-  }
+        PaymentGatewayResponse response = service.createVnPayPaymentUrl(id, request);
+        return ApiResponse.success("VNPay payment URL created successfully", response);
+    }
 }

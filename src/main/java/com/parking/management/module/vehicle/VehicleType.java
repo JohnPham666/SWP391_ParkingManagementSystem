@@ -21,4 +21,7 @@ public class VehicleType {
 
     @Column(name = "Description", length = 255)
     private String description;
+
+    @Column(name = "IsReservable", nullable = false)
+    private Boolean isReservable = true;
 }

@@ -10,6 +10,8 @@ import com.parking.management.module.slot.ParkingSlotRepository;
 import com.parking.management.module.slot.SlotStatus;
 import com.parking.management.module.vehicle.Vehicle;
 import com.parking.management.module.vehicle.VehicleRepository;
+import com.parking.management.module.subscription.MonthlySubscription;
+import com.parking.management.module.subscription.SubscriptionRepository;
 import com.parking.management.module.vehicle.VehicleType;
 import com.parking.management.module.vehicle.VehicleTypeRepository;
 import jakarta.transaction.Transactional;
@@ -30,6 +32,7 @@ public class SessionService {
     private final VehicleRepository vehicleRepository;
     private final VehicleTypeRepository vehicleTypeRepository;
     private final ParkingCardRepository parkingCardRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
     /*
      * CHECK-IN
@@ -79,8 +82,8 @@ public class SessionService {
             throw new IllegalArgumentException("Reservation is not CONFIRMED (maybe not paid yet). Current status: " + reservation.getStatus());
         }
 
-        if (!SlotStatus.RESERVED.equals(slot.getStatus()) && slot.getCurrentOccupancy() >= slot.getCapacity()) {
-            throw new IllegalArgumentException("Slot is full or not reserved properly");
+        if (slot.getCurrentOccupancy() >= slot.getCapacity()) {
+            throw new IllegalArgumentException("Rất tiếc, ô đỗ đã bị xe vãng lai lấn chiếm (vượt sức chứa)!");
         }
 
         // Increment occupancy
@@ -110,6 +113,13 @@ public class SessionService {
         return mapEntityToResponse(savedSession);
     }
 
+    public List<SessionResponse> getMyActiveSessions() {
+        Integer currentUserId = securityUtils.getCurrentUserId();
+        List<ParkingSession> sessions = parkingSessionRepository
+                .findByVehicle_User_UserIdAndStatus(currentUserId, SessionStatus.PARKING.name());
+        return sessions.stream().map(this::mapEntityToResponse).toList();
+    }
+
     /*
      * WALK-IN CHECK-IN (Khách vãng lai / Không đặt trước)
      */
@@ -134,15 +144,19 @@ public class SessionService {
                     throw new IllegalArgumentException("This vehicle already has an active parking session");
                 });
 
-        // 3. Tìm Slot trống đầu tiên phù hợp với loại xe
+        // 3. Tìm Slot trống đầu tiên phù hợp với loại xe (kiểm tra cả capacity)
         ParkingSlot slot = parkingSlotRepository
-                .findFirstByVehicleType_VehicleTypeIdAndStatusAndIsActiveTrue(
-                        request.getVehicleTypeId(),
-                        SlotStatus.AVAILABLE
+                .findFirstAvailableSlot(
+                        request.getVehicleTypeId()
                 )
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chỗ trống phù hợp cho loại xe này."));
 
-        // 4. Cập nhật trạng thái Slot
+        // 4. Kiểm tra lại capacity trước khi tăng (phòng race condition)
+        if (slot.getCurrentOccupancy() >= slot.getCapacity()) {
+            throw new IllegalArgumentException("Ô đỗ đã đầy, vui lòng thử lại.");
+        }
+
+        // 5. Cập nhật trạng thái Slot
         slot.setCurrentOccupancy(slot.getCurrentOccupancy() + 1);
         if (slot.getCurrentOccupancy() >= slot.getCapacity()) {
             slot.setStatus(SlotStatus.OCCUPIED);
@@ -222,7 +236,19 @@ public class SessionService {
 
         BigDecimal calculatedFinalFee;
 
-        if (resOpt.isPresent()) {
+        // Xử lý vé tháng (Subscription)
+        List<MonthlySubscription> activeSubs = subscriptionRepository.findActiveSubscriptionsByVehicleId(session.getVehicle().getVehicleId());
+
+        if (!activeSubs.isEmpty()) {
+            // Khách có vé tháng hợp lệ -> Không tính phí đỗ xe
+            calculatedFinalFee = BigDecimal.ZERO;
+            
+            if (resOpt.isPresent()) {
+                Reservation r = resOpt.get();
+                r.setStatus("COMPLETED");
+                reservationRepository.save(r);
+            }
+        } else if (resOpt.isPresent()) {
             Reservation r = resOpt.get();
             r.setStatus("COMPLETED");
             reservationRepository.save(r);

@@ -387,9 +387,8 @@ public class PaymentService {
                 } else {
                     // Cố gắng tìm slot khác nếu slot cũ đã bị lấy (Quick Booking)
                     ParkingSlot newSlot = parkingSlotRepository
-                            .findFirstByVehicleType_VehicleTypeIdAndStatusAndIsActiveTrue(
-                                    reservation.getVehicleType().getVehicleTypeId(),
-                                    SlotStatus.AVAILABLE
+                            .findFirstAvailableSlot(
+                                    reservation.getVehicleType().getVehicleTypeId()
                             ).orElse(null);
                     
                     if (newSlot != null) {

@@ -49,17 +49,16 @@ public class ReservationService {
         VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle type not found with id: " + request.getVehicleTypeId()));
 
-        if (isMotorbikeType(vehicleType.getTypeName())) {
-            throw new IllegalArgumentException("Xe máy không hỗ trợ đặt chỗ trước");
+        if (!vehicleType.getIsReservable()) {
+            throw new IllegalArgumentException("Loại xe này không hỗ trợ đặt chỗ trước.");
         }
 
         ParkingSlot slot;
         if (request.getSlotId() == null) {
             // Đặt nhanh: Tìm chỗ trống đầu tiên
             slot = parkingSlotRepository
-                    .findFirstByVehicleType_VehicleTypeIdAndStatusAndIsActiveTrue(
-                            request.getVehicleTypeId(),
-                            SlotStatus.AVAILABLE
+                    .findFirstAvailableSlot(
+                            request.getVehicleTypeId()
                     )
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chỗ trống phù hợp cho loại xe này."));
         } else {
@@ -72,8 +71,16 @@ public class ReservationService {
             }
         }
 
-        if (isMotorbikeType(slot.getVehicleType().getTypeName())) {
-            throw new IllegalArgumentException("Slot xe máy không hỗ trợ đặt trước");
+        if (!slot.getVehicleType().getIsReservable()) {
+            throw new IllegalArgumentException("Slot dành cho loại xe này không hỗ trợ đặt trước.");
+        }
+
+        // Kiểm tra Double Booking (Overlap)
+        List<Reservation> overlaps = reservationRepository.findOverlappingReservations(
+                slot.getSlotId(), request.getReservationStart(), request.getReservationEnd()
+        );
+        if (!overlaps.isEmpty()) {
+            throw new IllegalArgumentException("Rất tiếc, ô đỗ này đã có người đặt trong khoảng thời gian bạn chọn.");
         }
 
         Reservation reservation = new Reservation();
@@ -142,11 +149,24 @@ public class ReservationService {
         ParkingSlot slot = parkingSlotRepository.findById(request.getSlotId())
                 .orElseThrow(() -> new ResourceNotFoundException("Parking slot not found with id: " + request.getSlotId()));
 
-        if (isMotorbikeType(vehicleType.getTypeName())) {
-            throw new IllegalArgumentException("Xe máy không hỗ trợ đặt chỗ trước");
+        if (!vehicleType.getIsReservable()) {
+            throw new IllegalArgumentException("Loại xe này không hỗ trợ đặt chỗ trước.");
         }
-        if (isMotorbikeType(slot.getVehicleType().getTypeName())) {
-            throw new IllegalArgumentException("Slot xe máy không hỗ trợ đặt trước");
+        if (!slot.getVehicleType().getIsReservable()) {
+            throw new IllegalArgumentException("Slot dành cho loại xe này không hỗ trợ đặt trước.");
+        }
+
+        // Kiểm tra Double Booking (Overlap)
+        List<Reservation> overlaps = reservationRepository.findOverlappingReservations(
+                slot.getSlotId(), request.getReservationStart(), request.getReservationEnd()
+        );
+        // Lọc bỏ chính reservation hiện tại
+        overlaps = overlaps.stream()
+                .filter(r -> !r.getReservationId().equals(id))
+                .toList();
+
+        if (!overlaps.isEmpty()) {
+            throw new IllegalArgumentException("Rất tiếc, ô đỗ này đã có người đặt trong khoảng thời gian bạn chọn.");
         }
 
         reservation.setUser(user);

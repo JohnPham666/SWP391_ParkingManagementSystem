@@ -203,6 +203,8 @@ const Api = {
     async createVnPayUrl(id) { return this.request(`/api/payments/${id}/vnpay-url`, { method: 'POST' }); },
 
     async getActiveSession(licensePlate) { return this.request(`/api/sessions/active/by-license-plate?licensePlate=${encodeURIComponent(licensePlate)}`); },
+    async getMyActiveSessions() { return this.request('/api/sessions/me/active'); },
+    async checkInSession(data) { return this.request('/api/sessions/check-in', 'POST', data); },
 
     async getPricingPolicies() { return this.request('/api/pricings'); },
 

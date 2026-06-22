@@ -1,7 +1,6 @@
 package com.parking.management.module.session;
 
 import com.parking.management.common.ApiResponse;
-import com.parking.management.common.ResourceNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,12 +22,8 @@ public class ParkingCardController {
     @Operation(summary = "Create a new parking card", description = "Register a new physical parking card into the system")
     @PostMapping
     public ApiResponse<ParkingCardResponse> createCard(@Valid @RequestBody ParkingCardRequest request) {
-        try {
-            ParkingCardResponse response = service.createCard(request);
-            return ApiResponse.success("Created parking card successfully", response);
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.error(e.getMessage());
-        }
+        ParkingCardResponse response = service.createCard(request);
+        return ApiResponse.success("Created parking card successfully", response);
     }
 
     @Operation(summary = "Get all parking cards", description = "Retrieve a list of all parking cards")
@@ -41,12 +36,8 @@ public class ParkingCardController {
     @Operation(summary = "Get a parking card by ID", description = "Retrieve a specific parking card by its ID")
     @GetMapping("/{cardId}")
     public ApiResponse<ParkingCardResponse> getCardById(@PathVariable String cardId) {
-        try {
-            ParkingCardResponse response = service.getCardById(cardId);
-            return ApiResponse.success("Fetched parking card successfully", response);
-        } catch (ResourceNotFoundException e) {
-            return ApiResponse.error(e.getMessage());
-        }
+        ParkingCardResponse response = service.getCardById(cardId);
+        return ApiResponse.success("Fetched parking card successfully", response);
     }
 
     @Operation(summary = "Update parking card status", description = "Update the status of a parking card (e.g., ACTIVE, IN_USE, LOST, DISABLED)")
@@ -54,22 +45,14 @@ public class ParkingCardController {
     public ApiResponse<ParkingCardResponse> updateCardStatus(
             @PathVariable String cardId,
             @RequestParam String status) {
-        try {
-            ParkingCardResponse response = service.updateCardStatus(cardId, status);
-            return ApiResponse.success("Updated parking card status successfully", response);
-        } catch (ResourceNotFoundException e) {
-            return ApiResponse.error(e.getMessage());
-        }
+        ParkingCardResponse response = service.updateCardStatus(cardId, status);
+        return ApiResponse.success("Updated parking card status successfully", response);
     }
 
     @Operation(summary = "Delete a parking card", description = "Remove a parking card from the system")
     @DeleteMapping("/{cardId}")
     public ApiResponse<Void> deleteCard(@PathVariable String cardId) {
-        try {
-            service.deleteCard(cardId);
-            return ApiResponse.success("Deleted parking card successfully", null);
-        } catch (ResourceNotFoundException e) {
-            return ApiResponse.error(e.getMessage());
-        }
+        service.deleteCard(cardId);
+        return ApiResponse.success("Deleted parking card successfully", null);
     }
 }

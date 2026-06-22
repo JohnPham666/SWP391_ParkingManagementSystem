@@ -85,7 +85,8 @@ CREATE TABLE Zones (
 CREATE TABLE VehicleTypes (
     VehicleTypeID SERIAL PRIMARY KEY,
     TypeName      VARCHAR(50) NOT NULL UNIQUE,
-    Description   VARCHAR(255)
+    Description   VARCHAR(255),
+    IsReservable  BOOLEAN DEFAULT TRUE NOT NULL
 );
 
 -- =========================================================
