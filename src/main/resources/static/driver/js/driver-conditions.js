@@ -93,6 +93,60 @@ const DriverConditions = {
     canEditProfileField(fieldName) {
         // Example logic
         return fieldName !== 'email';
+    },
+
+    validateReservationInput(vehicle, slot, startVal, endVal) {
+        if (!vehicle) return { valid: false, message: 'Vui lòng chọn xe.' };
+        if (!slot) return { valid: false, message: 'Vui lòng chọn slot.' };
+
+        if (this.isMotorbikeType(vehicle.vehicleTypeName)) {
+            return { valid: false, message: 'Xe máy không hỗ trợ đặt chỗ trước.' };
+        }
+
+        if (!this.isSlotAvailable(slot)) {
+            return { valid: false, message: 'Slot này hiện không khả dụng.' };
+        }
+
+        if (this.isMotorbikeSlot(slot)) {
+            return { valid: false, message: 'Slot xe máy không hỗ trợ đặt trước.' };
+        }
+
+        let isMatch = false;
+        if (vehicle.vehicleTypeId != null && slot.vehicleTypeId != null) {
+            isMatch = (vehicle.vehicleTypeId === slot.vehicleTypeId);
+        } else {
+            isMatch = (DriverUtils.normalizeText(vehicle.vehicleTypeName) === DriverUtils.normalizeText(slot.vehicleTypeName));
+        }
+
+        if (!isMatch) {
+            return { valid: false, message: 'Loại xe không phù hợp với slot đã chọn.' };
+        }
+
+        if (!startVal) return { valid: false, message: 'Vui lòng chọn giờ bắt đầu.' };
+        if (!endVal) return { valid: false, message: 'Vui lòng chọn giờ kết thúc.' };
+
+        const start = new Date(startVal);
+        const end = new Date(endVal);
+        if (end <= start) {
+            return { valid: false, message: 'Giờ kết thúc phải sau giờ bắt đầu.' };
+        }
+
+        return { valid: true };
+    },
+
+    validateVehicleInput(data) {
+        if (!data.licensePlate) return { valid: false, message: 'Vui lòng nhập biển số xe.' };
+        if (!data.vehicleTypeId) return { valid: false, message: 'Vui lòng chọn loại xe.' };
+        if (!data.ownerName) return { valid: false, message: 'Vui lòng nhập tên chủ xe.' };
+        if (!data.ownerPhone) return { valid: false, message: 'Vui lòng nhập số điện thoại chủ xe.' };
+        
+        const phoneRegex = /^[0-9]{9,15}$/;
+        if (!phoneRegex.test(data.ownerPhone)) return { valid: false, message: 'Số điện thoại chủ xe không hợp lệ.' };
+        
+        if (!data.brand) return { valid: false, message: 'Vui lòng nhập hãng xe.' };
+        if (!data.vehicleColor) return { valid: false, message: 'Vui lòng nhập màu xe.' };
+        
+        return { valid: true };
     }
 };
 
