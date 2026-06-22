@@ -271,16 +271,16 @@ const App = {
         c.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
         try {
             switch (page) {
-                case 'home': await Pages.home(c); break;
-                case 'parking': await Pages.parking(c); break;
-                case 'vehicles': await Pages.vehicles(c); break;
-                case 'reservations': await Pages.reservations(c); break;
-                case 'account': await Pages.account(c); break;
-                case 'session': await Pages.session(c); break;
-                case 'payment': await Pages.payment(c); break;
-                case 'pricing': await Pages.pricing(c); break;
-                case 'history': await Pages.history(c); break;
-                case 'incident': await Pages.incident(c); break;
+                case 'home': await window.Pages.home(c); break;
+                case 'parking': await window.Pages.parking(c); break;
+                case 'vehicles': await window.Pages.vehicles(c); break;
+                case 'reservations': await window.Pages.reservations(c); break;
+                case 'account': await window.Pages.account(c); break;
+                case 'session': await window.Pages.session(c); break;
+                case 'payment': await window.Pages.payment(c); break;
+                case 'pricing': await window.Pages.pricing(c); break;
+                case 'history': await window.Pages.history(c); break;
+                case 'incident': await window.Pages.incident(c); break;
                 default:
                     c.innerHTML = '<div class="empty-state"><p>Trang đang phát triển</p></div>';
             }
