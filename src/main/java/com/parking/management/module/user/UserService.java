@@ -1,6 +1,7 @@
 package com.parking.management.module.user;
 
 import com.parking.management.common.ResourceNotFoundException;
+import com.parking.management.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SecurityUtils securityUtils;
 
     public UserResponse create(UserRequest request) {
         // Kiểm tra email trùng
@@ -30,6 +32,8 @@ public class UserService {
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
         user.setPhoneNumber(request.getPhoneNumber());
+        user.setDateOfBirth(request.getDateOfBirth());
+        user.setAddress(request.getAddress());
         user.setRole(role);
 
         // Hash password nếu có
@@ -44,6 +48,7 @@ public class UserService {
     }
 
     public UserResponse getById(Integer id) {
+        securityUtils.checkDataOwnership(id);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         return toResponse(user);
@@ -80,16 +85,34 @@ public class UserService {
     }
 
     public UserResponse update(Integer id, UserRequest request) {
+        securityUtils.checkDataOwnership(id);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
-        Role role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + request.getRoleId()));
+        Integer driverUserId = securityUtils.getDriverUserId();
+        boolean isDriver = driverUserId != null;
 
-        user.setFullName(request.getFullName());
-        user.setEmail(request.getEmail());
-        user.setPhoneNumber(request.getPhoneNumber());
-        user.setRole(role);
+        if (!isDriver) {
+            if (request.getRoleId() != null) {
+                Role role = roleRepository.findById(request.getRoleId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + request.getRoleId()));
+                user.setRole(role);
+            }
+            if (request.getEmail() != null && !request.getEmail().isBlank()) {
+                user.setEmail(request.getEmail());
+            }
+            user.setDateOfBirth(request.getDateOfBirth());
+        }
+
+        if (request.getFullName() != null && !request.getFullName().isBlank()) {
+            user.setFullName(request.getFullName());
+        }
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+        if (request.getAddress() != null) {
+            user.setAddress(request.getAddress());
+        }
 
         // Chỉ đổi password nếu có gửi password mới
         if (request.getPassword() != null && !request.getPassword().isBlank()) {

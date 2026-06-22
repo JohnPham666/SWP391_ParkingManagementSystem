@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@PreAuthorize("hasRole('Admin')")
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 @Tag(name = "User", description = "APIs for managing user accounts")
@@ -44,6 +43,7 @@ public class UserController {
     // ===== Admin-only endpoints =====
 
     @Operation(summary = "Create a new user", description = "Create a new user with full name, email, phone and role")
+    @PreAuthorize("hasRole('Admin')")
     @PostMapping
     public ApiResponse<UserResponse> create(@Valid @RequestBody UserRequest request) {
         return ApiResponse.success("Created successfully", service.create(request));
@@ -56,6 +56,7 @@ public class UserController {
     }
 
     @Operation(summary = "Get all users", description = "Retrieve a list of all users in the system")
+    @PreAuthorize("hasRole('Admin')")
     @GetMapping
     public ApiResponse<List<UserResponse>> getAll() {
         return ApiResponse.success("Fetched all successfully", service.getAll());
@@ -68,6 +69,7 @@ public class UserController {
     }
 
     @Operation(summary = "Delete a user", description = "Delete a user by their ID")
+    @PreAuthorize("hasRole('Admin')")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Integer id) {
         service.delete(id);

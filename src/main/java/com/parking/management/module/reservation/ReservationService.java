@@ -11,6 +11,9 @@ import com.parking.management.module.vehicle.VehicleRepository;
 import com.parking.management.module.vehicle.VehicleType;
 import com.parking.management.module.vehicle.VehicleTypeRepository;
 import com.parking.management.security.SecurityUtils;
+import com.parking.management.module.payment.PaymentRepository;
+import com.parking.management.module.pricing.PricingService;
+import com.parking.management.module.pricing.FeeCalculationResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,8 @@ public class ReservationService {
     private final VehicleTypeRepository vehicleTypeRepository;
     private final ParkingSlotRepository parkingSlotRepository;
     private final SecurityUtils securityUtils;
+    private final PaymentRepository paymentRepository;
+    private final PricingService pricingService;
 
 
     public ReservationResponse create(ReservationRequest request) {
@@ -85,7 +90,7 @@ public class ReservationService {
         // CHÚ Ý: Không cập nhật trạng thái của Slot thành RESERVED ở đây.
         // Việc khóa Slot sẽ diễn ra sau khi thanh toán thành công.
 
-        return ReservationResponse.fromEntity(reservationRepository.save(reservation));
+        return mapToResponse(reservationRepository.save(reservation));
     }
 
     public List<ReservationResponse> getAll() {
@@ -99,7 +104,7 @@ public class ReservationService {
         }
         
         return reservations.stream()
-                .map(ReservationResponse::fromEntity)
+                .map(this::mapToResponse)
                 .toList();
     }
 
@@ -111,7 +116,7 @@ public class ReservationService {
             securityUtils.checkDataOwnership(reservation.getUser().getUserId());
         }
 
-        return ReservationResponse.fromEntity(reservation);
+        return mapToResponse(reservation);
     }
 
     public ReservationResponse update(Integer id, ReservationRequest request) {
@@ -154,7 +159,7 @@ public class ReservationService {
         reservation.setGuestName(request.getGuestName());
         reservation.setCreatedAt(LocalDateTime.now());
 
-        return ReservationResponse.fromEntity(reservationRepository.save(reservation));
+        return mapToResponse(reservationRepository.save(reservation));
     }
 
     public void cancel(Integer id) {
@@ -193,7 +198,30 @@ public class ReservationService {
                 parkingSlotRepository.save(slot);
             }
         }
-        return ReservationResponse.fromEntity(reservationRepository.save(reservation));
+        return mapToResponse(reservationRepository.save(reservation));
+    }
+
+    private ReservationResponse mapToResponse(Reservation reservation) {
+        ReservationResponse response = ReservationResponse.fromEntity(reservation);
+        try {
+            FeeCalculationResponse feeRes = pricingService.calculateFee(
+                    Long.valueOf(reservation.getVehicleType().getVehicleTypeId()),
+                    reservation.getReservationStart(),
+                    reservation.getReservationEnd()
+            );
+            response.setEstimatedFee(feeRes.getFinalFee());
+        } catch (Exception e) {
+            response.setEstimatedFee(null);
+        }
+
+        paymentRepository.findFirstByReservation_ReservationIdOrderByPaymentIdDesc(reservation.getReservationId())
+                .ifPresent(p -> {
+                    response.setPaymentStatus(p.getPaymentStatus());
+                    response.setPaymentId(p.getPaymentId());
+                    response.setAmount(p.getAmount());
+                });
+
+        return response;
     }
 
     private String normalizeVehicleTypeName(String value) {

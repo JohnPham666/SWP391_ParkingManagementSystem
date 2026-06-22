@@ -4,6 +4,7 @@ import lombok.Data;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
 
 @Data
 public class UserRequest {
@@ -18,6 +19,9 @@ public class UserRequest {
 
     private String password; // Có thể null khi update (giữ password cũ)
 
-    @NotNull(message = "RoleId không được để trống")
     private Integer roleId;
+
+    private LocalDate dateOfBirth;
+
+    private String address;
 }
