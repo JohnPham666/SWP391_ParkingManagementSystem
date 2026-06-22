@@ -12,7 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 
 @RestController
-@PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff')")
+@PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff', 'Driver')")
 @RequestMapping("/api/sessions")
 @RequiredArgsConstructor
 @Tag(name = "Parking Session", description = "APIs for managing parking sessions (check-in / check-out)")
