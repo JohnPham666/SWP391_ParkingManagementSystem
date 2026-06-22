@@ -1,5 +1,7 @@
 package com.parking.management.module.session;
 
+import com.parking.management.security.SecurityUtils;
+
 import com.parking.management.common.ResourceNotFoundException;
 import com.parking.management.module.pricing.FeeCalculationResponse;
 import com.parking.management.module.pricing.PricingService;
@@ -33,6 +35,7 @@ public class SessionService {
     private final VehicleTypeRepository vehicleTypeRepository;
     private final ParkingCardRepository parkingCardRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final SecurityUtils securityUtils;
 
     /*
      * CHECK-IN
@@ -114,7 +117,7 @@ public class SessionService {
     }
 
     public List<SessionResponse> getMyActiveSessions() {
-        Integer currentUserId = securityUtils.getCurrentUserId();
+        Integer currentUserId = securityUtils.getDriverUserId();
         List<ParkingSession> sessions = parkingSessionRepository
                 .findByVehicle_User_UserIdAndStatus(currentUserId, SessionStatus.PARKING.name());
         return sessions.stream().map(this::mapEntityToResponse).toList();
