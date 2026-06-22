@@ -34,16 +34,16 @@ const App = {
             
             const c = document.getElementById('page-content');
             switch (this.state.currentPage) {
-                case 'dashboard': await this.renderDashboard(c); break;
-                case 'sessions': await this.renderSessions(c); break;
-                case 'slots': await this.renderSlots(c); break;
-                case 'vehicles': await this.renderVehicles(c); break;
-                case 'reservations': await this.renderReservations(c); break;
-                case 'payments': await this.renderPayments(c); break;
-                case 'subscriptions': await this.renderSubscriptions(c); break;
-                case 'incidents': await this.renderIncidents(c); break;
-                case 'users': await this.renderUsers(c); break;
-                case 'reports': await this.renderReports(c); break;
+                case 'dashboard': await Pages.renderDashboard(c); break;
+                case 'sessions': await Pages.renderSessions(c); break;
+                case 'slots': await Pages.renderSlots(c); break;
+                case 'vehicles': await Pages.renderVehicles(c); break;
+                case 'reservations': await Pages.renderReservations(c); break;
+                case 'payments': await Pages.renderPayments(c); break;
+                case 'subscriptions': await Pages.renderSubscriptions(c); break;
+                case 'incidents': await Pages.renderIncidents(c); break;
+                case 'users': await Pages.renderUsers(c); break;
+                case 'reports': await Pages.renderReports(c); break;
             }
 
             if (searchValue) {
