@@ -35,26 +35,34 @@ public class ReservationScheduler {
     @Scheduled(fixedRate = 60000)
     @Transactional
     public void autoCancelStalePendingReservations() {
-        LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(15);
+        // 1. Hủy rác dữ liệu: Các vé không phải CASH, tạo quá 15 phút mà vẫn PENDING
+        LocalDateTime creationCutoffTime = LocalDateTime.now().minusMinutes(15);
+        List<Reservation> staleOnlineReservations = reservationRepository
+                .findStalePendingReservations(creationCutoffTime);
 
-        List<Reservation> staleReservations = reservationRepository
-                .findStalePendingReservations(cutoffTime);
-
-        if (staleReservations.isEmpty()) {
-            return;
+        if (!staleOnlineReservations.isEmpty()) {
+            log.info("Auto-cancelling {} stale online PENDING reservations (older than 15 minutes)",
+                    staleOnlineReservations.size());
+            for (Reservation reservation : staleOnlineReservations) {
+                reservation.setStatus("CANCELLED");
+                log.debug("Cancelled stale online reservation ID: {}", reservation.getReservationId());
+            }
+            reservationRepository.saveAll(staleOnlineReservations);
         }
 
-        log.info("Auto-cancelling {} stale PENDING reservations (older than 15 minutes)",
-                staleReservations.size());
+        // 2. Hủy các vé CASH PENDING mà khách đến trễ quá 30 phút so với giờ bắt đầu đặt đỗ
+        LocalDateTime lateCutoffTime = LocalDateTime.now().minusMinutes(30);
+        List<Reservation> staleCashReservations = reservationRepository
+                .findStaleCashReservations(lateCutoffTime);
 
-        for (Reservation reservation : staleReservations) {
-            reservation.setStatus("CANCELLED");
-            log.debug("Cancelled stale reservation ID: {}, created at: {}",
-                    reservation.getReservationId(), reservation.getCreatedAt());
+        if (!staleCashReservations.isEmpty()) {
+            log.info("Auto-cancelling {} stale CASH PENDING reservations (30 minutes past reservation start)",
+                    staleCashReservations.size());
+            for (Reservation reservation : staleCashReservations) {
+                reservation.setStatus("CANCELLED");
+                log.debug("Cancelled stale cash reservation ID: {}", reservation.getReservationId());
+            }
+            reservationRepository.saveAll(staleCashReservations);
         }
-
-        reservationRepository.saveAll(staleReservations);
-
-        log.info("Successfully cancelled {} stale reservations", staleReservations.size());
     }
 }

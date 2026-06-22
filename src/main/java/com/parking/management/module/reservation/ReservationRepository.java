@@ -23,8 +23,16 @@ public interface ReservationRepository extends JpaRepository<Reservation, Intege
      * Tìm các Reservation PENDING đã tạo trước cutoffTime (quá 15 phút).
      * Dùng cho ReservationScheduler để tự động hủy rác dữ liệu.
      */
-    @org.springframework.data.jpa.repository.Query("SELECT r FROM Reservation r WHERE r.status = 'PENDING' AND r.createdAt < :cutoffTime")
+    @org.springframework.data.jpa.repository.Query("SELECT r FROM Reservation r WHERE r.status = 'PENDING' AND r.createdAt < :cutoffTime AND NOT EXISTS (SELECT p FROM Payment p WHERE p.reservation = r AND p.paymentMethod = 'CASH')")
     List<Reservation> findStalePendingReservations(
+            @org.springframework.data.repository.query.Param("cutoffTime") java.time.LocalDateTime cutoffTime
+    );
+
+    /**
+     * Tìm các Reservation PENDING chọn thanh toán CASH, mà thời gian bắt đầu đặt đỗ đã quá cutoffTime (quá 30 phút).
+     */
+    @org.springframework.data.jpa.repository.Query("SELECT r FROM Reservation r WHERE r.status = 'PENDING' AND r.reservationStart < :cutoffTime AND EXISTS (SELECT p FROM Payment p WHERE p.reservation = r AND p.paymentMethod = 'CASH')")
+    List<Reservation> findStaleCashReservations(
             @org.springframework.data.repository.query.Param("cutoffTime") java.time.LocalDateTime cutoffTime
     );
 }
