@@ -179,7 +179,7 @@ public class VehicleService {
         }
     }
 
-    public VehicleResponse uploadVehicleImage(Integer vehicleId, MultipartFile file) {
+    public VehicleResponse uploadVehicleImage(Integer vehicleId, MultipartFile file, String type) {
         Vehicle vehicle = vehicleRepository.findById(vehicleId)
                 .orElseThrow(() -> new RuntimeException("Vehicle not found"));
 
@@ -194,7 +194,9 @@ public class VehicleService {
             extension = originalFilename.substring(originalFilename.lastIndexOf("."));
         }
 
-        String fileName = "vehicle_" + vehicleId + "_" + UUID.randomUUID() + extension;
+        String prefix = "portrait".equalsIgnoreCase(type) ? "portrait_" : 
+                        ("registration".equalsIgnoreCase(type) ? "reg_" : "vehicle_");
+        String fileName = prefix + vehicleId + "_" + UUID.randomUUID() + extension;
 
         try {
             Path uploadPath = Paths.get(uploadDir);
@@ -207,11 +209,18 @@ public class VehicleService {
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
             String imageUrl = "/uploads/vehicles/" + fileName;
-            vehicle.setVehicleImage(imageUrl);
+            
+            if ("portrait".equalsIgnoreCase(type)) {
+                vehicle.setOwnerPortrait(imageUrl);
+            } else if ("registration".equalsIgnoreCase(type)) {
+                vehicle.setRegistrationPhoto(imageUrl);
+            } else {
+                vehicle.setVehicleImage(imageUrl);
+            }
 
             return VehicleResponse.fromEntity(vehicleRepository.save(vehicle));
         } catch (Exception e) {
-            throw new RuntimeException("Could not upload vehicle image: " + e.getMessage());
+            throw new RuntimeException("Could not upload image: " + e.getMessage());
         }
     }
 
@@ -264,13 +273,13 @@ public class VehicleService {
         }
     }
 
-    public VehicleResponse uploadVehicleImageForUser(Integer userId, Integer vehicleId, MultipartFile file) {
+    public VehicleResponse uploadVehicleImageForUser(Integer userId, Integer vehicleId, MultipartFile file, String type) {
         Vehicle vehicle = vehicleRepository.findById(vehicleId)
                 .orElseThrow(() -> new RuntimeException("Vehicle not found"));
 
         checkVehicleBelongsToUser(vehicle, userId);
 
-        return uploadVehicleImage(vehicleId, file);
+        return uploadVehicleImage(vehicleId, file, type);
     }
 
     private Integer getCurrentAuthenticatedUserId() {
@@ -300,8 +309,8 @@ public class VehicleService {
         deleteVehicleForUser(getCurrentAuthenticatedUserId(), vehicleId);
     }
 
-    public VehicleResponse uploadMyVehicleImage(Integer vehicleId, MultipartFile file) {
-        return uploadVehicleImageForUser(getCurrentAuthenticatedUserId(), vehicleId, file);
+    public VehicleResponse uploadMyVehicleImage(Integer vehicleId, MultipartFile file, String type) {
+        return uploadVehicleImageForUser(getCurrentAuthenticatedUserId(), vehicleId, file, type);
     }
 
     private void checkVehicleBelongsToUser(Vehicle vehicle, Integer userId) {

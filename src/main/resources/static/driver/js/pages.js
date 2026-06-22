@@ -405,26 +405,24 @@ const Pages = {
     showVehicleModal(vehicleId = null) {
         const vehicle = vehicleId ? this.state.vehicles.find(v => v.vehicleId === vehicleId) : null;
         this.openModal(`
-            <form onsubmit="Pages.saveVehicle(event, ${vehicleId || 'null'})">
+            <form onsubmit="Pages.saveVehicle(event, ${vehicleId || 'null'})" style="display: flex; flex-direction: column; min-height: 0; flex: 1;">
                 <div class="modal-header"><h3>${vehicle ? 'Sửa xe' : 'Thêm xe'}</h3><button class="modal-close" type="button" onclick="Pages.closeModal()">${iconClose()}</button></div>
                 <div class="modal-body">
                     <div id="vehicle-error" class="alert alert-error" style="display:none; color: var(--red, red); margin-bottom: 10px; padding: 10px; border-radius: 4px; background: rgba(255,0,0,0.1);"></div>
                     <div class="form-grid">
-                        <div class="form-group"><label>Biển số xe *</label><input id="vehicle-plate" value="${this.escapeAttr(vehicle?.licensePlate || '')}" placeholder="Vui lòng nhập biển số xe"></div>
-                        <div class="form-group"><label>Loại xe *</label><select id="vehicle-type"><option value="">Vui lòng chọn loại xe</option>${this.state.vehicleTypes.map(t => `<option value="${t.vehicleTypeId}" ${vehicle?.vehicleTypeId === t.vehicleTypeId ? 'selected' : ''}>${this.escape(t.typeName)}</option>`).join('')}</select></div>
-                        <div class="form-group"><label>Tên chủ xe *</label><input id="vehicle-ownerName" value="${this.escapeAttr(vehicle?.ownerName || '')}" placeholder="Vui lòng nhập tên chủ xe"></div>
-                        <div class="form-group"><label>SĐT chủ xe *</label><input id="vehicle-ownerPhone" value="${this.escapeAttr(vehicle?.ownerPhone || '')}" placeholder="Vui lòng nhập số điện thoại"></div>
-                        <div class="form-group"><label>Số CCCD/CMND *</label><input id="vehicle-idCard" value="${this.escapeAttr(vehicle?.ownerIdCard || '')}" placeholder="Vui lòng nhập số CCCD"></div>
-                        <div class="form-group"><label>Hãng xe *</label><input id="vehicle-brand" value="${this.escapeAttr(vehicle?.brand || '')}" placeholder="Vui lòng nhập hãng xe"></div>
-                        <div class="form-group"><label>Màu xe *</label><input id="vehicle-color" value="${this.escapeAttr(vehicle?.vehicleColor || '')}" placeholder="Vui lòng nhập màu xe"></div>
-                        <div class="form-group"><label>Số máy *</label><input id="vehicle-engine" value="${this.escapeAttr(vehicle?.engineNumber || '')}" placeholder="Vui lòng nhập số máy"></div>
-                        <div class="form-group"><label>Số khung *</label><input id="vehicle-chassis" value="${this.escapeAttr(vehicle?.chassisNumber || '')}" placeholder="Vui lòng nhập số khung"></div>
-                        <div class="form-group"><label>Năm sản xuất *</label><input id="vehicle-year" type="number" value="${vehicle?.manufactureYear || new Date().getFullYear()}" placeholder="Vui lòng nhập năm sản xuất"></div>
-                        <div class="form-group"><label>Số đăng ký xe *</label><input id="vehicle-regNumber" value="${this.escapeAttr(vehicle?.registrationNumber || '')}" placeholder="Số đăng ký trên giấy"></div>
-                        <div class="form-group"><label>Ngày đăng ký</label><input id="vehicle-regDate" type="date" value="${this.escapeAttr(vehicle?.registrationDate || '')}"></div>
-                        <div class="form-group"><label>Ngày hết hạn kiểm định</label><input id="vehicle-regExpiry" type="date" value="${this.escapeAttr(vehicle?.registrationExpiry || '')}"></div>
-                        <div class="form-group"><label>URL Ảnh chân dung</label><input id="vehicle-ownerPortrait" value="${this.escapeAttr(vehicle?.ownerPortrait || '')}" placeholder="Link ảnh chân dung"></div>
-                        <div class="form-group"><label>URL Ảnh cà vẹt</label><input id="vehicle-regPhoto" value="${this.escapeAttr(vehicle?.registrationPhoto || '')}" placeholder="Link ảnh cà vẹt xe"></div>
+                        <div class="form-group"><label>Biển số xe <span style="color: var(--red);">*</span></label><input id="vehicle-plate" value="${this.escapeAttr(vehicle?.licensePlate || '')}" placeholder="Vui lòng nhập biển số xe"></div>
+                        <div class="form-group"><label>Loại xe <span style="color: var(--red);">*</span></label><select id="vehicle-type"><option value="">Vui lòng chọn loại xe</option>${this.state.vehicleTypes.map(t => `<option value="${t.vehicleTypeId}" ${vehicle?.vehicleTypeId === t.vehicleTypeId ? 'selected' : ''}>${this.escape(t.typeName)}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Tên chủ xe <span style="color: var(--red);">*</span></label><input id="vehicle-ownerName" value="${this.escapeAttr(vehicle?.ownerName || '')}" placeholder="Vui lòng nhập tên chủ xe"></div>
+                        <div class="form-group"><label>SĐT chủ xe <span style="color: var(--red);">*</span></label><input id="vehicle-ownerPhone" value="${this.escapeAttr(vehicle?.ownerPhone || '')}" placeholder="Vui lòng nhập số điện thoại"></div>
+                        <div class="form-group"><label>Số CCCD/CMND <span style="color: var(--red);">*</span></label><input id="vehicle-idCard" value="${this.escapeAttr(vehicle?.ownerIdCard || '')}" placeholder="Vui lòng nhập số CCCD"></div>
+                        <div class="form-group"><label>Hãng xe <span style="color: var(--red);">*</span></label><input id="vehicle-brand" value="${this.escapeAttr(vehicle?.brand || '')}" placeholder="Vui lòng nhập hãng xe"></div>
+                        <div class="form-group"><label>Màu xe <span style="color: var(--red);">*</span></label><input id="vehicle-color" value="${this.escapeAttr(vehicle?.vehicleColor || '')}" placeholder="Vui lòng nhập màu xe"></div>
+                        <div class="form-group full-width"><label>Ảnh chân dung <span style="color: var(--red);">*</span></label><input id="vehicle-ownerPortrait-file" type="file" accept="image/*" ${vehicle?.ownerPortrait ? '' : 'required'}>
+                        ${vehicle?.ownerPortrait ? `<div style="margin-top: 4px;"><a href="${vehicle.ownerPortrait}" target="_blank">Xem ảnh hiện tại</a></div>` : ''}</div>
+                        <div class="form-group full-width"><label>Ảnh cà vẹt xe <span style="color: var(--red);">*</span></label><input id="vehicle-regPhoto-file" type="file" accept="image/*" ${vehicle?.registrationPhoto ? '' : 'required'}>
+                        ${vehicle?.registrationPhoto ? `<div style="margin-top: 4px;"><a href="${vehicle.registrationPhoto}" target="_blank">Xem ảnh hiện tại</a></div>` : ''}</div>
+                        <div class="form-group full-width"><label>Ảnh biển số xe <span style="color: var(--red);">*</span></label><input id="vehicle-image-file" type="file" accept="image/*" ${vehicle?.vehicleImage ? '' : 'required'}>
+                        ${vehicle?.vehicleImage ? `<div style="margin-top: 4px;"><a href="${vehicle.vehicleImage}" target="_blank">Xem ảnh hiện tại</a></div>` : ''}</div>
                     </div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="Pages.closeModal()">Hủy</button><button class="btn btn-primary" type="submit">Lưu</button></div>
@@ -457,14 +455,7 @@ const Pages = {
         const ownerIdCard = document.getElementById('vehicle-idCard').value.trim();
         const brand = document.getElementById('vehicle-brand').value.trim();
         const vehicleColor = document.getElementById('vehicle-color').value.trim();
-        const engineNumber = document.getElementById('vehicle-engine').value.trim();
-        const chassisNumber = document.getElementById('vehicle-chassis').value.trim();
-        const manufactureYearVal = document.getElementById('vehicle-year').value;
-        const registrationNumber = document.getElementById('vehicle-regNumber').value.trim();
-        const registrationDate = document.getElementById('vehicle-regDate').value;
-        const registrationExpiry = document.getElementById('vehicle-regExpiry').value;
-        const ownerPortrait = document.getElementById('vehicle-ownerPortrait').value.trim();
-        const registrationPhoto = document.getElementById('vehicle-regPhoto').value.trim();
+        // File inputs handles images
 
         if (!licensePlate) return showError('Vui lòng nhập biển số xe.');
         if (!vehicleTypeIdVal) return showError('Vui lòng chọn loại xe.');
@@ -477,16 +468,6 @@ const Pages = {
         
         if (!brand) return showError('Vui lòng nhập hãng xe.');
         if (!vehicleColor) return showError('Vui lòng nhập màu xe.');
-        if (!engineNumber) return showError('Vui lòng nhập số máy.');
-        if (!chassisNumber) return showError('Vui lòng nhập số khung.');
-        if (!manufactureYearVal) return showError('Vui lòng nhập năm sản xuất.');
-        if (!registrationNumber) return showError('Vui lòng nhập số đăng ký xe.');
-
-        const manufactureYear = Number(manufactureYearVal);
-        const currentYear = new Date().getFullYear();
-        if (isNaN(manufactureYear) || manufactureYear < 1900 || manufactureYear > currentYear) {
-            return showError('Năm sản xuất không hợp lệ.');
-        }
 
         const data = {
             licensePlate,
@@ -495,19 +476,20 @@ const Pages = {
             ownerPhone,
             ownerIdCard,
             brand,
-            vehicleColor,
-            engineNumber,
-            chassisNumber,
-            manufactureYear,
-            registrationNumber,
-            registrationDate,
-            registrationExpiry,
-            ownerPortrait,
-            registrationPhoto
+            vehicleColor
         };
         
         const res = vehicleId ? await Api.updateMyVehicle(vehicleId, data) : await Api.createMyVehicle(data);
         if(res.success) {
+            const savedVehicleId = res.data?.vehicleId;
+            if (savedVehicleId) {
+                const portraitFile = document.getElementById('vehicle-ownerPortrait-file')?.files[0];
+                if (portraitFile) await Api.uploadMyVehicleImage(savedVehicleId, portraitFile, 'portrait');
+                const regFile = document.getElementById('vehicle-regPhoto-file')?.files[0];
+                if (regFile) await Api.uploadMyVehicleImage(savedVehicleId, regFile, 'registration');
+                const imgFile = document.getElementById('vehicle-image-file')?.files[0];
+                if (imgFile) await Api.uploadMyVehicleImage(savedVehicleId, imgFile, 'vehicle');
+            }
             App.showToast(vehicleId ? 'Đã cập nhật xe.' : 'Đã thêm xe.', 'success');
             this.closeModal();
             App.navigate('vehicles');
@@ -781,8 +763,10 @@ const Pages = {
                                     <th style="padding: 12px 16px;">Loại xe</th>
                                     <th style="padding: 12px 16px;">Giá cơ bản</th>
                                     <th style="padding: 12px 16px;">Giá giờ cao điểm</th>
-                                    <th style="padding: 12px 16px;">Giá qua đêm</th>
-                                    <th style="padding: 12px 16px;">Giới hạn phí / ngày</th>
+                                    <th style="padding: 12px 16px;">Giá ngoài giờ</th>
+                                    <th style="padding: 12px 16px;">Giới hạn / ngày</th>
+                                    <th style="padding: 12px 16px;">Phụ phí vượt giờ</th>
+                                    <th style="padding: 12px 16px;">Phí mất vé</th>
                                     <th style="padding: 12px 16px; text-align: center;">Trạng thái</th>
                                 </tr>
                             </thead>
@@ -796,11 +780,16 @@ const Pages = {
                                             <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">(${p.rushHourStart || '-'} - ${p.rushHourEnd || '-'})</div>
                                         </td>
                                         <td style="padding: 12px 16px; color: var(--text-color);">
-                                            ${this.formatCurrency(p.overnightPrice)}
-                                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">(${p.overnightStart || '-'} - ${p.overnightEnd || '-'})</div>
+                                            ${this.formatCurrency(p.offPeakPrice)}
                                         </td>
                                         <td style="padding: 12px 16px; color: var(--primary-color); font-weight: 500;">
-                                            ${p.dailyCap ? this.formatCurrency(p.dailyCap) : 'Không giới hạn'}
+                                            ${p.maxDailyRate ? this.formatCurrency(p.maxDailyRate) : 'Không giới hạn'}
+                                        </td>
+                                        <td style="padding: 12px 16px; color: var(--red); font-weight: 500;">
+                                            ${p.overtimeFeePerHour ? this.formatCurrency(p.overtimeFeePerHour) + '/h' : '-'}
+                                        </td>
+                                        <td style="padding: 12px 16px; color: var(--text-color);">
+                                            ${p.lostTicketFee ? this.formatCurrency(p.lostTicketFee) : '-'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: center;">
                                             <span class="badge ${p.isActive ? 'badge-success' : 'badge-danger'}">${p.isActive ? 'Áp dụng' : 'Ngừng'}</span>
@@ -900,7 +889,7 @@ const Pages = {
             <div class="slot-tile ${cls}" onclick="Pages.showSlotDetail(${slot.slotId})" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; gap: 4px;">
                 ${iconSvg}
                 <strong style="font-size: 1.1rem;">${this.escape(slot.slotCode)}</strong>
-                <small style="font-weight: 500; opacity: 0.9;">${this.escape(slot.vehicleTypeName || '-')}</small>
+                <small style="font-weight: 500; opacity: 0.9; text-align: center;">${this.escape(slot.vehicleTypeName || '-')}<br/>${slot.currentOccupancy || 0} / ${slot.capacity || 1}</small>
                 ${this.statusBadge(slot.status)}
             </div>
         `;

@@ -55,8 +55,9 @@ public class VehicleController {
     @Operation(summary = "Upload vehicle image", description = "Admin/Staff can upload an image for a specific vehicle")
     @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<VehicleResponse> uploadVehicleImage(@PathVariable Integer id,
-                                                           @RequestParam("file") MultipartFile file) {
-        return ApiResponse.success("Uploaded successfully", vehicleService.uploadVehicleImage(id, file));
+                                                           @RequestParam("file") MultipartFile file,
+                                                           @RequestParam(value = "type", defaultValue = "vehicle") String type) {
+        return ApiResponse.success("Uploaded successfully", vehicleService.uploadVehicleImage(id, file, type));
     }
 
     // --- SELF-SERVICE ENDPOINTS (Dành cho tài xế tự quản lý xe của mình) ---
@@ -90,7 +91,8 @@ public class VehicleController {
     @Operation(summary = "Upload my vehicle image", description = "Driver uploads an image for their own vehicle")
     @PostMapping(value = "/me/{vehicleId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<VehicleResponse> uploadMyVehicleImage(@PathVariable Integer vehicleId,
-                                                             @RequestParam("file") MultipartFile file) {
-        return ApiResponse.success("Uploaded successfully", vehicleService.uploadMyVehicleImage(vehicleId, file));
+                                                             @RequestParam("file") MultipartFile file,
+                                                             @RequestParam(value = "type", defaultValue = "vehicle") String type) {
+        return ApiResponse.success("Uploaded successfully", vehicleService.uploadMyVehicleImage(vehicleId, file, type));
     }
 }

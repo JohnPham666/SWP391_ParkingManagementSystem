@@ -204,6 +204,11 @@ const Api = {
     async createMyVehicle(data) { return this.request('/api/vehicles/me', { method: 'POST', body: data }); },
     async updateMyVehicle(id, data) { return this.request(`/api/vehicles/me/${id}`, { method: 'PUT', body: data }); },
     async deleteMyVehicle(id) { return this.request(`/api/vehicles/me/${id}`, { method: 'DELETE' }); },
+    async uploadMyVehicleImage(id, file, type = 'vehicle') {
+        const formData = new FormData();
+        formData.append('file', file);
+        return this.request(`/api/vehicles/me/${id}/image?type=${type}`, { method: 'POST', body: formData });
+    },
     async getVehicleTypes() { return this.request('/api/vehicle-types'); },
 
     async getAvailableSlots(params = {}) {

@@ -10,7 +10,7 @@
 **Repository:** `JohnPham666/SWP391_ParkingManagementSystem`  
 **Local Path:** `C:\Users\khait\OneDrive\Desktop\parkingmanagementsystem`  
 **Language:** Java 17 (Spring Boot 3.2.4 backend) + Vanilla HTML/JS/CSS (frontends)  
-**Database:** Microsoft SQL Server — database name `ParkingManagementSystem`  
+**Database:** PostgreSQL — database name `ParkingManagementSystem`  
 **Base API URL:** `http://localhost:8080/api`  
 **Swagger UI:** `http://localhost:8080/swagger-ui.html`
 
@@ -49,15 +49,15 @@ This is a **university group project (SWP391)** for managing multi-floor parking
 | Java | 17 | Language version |
 | Maven | — | Build tool |
 
-### Frontend — Driver App (`frontend-driver/`)
+### Frontend — Driver App (`src/main/resources/static/driver/`)
 - Pure HTML + Vanilla JS + TailwindCSS CDN (3.4.17)
 - Lucide Icons (local vendor)
 - Google Fonts: Be Vietnam Pro
 - Single-page app with JS routing (no backend serving; intended to call backend REST APIs)
 
-### Frontend — Staff App (`frontend-staff/parking_management_split/`)
+### Frontend — Staff App (`src/main/resources/static/staff/`)
 - Pure HTML + Vanilla JS + TailwindCSS
-- Large single-page app (`app.js` ~41KB) with staff-facing features
+- Large single-page app (`app.js`) with staff-facing features
 - Separate `embed-helper.js` and `tailwind-config.js`
 
 ---
@@ -111,9 +111,9 @@ ModuleController.java→ REST controller (@RestController, @RequestMapping)
 
 ---
 
-## 5. Database Schema (v7 — Current)
+## 5. Database Schema (Current)
 
-**File:** `ParkingManagementSystem_v7.sql` (run this to set up the DB from scratch)
+**File:** `ParkingManagementSystem_postgresql.sql` (run this to set up the DB from scratch in PostgreSQL)
 
 ### 17 Tables
 
@@ -247,9 +247,10 @@ VNPAY_RETURN_URL     = http://localhost:8080/api/payments/vnpay-return
 ### application.properties
 ```properties
 server.port=8080
-spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=ParkingManagementSystem;encrypt=false
-spring.datasource.username=${DB_USERNAME:sa}
-spring.datasource.password=${DB_PASSWORD:12345}
+spring.datasource.url=jdbc:postgresql://localhost:5432/ParkingManagementSystem
+spring.datasource.username=postgres
+spring.datasource.password=12345
+spring.datasource.driver-class-name=org.postgresql.Driver
 spring.jpa.hibernate.ddl-auto=none          # DB already created from SQL script
 spring.jpa.properties.hibernate.format_sql=true
 jwt.secret=${JWT_SECRET:very_secret_key_needs_to_be_long_enough_for_hs256_at_least_32_bytes_long}
@@ -272,21 +273,21 @@ mvn spring-boot:run
 ```
 
 ### Setup DB from scratch
-Execute `ParkingManagementSystem_v7.sql` on your local SQL Server instance.
+Execute `ParkingManagementSystem_postgresql.sql` on your local PostgreSQL instance.
 
 ---
 
 ## 10. Frontend Applications
 
-### `frontend-driver/` — Driver-facing app
+### `src/main/resources/static/driver/` — Driver-facing app
 - Single HTML file + assets
 - Vanilla JS SPA with client-side routing
 - Features: View parking lots, Book a slot, Add vehicle info, Wallet (UI only), Profile, Settings
 - Language: Vietnamese (UI)
 - Status: UI is implemented; backend API integration may be partial
 
-### `frontend-staff/parking_management_split/` — Staff-facing app
-- Single HTML + large `app.js` (~41KB)
+### `src/main/resources/static/staff/` — Staff-facing app
+- Single HTML + large `app.js`
 - Features: Check-in/check-out management, Slot monitoring, Incident reporting, Reports
 - Language: Vietnamese (UI)
 - Status: UI is implemented
@@ -331,15 +332,15 @@ Execute `ParkingManagementSystem_v7.sql` on your local SQL Server instance.
 |------|---------|
 | [`pom.xml`](pom.xml) | Maven dependencies and build config |
 | [`application.properties`](src/main/resources/application.properties) | All app configuration |
-| [`ParkingManagementSystem_v7.sql`](ParkingManagementSystem_v7.sql) | **Current** DB schema + seed data (run to reset DB) |
+| [`ParkingManagementSystem_postgresql.sql`](ParkingManagementSystem_postgresql.sql) | **Current** DB schema + seed data (run to reset DB) |
 | [`SecurityConfig.java`](src/main/java/com/parking/management/config/SecurityConfig.java) | JWT filter chain, CORS, URL access rules |
 | [`SecurityUtils.java`](src/main/java/com/parking/management/security/SecurityUtils.java) | IDOR protection helper |
 | [`SessionService.java`](src/main/java/com/parking/management/module/session/SessionService.java) | Check-in / check-out logic |
 | [`PricingService.java`](src/main/java/com/parking/management/module/pricing/PricingService.java) | Fee calculation algorithm |
 | [`PaymentService.java`](src/main/java/com/parking/management/module/payment/PaymentService.java) | Payment creation + VNPay callback handling |
 | [`GlobalExceptionHandler.java`](src/main/java/com/parking/management/common/GlobalExceptionHandler.java) | Unified error response format |
-| [`frontend-driver/index.html`](frontend-driver/index.html) | Driver SPA |
-| [`frontend-staff/parking_management_split/index.html`](frontend-staff/parking_management_split/index.html) | Staff SPA |
+| [`src/main/resources/static/driver/index.html`](src/main/resources/static/driver/index.html) | Driver SPA |
+| [`src/main/resources/static/staff/index.html`](src/main/resources/static/staff/index.html) | Staff SPA |
 
 ---
 
@@ -349,8 +350,7 @@ Execute `ParkingManagementSystem_v7.sql` on your local SQL Server instance.
 |------|-------------|
 | `README.md` | Quick setup instructions |
 | `PROJECT_CONTEXT.md` | **This file** — full AI context document |
-| `ParkingManagementSystem_v7.sql` | Latest DB schema + seed data |
-| `ParkingManagementSystem_v6.md` | Older DB schema doc (v6, kept for history) |
+| `ParkingManagementSystem_postgresql.sql` | Latest DB schema + seed data |
 | `TEAM_TASKS.md` | Original team task split and phase planning |
 | `GIT_WORKFLOW.md` | Git branching and commit conventions |
 | `SECURITY_TEST_GUIDE.md` | How to test authentication, RBAC, and IDOR prevention |

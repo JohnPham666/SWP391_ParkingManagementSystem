@@ -49,8 +49,7 @@ public class SecurityConfig {
                                 "/css/**",
                                 "/js/**",
                                 "/images/**",
-                                "/assets/**",
-                                "/parking_management_split/**"
+                                "/assets/**"
                         ).permitAll()
 
                         // Driver, Staff, Manager, Admin đều được tạo/báo incident
