@@ -162,7 +162,7 @@ CREATE TABLE ParkingSessions (
     ExitTime     TIMESTAMP NULL,
     EntryGate    VARCHAR(50),
     ExitGate     VARCHAR(50),
-    Status       VARCHAR(20) NOT NULL CHECK (Status IN ('PARKING', 'COMPLETED', 'LOST_TICKET', 'UNPAID', 'VIOLATION')),
+    Status       VARCHAR(20) NOT NULL CHECK (Status IN ('PARKING', 'PENDING_PAYMENT', 'COMPLETED', 'LOST_TICKET', 'UNPAID', 'VIOLATION')),
     EstimatedFee DECIMAL(10,2),
     FinalFee     DECIMAL(10,2),
     CreatedBy    INT,

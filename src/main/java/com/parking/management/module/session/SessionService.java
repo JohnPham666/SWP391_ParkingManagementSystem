@@ -220,13 +220,6 @@ public class SessionService {
 
         session.setExitTime(exitTime);
         session.setExitGate(request.getExitGate());
-        session.setStatus(SessionStatus.COMPLETED.name());
-
-        if (session.getCard() != null) {
-            ParkingCard card = session.getCard();
-            card.setStatus("ACTIVE");
-            parkingCardRepository.save(card);
-        }
 
         Long vehicleTypeId = Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId());
 
@@ -302,18 +295,61 @@ public class SessionService {
 
         session.setFinalFee(calculatedFinalFee);
 
-        // Slot Occupancy Decrement
-        int newOcc = slot.getCurrentOccupancy() - 1;
-        if (newOcc < 0) newOcc = 0;
-        slot.setCurrentOccupancy(newOcc);
-        if (slot.getCurrentOccupancy() < slot.getCapacity()) {
-            slot.setStatus(SlotStatus.AVAILABLE);
+        if (calculatedFinalFee.compareTo(BigDecimal.ZERO) == 0) {
+            // Final fee is 0 (e.g. valid subscription, fully paid reservation) -> Complete immediately
+            session.setStatus(SessionStatus.COMPLETED.name());
+            
+            if (session.getCard() != null) {
+                ParkingCard card = session.getCard();
+                card.setStatus("ACTIVE");
+                parkingCardRepository.save(card);
+            }
+
+            int newOcc = slot.getCurrentOccupancy() - 1;
+            if (newOcc < 0) newOcc = 0;
+            slot.setCurrentOccupancy(newOcc);
+            if (slot.getCurrentOccupancy() < slot.getCapacity()) {
+                slot.setStatus(SlotStatus.AVAILABLE);
+            }
+            parkingSlotRepository.save(slot);
+        } else {
+            // Fee > 0 -> Needs payment. Set PENDING_PAYMENT, do not release slot yet.
+            session.setStatus(SessionStatus.PENDING_PAYMENT.name());
         }
-        parkingSlotRepository.save(slot);
 
         ParkingSession updatedSession = parkingSessionRepository.save(session);
 
         return mapEntityToResponse(updatedSession);
+    }
+
+    /*
+     * Hoàn tất phiên đỗ xe (Được gọi sau khi thanh toán thành công)
+     */
+    @Transactional
+    public void completeSession(Integer sessionId) {
+        ParkingSession session = parkingSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+        
+        session.setStatus(SessionStatus.COMPLETED.name());
+        
+        if (session.getCard() != null) {
+            ParkingCard card = session.getCard();
+            card.setStatus("ACTIVE");
+            parkingCardRepository.save(card);
+        }
+
+        ParkingSlot slot = session.getSlot();
+        if (slot != null) {
+            int newOcc = slot.getCurrentOccupancy() - 1;
+            if (newOcc < 0) newOcc = 0;
+            slot.setCurrentOccupancy(newOcc);
+            if (slot.getCurrentOccupancy() < slot.getCapacity()) {
+                slot.setStatus(SlotStatus.AVAILABLE);
+            }
+            parkingSlotRepository.save(slot);
+        }
+        
+        parkingSessionRepository.save(session);
     }
 
 
