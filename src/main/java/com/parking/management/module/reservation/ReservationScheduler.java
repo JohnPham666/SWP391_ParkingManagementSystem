@@ -64,5 +64,37 @@ public class ReservationScheduler {
             }
             reservationRepository.saveAll(staleCashReservations);
         }
+
+        // 3. Kiểm tra các vé PENDING xem có bị cướp Slot không (bị vé CONFIRMED trùng giờ, hoặc xe vãng lai đã đậu OCCUPIED)
+        List<Reservation> allPending = reservationRepository.findByStatus("PENDING");
+        LocalDateTime now = LocalDateTime.now();
+        
+        for (Reservation pendingRes : allPending) {
+            boolean isLost = false;
+
+            // Check overlap với CONFIRMED
+            List<Reservation> overlaps = reservationRepository.findOverlappingReservations(
+                    pendingRes.getSlot().getSlotId(),
+                    pendingRes.getReservationStart(),
+                    pendingRes.getReservationEnd()
+            );
+            if (!overlaps.isEmpty()) {
+                isLost = true;
+            }
+
+            // Check nếu slot đang OCCUPIED và thời gian hiện tại nằm trong khoảng reservation
+            if (!isLost && pendingRes.getSlot().getStatus() == com.parking.management.module.slot.SlotStatus.OCCUPIED 
+                && !now.isBefore(pendingRes.getReservationStart()) 
+                && !now.isAfter(pendingRes.getReservationEnd())) {
+                isLost = true;
+            }
+
+            if (isLost) {
+                pendingRes.setStatus("CANCELLED");
+                reservationRepository.save(pendingRes);
+                System.out.println("GỬI THÔNG BÁO CHO DRIVER: Rất tiếc, ô đỗ của vé " + pendingRes.getReservationId() + " đã bị người khác thanh toán/đỗ mất. Vui lòng đặt lại.");
+                log.info("Auto-cancelled PENDING reservation ID: {} because the slot was taken.", pendingRes.getReservationId());
+            }
+        }
     }
 }

@@ -322,7 +322,21 @@ public class PaymentService {
         }
 
         if (PaymentMethod.CASH.name().equals(payment.getPaymentMethod())) {
-            throw new IllegalArgumentException("CASH payment cannot create VNPay payment URL");
+            // Cho phép đổi ý từ CASH sang VNPAY
+            payment.setPaymentMethod(PaymentMethod.VNPAY.name());
+            paymentRepository.save(payment);
+        }
+
+        if (payment.getReservation() != null) {
+            Reservation reservation = payment.getReservation();
+            List<Reservation> overlaps = reservationRepository.findOverlappingReservations(
+                    reservation.getSlot().getSlotId(),
+                    reservation.getReservationStart(),
+                    reservation.getReservationEnd()
+            );
+            if (!overlaps.isEmpty()) {
+                throw new IllegalArgumentException("Rất tiếc, ô đỗ này đã bị người khác thanh toán/giữ chỗ mất. Vui lòng tạo đặt chỗ mới với ô đỗ khác.");
+            }
         }
 
         String transactionRef = "PAY" + payment.getPaymentId() + System.currentTimeMillis();
