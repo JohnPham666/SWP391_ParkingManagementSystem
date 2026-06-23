@@ -104,6 +104,10 @@ public class PaymentService {
             throw new IllegalArgumentException("Reservation is not in a valid pending state");
         }
 
+        if (PaymentMethod.CASH.equals(request.getPaymentMethod())) {
+            throw new IllegalArgumentException("Bắt buộc thanh toán Online khi đặt chỗ trước.");
+        }
+
         java.util.Optional<Payment> existingPaymentOpt = paymentRepository.findFirstByReservation_ReservationIdOrderByPaymentIdDesc(reservation.getReservationId());
         if (existingPaymentOpt.isPresent()) {
             Payment existingPayment = existingPaymentOpt.get();
@@ -322,21 +326,7 @@ public class PaymentService {
         }
 
         if (PaymentMethod.CASH.name().equals(payment.getPaymentMethod())) {
-            // Cho phép đổi ý từ CASH sang VNPAY
-            payment.setPaymentMethod(PaymentMethod.VNPAY.name());
-            paymentRepository.save(payment);
-        }
-
-        if (payment.getReservation() != null) {
-            Reservation reservation = payment.getReservation();
-            List<Reservation> overlaps = reservationRepository.findOverlappingReservations(
-                    reservation.getSlot().getSlotId(),
-                    reservation.getReservationStart(),
-                    reservation.getReservationEnd()
-            );
-            if (!overlaps.isEmpty()) {
-                throw new IllegalArgumentException("Rất tiếc, ô đỗ này đã bị người khác thanh toán/giữ chỗ mất. Vui lòng tạo đặt chỗ mới với ô đỗ khác.");
-            }
+            throw new IllegalArgumentException("CASH payment cannot create VNPay payment URL");
         }
 
         String transactionRef = "PAY" + payment.getPaymentId() + System.currentTimeMillis();
