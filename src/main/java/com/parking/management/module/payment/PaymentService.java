@@ -10,6 +10,8 @@ import com.parking.management.module.slot.ParkingSlotRepository;
 import com.parking.management.module.slot.SlotStatus;
 import com.parking.management.module.session.ParkingSession;
 import com.parking.management.module.session.ParkingSessionRepository;
+import com.parking.management.module.session.SessionStatus;
+import com.parking.management.module.session.SessionService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,7 @@ public class PaymentService {
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final VnPayService vnPayService;
     private final SecurityUtils securityUtils;
+    private final SessionService sessionService;
 
     @Transactional
     public PaymentResponse create(PaymentRequest request) {
@@ -74,19 +77,25 @@ public class PaymentService {
             throw new IllegalArgumentException("Invalid parking session data");
         }
 
-        LocalDateTime exitTime = session.getExitTime() == null ? LocalDateTime.now() : session.getExitTime();
-        session.setExitTime(exitTime);
+        BigDecimal amountToPay;
+        if (SessionStatus.PENDING_PAYMENT.name().equals(session.getStatus()) && session.getFinalFee() != null) {
+            amountToPay = session.getFinalFee();
+        } else {
+            LocalDateTime exitTime = session.getExitTime() == null ? LocalDateTime.now() : session.getExitTime();
+            session.setExitTime(exitTime);
 
-        FeeCalculationResponse feeResponse = pricingService.calculateFee(
-                Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId()),
-                session.getEntryTime(), exitTime);
+            FeeCalculationResponse feeResponse = pricingService.calculateFee(
+                    Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId()),
+                    session.getEntryTime(), exitTime);
 
-        session.setFinalFee(feeResponse.getFinalFee());
-        parkingSessionRepository.save(session);
+            amountToPay = feeResponse.getFinalFee();
+            session.setFinalFee(amountToPay);
+            parkingSessionRepository.save(session);
+        }
 
         Payment payment = new Payment();
         payment.setSession(session);
-        payment.setAmount(feeResponse.getFinalFee());
+        payment.setAmount(amountToPay);
         payment.setPaymentMethod(request.getPaymentMethod().name());
         payment.setPaymentStatus(PaymentStatus.PENDING.name());
         return mapEntityToResponse(paymentRepository.save(payment));
@@ -228,19 +237,8 @@ public class PaymentService {
         
         if (payment.getSession() != null) {
             ParkingSession session = payment.getSession();
-            if ("PARKING".equals(session.getStatus())) {
-                session.setStatus("COMPLETED");
-                session.setExitTime(LocalDateTime.now());
-                
-                ParkingSlot slot = session.getSlot();
-                int newOcc = slot.getCurrentOccupancy() - 1;
-                if (newOcc < 0) newOcc = 0;
-                slot.setCurrentOccupancy(newOcc);
-                if (slot.getCurrentOccupancy() < slot.getCapacity()) {
-                    slot.setStatus(SlotStatus.AVAILABLE);
-                }
-                parkingSlotRepository.save(slot);
-                parkingSessionRepository.save(session);
+            if ("PARKING".equals(session.getStatus()) || SessionStatus.PENDING_PAYMENT.name().equals(session.getStatus())) {
+                sessionService.completeSession(session.getSessionId());
             }
         }
 
@@ -437,19 +435,8 @@ public class PaymentService {
             // Check if it's a session payment
             if (payment.getSession() != null) {
                 ParkingSession session = payment.getSession();
-                if ("PARKING".equals(session.getStatus())) {
-                    session.setStatus("COMPLETED");
-                    session.setExitTime(LocalDateTime.now());
-                    
-                    ParkingSlot slot = session.getSlot();
-                    int newOcc = slot.getCurrentOccupancy() - 1;
-                    if (newOcc < 0) newOcc = 0;
-                    slot.setCurrentOccupancy(newOcc);
-                    if (slot.getCurrentOccupancy() < slot.getCapacity()) {
-                        slot.setStatus(SlotStatus.AVAILABLE);
-                    }
-                    parkingSlotRepository.save(slot);
-                    parkingSessionRepository.save(session);
+                if ("PARKING".equals(session.getStatus()) || SessionStatus.PENDING_PAYMENT.name().equals(session.getStatus())) {
+                    sessionService.completeSession(session.getSessionId());
                 }
             }
 
