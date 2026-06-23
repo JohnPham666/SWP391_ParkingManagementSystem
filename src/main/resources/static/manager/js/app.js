@@ -44,6 +44,8 @@ const App = {
                 case 'incidents': await this.renderIncidents(c); break;
                 case 'users': await this.renderUsers(c); break;
                 case 'reports': await this.renderReports(c); break;
+                case 'buildings': await this.renderBuildings(c); break;
+                case 'pricing': await this.renderPricing(c); break;
             }
 
             if (searchValue) {
@@ -77,10 +79,9 @@ const App = {
             btn.disabled = false;
 
             if (res.success && res.data) {
-                if (res.data.role !== 'ParkingStaff' && res.data.role !== 'Admin') {
-                    err.textContent = 'Bạn không có quyền truy cập giao diện nhân viên.';
+                if (res.data.role !== 'ParkingManager' && res.data.role !== 'Admin') {
+                    err.textContent = 'Bạn không có quyền truy cập giao diện Quản lý.';
                     err.classList.remove('hidden');
-                    // Optional: auto logout or just prevent login
                     return;
                 }
                 Api.saveAuth(res.data);
@@ -124,9 +125,6 @@ const App = {
         document.querySelectorAll('.nav-item').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.preventDefault();
-                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-                e.currentTarget.classList.add('active');
-                
                 const page = e.currentTarget.dataset.page;
                 this.navigate(page);
                 
@@ -160,10 +158,33 @@ const App = {
         document.getElementById('sidebar-user-role').textContent = user.role;
         document.getElementById('user-avatar').textContent = user.fullName.charAt(0).toUpperCase();
 
-        this.navigate('dashboard');
+        // Managers always see everything, no need to hide
+        const navUsers = document.getElementById('nav-users');
+        if (navUsers) navUsers.classList.add('hidden'); // Hide users for Manager
+        
+        const navReports = document.getElementById('nav-reports');
+        if (navReports) navReports.classList.remove('hidden');
+
+        window.addEventListener('hashchange', () => this.handleHashChange());
+        
+        if (!window.location.hash) {
+            window.location.hash = '#dashboard';
+        } else {
+            this.handleHashChange();
+        }
+    },
+
+    handleHashChange() {
+        let hash = window.location.hash.substring(1);
+        if (!hash) hash = 'dashboard';
+        this.navigateInternal(hash);
     },
 
     navigate(page) {
+        window.location.hash = '#' + page;
+    },
+
+    navigateInternal(page) {
         this.state.currentPage = page;
         const titles = {
             'dashboard': 'Dashboard',
@@ -175,10 +196,21 @@ const App = {
             'subscriptions': 'Quản lý vé tháng',
             'incidents': 'Quản lý sự cố',
             'users': 'Quản lý người dùng',
-            'reports': 'Báo cáo thống kê'
+            'reports': 'Báo cáo thống kê',
+            'buildings': 'Cấu hình Bãi đỗ xe',
+            'pricing': 'Chính sách Giá'
         };
         
         document.getElementById('page-title').textContent = titles[page] || page;
+        
+        // Update active nav item
+        document.querySelectorAll('.nav-item').forEach(n => {
+            n.classList.remove('active');
+            if (n.dataset.page === page) {
+                n.classList.add('active');
+            }
+        });
+
         this.renderPage(page);
     },
 
@@ -217,6 +249,12 @@ const App = {
                     break;
                 case 'reports':
                     await Pages.renderReports(container);
+                    break;
+                case 'buildings':
+                    await Pages.renderBuildings(container);
+                    break;
+                case 'pricing':
+                    await Pages.renderPricing(container);
                     break;
                 default:
                     container.innerHTML = `
@@ -309,6 +347,24 @@ const Pages = {
                     </div>
                 </div>
             </div>
+
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header">
+                    <h3 class="card-title">Cấu trúc Tòa nhà Đỗ xe</h3>
+                    <div class="toolbar">
+                        <select id="db-filter-status" class="form-control" style="width: 150px; display: inline-block;">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="AVAILABLE">Trống</option>
+                            <option value="OCCUPIED">Đang đỗ</option>
+                            <option value="RESERVED">Đã đặt</option>
+                            <option value="LOCKED">Khóa (Bảo trì)</option>
+                        </select>
+                        <select id="db-filter-type" class="form-control" style="width: 150px; display: inline-block;">
+                            <option value="">Tất cả loại xe</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
         `;
 
         if (data.buildings && data.buildings.length > 0) {
@@ -334,8 +390,12 @@ const Pages = {
                         
                         z.slots.forEach(s => {
                             let statusClass = s.status.toLowerCase();
+                            let onclick = '';
+                            if (s.status === 'AVAILABLE') onclick = `onclick="window.updateSlotStatus(${s.slotId}, 'LOCKED')"`;
+                            if (s.status === 'LOCKED') onclick = `onclick="window.updateSlotStatus(${s.slotId}, 'AVAILABLE')"`;
+                            
                             html += `
-                                <div class="slot-cell ${statusClass}" title="${s.vehicleTypeName}">
+                                <div class="slot-cell ${statusClass}" title="${s.vehicleTypeName}" data-status="${s.status}" data-type="${s.vehicleTypeName}" style="${onclick ? 'cursor: pointer;' : ''}" ${onclick}>
                                     ${s.slotCode}
                                     <small>${s.status}</small>
                                 </div>
@@ -350,6 +410,48 @@ const Pages = {
         }
 
         container.innerHTML = html;
+
+        // Populate Vehicle Types in filter
+        const typeSelect = document.getElementById('db-filter-type');
+        if (typeSelect) {
+            const vtypesRes = await Api.getVehicleTypes();
+            if(vtypesRes.success && vtypesRes.data) {
+                vtypesRes.data.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.typeName;
+                    opt.textContent = t.typeName;
+                    typeSelect.appendChild(opt);
+                });
+            }
+
+            // Filter logic
+            const statusFilter = document.getElementById('db-filter-status');
+            const applyFilter = () => {
+                const sVal = statusFilter.value;
+                const tVal = typeSelect.value;
+                document.querySelectorAll('.slot-cell').forEach(cell => {
+                    const st = cell.getAttribute('data-status');
+                    const ty = cell.getAttribute('data-type');
+                    let show = true;
+                    if (sVal && st !== sVal) show = false;
+                    if (tVal && ty !== tVal) show = false;
+                    cell.style.display = show ? 'flex' : 'none';
+                });
+            };
+            statusFilter.addEventListener('change', applyFilter);
+            typeSelect.addEventListener('change', applyFilter);
+        }
+
+        window.updateSlotStatus = async (id, status) => {
+            if(!confirm(`Xác nhận chuyển trạng thái slot thành ${status}?`)) return;
+            const r = await Api.updateSlotStatus(id, { status: status });
+            if(r.success) {
+                App.showToast('Cập nhật trạng thái slot thành công', 'success');
+                App.renderPage('dashboard');
+            } else {
+                App.showToast(r.message || 'Lỗi cập nhật trạng thái', 'error');
+            }
+        };
     },
 
     async renderSessions(container) {
@@ -367,15 +469,6 @@ const Pages = {
                     <h3 class="card-title">Danh sách phiên gửi xe</h3>
                     <div class="toolbar">
                         <input type="text" id="session-search" class="search-input" placeholder="Tìm biển số xe..." />
-                        <button class="btn btn-primary" onclick="window.showWalkInModal()">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Check-in Vãng lai
-                        </button>
-                        <button class="btn btn-outline" style="border-color: var(--blue); color: var(--blue);" onclick="window.showResCheckinModal()">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Check-in Đặt chỗ
-                        </button>
-                        <button class="btn btn-success" onclick="window.showCheckoutModal()">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg> Check-out
-                        </button>
                     </div>
                 </div>
                 <div class="card-body no-pad table-wrapper">
@@ -424,124 +517,7 @@ const Pages = {
             </div>
         `;
 
-        // Modals
-        html += `
-            <div id="walkin-modal" class="modal-overlay hidden">
-                <div class="modal">
-                    <div class="modal-header">
-                        <h3>Check-in Khách Vãng Lai</h3>
-                        <button class="modal-close" onclick="document.getElementById('walkin-modal').classList.add('hidden')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-                    </div>
-                    <form id="walkin-form">
-                        <div class="modal-body form-grid">
-                            <div class="form-group full-width">
-                                <label>Biển số xe *</label>
-                                <input type="text" id="walkin-plate" required />
-                            </div>
-                            <div class="form-group">
-                                <label>Loại xe *</label>
-                                <select id="walkin-type" required></select>
-                            </div>
-                            <div class="form-group">
-                                <label>Cổng vào</label>
-                                <select id="walkin-gate">
-                                    <option value="Gate A">Cổng A (Gate A)</option>
-                                    <option value="Gate B">Cổng B (Gate B)</option>
-                                    <option value="Gate C">Cổng C (Gate C)</option>
-                                    <option value="Gate D">Cổng D (Gate D)</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-outline" onclick="document.getElementById('walkin-modal').classList.add('hidden')">Hủy</button>
-                            <button type="submit" class="btn btn-primary">Check-in</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <div id="checkout-modal" class="modal-overlay hidden">
-                <div class="modal">
-                    <div class="modal-header">
-                        <h3>Check-out</h3>
-                        <button class="modal-close" onclick="document.getElementById('checkout-modal').classList.add('hidden')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-                    </div>
-                    <form id="checkout-form">
-                        <div class="modal-body form-grid">
-                            <div class="form-group full-width">
-                                <label>Phiên gửi xe ID *</label>
-                                <input type="number" id="checkout-session-id" required />
-                            </div>
-                            <div class="form-group full-width">
-                                <label>Cổng ra</label>
-                                <select id="checkout-gate">
-                                    <option value="Gate A">Cổng A (Gate A)</option>
-                                    <option value="Gate B">Cổng B (Gate B)</option>
-                                    <option value="Gate C">Cổng C (Gate C)</option>
-                                    <option value="Gate D">Cổng D (Gate D)</option>
-                                </select>
-                            </div>
-                            <div class="form-group full-width">
-                                <label>Phương thức thanh toán</label>
-                                <select id="checkout-payment-method">
-                                    <option value="CASH">Tiền mặt (Nhận tại quầy)</option>
-                                    <option value="BANK_TRANSFER">Chuyển khoản ngân hàng</option>
-                                    <option value="E_WALLET">Ví điện tử</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-outline" onclick="document.getElementById('checkout-modal').classList.add('hidden')">Hủy</button>
-                            <button type="submit" class="btn btn-success">Check-out</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <div id="res-checkin-modal" class="modal-overlay hidden">
-                <div class="modal">
-                    <div class="modal-header">
-                        <h3>Check-in Đặt Chỗ</h3>
-                        <button class="modal-close" onclick="document.getElementById('res-checkin-modal').classList.add('hidden')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-                    </div>
-                    <form id="res-checkin-form">
-                        <div class="modal-body form-grid">
-                            <div class="form-group full-width">
-                                <label>Mã Đặt Chỗ (Reservation ID) *</label>
-                                <input type="number" id="res-checkin-id" required />
-                            </div>
-                            <div class="form-group full-width">
-                                <label>Cổng vào</label>
-                                <select id="res-checkin-gate">
-                                    <option value="Gate A">Cổng A (Gate A)</option>
-                                    <option value="Gate B">Cổng B (Gate B)</option>
-                                    <option value="Gate C">Cổng C (Gate C)</option>
-                                    <option value="Gate D">Cổng D (Gate D)</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-outline" onclick="document.getElementById('res-checkin-modal').classList.add('hidden')">Hủy</button>
-                            <button type="submit" class="btn btn-primary" style="background-color: var(--blue); border-color: var(--blue);">Check-in</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        `;
-
         container.innerHTML = html;
-
-        // Populate Vehicle Types for WalkIn
-        const typeSelect = document.getElementById('walkin-type');
-        const vtypesRes = await Api.getVehicleTypes();
-        if(vtypesRes.success && vtypesRes.data) {
-            vtypesRes.data.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t.vehicleTypeId;
-                opt.textContent = t.typeName;
-                typeSelect.appendChild(opt);
-            });
-        }
 
         // Search logic
         const searchInput = document.getElementById('session-search');
@@ -553,99 +529,6 @@ const Pages = {
                 const plate = row.children[1].textContent.toLowerCase();
                 row.style.display = plate.includes(val) ? '' : 'none';
             });
-        });
-
-        // Global functions for modals
-        window.showWalkInModal = () => document.getElementById('walkin-modal').classList.remove('hidden');
-        window.showCheckoutModal = () => document.getElementById('checkout-modal').classList.remove('hidden');
-        window.showResCheckinModal = () => document.getElementById('res-checkin-modal').classList.remove('hidden');
-
-        // Form submits
-        document.getElementById('walkin-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const payload = {
-                licensePlate: document.getElementById('walkin-plate').value,
-                vehicleTypeId: parseInt(document.getElementById('walkin-type').value),
-                entryGate: document.getElementById('walkin-gate').value
-            };
-            const r = await Api.walkIn(payload);
-            if(r.success) {
-                App.showToast('Check-in vãng lai thành công', 'success');
-                document.getElementById('walkin-modal').classList.add('hidden');
-                App.renderPage('sessions');
-            } else {
-                App.showToast(r.message, 'error');
-            }
-        });
-
-        document.getElementById('checkout-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const sessionId = document.getElementById('checkout-session-id').value;
-            const exitGate = document.getElementById('checkout-gate').value;
-            const paymentMethod = document.getElementById('checkout-payment-method').value;
-
-            // Step 1: Tạo thanh toán
-            const paymentPayload = {
-                sessionId: parseInt(sessionId),
-                paymentMethod: paymentMethod
-            };
-            const pRes = await Api.createPayment(paymentPayload);
-            if (!pRes.success && pRes.message && !pRes.message.includes('already has a PENDING payment')) {
-                App.showToast(pRes.message || 'Lỗi tạo thanh toán', 'error');
-                return;
-            }
-
-            let paymentId = pRes.data ? pRes.data.paymentId : null;
-            if (!paymentId && pRes.message && pRes.message.includes('Payment ID:')) {
-                const match = pRes.message.match(/Payment ID:\s*(\d+)/);
-                if (match) {
-                    paymentId = parseInt(match[1], 10);
-                }
-            }
-            if (!paymentId) {
-                App.showToast('Không lấy được ID thanh toán.', 'error');
-                return;
-            }
-
-            // Step 2: Xử lý theo phương thức thanh toán
-            if (paymentMethod === 'CASH') {
-                // Tiền mặt: Xác nhận thu tiền ngay, backend sẽ tự động Check-out session
-                const cRes = await Api.confirmCash(paymentId);
-                if (cRes.success) {
-                    App.showToast('Đã thu tiền mặt và check-out thành công!', 'success');
-                    document.getElementById('checkout-modal').classList.add('hidden');
-                    App.renderPage('sessions');
-                } else {
-                    App.showToast(cRes.message || 'Lỗi xác nhận tiền mặt', 'error');
-                }
-            } else {
-                // Chuyển khoản hoặc Ví điện tử: Tạo VNPay URL và mở sang tab mới
-                const vnRes = await Api.createVnPayUrl(paymentId);
-                if (vnRes.success && vnRes.data && vnRes.data.paymentUrl) {
-                    window.open(vnRes.data.paymentUrl, '_blank');
-                    App.showToast('Đã mở cổng thanh toán VNPay. Phiên sẽ tự động check-out khi thanh toán hoàn tất.', 'info');
-                    document.getElementById('checkout-modal').classList.add('hidden');
-                    App.renderPage('sessions');
-                } else {
-                    App.showToast(vnRes.message || 'Lỗi tạo link VNPay', 'error');
-                }
-            }
-        });
-
-        document.getElementById('res-checkin-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const payload = {
-                reservationId: parseInt(document.getElementById('res-checkin-id').value),
-                entryGate: document.getElementById('res-checkin-gate').value
-            };
-            const r = await Api.checkIn(payload);
-            if(r.success) {
-                App.showToast('Check-in đặt chỗ thành công', 'success');
-                document.getElementById('res-checkin-modal').classList.add('hidden');
-                App.renderPage('sessions');
-            } else {
-                App.showToast(r.message || 'Lỗi khi check-in', 'error');
-            }
         });
     },
 
@@ -678,6 +561,7 @@ const Pages = {
                                 <th>Sức chứa</th>
                                 <th>Đang đỗ</th>
                                 <th>Trạng thái</th>
+                                <th>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody id="slots-tbody">
@@ -685,12 +569,24 @@ const Pages = {
 
         data.forEach(s => {
             let statusBadge = '';
+            let actionBtn = '';
             switch(s.status) {
-                case 'AVAILABLE': statusBadge = '<span class="badge badge-green">Trống</span>'; break;
-                case 'OCCUPIED': statusBadge = '<span class="badge badge-red">Đã đầy</span>'; break;
-                case 'RESERVED': statusBadge = '<span class="badge badge-yellow">Đã đặt</span>'; break;
-                case 'LOCKED': statusBadge = '<span class="badge badge-gray">Khóa</span>'; break;
-                default: statusBadge = `<span class="badge badge-gray">${s.status}</span>`;
+                case 'AVAILABLE': 
+                    statusBadge = '<span class="badge badge-green">Trống</span>'; 
+                    actionBtn = `<button class="btn btn-outline" style="padding: 2px 8px; font-size: 0.8rem;" onclick="window.updateSlotStatus(${s.slotId}, 'LOCKED')">Khóa</button>`;
+                    break;
+                case 'OCCUPIED': 
+                    statusBadge = '<span class="badge badge-red">Đã đầy</span>'; 
+                    break;
+                case 'RESERVED': 
+                    statusBadge = '<span class="badge badge-yellow">Đã đặt</span>'; 
+                    break;
+                case 'LOCKED': 
+                    statusBadge = '<span class="badge badge-gray">Khóa</span>'; 
+                    actionBtn = `<button class="btn btn-primary" style="padding: 2px 8px; font-size: 0.8rem;" onclick="window.updateSlotStatus(${s.slotId}, 'AVAILABLE')">Mở</button>`;
+                    break;
+                default: 
+                    statusBadge = `<span class="badge badge-gray">${s.status}</span>`;
             }
 
             html += `
@@ -703,6 +599,7 @@ const Pages = {
                     <td>${s.capacity}</td>
                     <td>${s.currentOccupancy}</td>
                     <td>${statusBadge}</td>
+                    <td>${actionBtn}</td>
                 </tr>
             `;
         });
@@ -726,6 +623,17 @@ const Pages = {
                 row.style.display = code.includes(val) ? '' : 'none';
             });
         });
+
+        window.updateSlotStatus = async (id, status) => {
+            if(!confirm(`Xác nhận chuyển trạng thái slot thành ${status}?`)) return;
+            const r = await Api.updateSlotStatus(id, { status: status });
+            if(r.success) {
+                App.showToast('Cập nhật trạng thái slot thành công', 'success');
+                App.renderPage('slots');
+            } else {
+                App.showToast(r.message || 'Lỗi cập nhật trạng thái', 'error');
+            }
+        };
     },
 
     async renderVehicles(container) {
@@ -819,10 +727,12 @@ const Pages = {
         };
     },
 
-    async renderPayments(container) {
-        const res = await Api.getPayments();
+    async renderPayments(container, page = 0, size = 10) {
+        const res = await Api.getPayments(page, size);
         if (!res.success) return container.innerHTML = `<div class="empty-state"><p>${res.message}</p></div>`;
-        const data = res.data;
+        const pageData = res.data;
+        const data = pageData.content;
+        
         let html = `
             <div class="card">
                 <div class="card-header">
@@ -830,13 +740,14 @@ const Pages = {
                 </div>
                 <div class="card-body no-pad table-wrapper">
                     <table class="data-table">
-                        <thead><tr><th>Mã TT</th><th>Loại thanh toán</th><th>Số tiền</th><th>Phương thức</th><th>Thời gian</th><th>Trạng thái</th></tr></thead>
+                        <thead><tr><th>Mã TT</th><th>Loại thanh toán</th><th>Khách hàng</th><th>Biển số</th><th>Số tiền</th><th>Phương thức</th><th>Thời gian</th><th>Trạng thái</th></tr></thead>
                         <tbody>
                             ${data.map(p => {
                                 let badge = '';
                                 switch(p.paymentStatus) {
                                     case 'PENDING': badge = '<span class="badge badge-yellow">Đang chờ</span>'; break;
                                     case 'SUCCESS': badge = '<span class="badge badge-green">Thành công</span>'; break;
+                                    case 'PAID': badge = '<span class="badge badge-green">Đã thanh toán</span>'; break;
                                     case 'FAILED': badge = '<span class="badge badge-red">Thất bại</span>'; break;
                                     default: badge = `<span class="badge badge-gray">${p.paymentStatus}</span>`;
                                 }
@@ -845,6 +756,11 @@ const Pages = {
                                 <tr>
                                     <td>#${p.paymentId}</td>
                                     <td>${type}</td>
+                                    <td>
+                                        <div style="font-weight: 500">${p.customerName || '-'}</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted)">${p.customerPhone || ''}</div>
+                                    </td>
+                                    <td style="font-weight: 600">${p.licensePlate || '-'}</td>
                                     <td style="font-weight:700; color:var(--green)">${p.amount.toLocaleString('vi-VN')} đ</td>
                                     <td>${p.paymentMethod || '-'}</td>
                                     <td>${p.paidAt ? new Date(p.paidAt).toLocaleString('vi-VN') : '-'}</td>
@@ -857,6 +773,15 @@ const Pages = {
                         </tbody>
                     </table>
                 </div>
+                <div class="card-footer" style="padding: 16px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color);">
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                        Hiển thị ${(pageData.pageNo * pageData.pageSize) + (data.length > 0 ? 1 : 0)} - ${(pageData.pageNo * pageData.pageSize) + data.length} trong số ${pageData.totalElements} bản ghi
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-outline" ${pageData.pageNo === 0 ? 'disabled' : ''} onclick="Pages.renderPayments(document.getElementById('page-content'), ${pageData.pageNo - 1}, ${size})">Trước</button>
+                        <button class="btn btn-outline" ${pageData.last ? 'disabled' : ''} onclick="Pages.renderPayments(document.getElementById('page-content'), ${pageData.pageNo + 1}, ${size})">Sau</button>
+                    </div>
+                </div>
             </div>`;
         container.innerHTML = html;
 
@@ -865,7 +790,7 @@ const Pages = {
                 const r = await Api.confirmCash(id);
                 if(r.success) {
                     App.showToast('Xác nhận thanh toán thành công', 'success');
-                    App.renderPage('payments');
+                    Pages.renderPayments(container, page, size);
                 } else {
                     App.showToast(r.message || 'Lỗi xác nhận', 'error');
                 }
@@ -1108,15 +1033,25 @@ const Pages = {
             
             const categories = last7Days.map(d => d.toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'}));
             const revenueData = last7Days.map(d => {
-                const dateStr = d.toISOString().split('T')[0];
+                // Fix UTC timezone shift issue
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                const dateStr = `${year}-${month}-${day}`;
+                
                 return paidPayments.filter(p => p.paidAt && p.paidAt.startsWith(dateStr))
                     .reduce((sum, p) => sum + p.amount, 0);
             });
 
             // Doanh thu tháng này
             const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
             const monthlyRevenue = paidPayments
-                .filter(p => p.paidAt && new Date(p.paidAt).getMonth() === currentMonth)
+                .filter(p => {
+                    if (!p.paidAt) return false;
+                    const pDate = new Date(p.paidAt);
+                    return pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear;
+                })
                 .reduce((sum, p) => sum + p.amount, 0);
 
             // Tỷ lệ lấp đầy
@@ -1281,6 +1216,77 @@ const Pages = {
         } catch (e) {
             container.innerHTML = `<div class="empty-state"><p style="color:var(--red)">Lỗi: ${e.message}</p></div>`;
         }
+    },
+
+    async renderBuildings(container) {
+        const res = await Api.getBuildings();
+        if (!res.success) return container.innerHTML = `<div class="empty-state"><p>${res.message}</p></div>`;
+        const data = res.data || [];
+        let html = `
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Cấu hình Bãi đỗ xe (Buildings & Zones)</h3>
+                    <div class="toolbar">
+                        <button class="btn btn-primary" onclick="alert('Tính năng thêm tòa nhà đang phát triển')">Thêm Tòa nhà</button>
+                    </div>
+                </div>
+                <div class="card-body no-pad table-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>ID</th><th>Tên Tòa nhà</th><th>Địa chỉ</th><th>Số tầng</th><th>Giờ hoạt động</th><th>Thao tác</th></tr></thead>
+                        <tbody>
+                            ${data.map(b => `
+                                <tr>
+                                    <td>#${b.buildingId}</td>
+                                    <td style="font-weight:600">${b.buildingName}</td>
+                                    <td>${b.address || '-'}</td>
+                                    <td>${b.totalFloors || 0}</td>
+                                    <td>${b.operatingStartTime ? b.operatingStartTime.substring(0,5) : '-'} đến ${b.operatingEndTime ? b.operatingEndTime.substring(0,5) : '-'}</td>
+                                    <td>
+                                        <button class="btn btn-outline" style="padding: 2px 8px; font-size: 0.8rem;" onclick="alert('Tính năng chỉnh sửa đang phát triển')">Sửa</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        container.innerHTML = html;
+    },
+
+    async renderPricing(container) {
+        const res = await Api.getPricingPolicies();
+        if (!res.success) return container.innerHTML = `<div class="empty-state"><p>${res.message}</p></div>`;
+        const data = res.data || [];
+        let html = `
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Chính sách Giá (Pricing Policies)</h3>
+                    <div class="toolbar">
+                        <button class="btn btn-primary" onclick="alert('Tính năng thêm chính sách đang phát triển')">Thêm Chính sách</button>
+                    </div>
+                </div>
+                <div class="card-body no-pad table-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>Loại xe</th><th>Tên chính sách</th><th>Giá cơ bản (VND)</th><th>Phí mỗi giờ</th><th>Giá ngày (Max)</th><th>Giá tháng</th><th>Thao tác</th></tr></thead>
+                        <tbody>
+                            ${data.map(p => `
+                                <tr>
+                                    <td><span class="badge badge-purple">${p.vehicleTypeName || '-'}</span></td>
+                                    <td style="font-weight:600">${p.policyName}</td>
+                                    <td>${p.basePrice ? p.basePrice.toLocaleString() : '0'} đ</td>
+                                    <td>${p.hourlyRate ? p.hourlyRate.toLocaleString() : '0'} đ</td>
+                                    <td>${p.maxDailyRate ? p.maxDailyRate.toLocaleString() : '0'} đ</td>
+                                    <td>${p.monthlyRate ? p.monthlyRate.toLocaleString() : '0'} đ</td>
+                                    <td>
+                                        <button class="btn btn-outline" style="padding: 2px 8px; font-size: 0.8rem;" onclick="alert('Tính năng chỉnh sửa đang phát triển')">Sửa</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        container.innerHTML = html;
     }
 };
 

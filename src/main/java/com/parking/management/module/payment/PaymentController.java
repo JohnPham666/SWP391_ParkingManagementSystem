@@ -28,8 +28,8 @@ public class PaymentController {
 
     @Operation(summary = "Get payment by ID", description = "Retrieve a specific payment record by its ID")
     @PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff', 'Driver')")
-    @GetMapping("/{id}")
-    public ApiResponse<PaymentResponse> getById(@PathVariable Integer id) {
+    @GetMapping("/{id:\\d+}")
+    public ApiResponse<PaymentResponse> getById(@PathVariable("id") Integer id) {
         PaymentResponse response = service.getById(id);
         return ApiResponse.success("Fetched payment successfully", response);
     }
@@ -42,10 +42,19 @@ public class PaymentController {
         return ApiResponse.success("Fetched all payments successfully", responses);
     }
 
+    @Operation(summary = "Get payments page", description = "Retrieve a paginated list of payment records")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff')")
+    @GetMapping("/page")
+    public ApiResponse<com.parking.management.common.PageResponse<PaymentResponse>> getPaymentsPage(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
+        return ApiResponse.success("Payments page retrieved successfully", service.getPage(page, size));
+    }
+
     @Operation(summary = "Get payment by session ID", description = "Retrieve payment record by parking session ID")
     @PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff', 'Driver')")
-    @GetMapping("/session/{sessionId}")
-    public ApiResponse<PaymentResponse> getBySessionId(@PathVariable Integer sessionId) {
+    @GetMapping("/session/{sessionId:\\d+}")
+    public ApiResponse<PaymentResponse> getBySessionId(@PathVariable("sessionId") Integer sessionId) {
         PaymentResponse response = service.getBySessionId(sessionId);
         return ApiResponse.success("Fetched payment by session successfully", response);
     }

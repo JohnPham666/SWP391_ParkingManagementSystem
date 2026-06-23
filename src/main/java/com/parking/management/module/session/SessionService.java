@@ -378,6 +378,20 @@ public class SessionService {
         if (session.getVehicle() != null) {
             response.setVehicleId(session.getVehicle().getVehicleId());
             response.setLicensePlate(session.getVehicle().getLicensePlate());
+            
+            if (session.getVehicle().getVehicleType() != null) {
+                response.setVehicleTypeId(session.getVehicle().getVehicleType().getVehicleTypeId());
+                response.setVehicleTypeName(session.getVehicle().getVehicleType().getTypeName());
+            }
+
+            // Customer info
+            if (session.getVehicle().getOwnerName() != null) {
+                response.setCustomerName(session.getVehicle().getOwnerName());
+                response.setCustomerPhone(session.getVehicle().getOwnerPhone());
+            } else if (session.getVehicle().getUser() != null) {
+                response.setCustomerName(session.getVehicle().getUser().getFullName());
+                response.setCustomerPhone(session.getVehicle().getUser().getPhoneNumber());
+            }
         }
 
         if (session.getSlot() != null) {

@@ -154,6 +154,14 @@ public class PaymentService {
                 .toList();
     }
 
+    public com.parking.management.common.PageResponse<PaymentResponse> getPage(int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("paymentId").descending());
+        org.springframework.data.domain.Page<Payment> paymentPage = paymentRepository.findAll(pageable);
+        
+        org.springframework.data.domain.Page<PaymentResponse> dtoPage = paymentPage.map(this::mapEntityToResponse);
+        return new com.parking.management.common.PageResponse<>(dtoPage);
+    }
+
     public PaymentResponse getBySessionId(Integer sessionId) {
         Payment payment = paymentRepository.findFirstBySession_SessionIdOrderByPaymentIdDesc(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -260,9 +268,26 @@ public class PaymentService {
 
         if (payment.getSession() != null) {
             response.setSessionId(payment.getSession().getSessionId());
+            if (payment.getSession().getVehicle() != null) {
+                response.setLicensePlate(payment.getSession().getVehicle().getLicensePlate());
+                if (payment.getSession().getVehicle().getOwnerName() != null) {
+                    response.setCustomerName(payment.getSession().getVehicle().getOwnerName());
+                    response.setCustomerPhone(payment.getSession().getVehicle().getOwnerPhone());
+                } else if (payment.getSession().getVehicle().getUser() != null) {
+                    response.setCustomerName(payment.getSession().getVehicle().getUser().getFullName());
+                    response.setCustomerPhone(payment.getSession().getVehicle().getUser().getPhoneNumber());
+                }
+            }
         }
         if (payment.getReservation() != null) {
             response.setReservationId(payment.getReservation().getReservationId());
+            if (payment.getReservation().getVehicle() != null && payment.getReservation().getVehicle().getLicensePlate() != null) {
+                response.setLicensePlate(payment.getReservation().getVehicle().getLicensePlate());
+            }
+            if (payment.getReservation().getUser() != null) {
+                response.setCustomerName(payment.getReservation().getUser().getFullName());
+                response.setCustomerPhone(payment.getReservation().getUser().getPhoneNumber());
+            }
         }
 
         response.setAmount(payment.getAmount());

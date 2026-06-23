@@ -51,7 +51,7 @@ public class UserController {
 
     @Operation(summary = "Get user by ID", description = "Retrieve a specific user by their ID")
     @GetMapping("/{id}")
-    public ApiResponse<UserResponse> getById(@PathVariable Integer id) {
+    public ApiResponse<UserResponse> getById(@PathVariable("id") Integer id) {
         return ApiResponse.success("Fetched successfully", service.getById(id));
     }
 
@@ -64,16 +64,24 @@ public class UserController {
 
     @Operation(summary = "Update a user", description = "Update an existing user by their ID")
     @PutMapping("/{id}")
-    public ApiResponse<UserResponse> update(@PathVariable Integer id, @Valid @RequestBody UserRequest request) {
+    public ApiResponse<UserResponse> update(@PathVariable("id") Integer id, @Valid @RequestBody UserRequest request) {
         return ApiResponse.success("Updated successfully", service.update(id, request));
     }
 
     @Operation(summary = "Delete a user", description = "Delete a user by their ID")
     @PreAuthorize("hasRole('Admin')")
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@PathVariable Integer id) {
+    public ApiResponse<Void> delete(@PathVariable("id") Integer id) {
         service.delete(id);
         return ApiResponse.success("Deleted successfully", null);
+    }
+
+    @Operation(summary = "Update user status", description = "Activate or deactivate a user")
+    @PreAuthorize("hasRole('Admin')")
+    @PatchMapping("/{id}/status")
+    public ApiResponse<Void> updateStatus(@PathVariable("id") Integer id, @RequestParam("isActive") Boolean isActive) {
+        service.updateStatus(id, isActive);
+        return ApiResponse.success("Status updated successfully", null);
     }
 }
 

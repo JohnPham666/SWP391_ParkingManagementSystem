@@ -45,6 +45,8 @@ public class SecurityConfig {
                                 "/index.html",
                                 "/*.html",
                                 "/staff/**",
+                                "/manager/**",
+                                "/admin/**",
                                 "/driver/**",
                                 "/css/**",
                                 "/js/**",

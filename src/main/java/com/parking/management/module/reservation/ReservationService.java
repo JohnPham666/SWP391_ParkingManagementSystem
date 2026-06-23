@@ -14,12 +14,10 @@ import com.parking.management.security.SecurityUtils;
 import com.parking.management.module.payment.PaymentRepository;
 import com.parking.management.module.pricing.PricingService;
 import com.parking.management.module.pricing.FeeCalculationResponse;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -251,15 +249,5 @@ public class ReservationService {
                 .toLowerCase()
                 .replaceAll("\\s+", " ")
                 .trim();
-    }
-
-    private boolean isMotorbikeType(String typeName) {
-        String normalized = normalizeVehicleTypeName(typeName);
-        return normalized.equals("xe may")
-                || normalized.equals("motorbike")
-                || normalized.equals("motorcycle")
-                || normalized.contains("xe may")
-                || normalized.contains("motorbike")
-                || normalized.contains("motorcycle");
     }
 }

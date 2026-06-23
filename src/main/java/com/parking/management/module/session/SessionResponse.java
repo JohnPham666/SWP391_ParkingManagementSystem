@@ -30,5 +30,8 @@ public class SessionResponse {
 
     private Integer vehicleTypeId;
     private String vehicleTypeName;
+    
+    private String customerName;
+    private String customerPhone;
     //====
 }

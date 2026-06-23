@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class FloorService {
     private final FloorRepository repository;
     private final BuildingService buildingService;

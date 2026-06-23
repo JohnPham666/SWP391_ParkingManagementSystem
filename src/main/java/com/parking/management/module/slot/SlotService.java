@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class SlotService {
     private final ParkingSlotRepository repository;
     private final ZoneService zoneService;

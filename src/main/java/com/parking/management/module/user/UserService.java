@@ -130,6 +130,13 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
+    public void updateStatus(Integer id, Boolean isActive) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        user.setIsActive(isActive);
+        userRepository.save(user);
+    }
+
     // Helper: chuyển Entity → Response DTO
     private UserResponse toResponse(User user) {
         UserResponse res = new UserResponse();
