@@ -845,9 +845,11 @@ const Pages = {
         }
         
         const allIncidents = res.data || [];
-        const currentUserId = window.Api?.user?.userId || window.Api?.user?.id;
+        const u = App.state.user || window.Api?.user || {};
+        const currentUserId = u.userId || u.id || u.userid;
         
-        DriverState.incidents = allIncidents.filter(i => currentUserId ? (i.reportedById == currentUserId) : true);
+        // Strict filter to only show current user's incidents, never fallback to true
+        DriverState.incidents = allIncidents.filter(i => currentUserId && i.reportedById == currentUserId);
         
         container.innerHTML = DriverRender.renderIncidentPage(DriverState.incidents);
     },
