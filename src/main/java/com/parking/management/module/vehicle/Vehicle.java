@@ -65,6 +65,4 @@ public class Vehicle {
     @Column(name = "isactive")
     private Boolean isActive = true;
 
-    @Column(name = "createdat")
-    private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
 }

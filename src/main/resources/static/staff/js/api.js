@@ -71,6 +71,17 @@ const Api = {
     walkIn(data) { return this.request('POST', '/sessions/walk-in', data); },
     checkOut(sessionId, data) { return this.request('POST', '/sessions/' + sessionId + '/check-out', data); },
     getActiveByPlate(plate) { return this.request('GET', '/sessions/active/by-license-plate?licensePlate=' + encodeURIComponent(plate)); },
+    async uploadSessionImage(sessionId, file, type = 'entry') {
+        const formData = new FormData();
+        formData.append('file', file);
+        const opts = { method: 'POST', body: formData };
+        if (this.token) opts.headers = { 'Authorization': 'Bearer ' + this.token };
+        try {
+            const res = await fetch(API_BASE + `/sessions/${sessionId}/image?type=${type}`, opts);
+            if (res.status === 401) { this.clearAuth(); location.reload(); return { success: false, message: 'Hết phiên' }; }
+            return await res.json();
+        } catch (err) { return { success: false, message: err.message }; }
+    },
 
     // Slots
     getSlots(zoneId, vehicleTypeId) {
@@ -149,3 +160,5 @@ const Api = {
     // Zones
     getZones(floorId) { return this.request('GET', '/zones' + (floorId ? '?floorId=' + floorId : '')); },
 };
+
+export default Api;

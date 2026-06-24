@@ -12,6 +12,7 @@ import com.parking.management.module.session.ParkingSession;
 import com.parking.management.module.session.ParkingSessionRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import jakarta.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
@@ -23,6 +24,7 @@ import com.parking.management.security.SecurityUtils;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
@@ -33,6 +35,10 @@ public class PaymentService {
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final VnPayService vnPayService;
     private final SecurityUtils securityUtils;
+
+    // SessionService được inject để dùng chung logic hoàn tất session + giải phóng slot.
+    // Tránh duplicate code giữa PaymentService và SessionService.
+    private final com.parking.management.module.session.SessionService sessionService;
 
     @Transactional
     public PaymentResponse create(PaymentRequest request) {
@@ -226,22 +232,9 @@ public class PaymentService {
             }
         }
         
+        // Dùng helper method từ SessionService (tránh duplicate code)
         if (payment.getSession() != null) {
-            ParkingSession session = payment.getSession();
-            if ("PARKING".equals(session.getStatus())) {
-                session.setStatus("COMPLETED");
-                session.setExitTime(LocalDateTime.now());
-                
-                ParkingSlot slot = session.getSlot();
-                int newOcc = slot.getCurrentOccupancy() - 1;
-                if (newOcc < 0) newOcc = 0;
-                slot.setCurrentOccupancy(newOcc);
-                if (slot.getCurrentOccupancy() < slot.getCapacity()) {
-                    slot.setStatus(SlotStatus.AVAILABLE);
-                }
-                parkingSlotRepository.save(slot);
-                parkingSessionRepository.save(session);
-            }
+            sessionService.completeSessionAndFreeSlot(payment.getSession(), null);
         }
 
         Payment updatedPayment = paymentRepository.save(payment);
@@ -350,8 +343,10 @@ public class PaymentService {
             throw new IllegalArgumentException("Only PENDING payment can create VNPay payment URL");
         }
 
+        // Auto convert to BANK_TRANSFER method if user selected VNPay checkout flow
         if (PaymentMethod.CASH.name().equals(payment.getPaymentMethod())) {
-            throw new IllegalArgumentException("CASH payment cannot create VNPay payment URL");
+            payment.setPaymentMethod(PaymentMethod.BANK_TRANSFER.name());
+            paymentRepository.save(payment);
         }
 
         String transactionRef = "PAY" + payment.getPaymentId() + System.currentTimeMillis();
@@ -426,31 +421,33 @@ public class PaymentService {
                         reservation.setSlot(newSlot);
                         reservationRepository.save(reservation);
                     } else {
-                        // TODO: Xử lý hoàn tiền hoặc ném lỗi nếu hết chỗ
-                        System.err.println("CRITICAL: Payment succeeded but no slots available for Reservation " + reservation.getReservationId());
+                        /*
+                         * TRƯỜNG HỢP ĐẶC BIỆT:
+                         * Thanh toán VNPay thành công, nhưng không còn chỗ trống nào.
+                         *
+                         * Xử lý:
+                         * 1. Hủy reservation (vì không có slot cho khách)
+                         * 2. Đánh dấu payment = REFUND_PENDING để Staff/Admin hoàn tiền thủ công
+                         * 3. Ghi log CRITICAL để theo dõi
+                         */
+                        reservation.setStatus("CANCELLED");
+                        reservationRepository.save(reservation);
+
+                        payment.setPaymentStatus(PaymentStatus.REFUND_PENDING.name());
+
+                        log.error("CRITICAL: VNPay payment succeeded but NO SLOTS available. "
+                                + "Reservation ID: {} → CANCELLED. "
+                                + "Payment ID: {} → REFUND_PENDING. "
+                                + "Staff/Admin cần hoàn tiền thủ công cho khách.",
+                                reservation.getReservationId(), payment.getPaymentId());
                     }
                 }
-                // Giả lập gửi thông báo
-                System.out.println(">>> Gửi email/SMS xác nhận đặt chỗ thành công cho Reservation ID: " + reservation.getReservationId());
+                log.info("Đặt chỗ xử lý xong cho Reservation ID: {}", reservation.getReservationId());
             }
 
-            // Check if it's a session payment
+            // Dùng helper method từ SessionService (tránh duplicate code)
             if (payment.getSession() != null) {
-                ParkingSession session = payment.getSession();
-                if ("PARKING".equals(session.getStatus())) {
-                    session.setStatus("COMPLETED");
-                    session.setExitTime(LocalDateTime.now());
-                    
-                    ParkingSlot slot = session.getSlot();
-                    int newOcc = slot.getCurrentOccupancy() - 1;
-                    if (newOcc < 0) newOcc = 0;
-                    slot.setCurrentOccupancy(newOcc);
-                    if (slot.getCurrentOccupancy() < slot.getCapacity()) {
-                        slot.setStatus(SlotStatus.AVAILABLE);
-                    }
-                    parkingSlotRepository.save(slot);
-                    parkingSessionRepository.save(session);
-                }
+                sessionService.completeSessionAndFreeSlot(payment.getSession(), null);
             }
 
             paymentRepository.save(payment);

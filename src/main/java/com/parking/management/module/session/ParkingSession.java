@@ -45,6 +45,12 @@ public class ParkingSession {
     @Column(name = "ExitGate", length = 50)
     private String exitGate;
 
+    @Column(name = "EntryImage", length = 500)
+    private String entryImage;
+
+    @Column(name = "ExitImage", length = 500)
+    private String exitImage;
+
     @Column(name = "Status", nullable = false, length = 20)
     private String status;
 

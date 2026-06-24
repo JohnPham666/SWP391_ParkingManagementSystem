@@ -89,4 +89,14 @@ public class SessionController {
         service.delete(id);
         return ApiResponse.success("Deleted successfully", null);
     }
+    @Operation(summary = "Upload session image", description = "Upload entry or exit image for a session")
+    @PostMapping("/{sessionId}/image")
+    public ApiResponse<SessionResponse> uploadSessionImage(
+            @PathVariable Integer sessionId,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "type", defaultValue = "entry") String type
+    ) {
+        SessionResponse response = service.uploadSessionImage(sessionId, file, type);
+        return ApiResponse.success("Image uploaded successfully", response);
+    }
 }
