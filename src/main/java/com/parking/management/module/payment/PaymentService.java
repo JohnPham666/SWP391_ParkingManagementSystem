@@ -37,11 +37,10 @@ public class PaymentService {
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final VnPayService vnPayService;
     private final SecurityUtils securityUtils;
-    private final SessionService sessionService;
 
     // SessionService được inject để dùng chung logic hoàn tất session + giải phóng slot.
     // Tránh duplicate code giữa PaymentService và SessionService.
-    private final com.parking.management.module.session.SessionService sessionService;
+    private final SessionService sessionService;
 
     @Transactional
     public PaymentResponse create(PaymentRequest request) {

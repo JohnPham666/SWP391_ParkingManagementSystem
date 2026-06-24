@@ -22,6 +22,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class ReservationService {
 
     private final ReservationRepository reservationRepository;
@@ -240,14 +241,5 @@ public class ReservationService {
                 });
 
         return response;
-    }
-
-    private String normalizeVehicleTypeName(String value) {
-        if (value == null) return "";
-        return java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .toLowerCase()
-                .replaceAll("\\s+", " ")
-                .trim();
     }
 }

@@ -18,13 +18,13 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.access.AccessDeniedException;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class VehicleService {
 
     private final VehicleRepository vehicleRepository;
