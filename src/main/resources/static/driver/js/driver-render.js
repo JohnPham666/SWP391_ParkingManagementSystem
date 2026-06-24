@@ -615,7 +615,7 @@ const DriverRender = {
                     <button class="btn btn-primary btn-full" type="submit" style="margin-top:10px;">Gửi báo cáo</button>
                 </form>
             </div>
-            <div class="card"><div class="card-header"><span class="card-title">Sự cố đã gửi</span></div><div class="card-body">${incidents.length ? incidents.map(i => this.renderIncidentCard(i)).join('') : this.renderEmptyState(this.iconAlert(), 'Chưa có báo cáo sự cố.')}</div></div>
+            <div class="card"><div class="card-header"><span class="card-title">Sự cố đã gửi</span></div><div class="card-body">${incidents.length ? incidents.map(i => this.renderIncidentCard(i)).join('') : this.renderEmptyState(this.iconAlert(), 'Tài khoản chưa từng báo cáo sự cố.')}</div></div>
         `;
     },
 

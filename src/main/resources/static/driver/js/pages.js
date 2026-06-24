@@ -844,7 +844,10 @@ const Pages = {
             return;
         }
         
-        DriverState.incidents = res.data || [];
+        const allIncidents = res.data || [];
+        const currentUserId = window.Api?.user?.userId || window.Api?.user?.id;
+        
+        DriverState.incidents = allIncidents.filter(i => currentUserId ? (i.reportedById == currentUserId) : true);
         
         container.innerHTML = DriverRender.renderIncidentPage(DriverState.incidents);
     },
