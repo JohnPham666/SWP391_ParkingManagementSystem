@@ -360,7 +360,7 @@ const DriverRender = {
         `;
     },
 
-    renderEditProfileModal(fullName, email, phone, address) {
+    renderEditProfileModal(fullName, email, phone, address, dob) {
         return `
             <div class="modal-header">
                 <h3>Chỉnh sửa thông tin</h3>
@@ -375,6 +375,10 @@ const DriverRender = {
                     <div class="form-group full-width">
                         <label>Email (Không được sửa)</label>
                         <input id="edit-profile-email" type="email" value="${DriverUtils.escapeAttr(email)}" disabled style="background-color: var(--bg-color); cursor: not-allowed;">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Ngày sinh</label>
+                        <input id="edit-profile-dob" type="date" value="${DriverUtils.escapeAttr(dob)}">
                     </div>
                     <div class="form-group full-width">
                         <label>Số điện thoại</label>

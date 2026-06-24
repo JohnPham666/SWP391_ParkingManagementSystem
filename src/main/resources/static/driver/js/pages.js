@@ -595,7 +595,11 @@ const Pages = {
         const fullName = u.fullname || u.fullName || '';
         const email = u.email || '';
         const phone = u.phonenumber || u.phoneNumber || '';
-        const dob = u.dateofbirth || u.dateOfBirth || '';
+        let dob = u.dateofbirth || u.dateOfBirth || '';
+        if (dob && dob.length >= 10) {
+            const parts = dob.substring(0, 10).split('-');
+            if (parts.length === 3) dob = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
         const address = u.address || '';
         const role = u.roleName || u.role || u.rolename || 'Driver';
         let status = u.status !== undefined ? u.status : (u.isActive !== undefined ? u.isActive : (u.isactive !== undefined ? u.isactive : '-'));
@@ -613,8 +617,10 @@ const Pages = {
         const email = u.email || '';
         const phone = u.phonenumber || u.phoneNumber || '';
         const address = u.address || '';
+        let dob = u.dateOfBirth || u.dateofbirth || u.dob || '';
+        if (dob && dob.length >= 10) dob = dob.substring(0, 10);
 
-        this.openModal(DriverRender.renderEditProfileModal(fullName, email, phone, address));
+        this.openModal(DriverRender.renderEditProfileModal(fullName, email, phone, address, dob));
     },
 
     async submitEditProfile(event) {
@@ -625,10 +631,27 @@ const Pages = {
         btn.innerHTML = '<div class="btn-loader"></div>';
         err.classList.add('hidden');
 
+        const dobValue = document.getElementById('edit-profile-dob').value;
+
+        if (dobValue) {
+            const selectedDate = new Date(dobValue);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (selectedDate > today) {
+                btn.disabled = false;
+                btn.innerHTML = 'Lưu thay đổi';
+                err.classList.remove('hidden');
+                err.textContent = 'Ngày sinh không hợp lệ.';
+                return;
+            }
+        }
+
         const payload = {
             fullName: document.getElementById('edit-profile-name').value,
             phoneNumber: document.getElementById('edit-profile-phone').value,
-            address: document.getElementById('edit-profile-address').value
+            address: document.getElementById('edit-profile-address').value,
+            email: document.getElementById('edit-profile-email').value,
+            dateOfBirth: dobValue || null
         };
 
         const res = await window.Api.updateMyProfile(payload);
