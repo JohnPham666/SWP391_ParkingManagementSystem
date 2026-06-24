@@ -377,12 +377,12 @@ const DriverRender = {
                         <input id="edit-profile-email" type="email" value="${DriverUtils.escapeAttr(email)}" disabled style="background-color: var(--bg-color); cursor: not-allowed;">
                     </div>
                     <div class="form-group full-width">
-                        <label>Ngày sinh</label>
-                        <input id="edit-profile-dob" type="date" value="${DriverUtils.escapeAttr(dob)}">
-                    </div>
-                    <div class="form-group full-width">
                         <label>Số điện thoại</label>
                         <input id="edit-profile-phone" type="tel" value="${DriverUtils.escapeAttr(phone)}">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Ngày sinh</label>
+                        <input id="edit-profile-dob" type="date" value="${DriverUtils.escapeAttr(dob)}">
                     </div>
                     <div class="form-group full-width">
                         <label>Địa chỉ</label>
