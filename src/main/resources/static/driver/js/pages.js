@@ -29,6 +29,23 @@ const Pages = {
         }
     },
 
+    showImagePreview(url) {
+        if (!url) return;
+        const existing = document.getElementById('image-preview-modal');
+        if (existing) existing.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', DriverRender.renderImagePreviewModal(url));
+        
+        const escListener = (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('image-preview-modal');
+                if (modal) modal.remove();
+                document.removeEventListener('keydown', escListener);
+            }
+        };
+        document.addEventListener('keydown', escListener);
+    },
+
     // ===============================
     // Block: Trang Chủ (Dashboard)
     // ===============================
@@ -505,12 +522,23 @@ const Pages = {
         const v = DriverState.vehicles.find(x => x.vehicleId === vehicleId);
         if(!v) return;
         
-        let imgHtml = '';
+        let imagesHtml = '<div class="vehicle-images-grid">';
+        
+        imagesHtml += `<div><label style="display:block; margin-bottom: 8px; font-weight: 600; font-size: .85rem; color: var(--text-secondary);">Hình ảnh xe</label>`;
         if (v.vehicleImage) {
-            imgHtml = `<div class="list-item"><div class="list-info"><h4>Hình ảnh xe</h4><div style="margin-top: 8px;"><img src="${DriverUtils.escapeAttr(v.vehicleImage)}" style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border-color);" alt="Hình ảnh xe"></div></div></div>`;
+            imagesHtml += `<img src="${DriverUtils.escapeAttr(v.vehicleImage)}" class="card-image-preview" onclick="window.Pages.showImagePreview('${DriverUtils.escapeAttr(v.vehicleImage)}')" alt="Hình ảnh xe">`;
         } else {
-            imgHtml = DriverRender.renderInfoRow('Hình ảnh xe', 'Chưa có thông tin');
+            imagesHtml += `<div class="image-preview-placeholder">Chưa có hình ảnh xe</div>`;
         }
+        imagesHtml += `</div>`;
+
+        imagesHtml += `<div><label style="display:block; margin-bottom: 8px; font-weight: 600; font-size: .85rem; color: var(--text-secondary);">Hình ảnh cà vẹt xe</label>`;
+        if (v.registrationPhoto) {
+            imagesHtml += `<img src="${DriverUtils.escapeAttr(v.registrationPhoto)}" class="card-image-preview" onclick="window.Pages.showImagePreview('${DriverUtils.escapeAttr(v.registrationPhoto)}')" alt="Cà vẹt xe">`;
+        } else {
+            imagesHtml += `<div class="image-preview-placeholder">Chưa có hình ảnh cà vẹt xe</div>`;
+        }
+        imagesHtml += `</div></div>`;
 
         this.openModal(`
             <div class="modal-header">
@@ -530,7 +558,9 @@ const Pages = {
                         ${DriverRender.renderInfoRow('Số máy', v.engineNumber || 'Chưa có thông tin')}
                         ${DriverRender.renderInfoRow('Số khung', v.chassisNumber || 'Chưa có thông tin')}
                         ${DriverRender.renderInfoRow('Năm sản xuất', v.manufactureYear || 'Chưa có thông tin')}
-                        ${imgHtml}
+                        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                            ${imagesHtml}
+                        </div>
                     </div>
                 </div>
             </div>

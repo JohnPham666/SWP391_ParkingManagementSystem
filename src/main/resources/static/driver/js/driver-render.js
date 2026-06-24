@@ -290,7 +290,7 @@ const DriverRender = {
         return `
             <div class="page-header"><h2>Quản lý xe</h2><p>Thêm, sửa, xóa phương tiện của bạn.</p></div>
             <div class="card">
-                <div class="card-header"><span class="card-title">${this.iconCar()} Xe của tôi</span><button class="btn btn-primary btn-sm" onclick="window.Pages.showVehicleModal()">Thêm xe</button></div>
+                <div class="card-header"><span class="card-title">${this.iconCar()} Xe của tôi</span><button class="btn btn-primary btn-sm" onclick="window.Pages.showVehicleModal()">Đăng ký xe</button></div>
                 <div class="card-body">${vehicles.length ? vehicles.map(v => this.renderVehicleCard(v)).join('') : this.renderEmptyState(this.iconCar(), 'Chưa có phương tiện nào.')}</div>
             </div>
         `;
@@ -309,13 +309,23 @@ const DriverRender = {
                         <div class="form-group"><label>SĐT chủ xe <span style="color: var(--red);">*</span></label><input id="vehicle-ownerPhone" value="${DriverUtils.escapeAttr(vehicle?.ownerPhone || '')}" placeholder="Vui lòng nhập số điện thoại"></div>
                         <div class="form-group"><label>Hãng xe <span style="color: var(--red);">*</span></label><input id="vehicle-brand" value="${DriverUtils.escapeAttr(vehicle?.brand || '')}" placeholder="Vui lòng nhập hãng xe"></div>
                         <div class="form-group"><label>Màu xe <span style="color: var(--red);">*</span></label><input id="vehicle-color" value="${DriverUtils.escapeAttr(vehicle?.vehicleColor || '')}" placeholder="Vui lòng nhập màu xe"></div>
-                        <div class="form-group full-width"><label>Ảnh cà vẹt xe <span style="color: var(--red);">*</span></label><input id="vehicle-regPhoto-file" type="file" accept="image/*" ${vehicle?.registrationPhoto ? '' : 'required'}>
-                        ${vehicle?.registrationPhoto ? `<div style="margin-top: 4px;"><a href="${vehicle.registrationPhoto}" target="_blank">Xem ảnh hiện tại</a></div>` : ''}</div>
-                        <div class="form-group full-width"><label>Ảnh biển số xe <span style="color: var(--red);">*</span></label><input id="vehicle-image-file" type="file" accept="image/*" ${vehicle?.vehicleImage ? '' : 'required'}>
-                        ${vehicle?.vehicleImage ? `<div style="margin-top: 4px;"><a href="${vehicle.vehicleImage}" target="_blank">Xem ảnh hiện tại</a></div>` : ''}</div>
+                        <div class="form-group full-width" style="margin-bottom: 0;">
+                            <div class="vehicle-images-grid" style="margin-top: 0;">
+                                <div>
+                                    <label style="display:block; margin-bottom: 8px; font-size: .82rem; font-weight: 600; color: var(--text-secondary);">Ảnh biển số xe <span style="color: var(--red);">*</span></label>
+                                    <input id="vehicle-image-file" type="file" accept="image/*" ${vehicle?.vehicleImage ? '' : 'required'} style="margin-bottom: 12px;">
+                                    ${vehicle?.vehicleImage ? `<img src="${DriverUtils.escapeAttr(vehicle.vehicleImage)}" class="card-image-preview" onclick="window.Pages.showImagePreview('${DriverUtils.escapeAttr(vehicle.vehicleImage)}')" alt="Hình ảnh xe">` : `<div class="image-preview-placeholder">Chưa có hình ảnh xe</div>`}
+                                </div>
+                                <div>
+                                    <label style="display:block; margin-bottom: 8px; font-size: .82rem; font-weight: 600; color: var(--text-secondary);">Ảnh cà vẹt xe <span style="color: var(--red);">*</span></label>
+                                    <input id="vehicle-regPhoto-file" type="file" accept="image/*" ${vehicle?.registrationPhoto ? '' : 'required'} style="margin-bottom: 12px;">
+                                    ${vehicle?.registrationPhoto ? `<img src="${DriverUtils.escapeAttr(vehicle.registrationPhoto)}" class="card-image-preview" onclick="window.Pages.showImagePreview('${DriverUtils.escapeAttr(vehicle.registrationPhoto)}')" alt="Cà vẹt xe">` : `<div class="image-preview-placeholder">Chưa có hình ảnh cà vẹt xe</div>`}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="window.Pages.closeModal()">Hủy</button><button class="btn btn-primary" type="submit">Lưu</button></div>
+                <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="window.Pages.closeModal()">Hủy</button><button class="btn btn-primary" type="submit">Nộp</button></div>
             </form>
         `;
     },
@@ -524,6 +534,17 @@ const DriverRender = {
                 </form>
             </div>
             <div class="card"><div class="card-header"><span class="card-title">Sự cố đã gửi</span></div><div class="card-body">${incidents.length ? incidents.map(i => this.renderIncidentCard(i)).join('') : this.renderEmptyState(this.iconAlert(), 'Chưa có báo cáo sự cố.')}</div></div>
+        `;
+    },
+
+    renderImagePreviewModal(url) {
+        return `
+            <div class="image-preview-overlay show" id="image-preview-modal" onclick="this.remove()">
+                <div class="image-preview-content" onclick="event.stopPropagation()">
+                    <button class="image-preview-close" onclick="document.getElementById('image-preview-modal').remove()">&times;</button>
+                    <img src="${DriverUtils.escapeAttr(url)}" alt="Preview">
+                </div>
+            </div>
         `;
     }
 };
