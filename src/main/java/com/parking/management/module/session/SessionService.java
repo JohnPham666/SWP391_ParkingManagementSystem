@@ -226,6 +226,13 @@ public class SessionService {
         }
 
         LocalDateTime exitTime = LocalDateTime.now();
+<<<<<<< HEAD
+=======
+
+        session.setExitTime(exitTime);
+        session.setExitGate(request.getExitGate());
+
+>>>>>>> 8b6ecfa6a876b735cf5eee941d8f672098948328
         Long vehicleTypeId = Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId());
 
         // Kiểm tra xem session này có reservation đi kèm không
@@ -300,12 +307,39 @@ public class SessionService {
 
         session.setFinalFee(calculatedFinalFee);
 
+<<<<<<< HEAD
         // Dùng helper method chung để hoàn tất session + giải phóng slot
         ParkingSession updatedSession = completeSessionAndFreeSlot(session, request.getExitGate());
+=======
+        if (calculatedFinalFee.compareTo(BigDecimal.ZERO) == 0) {
+            // Final fee is 0 (e.g. valid subscription, fully paid reservation) -> Complete immediately
+            session.setStatus(SessionStatus.COMPLETED.name());
+            
+            if (session.getCard() != null) {
+                ParkingCard card = session.getCard();
+                card.setStatus("ACTIVE");
+                parkingCardRepository.save(card);
+            }
+
+            int newOcc = slot.getCurrentOccupancy() - 1;
+            if (newOcc < 0) newOcc = 0;
+            slot.setCurrentOccupancy(newOcc);
+            if (slot.getCurrentOccupancy() < slot.getCapacity()) {
+                slot.setStatus(SlotStatus.AVAILABLE);
+            }
+            parkingSlotRepository.save(slot);
+        } else {
+            // Fee > 0 -> Needs payment. Set PENDING_PAYMENT, do not release slot yet.
+            session.setStatus(SessionStatus.PENDING_PAYMENT.name());
+        }
+
+        ParkingSession updatedSession = parkingSessionRepository.save(session);
+>>>>>>> 8b6ecfa6a876b735cf5eee941d8f672098948328
 
         return mapEntityToResponse(updatedSession);
     }
 
+<<<<<<< HEAD
     // ============================================================
     // HELPER: Hoàn tất session và giải phóng slot
     // ============================================================
@@ -340,12 +374,25 @@ public class SessionService {
         session.setStatus(SessionStatus.COMPLETED.name());
 
         // 2. Trả lại ParkingCard (nếu có) về trạng thái ACTIVE
+=======
+    /*
+     * Hoàn tất phiên đỗ xe (Được gọi sau khi thanh toán thành công)
+     */
+    @Transactional
+    public void completeSession(Integer sessionId) {
+        ParkingSession session = parkingSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+        
+        session.setStatus(SessionStatus.COMPLETED.name());
+        
+>>>>>>> 8b6ecfa6a876b735cf5eee941d8f672098948328
         if (session.getCard() != null) {
             ParkingCard card = session.getCard();
             card.setStatus("ACTIVE");
             parkingCardRepository.save(card);
         }
 
+<<<<<<< HEAD
         // 3. Giảm occupancy của slot và cập nhật trạng thái
         ParkingSlot slot = session.getSlot();
         if (slot != null) {
@@ -356,14 +403,26 @@ public class SessionService {
             slot.setCurrentOccupancy(newOccupancy);
 
             // Nếu slot còn chỗ trống → đổi về AVAILABLE
+=======
+        ParkingSlot slot = session.getSlot();
+        if (slot != null) {
+            int newOcc = slot.getCurrentOccupancy() - 1;
+            if (newOcc < 0) newOcc = 0;
+            slot.setCurrentOccupancy(newOcc);
+>>>>>>> 8b6ecfa6a876b735cf5eee941d8f672098948328
             if (slot.getCurrentOccupancy() < slot.getCapacity()) {
                 slot.setStatus(SlotStatus.AVAILABLE);
             }
             parkingSlotRepository.save(slot);
         }
+<<<<<<< HEAD
 
         // 4. Lưu session đã cập nhật
         return parkingSessionRepository.save(session);
+=======
+        
+        parkingSessionRepository.save(session);
+>>>>>>> 8b6ecfa6a876b735cf5eee941d8f672098948328
     }
 
 

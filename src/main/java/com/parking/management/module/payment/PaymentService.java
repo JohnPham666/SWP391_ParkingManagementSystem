@@ -10,6 +10,8 @@ import com.parking.management.module.slot.ParkingSlotRepository;
 import com.parking.management.module.slot.SlotStatus;
 import com.parking.management.module.session.ParkingSession;
 import com.parking.management.module.session.ParkingSessionRepository;
+import com.parking.management.module.session.SessionStatus;
+import com.parking.management.module.session.SessionService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +37,7 @@ public class PaymentService {
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final VnPayService vnPayService;
     private final SecurityUtils securityUtils;
+    private final SessionService sessionService;
 
     // SessionService được inject để dùng chung logic hoàn tất session + giải phóng slot.
     // Tránh duplicate code giữa PaymentService và SessionService.
@@ -80,19 +83,25 @@ public class PaymentService {
             throw new IllegalArgumentException("Invalid parking session data");
         }
 
-        LocalDateTime exitTime = session.getExitTime() == null ? LocalDateTime.now() : session.getExitTime();
-        session.setExitTime(exitTime);
+        BigDecimal amountToPay;
+        if (SessionStatus.PENDING_PAYMENT.name().equals(session.getStatus()) && session.getFinalFee() != null) {
+            amountToPay = session.getFinalFee();
+        } else {
+            LocalDateTime exitTime = session.getExitTime() == null ? LocalDateTime.now() : session.getExitTime();
+            session.setExitTime(exitTime);
 
-        FeeCalculationResponse feeResponse = pricingService.calculateFee(
-                Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId()),
-                session.getEntryTime(), exitTime);
+            FeeCalculationResponse feeResponse = pricingService.calculateFee(
+                    Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId()),
+                    session.getEntryTime(), exitTime);
 
-        session.setFinalFee(feeResponse.getFinalFee());
-        parkingSessionRepository.save(session);
+            amountToPay = feeResponse.getFinalFee();
+            session.setFinalFee(amountToPay);
+            parkingSessionRepository.save(session);
+        }
 
         Payment payment = new Payment();
         payment.setSession(session);
-        payment.setAmount(feeResponse.getFinalFee());
+        payment.setAmount(amountToPay);
         payment.setPaymentMethod(request.getPaymentMethod().name());
         payment.setPaymentStatus(PaymentStatus.PENDING.name());
         return mapEntityToResponse(paymentRepository.save(payment));
@@ -234,7 +243,14 @@ public class PaymentService {
         
         // Dùng helper method từ SessionService (tránh duplicate code)
         if (payment.getSession() != null) {
+<<<<<<< HEAD
             sessionService.completeSessionAndFreeSlot(payment.getSession(), null);
+=======
+            ParkingSession session = payment.getSession();
+            if ("PARKING".equals(session.getStatus()) || SessionStatus.PENDING_PAYMENT.name().equals(session.getStatus())) {
+                sessionService.completeSession(session.getSessionId());
+            }
+>>>>>>> 8b6ecfa6a876b735cf5eee941d8f672098948328
         }
 
         Payment updatedPayment = paymentRepository.save(payment);
@@ -447,7 +463,14 @@ public class PaymentService {
 
             // Dùng helper method từ SessionService (tránh duplicate code)
             if (payment.getSession() != null) {
+<<<<<<< HEAD
                 sessionService.completeSessionAndFreeSlot(payment.getSession(), null);
+=======
+                ParkingSession session = payment.getSession();
+                if ("PARKING".equals(session.getStatus()) || SessionStatus.PENDING_PAYMENT.name().equals(session.getStatus())) {
+                    sessionService.completeSession(session.getSessionId());
+                }
+>>>>>>> 8b6ecfa6a876b735cf5eee941d8f672098948328
             }
 
             paymentRepository.save(payment);
