@@ -452,12 +452,46 @@ const DriverRender = {
         `;
     },
 
-    renderPaymentPage() {
+    renderPaymentPage(payments) {
+        if (!payments || payments.length === 0) {
+            return `
+                <div class="page-header"><h2>Thanh toán</h2><p>Danh sách thanh toán.</p></div>
+                <div class="card">
+                    <div class="card-body">
+                        ${this.renderEmptyState(`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>`, 'Hiện không có yêu cầu thanh toán.')}
+                    </div>
+                </div>
+            `;
+        }
+
+        const tableRows = payments.map(p => `
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 12px 16px;">#${p.paymentId || p.id || '-'}</td>
+                <td style="padding: 12px 16px;">${p.paymentMethod || '-'}</td>
+                <td style="padding: 12px 16px; font-weight: 600; color: var(--accent-dark);">${DriverUtils.formatCurrency(p.amount || 0)}</td>
+                <td style="padding: 12px 16px;">${DriverUtils.statusBadge(p.paymentStatus || p.status)}</td>
+                <td style="padding: 12px 16px;">${DriverUtils.formatDateTime(p.paymentTime || p.createdAt || p.updatedAt)}</td>
+            </tr>
+        `).join('');
+
         return `
             <div class="page-header"><h2>Thanh toán</h2><p>Danh sách thanh toán.</p></div>
             <div class="card">
-                <div class="card-body">
-                    <p style="text-align:center;">Để thanh toán, vui lòng xem trong chi tiết <strong>Đặt chỗ</strong> hoặc yêu cầu nhân viên thanh toán khi <strong>Check-out</strong>. Backend chưa hỗ trợ API lấy danh sách thanh toán theo Driver.</p>
+                <div class="card-body" style="padding: 0; overflow-x: auto;">
+                    <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="background-color: var(--bg-color); border-bottom: 2px solid var(--border-color);">
+                                <th style="padding: 12px 16px;">Mã thanh toán</th>
+                                <th style="padding: 12px 16px;">Loại thanh toán</th>
+                                <th style="padding: 12px 16px;">Số tiền</th>
+                                <th style="padding: 12px 16px;">Trạng thái</th>
+                                <th style="padding: 12px 16px;">Thời gian</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         `;
