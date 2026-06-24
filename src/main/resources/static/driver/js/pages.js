@@ -730,17 +730,32 @@ const Pages = {
 
     async payment(container) {
         container.innerHTML = DriverRender.renderLoadingState();
-        const res = await window.Api.getPayments();
+        
+        // Thay thế GET /api/payments bằng GET /api/reservations do lỗi 403 Access Denied
+        const res = await window.Api.getReservations();
         
         if (!res.success) {
             container.innerHTML = `<div class="page-header"><h2>Thanh toán</h2><p>Danh sách thanh toán.</p></div>` + 
                 `<div class="card"><div class="card-body">` + 
-                DriverRender.renderEmptyState(`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>`, res.message) + 
+                DriverRender.renderEmptyState(`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>`, 'Hiện không có yêu cầu thanh toán.') + 
                 `</div></div>`;
             return;
         }
 
-        const payments = res.data || [];
+        const reservations = res.data || [];
+        const currentUserId = window.Api?.user?.userId || window.Api?.user?.id;
+        
+        // Trích xuất dữ liệu thanh toán từ thông tin đặt chỗ của Driver hiện tại
+        const payments = reservations
+            .filter(r => currentUserId ? (r.userId == currentUserId) : true)
+            .map(r => ({
+                paymentId: r.paymentId || r.reservationId,
+                paymentMethod: 'Thanh toán đỗ xe',
+                amount: r.amount || r.estimatedFee,
+                paymentStatus: r.paymentStatus || r.status,
+                paymentTime: r.createdAt
+            }));
+
         container.innerHTML = DriverRender.renderPaymentPage(payments);
     },
 
