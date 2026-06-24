@@ -770,7 +770,15 @@ const Pages = {
 
     async pricing(container) {
         container.innerHTML = DriverRender.renderLoadingState();
-        const res = await window.Api.request('/api/pricings');
+        
+        if (!DriverState.vehicleTypes || DriverState.vehicleTypes.length === 0) {
+            const vtRes = await window.Api.getVehicleTypes();
+            if (vtRes.success) {
+                DriverState.vehicleTypes = vtRes.data || [];
+            }
+        }
+
+        const res = await window.Api.getPricingPolicies();
         
         if (!res.success) {
             container.innerHTML = `<div class="page-header"><h2>Chính sách giá</h2></div>` + DriverRender.renderEmptyState(DriverRender.iconTag(), res.message);
@@ -778,6 +786,25 @@ const Pages = {
         }
 
         const policies = res.data || [];
+        
+        const now = new Date();
+        policies.forEach(p => {
+            if (p.vehicleTypeId) {
+                const vt = DriverState.vehicleTypes.find(v => v.vehicleTypeId === p.vehicleTypeId || v.id === p.vehicleTypeId);
+                p.vehicleTypeName = vt ? (vt.typeName || vt.name) : `Loại xe ${p.vehicleTypeId}`;
+            }
+
+            if (p.effectiveTo && new Date(p.effectiveTo) < now) {
+                p.computedStatus = 'Hết hiệu lực';
+                p.computedStatusClass = 'badge-danger';
+            } else if (p.effectiveFrom && new Date(p.effectiveFrom) > now) {
+                p.computedStatus = 'Sắp áp dụng';
+                p.computedStatusClass = 'badge-warning';
+            } else {
+                p.computedStatus = 'Hoạt động';
+                p.computedStatusClass = 'badge-success';
+            }
+        });
         
         container.innerHTML = DriverRender.renderPricingPage(policies);
     },

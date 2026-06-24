@@ -520,7 +520,7 @@ const DriverRender = {
                             <tbody>
                                 ${policies.map(p => `
                                     <tr style="border-bottom: 1px solid var(--border-color);">
-                                        <td style="padding: 12px 16px; font-weight: 600;">${DriverUtils.escapeHtml(p.vehicleTypeName || 'Tất cả')}</td>
+                                        <td style="padding: 12px 16px; font-weight: 600;">${DriverUtils.escapeHtml(p.vehicleTypeName || 'Không xác định')}</td>
                                         <td style="padding: 12px 16px; color: var(--text-color);">${DriverUtils.formatCurrency(p.basePrice)}</td>
                                         <td style="padding: 12px 16px; color: var(--text-color);">
                                             ${DriverUtils.formatCurrency(p.rushHourPrice)}
@@ -539,7 +539,7 @@ const DriverRender = {
                                             ${p.lostTicketFee ? DriverUtils.formatCurrency(p.lostTicketFee) : '-'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: center;">
-                                            <span class="badge ${p.isActive ? 'badge-success' : 'badge-danger'}">${p.isActive ? 'Áp dụng' : 'Ngừng'}</span>
+                                            <span class="badge ${p.computedStatusClass || 'badge-success'}">${p.computedStatus || 'Hoạt động'}</span>
                                         </td>
                                     </tr>
                                 `).join('')}
