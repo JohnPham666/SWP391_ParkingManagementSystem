@@ -810,7 +810,25 @@ const Pages = {
     },
 
     async history(container) {
-        container.innerHTML = DriverRender.renderHistoryPage();
+        container.innerHTML = DriverRender.renderLoadingState();
+        const res = await window.Api.getReservations();
+        
+        if (!res.success) {
+            container.innerHTML = `<div class="page-header"><h2>Lịch sử gửi xe</h2><p>Lịch sử gửi xe.</p></div>` + 
+                `<div class="card"><div class="card-body">` + 
+                DriverRender.renderEmptyState(DriverRender.iconReceipt(), 'Tài khoản chưa từng sử dụng dịch vụ.') + 
+                `</div></div>`;
+            return;
+        }
+
+        const reservations = res.data || [];
+        const currentUserId = window.Api?.user?.userId || window.Api?.user?.id;
+        
+        const historyData = reservations
+            .filter(r => currentUserId ? (r.userId == currentUserId) : true)
+            .sort((a, b) => new Date(b.createdAt || b.reservationStart) - new Date(a.createdAt || a.reservationStart));
+
+        container.innerHTML = DriverRender.renderHistoryPage(historyData);
     },
 
     // ===============================

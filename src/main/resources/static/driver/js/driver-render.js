@@ -551,10 +551,54 @@ const DriverRender = {
         `;
     },
 
-    renderHistoryPage() {
+    renderHistoryPage(historyData) {
+        if (!historyData || historyData.length === 0) {
+            return `
+                <div class="page-header"><h2>Lịch sử gửi xe</h2><p>Lịch sử các lần gửi xe và đặt chỗ.</p></div>
+                <div class="card">
+                    <div class="card-body">
+                        ${this.renderEmptyState(this.iconReceipt(), 'Tài khoản chưa từng sử dụng dịch vụ.')}
+                    </div>
+                </div>
+            `;
+        }
+
+        const listHtml = historyData.map(h => `
+            <div class="card" style="margin-bottom: 16px;">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="card-title" style="font-size: 1rem;">
+                        <span style="color: var(--primary-color); font-weight: 600;">#${h.reservationId}</span>
+                        <span style="margin: 0 8px; color: var(--border-color);">|</span>
+                        <span style="font-weight: 600;">${DriverUtils.escapeHtml(h.licensePlate)}</span>
+                    </span>
+                    ${DriverUtils.statusBadge(h.status)}
+                </div>
+                <div class="card-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Thời gian</div>
+                        <div style="font-weight: 500;">
+                            ${h.reservationStart ? DriverUtils.formatDateTime(h.reservationStart) : '-'} <br/> 
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">đến</span> 
+                            ${h.reservationEnd ? DriverUtils.formatDateTime(h.reservationEnd) : '-'}
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Vị trí</div>
+                        <div style="font-weight: 500;">${h.slotCode || 'Chưa xác định'}</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">${h.buildingName || ''} ${h.floorName ? '- ' + h.floorName : ''}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Chi phí</div>
+                        <div style="font-weight: 600; color: var(--accent-dark);">${DriverUtils.formatCurrency(h.amount || h.estimatedFee || 0)}</div>
+                        <div style="font-size: 0.8rem; margin-top: 2px;">${(h.paymentStatus === 'PAID' || h.paymentStatus === 'Thành công') ? '<span style="color:var(--green)">Đã thanh toán</span>' : '<span style="color:var(--orange)">Chưa thanh toán</span>'}</div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
         return `
-            <div class="page-header"><h2>Lịch sử gửi xe</h2><p>Lịch sử gửi xe.</p></div>
-            <div class="empty-state">${this.iconReceipt()}<p>Chưa có API Lịch sử gửi xe cho Driver. Vui lòng xem ở Đặt chỗ.</p></div>
+            <div class="page-header"><h2>Lịch sử gửi xe</h2><p>Lịch sử các lần gửi xe và đặt chỗ.</p></div>
+            ${listHtml}
         `;
     },
 
