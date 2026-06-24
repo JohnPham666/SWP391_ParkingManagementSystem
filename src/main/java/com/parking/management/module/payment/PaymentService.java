@@ -243,14 +243,10 @@ public class PaymentService {
         
         // Dùng helper method từ SessionService (tránh duplicate code)
         if (payment.getSession() != null) {
-<<<<<<< HEAD
-            sessionService.completeSessionAndFreeSlot(payment.getSession(), null);
-=======
             ParkingSession session = payment.getSession();
             if ("PARKING".equals(session.getStatus()) || SessionStatus.PENDING_PAYMENT.name().equals(session.getStatus())) {
                 sessionService.completeSession(session.getSessionId());
             }
->>>>>>> 8b6ecfa6a876b735cf5eee941d8f672098948328
         }
 
         Payment updatedPayment = paymentRepository.save(payment);
@@ -463,14 +459,10 @@ public class PaymentService {
 
             // Dùng helper method từ SessionService (tránh duplicate code)
             if (payment.getSession() != null) {
-<<<<<<< HEAD
-                sessionService.completeSessionAndFreeSlot(payment.getSession(), null);
-=======
                 ParkingSession session = payment.getSession();
                 if ("PARKING".equals(session.getStatus()) || SessionStatus.PENDING_PAYMENT.name().equals(session.getStatus())) {
                     sessionService.completeSession(session.getSessionId());
                 }
->>>>>>> 8b6ecfa6a876b735cf5eee941d8f672098948328
             }
 
             paymentRepository.save(payment);
