@@ -12,6 +12,7 @@ import java.util.Optional;
 public interface PaymentRepository extends JpaRepository<Payment, Integer> {
 
     Optional<Payment> findFirstBySession_SessionIdOrderByPaymentIdDesc(Integer sessionId);
+    Optional<Payment> findFirstByReservation_ReservationIdOrderByPaymentIdDesc(Integer reservationId);
 
     @Query("""
            SELECT COALESCE(SUM(p.amount), 0)

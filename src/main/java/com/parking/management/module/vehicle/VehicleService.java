@@ -57,21 +57,16 @@ public class VehicleService {
         vehicle.setUser(user);
         vehicle.setOwnerName(request.getOwnerName());
         vehicle.setOwnerPhone(request.getOwnerPhone());
-        vehicle.setOwnerIdCard(request.getOwnerIdCard());
         vehicle.setBrand(request.getBrand());
         vehicle.setVehicleColor(request.getVehicleColor());
         vehicle.setEngineNumber(request.getEngineNumber());
         vehicle.setChassisNumber(request.getChassisNumber());
         vehicle.setManufactureYear(request.getManufactureYear());
         vehicle.setRegistrationNumber(request.getRegistrationNumber());
-        if (request.getRegistrationDate() != null && !request.getRegistrationDate().isBlank()) {
-            vehicle.setRegistrationDate(LocalDate.parse(request.getRegistrationDate()));
-        }
         if (request.getRegistrationExpiry() != null && !request.getRegistrationExpiry().isBlank()) {
             vehicle.setRegistrationExpiry(LocalDate.parse(request.getRegistrationExpiry()));
         }
         vehicle.setVehicleImage(request.getVehicleImage());
-        vehicle.setOwnerPortrait(request.getOwnerPortrait());
         vehicle.setRegistrationPhoto(request.getRegistrationPhoto());
 
         return VehicleResponse.fromEntity(vehicleRepository.save(vehicle));
@@ -132,25 +127,18 @@ public class VehicleService {
         vehicle.setUser(user);
         vehicle.setOwnerName(request.getOwnerName());
         vehicle.setOwnerPhone(request.getOwnerPhone());
-        vehicle.setOwnerIdCard(request.getOwnerIdCard());
         vehicle.setBrand(request.getBrand());
         vehicle.setVehicleColor(request.getVehicleColor());
         vehicle.setEngineNumber(request.getEngineNumber());
         vehicle.setChassisNumber(request.getChassisNumber());
         vehicle.setManufactureYear(request.getManufactureYear());
         vehicle.setRegistrationNumber(request.getRegistrationNumber());
-        if (request.getRegistrationDate() != null && !request.getRegistrationDate().isBlank()) {
-            vehicle.setRegistrationDate(LocalDate.parse(request.getRegistrationDate()));
-        }
         if (request.getRegistrationExpiry() != null && !request.getRegistrationExpiry().isBlank()) {
             vehicle.setRegistrationExpiry(LocalDate.parse(request.getRegistrationExpiry()));
         }
 
         if (request.getVehicleImage() != null) {
             vehicle.setVehicleImage(request.getVehicleImage());
-        }
-        if (request.getOwnerPortrait() != null) {
-            vehicle.setOwnerPortrait(request.getOwnerPortrait());
         }
         if (request.getRegistrationPhoto() != null) {
             vehicle.setRegistrationPhoto(request.getRegistrationPhoto());
@@ -194,8 +182,7 @@ public class VehicleService {
             extension = originalFilename.substring(originalFilename.lastIndexOf("."));
         }
 
-        String prefix = "portrait".equalsIgnoreCase(type) ? "portrait_" : 
-                        ("registration".equalsIgnoreCase(type) ? "reg_" : "vehicle_");
+        String prefix = "registration".equalsIgnoreCase(type) ? "reg_" : "vehicle_";
         String fileName = prefix + vehicleId + "_" + UUID.randomUUID() + extension;
 
         try {
@@ -210,11 +197,9 @@ public class VehicleService {
 
             String imageUrl = "/uploads/vehicles/" + fileName;
             
-            if ("portrait".equalsIgnoreCase(type)) {
-                vehicle.setOwnerPortrait(imageUrl);
-            } else if ("registration".equalsIgnoreCase(type)) {
+            if ("registration".equalsIgnoreCase(type)) {
                 vehicle.setRegistrationPhoto(imageUrl);
-            } else {
+            } else if (!"portrait".equalsIgnoreCase(type)) {
                 vehicle.setVehicleImage(imageUrl);
             }
 

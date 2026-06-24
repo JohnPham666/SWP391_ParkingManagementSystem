@@ -11,12 +11,13 @@ import com.parking.management.module.vehicle.VehicleRepository;
 import com.parking.management.module.vehicle.VehicleType;
 import com.parking.management.module.vehicle.VehicleTypeRepository;
 import com.parking.management.security.SecurityUtils;
-import jakarta.transaction.Transactional;
+import com.parking.management.module.payment.PaymentRepository;
+import com.parking.management.module.pricing.PricingService;
+import com.parking.management.module.pricing.FeeCalculationResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -29,6 +30,8 @@ public class ReservationService {
     private final VehicleTypeRepository vehicleTypeRepository;
     private final ParkingSlotRepository parkingSlotRepository;
     private final SecurityUtils securityUtils;
+    private final PaymentRepository paymentRepository;
+    private final PricingService pricingService;
 
 
     public ReservationResponse create(ReservationRequest request) {
@@ -44,17 +47,16 @@ public class ReservationService {
         VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle type not found with id: " + request.getVehicleTypeId()));
 
-        if (isMotorbikeType(vehicleType.getTypeName())) {
-            throw new IllegalArgumentException("Xe máy không hỗ trợ đặt chỗ trước");
+        if (!vehicleType.getIsReservable()) {
+            throw new IllegalArgumentException("Loại xe này không hỗ trợ đặt chỗ trước.");
         }
 
         ParkingSlot slot;
         if (request.getSlotId() == null) {
             // Đặt nhanh: Tìm chỗ trống đầu tiên
             slot = parkingSlotRepository
-                    .findFirstByVehicleType_VehicleTypeIdAndStatusAndIsActiveTrue(
-                            request.getVehicleTypeId(),
-                            SlotStatus.AVAILABLE
+                    .findFirstAvailableSlot(
+                            request.getVehicleTypeId()
                     )
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chỗ trống phù hợp cho loại xe này."));
         } else {
@@ -67,8 +69,16 @@ public class ReservationService {
             }
         }
 
-        if (isMotorbikeType(slot.getVehicleType().getTypeName())) {
-            throw new IllegalArgumentException("Slot xe máy không hỗ trợ đặt trước");
+        if (!slot.getVehicleType().getIsReservable()) {
+            throw new IllegalArgumentException("Slot dành cho loại xe này không hỗ trợ đặt trước.");
+        }
+
+        // Kiểm tra Double Booking (Overlap)
+        List<Reservation> overlaps = reservationRepository.findOverlappingReservations(
+                slot.getSlotId(), request.getReservationStart(), request.getReservationEnd()
+        );
+        if (!overlaps.isEmpty()) {
+            throw new IllegalArgumentException("Rất tiếc, ô đỗ này đã có người đặt trong khoảng thời gian bạn chọn.");
         }
 
         Reservation reservation = new Reservation();
@@ -85,7 +95,7 @@ public class ReservationService {
         // CHÚ Ý: Không cập nhật trạng thái của Slot thành RESERVED ở đây.
         // Việc khóa Slot sẽ diễn ra sau khi thanh toán thành công.
 
-        return ReservationResponse.fromEntity(reservationRepository.save(reservation));
+        return mapToResponse(reservationRepository.save(reservation));
     }
 
     public List<ReservationResponse> getAll() {
@@ -99,7 +109,7 @@ public class ReservationService {
         }
         
         return reservations.stream()
-                .map(ReservationResponse::fromEntity)
+                .map(this::mapToResponse)
                 .toList();
     }
 
@@ -111,7 +121,7 @@ public class ReservationService {
             securityUtils.checkDataOwnership(reservation.getUser().getUserId());
         }
 
-        return ReservationResponse.fromEntity(reservation);
+        return mapToResponse(reservation);
     }
 
     public ReservationResponse update(Integer id, ReservationRequest request) {
@@ -137,11 +147,24 @@ public class ReservationService {
         ParkingSlot slot = parkingSlotRepository.findById(request.getSlotId())
                 .orElseThrow(() -> new ResourceNotFoundException("Parking slot not found with id: " + request.getSlotId()));
 
-        if (isMotorbikeType(vehicleType.getTypeName())) {
-            throw new IllegalArgumentException("Xe máy không hỗ trợ đặt chỗ trước");
+        if (!vehicleType.getIsReservable()) {
+            throw new IllegalArgumentException("Loại xe này không hỗ trợ đặt chỗ trước.");
         }
-        if (isMotorbikeType(slot.getVehicleType().getTypeName())) {
-            throw new IllegalArgumentException("Slot xe máy không hỗ trợ đặt trước");
+        if (!slot.getVehicleType().getIsReservable()) {
+            throw new IllegalArgumentException("Slot dành cho loại xe này không hỗ trợ đặt trước.");
+        }
+
+        // Kiểm tra Double Booking (Overlap)
+        List<Reservation> overlaps = reservationRepository.findOverlappingReservations(
+                slot.getSlotId(), request.getReservationStart(), request.getReservationEnd()
+        );
+        // Lọc bỏ chính reservation hiện tại
+        overlaps = overlaps.stream()
+                .filter(r -> !r.getReservationId().equals(id))
+                .toList();
+
+        if (!overlaps.isEmpty()) {
+            throw new IllegalArgumentException("Rất tiếc, ô đỗ này đã có người đặt trong khoảng thời gian bạn chọn.");
         }
 
         reservation.setUser(user);
@@ -154,7 +177,7 @@ public class ReservationService {
         reservation.setGuestName(request.getGuestName());
         reservation.setCreatedAt(LocalDateTime.now());
 
-        return ReservationResponse.fromEntity(reservationRepository.save(reservation));
+        return mapToResponse(reservationRepository.save(reservation));
     }
 
     public void cancel(Integer id) {
@@ -193,7 +216,30 @@ public class ReservationService {
                 parkingSlotRepository.save(slot);
             }
         }
-        return ReservationResponse.fromEntity(reservationRepository.save(reservation));
+        return mapToResponse(reservationRepository.save(reservation));
+    }
+
+    private ReservationResponse mapToResponse(Reservation reservation) {
+        ReservationResponse response = ReservationResponse.fromEntity(reservation);
+        try {
+            FeeCalculationResponse feeRes = pricingService.calculateFee(
+                    Long.valueOf(reservation.getVehicleType().getVehicleTypeId()),
+                    reservation.getReservationStart(),
+                    reservation.getReservationEnd()
+            );
+            response.setEstimatedFee(feeRes.getFinalFee());
+        } catch (Exception e) {
+            response.setEstimatedFee(null);
+        }
+
+        paymentRepository.findFirstByReservation_ReservationIdOrderByPaymentIdDesc(reservation.getReservationId())
+                .ifPresent(p -> {
+                    response.setPaymentStatus(p.getPaymentStatus());
+                    response.setPaymentId(p.getPaymentId());
+                    response.setAmount(p.getAmount());
+                });
+
+        return response;
     }
 
     private String normalizeVehicleTypeName(String value) {
@@ -203,15 +249,5 @@ public class ReservationService {
                 .toLowerCase()
                 .replaceAll("\\s+", " ")
                 .trim();
-    }
-
-    private boolean isMotorbikeType(String typeName) {
-        String normalized = normalizeVehicleTypeName(typeName);
-        return normalized.equals("xe may")
-                || normalized.equals("motorbike")
-                || normalized.equals("motorcycle")
-                || normalized.contains("xe may")
-                || normalized.contains("motorbike")
-                || normalized.contains("motorcycle");
     }
 }

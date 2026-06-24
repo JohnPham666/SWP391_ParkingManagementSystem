@@ -141,15 +141,15 @@ const App = {
     validPages: ['home', 'parking', 'vehicles', 'reservations', 'account', 'session', 'payment', 'pricing', 'history', 'incident'],
 
     init() {
-        const savedAuth = Api.init();
+        const savedAuth = window.Api.init();
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('resetToken')) {
             this.showResetPassword(urlParams.get('resetToken'));
-        } else if (savedAuth?.token && Api.isDriverRole(savedAuth.role || savedAuth.roleName)) {
+        } else if (savedAuth?.token && window.Api.isDriverRole(savedAuth.role || savedAuth.roleName)) {
             this.state.user = savedAuth;
             this.showApp();
         } else {
-            if (savedAuth) Api.clearAuth();
+            if (savedAuth) window.Api.clearAuth();
             this.showLanding();
         }
         this.setupGlobal();
@@ -244,7 +244,7 @@ const App = {
         document.getElementById('forgot-password-page').classList.add('hidden');
         document.getElementById('reset-password-page').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
-        const u = this.state.user || Api.user || { fullName: 'Tài xế' };
+        const u = this.state.user || window.Api.user || { fullName: 'Tài xế' };
         document.getElementById('header-user-name').textContent = u.fullName || 'Tài xế';
         document.getElementById('header-avatar').textContent = (u.fullName || 'T').charAt(0).toUpperCase();
         // Restore page from URL hash or default to home
@@ -271,16 +271,16 @@ const App = {
         c.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
         try {
             switch (page) {
-                case 'home': await Pages.home(c); break;
-                case 'parking': await Pages.parking(c); break;
-                case 'vehicles': await Pages.vehicles(c); break;
-                case 'reservations': await Pages.reservations(c); break;
-                case 'account': await Pages.account(c); break;
-                case 'session': await Pages.session(c); break;
-                case 'payment': await Pages.payment(c); break;
-                case 'pricing': await Pages.pricing(c); break;
-                case 'history': await Pages.history(c); break;
-                case 'incident': await Pages.incident(c); break;
+                case 'home': await window.Pages.home(c); break;
+                case 'parking': await window.Pages.parking(c); break;
+                case 'vehicles': await window.Pages.vehicles(c); break;
+                case 'reservations': await window.Pages.reservations(c); break;
+                case 'account': await window.Pages.account(c); break;
+                case 'session': await window.Pages.session(c); break;
+                case 'payment': await window.Pages.payment(c); break;
+                case 'pricing': await window.Pages.pricing(c); break;
+                case 'history': await window.Pages.history(c); break;
+                case 'incident': await window.Pages.incident(c); break;
                 default:
                     c.innerHTML = '<div class="empty-state"><p>Trang đang phát triển</p></div>';
             }
@@ -309,7 +309,7 @@ const App = {
     },
 
     logout() {
-        Api.clearAuth();
+        window.Api.clearAuth();
         this.state.user = null;
         // Clear URL hash
         history.replaceState({}, '', window.location.pathname + window.location.search);

@@ -4,7 +4,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import com.parking.management.module.slot.SlotStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,9 +11,18 @@ import java.util.Optional;
 @Repository
 public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Integer> {
 
-    Optional<ParkingSlot> findFirstByVehicleType_VehicleTypeIdAndStatusAndIsActiveTrue(
-            Integer vehicleTypeId,
-            SlotStatus status
+    /**
+     * Tìm slot trống đầu tiên phù hợp với loại xe.
+     * Kiểm tra ĐỒNG THỜI: status = AVAILABLE, isActive = true, VÀ currentOccupancy < capacity.
+     * Tránh lỗi: slot AVAILABLE nhưng thực tế đã đầy do race condition.
+     */
+    @Query("SELECT s FROM ParkingSlot s WHERE s.vehicleType.vehicleTypeId = :vehicleTypeId " +
+           "AND s.status = com.parking.management.module.slot.SlotStatus.AVAILABLE " +
+           "AND s.isActive = true " +
+           "AND s.currentOccupancy < s.capacity " +
+           "ORDER BY s.slotCode ASC LIMIT 1")
+    Optional<ParkingSlot> findFirstAvailableSlot(
+            @Param("vehicleTypeId") Integer vehicleTypeId
     );
 
     List<ParkingSlot> findByZone_ZoneId(Integer zoneId);

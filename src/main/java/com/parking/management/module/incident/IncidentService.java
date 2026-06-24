@@ -49,12 +49,12 @@ public class IncidentService {
         User currentUser = getCurrentAuthenticatedUser();
         String roleName = currentUser.getRole().getRoleName();
         if ("ParkingStaff".equals(roleName)) {
-            return incidentReportRepository.findByReportedBy_UserId(currentUser.getUserId())
+            return incidentReportRepository.findByReportedBy_UserIdOrderByCreatedAtDesc(currentUser.getUserId())
                     .stream()
                     .map(IncidentResponse::fromEntity)
                     .toList();
         }
-        return incidentReportRepository.findAll()
+        return incidentReportRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
                 .map(IncidentResponse::fromEntity)
                 .toList();

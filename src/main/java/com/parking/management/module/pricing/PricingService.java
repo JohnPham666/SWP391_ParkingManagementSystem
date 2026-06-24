@@ -179,8 +179,24 @@ public class PricingService {
         long rushHours    = 0;
         long offPeakHours = 0;
 
-        LocalDateTime currentHour = entryTime;
-        for (int i = 0; i < totalHours; i++) {
+        // Tối ưu thuật toán O(1) thay vì O(N) vòng lặp
+        long rushHoursPerDay;
+        if (rushStart.isBefore(rushEnd)) {
+            rushHoursPerDay = java.time.Duration.between(rushStart, rushEnd).toHours();
+        } else {
+            rushHoursPerDay = 24 - java.time.Duration.between(rushEnd, rushStart).toHours();
+        }
+        long offPeakHoursPerDay = 24 - rushHoursPerDay;
+
+        long fullDays = totalHours / 24;
+        long remainingHours = totalHours % 24;
+
+        rushHours = fullDays * rushHoursPerDay;
+        offPeakHours = fullDays * offPeakHoursPerDay;
+
+        // Tính các giờ lẻ còn lại (tối đa 23 vòng lặp)
+        LocalDateTime currentHour = entryTime.plusDays(fullDays);
+        for (int i = 0; i < remainingHours; i++) {
             LocalTime timeOfDay = currentHour.toLocalTime();
             if (isRushHour(timeOfDay, rushStart, rushEnd)) {
                 rushHours++;

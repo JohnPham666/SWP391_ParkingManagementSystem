@@ -20,6 +20,7 @@ public class VehicleTypeService {
         VehicleType vehicleType = new VehicleType();
         vehicleType.setTypeName(request.getTypeName());
         vehicleType.setDescription(request.getDescription());
+        vehicleType.setIsReservable(request.getIsReservable() != null ? request.getIsReservable() : true);
 
         return VehicleTypeResponse.fromEntity(vehicleTypeRepository.save(vehicleType));
     }
@@ -48,6 +49,9 @@ public class VehicleTypeService {
 
         vehicleType.setTypeName(request.getTypeName());
         vehicleType.setDescription(request.getDescription());
+        if (request.getIsReservable() != null) {
+            vehicleType.setIsReservable(request.getIsReservable());
+        }
 
         return VehicleTypeResponse.fromEntity(vehicleTypeRepository.save(vehicleType));
     }

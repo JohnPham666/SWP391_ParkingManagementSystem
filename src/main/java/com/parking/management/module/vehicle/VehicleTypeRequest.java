@@ -9,4 +9,6 @@ public class VehicleTypeRequest {
     private String typeName;
 
     private String description;
+    
+    private Boolean isReservable;
 }

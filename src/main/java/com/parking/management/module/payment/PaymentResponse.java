@@ -22,4 +22,8 @@ public class PaymentResponse {
     private String paymentInstruction;
     private String qrContent;
     private String paymentUrl;
+
+    private String customerName;
+    private String customerPhone;
+    private String licensePlate;
 }

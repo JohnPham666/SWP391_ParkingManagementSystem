@@ -8,6 +8,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class RoleService {
 
     private final RoleRepository repository;

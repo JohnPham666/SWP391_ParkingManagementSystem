@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class ParkingCardService {
     private final ParkingCardRepository repository;
 

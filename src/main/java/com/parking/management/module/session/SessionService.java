@@ -1,5 +1,7 @@
 package com.parking.management.module.session;
 
+import com.parking.management.security.SecurityUtils;
+
 import com.parking.management.common.ResourceNotFoundException;
 import com.parking.management.module.pricing.FeeCalculationResponse;
 import com.parking.management.module.pricing.PricingService;
@@ -10,6 +12,8 @@ import com.parking.management.module.slot.ParkingSlotRepository;
 import com.parking.management.module.slot.SlotStatus;
 import com.parking.management.module.vehicle.Vehicle;
 import com.parking.management.module.vehicle.VehicleRepository;
+import com.parking.management.module.subscription.MonthlySubscription;
+import com.parking.management.module.subscription.SubscriptionRepository;
 import com.parking.management.module.vehicle.VehicleType;
 import com.parking.management.module.vehicle.VehicleTypeRepository;
 import jakarta.transaction.Transactional;
@@ -30,6 +34,8 @@ public class SessionService {
     private final VehicleRepository vehicleRepository;
     private final VehicleTypeRepository vehicleTypeRepository;
     private final ParkingCardRepository parkingCardRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    private final SecurityUtils securityUtils;
 
     /*
      * CHECK-IN
@@ -79,8 +85,8 @@ public class SessionService {
             throw new IllegalArgumentException("Reservation is not CONFIRMED (maybe not paid yet). Current status: " + reservation.getStatus());
         }
 
-        if (!SlotStatus.RESERVED.equals(slot.getStatus()) && slot.getCurrentOccupancy() >= slot.getCapacity()) {
-            throw new IllegalArgumentException("Slot is full or not reserved properly");
+        if (slot.getCurrentOccupancy() >= slot.getCapacity()) {
+            throw new IllegalArgumentException("Rất tiếc, ô đỗ đã bị xe vãng lai lấn chiếm (vượt sức chứa)!");
         }
 
         // Increment occupancy
@@ -110,6 +116,13 @@ public class SessionService {
         return mapEntityToResponse(savedSession);
     }
 
+    public List<SessionResponse> getMyActiveSessions() {
+        Integer currentUserId = securityUtils.getDriverUserId();
+        List<ParkingSession> sessions = parkingSessionRepository
+                .findByVehicle_User_UserIdAndStatus(currentUserId, SessionStatus.PARKING.name());
+        return sessions.stream().map(this::mapEntityToResponse).toList();
+    }
+
     /*
      * WALK-IN CHECK-IN (Khách vãng lai / Không đặt trước)
      */
@@ -134,15 +147,19 @@ public class SessionService {
                     throw new IllegalArgumentException("This vehicle already has an active parking session");
                 });
 
-        // 3. Tìm Slot trống đầu tiên phù hợp với loại xe
+        // 3. Tìm Slot trống đầu tiên phù hợp với loại xe (kiểm tra cả capacity)
         ParkingSlot slot = parkingSlotRepository
-                .findFirstByVehicleType_VehicleTypeIdAndStatusAndIsActiveTrue(
-                        request.getVehicleTypeId(),
-                        SlotStatus.AVAILABLE
+                .findFirstAvailableSlot(
+                        request.getVehicleTypeId()
                 )
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chỗ trống phù hợp cho loại xe này."));
 
-        // 4. Cập nhật trạng thái Slot
+        // 4. Kiểm tra lại capacity trước khi tăng (phòng race condition)
+        if (slot.getCurrentOccupancy() >= slot.getCapacity()) {
+            throw new IllegalArgumentException("Ô đỗ đã đầy, vui lòng thử lại.");
+        }
+
+        // 5. Cập nhật trạng thái Slot
         slot.setCurrentOccupancy(slot.getCurrentOccupancy() + 1);
         if (slot.getCurrentOccupancy() >= slot.getCapacity()) {
             slot.setStatus(SlotStatus.OCCUPIED);
@@ -203,13 +220,6 @@ public class SessionService {
 
         session.setExitTime(exitTime);
         session.setExitGate(request.getExitGate());
-        session.setStatus(SessionStatus.COMPLETED.name());
-
-        if (session.getCard() != null) {
-            ParkingCard card = session.getCard();
-            card.setStatus("ACTIVE");
-            parkingCardRepository.save(card);
-        }
 
         Long vehicleTypeId = Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId());
 
@@ -222,7 +232,19 @@ public class SessionService {
 
         BigDecimal calculatedFinalFee;
 
-        if (resOpt.isPresent()) {
+        // Xử lý vé tháng (Subscription)
+        List<MonthlySubscription> activeSubs = subscriptionRepository.findActiveSubscriptionsByVehicleId(session.getVehicle().getVehicleId());
+
+        if (!activeSubs.isEmpty()) {
+            // Khách có vé tháng hợp lệ -> Không tính phí đỗ xe
+            calculatedFinalFee = BigDecimal.ZERO;
+            
+            if (resOpt.isPresent()) {
+                Reservation r = resOpt.get();
+                r.setStatus("COMPLETED");
+                reservationRepository.save(r);
+            }
+        } else if (resOpt.isPresent()) {
             Reservation r = resOpt.get();
             r.setStatus("COMPLETED");
             reservationRepository.save(r);
@@ -273,18 +295,61 @@ public class SessionService {
 
         session.setFinalFee(calculatedFinalFee);
 
-        // Slot Occupancy Decrement
-        int newOcc = slot.getCurrentOccupancy() - 1;
-        if (newOcc < 0) newOcc = 0;
-        slot.setCurrentOccupancy(newOcc);
-        if (slot.getCurrentOccupancy() < slot.getCapacity()) {
-            slot.setStatus(SlotStatus.AVAILABLE);
+        if (calculatedFinalFee.compareTo(BigDecimal.ZERO) == 0) {
+            // Final fee is 0 (e.g. valid subscription, fully paid reservation) -> Complete immediately
+            session.setStatus(SessionStatus.COMPLETED.name());
+            
+            if (session.getCard() != null) {
+                ParkingCard card = session.getCard();
+                card.setStatus("ACTIVE");
+                parkingCardRepository.save(card);
+            }
+
+            int newOcc = slot.getCurrentOccupancy() - 1;
+            if (newOcc < 0) newOcc = 0;
+            slot.setCurrentOccupancy(newOcc);
+            if (slot.getCurrentOccupancy() < slot.getCapacity()) {
+                slot.setStatus(SlotStatus.AVAILABLE);
+            }
+            parkingSlotRepository.save(slot);
+        } else {
+            // Fee > 0 -> Needs payment. Set PENDING_PAYMENT, do not release slot yet.
+            session.setStatus(SessionStatus.PENDING_PAYMENT.name());
         }
-        parkingSlotRepository.save(slot);
 
         ParkingSession updatedSession = parkingSessionRepository.save(session);
 
         return mapEntityToResponse(updatedSession);
+    }
+
+    /*
+     * Hoàn tất phiên đỗ xe (Được gọi sau khi thanh toán thành công)
+     */
+    @Transactional
+    public void completeSession(Integer sessionId) {
+        ParkingSession session = parkingSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+        
+        session.setStatus(SessionStatus.COMPLETED.name());
+        
+        if (session.getCard() != null) {
+            ParkingCard card = session.getCard();
+            card.setStatus("ACTIVE");
+            parkingCardRepository.save(card);
+        }
+
+        ParkingSlot slot = session.getSlot();
+        if (slot != null) {
+            int newOcc = slot.getCurrentOccupancy() - 1;
+            if (newOcc < 0) newOcc = 0;
+            slot.setCurrentOccupancy(newOcc);
+            if (slot.getCurrentOccupancy() < slot.getCapacity()) {
+                slot.setStatus(SlotStatus.AVAILABLE);
+            }
+            parkingSlotRepository.save(slot);
+        }
+        
+        parkingSessionRepository.save(session);
     }
 
 
@@ -349,6 +414,20 @@ public class SessionService {
         if (session.getVehicle() != null) {
             response.setVehicleId(session.getVehicle().getVehicleId());
             response.setLicensePlate(session.getVehicle().getLicensePlate());
+            
+            if (session.getVehicle().getVehicleType() != null) {
+                response.setVehicleTypeId(session.getVehicle().getVehicleType().getVehicleTypeId());
+                response.setVehicleTypeName(session.getVehicle().getVehicleType().getTypeName());
+            }
+
+            // Customer info
+            if (session.getVehicle().getOwnerName() != null) {
+                response.setCustomerName(session.getVehicle().getOwnerName());
+                response.setCustomerPhone(session.getVehicle().getOwnerPhone());
+            } else if (session.getVehicle().getUser() != null) {
+                response.setCustomerName(session.getVehicle().getUser().getFullName());
+                response.setCustomerPhone(session.getVehicle().getUser().getPhoneNumber());
+            }
         }
 
         if (session.getSlot() != null) {

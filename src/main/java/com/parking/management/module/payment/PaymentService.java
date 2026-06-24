@@ -10,6 +10,8 @@ import com.parking.management.module.slot.ParkingSlotRepository;
 import com.parking.management.module.slot.SlotStatus;
 import com.parking.management.module.session.ParkingSession;
 import com.parking.management.module.session.ParkingSessionRepository;
+import com.parking.management.module.session.SessionStatus;
+import com.parking.management.module.session.SessionService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,7 @@ public class PaymentService {
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final VnPayService vnPayService;
     private final SecurityUtils securityUtils;
+    private final SessionService sessionService;
 
     @Transactional
     public PaymentResponse create(PaymentRequest request) {
@@ -74,19 +77,25 @@ public class PaymentService {
             throw new IllegalArgumentException("Invalid parking session data");
         }
 
-        LocalDateTime exitTime = session.getExitTime() == null ? LocalDateTime.now() : session.getExitTime();
-        session.setExitTime(exitTime);
+        BigDecimal amountToPay;
+        if (SessionStatus.PENDING_PAYMENT.name().equals(session.getStatus()) && session.getFinalFee() != null) {
+            amountToPay = session.getFinalFee();
+        } else {
+            LocalDateTime exitTime = session.getExitTime() == null ? LocalDateTime.now() : session.getExitTime();
+            session.setExitTime(exitTime);
 
-        FeeCalculationResponse feeResponse = pricingService.calculateFee(
-                Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId()),
-                session.getEntryTime(), exitTime);
+            FeeCalculationResponse feeResponse = pricingService.calculateFee(
+                    Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId()),
+                    session.getEntryTime(), exitTime);
 
-        session.setFinalFee(feeResponse.getFinalFee());
-        parkingSessionRepository.save(session);
+            amountToPay = feeResponse.getFinalFee();
+            session.setFinalFee(amountToPay);
+            parkingSessionRepository.save(session);
+        }
 
         Payment payment = new Payment();
         payment.setSession(session);
-        payment.setAmount(feeResponse.getFinalFee());
+        payment.setAmount(amountToPay);
         payment.setPaymentMethod(request.getPaymentMethod().name());
         payment.setPaymentStatus(PaymentStatus.PENDING.name());
         return mapEntityToResponse(paymentRepository.save(payment));
@@ -100,13 +109,33 @@ public class PaymentService {
             securityUtils.checkDataOwnership(reservation.getUser().getUserId());
         }
 
-        if (!"PENDING".equals(reservation.getStatus())) {
-            throw new IllegalArgumentException("Reservation is not in PENDING state");
+        if (!"PENDING".equals(reservation.getStatus()) && !"PENDING_PAYMENT".equals(reservation.getStatus())) {
+            throw new IllegalArgumentException("Reservation is not in a valid pending state");
         }
 
-        FeeCalculationResponse feeResponse = pricingService.calculateFee(
-                Long.valueOf(reservation.getVehicleType().getVehicleTypeId()),
-                reservation.getReservationStart(), reservation.getReservationEnd());
+        if (PaymentMethod.CASH.equals(request.getPaymentMethod())) {
+            throw new IllegalArgumentException("Bắt buộc thanh toán Online khi đặt chỗ trước.");
+        }
+
+        java.util.Optional<Payment> existingPaymentOpt = paymentRepository.findFirstByReservation_ReservationIdOrderByPaymentIdDesc(reservation.getReservationId());
+        if (existingPaymentOpt.isPresent()) {
+            Payment existingPayment = existingPaymentOpt.get();
+            if ("PAID".equals(existingPayment.getPaymentStatus())) {
+                throw new IllegalArgumentException("Reservation is already PAID");
+            }
+            if ("PENDING".equals(existingPayment.getPaymentStatus())) {
+                return mapEntityToResponse(existingPayment);
+            }
+        }
+
+        FeeCalculationResponse feeResponse;
+        try {
+            feeResponse = pricingService.calculateFee(
+                    Long.valueOf(reservation.getVehicleType().getVehicleTypeId()),
+                    reservation.getReservationStart(), reservation.getReservationEnd());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Chưa có chính sách giá phù hợp để tính phí đặt chỗ.");
+        }
 
         Payment payment = new Payment();
         payment.setReservation(reservation);
@@ -132,6 +161,14 @@ public class PaymentService {
                 .stream()
                 .map(this::mapEntityToResponse)
                 .toList();
+    }
+
+    public com.parking.management.common.PageResponse<PaymentResponse> getPage(int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("paymentId").descending());
+        org.springframework.data.domain.Page<Payment> paymentPage = paymentRepository.findAll(pageable);
+        
+        org.springframework.data.domain.Page<PaymentResponse> dtoPage = paymentPage.map(this::mapEntityToResponse);
+        return new com.parking.management.common.PageResponse<>(dtoPage);
     }
 
     public PaymentResponse getBySessionId(Integer sessionId) {
@@ -200,19 +237,8 @@ public class PaymentService {
         
         if (payment.getSession() != null) {
             ParkingSession session = payment.getSession();
-            if ("PARKING".equals(session.getStatus())) {
-                session.setStatus("COMPLETED");
-                session.setExitTime(LocalDateTime.now());
-                
-                ParkingSlot slot = session.getSlot();
-                int newOcc = slot.getCurrentOccupancy() - 1;
-                if (newOcc < 0) newOcc = 0;
-                slot.setCurrentOccupancy(newOcc);
-                if (slot.getCurrentOccupancy() < slot.getCapacity()) {
-                    slot.setStatus(SlotStatus.AVAILABLE);
-                }
-                parkingSlotRepository.save(slot);
-                parkingSessionRepository.save(session);
+            if ("PARKING".equals(session.getStatus()) || SessionStatus.PENDING_PAYMENT.name().equals(session.getStatus())) {
+                sessionService.completeSession(session.getSessionId());
             }
         }
 
@@ -240,9 +266,26 @@ public class PaymentService {
 
         if (payment.getSession() != null) {
             response.setSessionId(payment.getSession().getSessionId());
+            if (payment.getSession().getVehicle() != null) {
+                response.setLicensePlate(payment.getSession().getVehicle().getLicensePlate());
+                if (payment.getSession().getVehicle().getOwnerName() != null) {
+                    response.setCustomerName(payment.getSession().getVehicle().getOwnerName());
+                    response.setCustomerPhone(payment.getSession().getVehicle().getOwnerPhone());
+                } else if (payment.getSession().getVehicle().getUser() != null) {
+                    response.setCustomerName(payment.getSession().getVehicle().getUser().getFullName());
+                    response.setCustomerPhone(payment.getSession().getVehicle().getUser().getPhoneNumber());
+                }
+            }
         }
         if (payment.getReservation() != null) {
             response.setReservationId(payment.getReservation().getReservationId());
+            if (payment.getReservation().getVehicle() != null && payment.getReservation().getVehicle().getLicensePlate() != null) {
+                response.setLicensePlate(payment.getReservation().getVehicle().getLicensePlate());
+            }
+            if (payment.getReservation().getUser() != null) {
+                response.setCustomerName(payment.getReservation().getUser().getFullName());
+                response.setCustomerPhone(payment.getReservation().getUser().getPhoneNumber());
+            }
         }
 
         response.setAmount(payment.getAmount());
@@ -371,9 +414,8 @@ public class PaymentService {
                 } else {
                     // Cố gắng tìm slot khác nếu slot cũ đã bị lấy (Quick Booking)
                     ParkingSlot newSlot = parkingSlotRepository
-                            .findFirstByVehicleType_VehicleTypeIdAndStatusAndIsActiveTrue(
-                                    reservation.getVehicleType().getVehicleTypeId(),
-                                    SlotStatus.AVAILABLE
+                            .findFirstAvailableSlot(
+                                    reservation.getVehicleType().getVehicleTypeId()
                             ).orElse(null);
                     
                     if (newSlot != null) {
@@ -393,19 +435,8 @@ public class PaymentService {
             // Check if it's a session payment
             if (payment.getSession() != null) {
                 ParkingSession session = payment.getSession();
-                if ("PARKING".equals(session.getStatus())) {
-                    session.setStatus("COMPLETED");
-                    session.setExitTime(LocalDateTime.now());
-                    
-                    ParkingSlot slot = session.getSlot();
-                    int newOcc = slot.getCurrentOccupancy() - 1;
-                    if (newOcc < 0) newOcc = 0;
-                    slot.setCurrentOccupancy(newOcc);
-                    if (slot.getCurrentOccupancy() < slot.getCapacity()) {
-                        slot.setStatus(SlotStatus.AVAILABLE);
-                    }
-                    parkingSlotRepository.save(slot);
-                    parkingSessionRepository.save(session);
+                if ("PARKING".equals(session.getStatus()) || SessionStatus.PENDING_PAYMENT.name().equals(session.getStatus())) {
+                    sessionService.completeSession(session.getSessionId());
                 }
             }
 

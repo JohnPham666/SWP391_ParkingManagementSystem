@@ -77,6 +77,12 @@ const App = {
             btn.disabled = false;
 
             if (res.success && res.data) {
+                if (res.data.role !== 'ParkingStaff' && res.data.role !== 'Admin') {
+                    err.textContent = 'Bạn không có quyền truy cập giao diện nhân viên.';
+                    err.classList.remove('hidden');
+                    // Optional: auto logout or just prevent login
+                    return;
+                }
                 Api.saveAuth(res.data);
                 this.state.user = res.data;
                 this.showApp();
@@ -153,15 +159,6 @@ const App = {
         document.getElementById('sidebar-user-name').textContent = user.fullName;
         document.getElementById('sidebar-user-role').textContent = user.role;
         document.getElementById('user-avatar').textContent = user.fullName.charAt(0).toUpperCase();
-
-        // Role-based access
-        if (user.role !== 'Admin' && user.role !== 'ParkingManager') {
-            document.getElementById('nav-users').classList.add('hidden');
-            document.getElementById('nav-reports').classList.add('hidden');
-        } else {
-            document.getElementById('nav-users').classList.remove('hidden');
-            document.getElementById('nav-reports').classList.remove('hidden');
-        }
 
         this.navigate('dashboard');
     },

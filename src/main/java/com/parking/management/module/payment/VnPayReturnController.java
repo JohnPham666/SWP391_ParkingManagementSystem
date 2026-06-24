@@ -1,7 +1,6 @@
 package com.parking.management.module.payment;
 
 import com.parking.management.common.ApiResponse;
-import com.parking.management.common.ResourceNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -18,11 +17,7 @@ public class VnPayReturnController {
     @Operation(summary = "Handle VNPay return", description = "Handle VNPay return URL after customer completes payment")
     @GetMapping("/vnpay-return")
     public ApiResponse<PaymentGatewayResponse> handleVnPayReturn(@RequestParam Map<String, String> params) {
-        try {
-            PaymentGatewayResponse response = service.handleVnPayReturn(params);
-            return ApiResponse.success("VNPay return handled successfully", response);
-        } catch (IllegalArgumentException | ResourceNotFoundException e) {
-            return ApiResponse.error(e.getMessage());
-        }
+        PaymentGatewayResponse response = service.handleVnPayReturn(params);
+        return ApiResponse.success("VNPay return handled successfully", response);
     }
 }
