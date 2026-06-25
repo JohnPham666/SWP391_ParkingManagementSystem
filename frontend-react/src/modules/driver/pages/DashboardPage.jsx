@@ -4,7 +4,6 @@ import {
     CarOutlined, 
     CalendarOutlined, 
     EnvironmentOutlined, 
-    ClockCircleOutlined,
     PlusOutlined,
     SearchOutlined,
     HistoryOutlined

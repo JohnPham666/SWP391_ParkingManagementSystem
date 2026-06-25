@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card, Timeline, Typography, Tag, Empty } from 'antd';
-import { ClockCircleOutlined, CarOutlined, DollarOutlined, CalendarOutlined } from '@ant-design/icons';
+import { Card, Timeline, Typography, Empty } from 'antd';
+import { CarOutlined, DollarOutlined, CalendarOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 

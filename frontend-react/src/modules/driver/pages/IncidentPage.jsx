@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, Row, Col, Typography, Button, Table, Tag, Modal, Form, Input, Upload, message, Empty } from 'antd';
-import { AlertOutlined, PlusOutlined, UploadOutlined, CheckCircleOutlined, SyncOutlined } from '@ant-design/icons';
+import { AlertOutlined, UploadOutlined, CheckCircleOutlined, SyncOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;

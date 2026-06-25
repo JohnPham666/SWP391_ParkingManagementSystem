@@ -1,6 +1,6 @@
 import React, { useEffect, useReducer, useState, useMemo } from 'react';
-import { Card, Tag, Select, Row, Col, Descriptions, Drawer, Button, message, Skeleton, Empty, Typography, Input, Badge } from 'antd';
-import { SearchOutlined, FilterOutlined, CompassOutlined, BorderOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { Card, Tag, Select, Row, Col, Descriptions, Drawer, Button, message, Skeleton, Empty, Typography, Input, Badge, Divider } from 'antd';
+import { SearchOutlined, CompassOutlined, BorderOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 import { parkingStore } from '../store/parkingStore';
 
