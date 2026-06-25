@@ -37,7 +37,6 @@ const App = {
                 case 'dashboard': await Pages.renderDashboard(c); break;
                 case 'sessions': await Pages.renderSessions(c); break;
                 case 'slots': await Pages.renderSlots(c); break;
-                case 'vehicles': await Pages.renderVehicles(c); break;
                 case 'reservations': await Pages.renderReservations(c); break;
                 case 'payments': await Pages.renderPayments(c); break;
                 case 'subscriptions': await Pages.renderSubscriptions(c); break;
@@ -169,7 +168,6 @@ const App = {
             'dashboard': 'Dashboard',
             'sessions': 'Quản lý phiên gửi xe',
             'slots': 'Quản lý chỗ đỗ xe',
-            'vehicles': 'Quản lý phương tiện',
             'reservations': 'Quản lý đặt chỗ',
             'payments': 'Quản lý thanh toán',
             'subscriptions': 'Quản lý vé tháng',
@@ -196,9 +194,6 @@ const App = {
                     break;
                 case 'slots':
                     await Pages.renderSlots(container);
-                    break;
-                case 'vehicles':
-                    await Pages.renderVehicles(container);
                     break;
                 case 'reservations':
                     await Pages.renderReservations(container);
@@ -772,75 +767,6 @@ const Pages = {
         window.slotsChangePage = (p) => { currentPage = p; renderTableBody(); };
         document.getElementById('slot-search').addEventListener('input', () => { currentPage = 1; renderTableBody(); });
         
-        renderTableBody();
-    },
-
-    async renderVehicles(container) {
-        const res = await Api.getVehicles();
-        if (!res.success) return container.innerHTML = `<div class="empty-state"><p>${res.message}</p></div>`;
-        const data = res.data;
-        let html = `
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Quản lý phương tiện</h3>
-                </div>
-                <div class="card-body no-pad table-wrapper">
-                    <table class="data-table">
-                        <thead><tr><th>ID</th><th>Biển số</th><th>Chủ xe</th><th>Loại xe</th><th>Hãng xe</th><th>Màu sắc</th><th>Ngày đăng ký</th></tr></thead>
-                        <tbody id="vehicles-tbody">
-                        </tbody>
-                    </table>
-                </div>
-                <div id="vehicles-pagination" style="padding: 0 20px;"></div>
-            </div>`;
-        container.innerHTML = html;
-
-        let currentData = data;
-        let currentPage = 1;
-        const rowsPerPage = 15;
-
-        const renderTableBody = () => {
-            const tbody = document.getElementById('vehicles-tbody');
-            if(!tbody) return;
-            
-            // Paginate
-            const totalPages = Math.ceil(currentData.length / rowsPerPage) || 1;
-            if(currentPage > totalPages) currentPage = totalPages;
-            if(currentPage < 1) currentPage = 1;
-            
-            const startIndex = (currentPage - 1) * rowsPerPage;
-            const pageData = currentData.slice(startIndex, startIndex + rowsPerPage);
-            
-            let tbodyHtml = '';
-            pageData.forEach(v => {
-                tbodyHtml += `
-                    <tr>
-                        <td>#${v.vehicleId}</td>
-                        <td style="font-weight:700">${v.licensePlate}</td>
-                        <td>${v.ownerName || '-'}</td>
-                        <td>${v.vehicleTypeName || '-'}</td>
-                        <td>${v.brand || '-'}</td>
-                        <td>${v.color || v.vehicleColor || '-'}</td>
-                        <td>${v.createdAt ? new Date(v.createdAt).toLocaleDateString('vi-VN') : '-'}</td>
-                    </tr>
-                `;
-            });
-            tbody.innerHTML = tbodyHtml;
-            
-            // Pagination controls
-            const pCont = document.getElementById('vehicles-pagination');
-            if(pCont) {
-                pCont.innerHTML = `
-                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; padding: 15px 0;">
-                        <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${currentData.length} kết quả)</span>
-                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.vehiclesChangePage(${currentPage - 1})">Trước</button>
-                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.vehiclesChangePage(${currentPage + 1})">Sau</button>
-                    </div>
-                `;
-            }
-        };
-
-        window.vehiclesChangePage = (p) => { currentPage = p; renderTableBody(); };
         renderTableBody();
     },
 
