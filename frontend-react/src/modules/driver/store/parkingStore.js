@@ -2,11 +2,13 @@ export const parkingStore = {
   slots: [],
   selectedSlot: null,
   filters: {
-    buildingName: "all",
-    floorName: "all",
-    zoneName: "all",
-    vehicleTypeName: "all",
-    status: "all"
+    buildingName: '',
+    floorName: '',
+    zoneName: '',
+    vehicleTypeName: '',
+    status: '',
+    startTime: '',
+    endTime: ''
   },
   loading: false
 };

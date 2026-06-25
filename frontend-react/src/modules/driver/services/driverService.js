@@ -67,7 +67,9 @@ export const driverService = {
     },
     loadSlots: async () => {
         try {
-            return await driverApi.getSlots();
+            const response = await driverApi.getSlots();
+            console.log("SLOTS API RESPONSE:", response);
+            return response;
         } catch (error) {
             console.error("Error loading slots", error);
             throw error;

@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useState, useMemo } from 'react';
-import { Card, Table, Tag, Select, Row, Col, Descriptions, Drawer, Button, Space, message } from 'antd';
+import { Card, Table, Tag, Select, Row, Col, Descriptions, Drawer, Button, message } from 'antd';
 import { driverService } from '../services/driverService';
 import { parkingStore } from '../store/parkingStore';
 
@@ -18,9 +18,11 @@ const ParkingPage = () => {
         forceRender();
         try {
             const slotsRes = await driverService.loadSlots();
-            parkingStore.slots = slotsRes?.data || slotsRes || [];
+            const result = slotsRes?.data || slotsRes;
+            parkingStore.slots = Array.isArray(result) ? result : [];
         } catch (error) {
             message.error('Failed to load parking slots');
+            parkingStore.slots = [];
         } finally {
             parkingStore.loading = false;
             forceRender();
@@ -41,6 +43,8 @@ const ParkingPage = () => {
         setDrawerVisible(false);
     };
 
+    const slots = Array.isArray(parkingStore.slots) ? parkingStore.slots : [];
+
     // Calculate dynamic options for filters
     const filterOptions = useMemo(() => {
         const buildings = new Set();
@@ -49,7 +53,9 @@ const ParkingPage = () => {
         const vehicleTypes = new Set();
         const statuses = new Set();
 
-        parkingStore.slots.forEach(slot => {
+        console.log("parkingStore.slots =", parkingStore.slots);
+
+        slots.forEach(slot => {
             if (slot.buildingName) buildings.add(slot.buildingName);
             if (slot.floorName) floors.add(slot.floorName);
             if (slot.zoneName) zones.add(slot.zoneName);
@@ -64,20 +70,21 @@ const ParkingPage = () => {
             vehicleTypes: Array.from(vehicleTypes),
             statuses: Array.from(statuses)
         };
-    }, [parkingStore.slots]);
+    }, [parkingStore.slots, slots]);
 
     // Apply filters
     const filteredSlots = useMemo(() => {
-        return parkingStore.slots.filter(slot => {
+        console.log("parkingStore.slots =", parkingStore.slots);
+        return slots.filter(slot => {
             const f = parkingStore.filters;
-            if (f.buildingName !== 'all' && slot.buildingName !== f.buildingName) return false;
-            if (f.floorName !== 'all' && slot.floorName !== f.floorName) return false;
-            if (f.zoneName !== 'all' && slot.zoneName !== f.zoneName) return false;
-            if (f.vehicleTypeName !== 'all' && slot.vehicleTypeName !== f.vehicleTypeName) return false;
-            if (f.status !== 'all' && slot.status !== f.status) return false;
+            if (f.buildingName && f.buildingName !== 'all' && slot.buildingName !== f.buildingName) return false;
+            if (f.floorName && f.floorName !== 'all' && slot.floorName !== f.floorName) return false;
+            if (f.zoneName && f.zoneName !== 'all' && slot.zoneName !== f.zoneName) return false;
+            if (f.vehicleTypeName && f.vehicleTypeName !== 'all' && slot.vehicleTypeName !== f.vehicleTypeName) return false;
+            if (f.status && f.status !== 'all' && slot.status !== f.status) return false;
             return true;
         });
-    }, [parkingStore.slots, parkingStore.filters.buildingName, parkingStore.filters.floorName, parkingStore.filters.zoneName, parkingStore.filters.vehicleTypeName, parkingStore.filters.status]);
+    }, [parkingStore.slots, slots, parkingStore.filters.buildingName, parkingStore.filters.floorName, parkingStore.filters.zoneName, parkingStore.filters.vehicleTypeName, parkingStore.filters.status]);
 
     const getStatusTag = (status) => {
         const s = String(status).toUpperCase();
@@ -155,7 +162,7 @@ const ParkingPage = () => {
                 <Col xs={24} sm={12} md={8} lg={4}>
                     <Select 
                         style={{ width: '100%' }} 
-                        value={parkingStore.filters.buildingName} 
+                        value={parkingStore.filters.buildingName || 'all'} 
                         onChange={(val) => handleFilterChange('buildingName', val)}
                     >
                         <Option value="all">All Buildings</Option>
@@ -165,7 +172,7 @@ const ParkingPage = () => {
                 <Col xs={24} sm={12} md={8} lg={4}>
                     <Select 
                         style={{ width: '100%' }} 
-                        value={parkingStore.filters.floorName} 
+                        value={parkingStore.filters.floorName || 'all'} 
                         onChange={(val) => handleFilterChange('floorName', val)}
                     >
                         <Option value="all">All Floors</Option>
@@ -175,7 +182,7 @@ const ParkingPage = () => {
                 <Col xs={24} sm={12} md={8} lg={4}>
                     <Select 
                         style={{ width: '100%' }} 
-                        value={parkingStore.filters.zoneName} 
+                        value={parkingStore.filters.zoneName || 'all'} 
                         onChange={(val) => handleFilterChange('zoneName', val)}
                     >
                         <Option value="all">All Zones</Option>
@@ -185,7 +192,7 @@ const ParkingPage = () => {
                 <Col xs={24} sm={12} md={8} lg={4}>
                     <Select 
                         style={{ width: '100%' }} 
-                        value={parkingStore.filters.vehicleTypeName} 
+                        value={parkingStore.filters.vehicleTypeName || 'all'} 
                         onChange={(val) => handleFilterChange('vehicleTypeName', val)}
                     >
                         <Option value="all">All Vehicle Types</Option>
@@ -195,7 +202,7 @@ const ParkingPage = () => {
                 <Col xs={24} sm={12} md={8} lg={4}>
                     <Select 
                         style={{ width: '100%' }} 
-                        value={parkingStore.filters.status} 
+                        value={parkingStore.filters.status || 'all'} 
                         onChange={(val) => handleFilterChange('status', val)}
                     >
                         <Option value="all">All Statuses</Option>
