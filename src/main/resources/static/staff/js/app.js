@@ -981,7 +981,7 @@ const Pages = {
                 </div>
                 <div class="card-body no-pad table-wrapper">
                     <table class="data-table">
-                        <thead><tr><th>Mã TT</th><th>Loại thanh toán</th><th>Số tiền</th><th>Phương thức</th><th>Thời gian</th><th>Trạng thái</th></tr></thead>
+                        <thead><tr><th>Mã TT</th><th>Loại thanh toán</th><th>Biển số xe</th><th>Số tiền</th><th>Phương thức</th><th>Thời gian</th><th>Trạng thái</th></tr></thead>
                         <tbody id="payments-tbody">
                         </tbody>
                     </table>
@@ -1050,6 +1050,7 @@ const Pages = {
                 <tr>
                     <td>#${p.paymentId}</td>
                     <td>${type}</td>
+                    <td>${p.licensePlate || '-'}</td>
                     <td style="font-weight:700; color:var(--green)">${p.amount.toLocaleString('vi-VN')} đ</td>
                     <td>${p.paymentMethod || '-'}</td>
                     <td>${p.paidAt ? new Date(p.paidAt).toLocaleString('vi-VN') : '-'}</td>
