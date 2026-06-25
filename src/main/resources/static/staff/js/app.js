@@ -515,80 +515,94 @@ const Pages = {
                             </tr>
                         </thead>
                         <tbody id="sessions-tbody">
-        `;
-
-        data.forEach(s => {
-            let statusBadge = '';
-            switch(s.status) {
-                case 'PARKING': statusBadge = '<span class="badge badge-blue">Đang đỗ</span>'; break;
-                case 'COMPLETED': statusBadge = '<span class="badge badge-green">Hoàn thành</span>'; break;
-                case 'UNPAID': statusBadge = '<span class="badge badge-yellow">Chưa thanh toán</span>'; break;
-                case 'LOST_TICKET': statusBadge = '<span class="badge badge-red">Mất vé</span>'; break;
-                default: statusBadge = `<span class="badge badge-gray">${s.status}</span>`;
-            }
-
-            html += `
-                <tr data-status="${s.status}" data-time="${s.entryTime ? new Date(s.entryTime).getTime() : 0}">
-                    <td>#${s.sessionId}</td>
-                    <td style="font-weight:600">${s.licensePlate || '-'}</td>
-                    <td>${s.slotCode || '-'}</td>
-                    <td>${s.vehicleTypeName || '-'}</td>
-                    <td>${s.entryTime ? new Date(s.entryTime).toLocaleString('vi-VN') : '-'}</td>
-                    <td>${s.entryGate || '-'}</td>
-                    <td>${statusBadge}</td>
-                </tr>
-            `;
-        });
-
-        html += `
                         </tbody>
                     </table>
                 </div>
+                <div id="sessions-pagination" style="padding: 0 20px;"></div>
             </div>
         `;
 
         container.innerHTML = html;
 
-        // Search and Sort logic
-        const searchInput = document.getElementById('session-search');
-        const statusFilter = document.getElementById('session-status-filter');
-        const timeSort = document.getElementById('session-time-sort');
-        const tbody = document.getElementById('sessions-tbody');
-        
-        const sortAndFilterSessions = () => {
-            const textVal = searchInput.value.toLowerCase();
-            const statusVal = statusFilter.value;
-            const sortVal = timeSort.value;
+        let currentData = data;
+        let currentPage = 1;
+        const rowsPerPage = 15;
+
+        const renderTableBody = () => {
+            const tbody = document.getElementById('sessions-tbody');
+            if(!tbody) return;
             
-            const rowsArray = Array.from(tbody.querySelectorAll('tr'));
-            
-            // Sort rows
-            rowsArray.sort((a, b) => {
-                const timeA = parseInt(a.getAttribute('data-time'), 10);
-                const timeB = parseInt(b.getAttribute('data-time'), 10);
+            // Sort
+            const sortVal = document.getElementById('session-time-sort').value;
+            currentData.sort((a, b) => {
+                const timeA = a.entryTime ? new Date(a.entryTime).getTime() : 0;
+                const timeB = b.entryTime ? new Date(b.entryTime).getTime() : 0;
                 return sortVal === 'desc' ? timeB - timeA : timeA - timeB;
             });
             
-            // Re-append to apply order and filter visibility
-            rowsArray.forEach(row => {
-                tbody.appendChild(row);
-                
-                const plate = row.children[1].textContent.toLowerCase();
-                const rowStatus = row.getAttribute('data-status');
-                
+            // Filter
+            const textVal = document.getElementById('session-search').value.toLowerCase();
+            const statusVal = document.getElementById('session-status-filter').value;
+            
+            const filteredData = currentData.filter(s => {
+                const plate = (s.licensePlate || '').toLowerCase();
                 const matchText = plate.includes(textVal);
-                const matchStatus = statusVal === '' || rowStatus === statusVal;
-                
-                row.style.display = (matchText && matchStatus) ? '' : 'none';
+                const matchStatus = statusVal === '' || s.status === statusVal;
+                return matchText && matchStatus;
             });
+            
+            // Paginate
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage) || 1;
+            if(currentPage > totalPages) currentPage = totalPages;
+            if(currentPage < 1) currentPage = 1;
+            
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const pageData = filteredData.slice(startIndex, startIndex + rowsPerPage);
+            
+            let tbodyHtml = '';
+            pageData.forEach(s => {
+                let statusBadge = '';
+                switch(s.status) {
+                    case 'PARKING': statusBadge = '<span class="badge badge-blue">Đang đỗ</span>'; break;
+                    case 'COMPLETED': statusBadge = '<span class="badge badge-green">Hoàn thành</span>'; break;
+                    case 'UNPAID': statusBadge = '<span class="badge badge-yellow">Chưa thanh toán</span>'; break;
+                    case 'LOST_TICKET': statusBadge = '<span class="badge badge-red">Mất vé</span>'; break;
+                    default: statusBadge = `<span class="badge badge-gray">${s.status}</span>`;
+                }
+                tbodyHtml += `
+                    <tr>
+                        <td>#${s.sessionId}</td>
+                        <td style="font-weight:600">${s.licensePlate || '-'}</td>
+                        <td>${s.slotCode || '-'}</td>
+                        <td>${s.vehicleTypeName || '-'}</td>
+                        <td>${s.entryTime ? new Date(s.entryTime).toLocaleString('vi-VN') : '-'}</td>
+                        <td>${s.entryGate || '-'}</td>
+                        <td>${statusBadge}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = tbodyHtml;
+            
+            // Pagination controls
+            const pCont = document.getElementById('sessions-pagination');
+            if(pCont) {
+                pCont.innerHTML = `
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                        <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${filteredData.length} kết quả)</span>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.sessionsChangePage(${currentPage - 1})">Trước</button>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.sessionsChangePage(${currentPage + 1})">Sau</button>
+                    </div>
+                `;
+            }
         };
 
-        searchInput.addEventListener('input', sortAndFilterSessions);
-        statusFilter.addEventListener('change', sortAndFilterSessions);
-        timeSort.addEventListener('change', sortAndFilterSessions);
+        window.sessionsChangePage = (p) => { currentPage = p; renderTableBody(); };
+
+        document.getElementById('session-search').addEventListener('input', () => { currentPage = 1; renderTableBody(); });
+        document.getElementById('session-status-filter').addEventListener('change', () => { currentPage = 1; renderTableBody(); });
+        document.getElementById('session-time-sort').addEventListener('change', () => { currentPage = 1; renderTableBody(); });
         
-        // Initial sort
-        sortAndFilterSessions();
+        renderTableBody();
     },
 
     async renderSlots(container) {
@@ -623,51 +637,79 @@ const Pages = {
                             </tr>
                         </thead>
                         <tbody id="slots-tbody">
-        `;
-
-        data.forEach(s => {
-            let statusBadge = '';
-            switch(s.status) {
-                case 'AVAILABLE': statusBadge = '<span class="badge badge-green">Trống</span>'; break;
-                case 'OCCUPIED': statusBadge = '<span class="badge badge-red">Đã đầy</span>'; break;
-                case 'RESERVED': statusBadge = '<span class="badge badge-yellow">Đã đặt</span>'; break;
-                case 'LOCKED': statusBadge = '<span class="badge badge-gray">Khóa</span>'; break;
-                default: statusBadge = `<span class="badge badge-gray">${s.status}</span>`;
-            }
-
-            html += `
-                <tr>
-                    <td style="font-weight:700">${s.slotCode}</td>
-                    <td>${s.buildingName || '-'}</td>
-                    <td>${s.floorName || '-'}</td>
-                    <td>${s.zoneName || '-'}</td>
-                    <td>${s.vehicleTypeName || '-'}</td>
-                    <td>${s.capacity}</td>
-                    <td>${s.currentOccupancy}</td>
-                    <td>${statusBadge}</td>
-                </tr>
-            `;
-        });
-
-        html += `
                         </tbody>
                     </table>
                 </div>
+                <div id="slots-pagination" style="padding: 0 20px;"></div>
             </div>
         `;
         container.innerHTML = html;
 
-        // Search logic
-        const searchInput = document.getElementById('slot-search');
-        const tbody = document.getElementById('slots-tbody');
-        searchInput.addEventListener('input', (e) => {
-            const val = e.target.value.toLowerCase();
-            const rows = tbody.querySelectorAll('tr');
-            rows.forEach(row => {
-                const code = row.children[0].textContent.toLowerCase();
-                row.style.display = code.includes(val) ? '' : 'none';
+        let currentData = data;
+        let currentPage = 1;
+        const rowsPerPage = 15;
+
+        const renderTableBody = () => {
+            const tbody = document.getElementById('slots-tbody');
+            if(!tbody) return;
+            
+            // Filter
+            const textVal = document.getElementById('slot-search').value.toLowerCase();
+            const filteredData = currentData.filter(s => {
+                const code = (s.slotCode || '').toLowerCase();
+                return code.includes(textVal);
             });
-        });
+            
+            // Paginate
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage) || 1;
+            if(currentPage > totalPages) currentPage = totalPages;
+            if(currentPage < 1) currentPage = 1;
+            
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const pageData = filteredData.slice(startIndex, startIndex + rowsPerPage);
+            
+            let tbodyHtml = '';
+            pageData.forEach(s => {
+                let statusBadge = '';
+                switch(s.status) {
+                    case 'AVAILABLE': statusBadge = '<span class="badge badge-green">Trống</span>'; break;
+                    case 'OCCUPIED': statusBadge = '<span class="badge badge-red">Đã đầy</span>'; break;
+                    case 'RESERVED': statusBadge = '<span class="badge badge-yellow">Đã đặt</span>'; break;
+                    case 'LOCKED': statusBadge = '<span class="badge badge-gray">Khóa</span>'; break;
+                    default: statusBadge = `<span class="badge badge-gray">${s.status}</span>`;
+                }
+                tbodyHtml += `
+                    <tr>
+                        <td style="font-weight:700">${s.slotCode}</td>
+                        <td>${s.buildingName || '-'}</td>
+                        <td>${s.floorName || '-'}</td>
+                        <td>${s.zoneName || '-'}</td>
+                        <td>${s.vehicleTypeName || '-'}</td>
+                        <td>${s.capacity}</td>
+                        <td>${s.currentOccupancy}</td>
+                        <td>${statusBadge}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = tbodyHtml;
+            
+            // Pagination controls
+            const pCont = document.getElementById('slots-pagination');
+            if(pCont) {
+                pCont.innerHTML = `
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                        <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${filteredData.length} kết quả)</span>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.slotsChangePage(${currentPage - 1})">Trước</button>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.slotsChangePage(${currentPage + 1})">Sau</button>
+                    </div>
+                `;
+            }
+        };
+
+        window.slotsChangePage = (p) => { currentPage = p; renderTableBody(); };
+        document.getElementById('slot-search').addEventListener('input', () => { currentPage = 1; renderTableBody(); });
+        
+        renderTableBody();
     },
 
     async renderVehicles(container) {
@@ -682,23 +724,61 @@ const Pages = {
                 <div class="card-body no-pad table-wrapper">
                     <table class="data-table">
                         <thead><tr><th>ID</th><th>Biển số</th><th>Chủ xe</th><th>Loại xe</th><th>Hãng xe</th><th>Màu sắc</th><th>Ngày đăng ký</th></tr></thead>
-                        <tbody>
-                            ${data.map(v => `
-                                <tr>
-                                    <td>#${v.vehicleId}</td>
-                                    <td style="font-weight:700">${v.licensePlate}</td>
-                                    <td>${v.ownerName || '-'}</td>
-                                    <td>${v.vehicleTypeName || '-'}</td>
-                                    <td>${v.brand || '-'}</td>
-                                    <td>${v.color || v.vehicleColor || '-'}</td>
-                                    <td>${v.createdAt ? new Date(v.createdAt).toLocaleDateString('vi-VN') : '-'}</td>
-                                </tr>
-                            `).join('')}
+                        <tbody id="vehicles-tbody">
                         </tbody>
                     </table>
                 </div>
+                <div id="vehicles-pagination" style="padding: 0 20px;"></div>
             </div>`;
         container.innerHTML = html;
+
+        let currentData = data;
+        let currentPage = 1;
+        const rowsPerPage = 15;
+
+        const renderTableBody = () => {
+            const tbody = document.getElementById('vehicles-tbody');
+            if(!tbody) return;
+            
+            // Paginate
+            const totalPages = Math.ceil(currentData.length / rowsPerPage) || 1;
+            if(currentPage > totalPages) currentPage = totalPages;
+            if(currentPage < 1) currentPage = 1;
+            
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const pageData = currentData.slice(startIndex, startIndex + rowsPerPage);
+            
+            let tbodyHtml = '';
+            pageData.forEach(v => {
+                tbodyHtml += `
+                    <tr>
+                        <td>#${v.vehicleId}</td>
+                        <td style="font-weight:700">${v.licensePlate}</td>
+                        <td>${v.ownerName || '-'}</td>
+                        <td>${v.vehicleTypeName || '-'}</td>
+                        <td>${v.brand || '-'}</td>
+                        <td>${v.color || v.vehicleColor || '-'}</td>
+                        <td>${v.createdAt ? new Date(v.createdAt).toLocaleDateString('vi-VN') : '-'}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = tbodyHtml;
+            
+            // Pagination controls
+            const pCont = document.getElementById('vehicles-pagination');
+            if(pCont) {
+                pCont.innerHTML = `
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                        <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${currentData.length} kết quả)</span>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.vehiclesChangePage(${currentPage - 1})">Trước</button>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.vehiclesChangePage(${currentPage + 1})">Sau</button>
+                    </div>
+                `;
+            }
+        };
+
+        window.vehiclesChangePage = (p) => { currentPage = p; renderTableBody(); };
+        renderTableBody();
     },
 
     async renderReservations(container) {
@@ -709,45 +789,92 @@ const Pages = {
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Quản lý đặt chỗ</h3>
+                    <div class="toolbar">
+                        <input type="text" id="res-search" class="search-input" placeholder="Tìm biển số..." />
+                    </div>
                 </div>
                 <div class="card-body no-pad table-wrapper">
                     <table class="data-table">
                         <thead><tr><th>Mã Đặt</th><th>Khách hàng</th><th>Biển số xe</th><th>Chỗ đỗ</th><th>TG Bắt đầu</th><th>TG Kết thúc</th><th>Trạng thái</th></tr></thead>
-                        <tbody>
-                            ${data.map(r => {
-                                let badgeClass = '';
-                                switch(r.status) {
-                                    case 'PENDING': badgeClass = 'badge-yellow'; break;
-                                    case 'CONFIRMED': badgeClass = 'badge-green'; break;
-                                    case 'CANCELLED': badgeClass = 'badge-red'; break;
-                                    case 'COMPLETED': badgeClass = 'badge-blue'; break;
-                                    default: badgeClass = 'badge-gray';
-                                }
-                                
-                                const canEditRes = (App.state.user.role === 'Admin' || App.state.user.role === 'ParkingManager' || App.state.user.role === 'ParkingStaff');
-                                const resStatusOpts = { 'PENDING': 'Chờ xác nhận', 'CONFIRMED': 'Đã xác nhận', 'COMPLETED': 'Đã hoàn thành', 'CANCELLED': 'Đã hủy' };
-                                const badge = canEditRes ? `
-                                    <select onchange="window.updateReservationStatus(${r.reservationId}, this.value)" class="badge ${badgeClass}" style="border:none; outline:none; cursor:pointer; font-weight:600; text-align:center;">
-                                        ${Object.entries(resStatusOpts).map(([k, v]) => `<option value="${k}" ${r.status === k ? 'selected' : ''}>${v}</option>`).join('')}
-                                    </select>
-                                ` : `<span class="badge ${badgeClass}">${resStatusOpts[r.status] || r.status}</span>`;
-
-                                return `
-                                <tr>
-                                    <td>#${r.reservationId}</td>
-                                    <td>${r.userName || '-'}</td>
-                                    <td>${r.licensePlate || '-'}</td>
-                                    <td>${r.slotCode || '-'}</td>
-                                    <td>${new Date(r.startTime).toLocaleString('vi-VN')}</td>
-                                    <td>${new Date(r.endTime).toLocaleString('vi-VN')}</td>
-                                    <td>${badge}</td>
-                                </tr>`;
-                            }).join('')}
+                        <tbody id="res-tbody">
                         </tbody>
                     </table>
                 </div>
+                <div id="res-pagination" style="padding: 0 20px;"></div>
             </div>`;
         container.innerHTML = html;
+
+        let currentData = data;
+        let currentPage = 1;
+        const rowsPerPage = 15;
+
+        const renderTableBody = () => {
+            const tbody = document.getElementById('res-tbody');
+            if(!tbody) return;
+            
+            // Filter
+            const textVal = document.getElementById('res-search').value.toLowerCase();
+            const filteredData = currentData.filter(r => {
+                const plate = (r.licensePlate || '').toLowerCase();
+                return plate.includes(textVal);
+            });
+            
+            // Paginate
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage) || 1;
+            if(currentPage > totalPages) currentPage = totalPages;
+            if(currentPage < 1) currentPage = 1;
+            
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const pageData = filteredData.slice(startIndex, startIndex + rowsPerPage);
+            
+            let tbodyHtml = '';
+            pageData.forEach(r => {
+                let badgeClass = '';
+                switch(r.status) {
+                    case 'PENDING': badgeClass = 'badge-yellow'; break;
+                    case 'CONFIRMED': badgeClass = 'badge-green'; break;
+                    case 'CANCELLED': badgeClass = 'badge-red'; break;
+                    case 'COMPLETED': badgeClass = 'badge-blue'; break;
+                    default: badgeClass = 'badge-gray';
+                }
+                
+                const canEditRes = (App.state.user.role === 'Admin' || App.state.user.role === 'ParkingManager' || App.state.user.role === 'ParkingStaff');
+                const resStatusOpts = { 'PENDING': 'Chờ xác nhận', 'CONFIRMED': 'Đã xác nhận', 'COMPLETED': 'Đã hoàn thành', 'CANCELLED': 'Đã hủy' };
+                const badge = canEditRes ? `
+                    <select onchange="window.updateReservationStatus(${r.reservationId}, this.value)" class="badge ${badgeClass}" style="border:none; outline:none; cursor:pointer; font-weight:600; text-align:center;">
+                        ${Object.entries(resStatusOpts).map(([k, v]) => `<option value="${k}" ${r.status === k ? 'selected' : ''}>${v}</option>`).join('')}
+                    </select>
+                ` : `<span class="badge ${badgeClass}">${resStatusOpts[r.status] || r.status}</span>`;
+
+                tbodyHtml += `
+                <tr>
+                    <td>#${r.reservationId}</td>
+                    <td>${r.userName || '-'}</td>
+                    <td>${r.licensePlate || '-'}</td>
+                    <td>${r.slotCode || '-'}</td>
+                    <td>${new Date(r.startTime).toLocaleString('vi-VN')}</td>
+                    <td>${new Date(r.endTime).toLocaleString('vi-VN')}</td>
+                    <td>${badge}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = tbodyHtml;
+            
+            // Pagination controls
+            const pCont = document.getElementById('res-pagination');
+            if(pCont) {
+                pCont.innerHTML = `
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                        <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${filteredData.length} kết quả)</span>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.resChangePage(${currentPage - 1})">Trước</button>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.resChangePage(${currentPage + 1})">Sau</button>
+                    </div>
+                `;
+            }
+        };
+
+        window.resChangePage = (p) => { currentPage = p; renderTableBody(); };
+        document.getElementById('res-search').addEventListener('input', () => { currentPage = 1; renderTableBody(); });
+        renderTableBody();
 
         window.updateReservationStatus = async (id, status) => {
             if(!status) return;
@@ -773,34 +900,70 @@ const Pages = {
                 <div class="card-body no-pad table-wrapper">
                     <table class="data-table">
                         <thead><tr><th>Mã TT</th><th>Loại thanh toán</th><th>Số tiền</th><th>Phương thức</th><th>Thời gian</th><th>Trạng thái</th></tr></thead>
-                        <tbody>
-                            ${data.map(p => {
-                                let badge = '';
-                                switch(p.paymentStatus) {
-                                    case 'PENDING': badge = '<span class="badge badge-yellow">Đang chờ</span>'; break;
-                                    case 'SUCCESS': badge = '<span class="badge badge-green">Thành công</span>'; break;
-                                    case 'FAILED': badge = '<span class="badge badge-red">Thất bại</span>'; break;
-                                    default: badge = `<span class="badge badge-gray">${p.paymentStatus}</span>`;
-                                }
-                                let type = p.sessionId ? 'Phiên gửi xe' : (p.reservationId ? 'Đặt chỗ' : 'Khác');
-                                return `
-                                <tr>
-                                    <td>#${p.paymentId}</td>
-                                    <td>${type}</td>
-                                    <td style="font-weight:700; color:var(--green)">${p.amount.toLocaleString('vi-VN')} đ</td>
-                                    <td>${p.paymentMethod || '-'}</td>
-                                    <td>${p.paidAt ? new Date(p.paidAt).toLocaleString('vi-VN') : '-'}</td>
-                                    <td>
-                                        ${badge}
-                                        ${p.paymentStatus === 'PENDING' ? `<button class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem; margin-left: 8px;" onclick="window.confirmPayment(${p.paymentId})">Nhận tiền mặt</button>` : ''}
-                                    </td>
-                                </tr>`;
-                            }).join('')}
+                        <tbody id="payments-tbody">
                         </tbody>
                     </table>
                 </div>
+                <div id="payments-pagination" style="padding: 0 20px;"></div>
             </div>`;
         container.innerHTML = html;
+
+        let currentData = data;
+        let currentPage = 1;
+        const rowsPerPage = 15;
+
+        const renderTableBody = () => {
+            const tbody = document.getElementById('payments-tbody');
+            if(!tbody) return;
+            
+            // Paginate
+            const totalPages = Math.ceil(currentData.length / rowsPerPage) || 1;
+            if(currentPage > totalPages) currentPage = totalPages;
+            if(currentPage < 1) currentPage = 1;
+            
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const pageData = currentData.slice(startIndex, startIndex + rowsPerPage);
+            
+            let tbodyHtml = '';
+            pageData.forEach(p => {
+                let badge = '';
+                switch(p.paymentStatus) {
+                    case 'PENDING': badge = '<span class="badge badge-yellow">Đang chờ</span>'; break;
+                    case 'SUCCESS': badge = '<span class="badge badge-green">Thành công</span>'; break;
+                    case 'FAILED': badge = '<span class="badge badge-red">Thất bại</span>'; break;
+                    default: badge = `<span class="badge badge-gray">${p.paymentStatus}</span>`;
+                }
+                let type = p.sessionId ? 'Phiên gửi xe' : (p.reservationId ? 'Đặt chỗ' : 'Khác');
+                tbodyHtml += `
+                <tr>
+                    <td>#${p.paymentId}</td>
+                    <td>${type}</td>
+                    <td style="font-weight:700; color:var(--green)">${p.amount.toLocaleString('vi-VN')} đ</td>
+                    <td>${p.paymentMethod || '-'}</td>
+                    <td>${p.paidAt ? new Date(p.paidAt).toLocaleString('vi-VN') : '-'}</td>
+                    <td>
+                        ${badge}
+                        ${p.paymentStatus === 'PENDING' ? `<button class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem; margin-left: 8px;" onclick="window.confirmPayment(${p.paymentId})">Nhận tiền mặt</button>` : ''}
+                    </td>
+                </tr>`;
+            });
+            tbody.innerHTML = tbodyHtml;
+            
+            // Pagination controls
+            const pCont = document.getElementById('payments-pagination');
+            if(pCont) {
+                pCont.innerHTML = `
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                        <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${currentData.length} kết quả)</span>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.paymentsChangePage(${currentPage - 1})">Trước</button>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.paymentsChangePage(${currentPage + 1})">Sau</button>
+                    </div>
+                `;
+            }
+        };
+
+        window.paymentsChangePage = (p) => { currentPage = p; renderTableBody(); };
+        renderTableBody();
 
         window.confirmPayment = async (id) => {
             if(confirm('Xác nhận đã thu tiền mặt cho giao dịch này?')) {
@@ -832,50 +995,13 @@ const Pages = {
                 <div class="card-body no-pad table-wrapper">
                     <table class="data-table">
                         <thead><tr><th>ID</th><th>Tiêu đề</th><th>Mức độ</th><th>Loại sự cố</th><th>Trạng thái</th><th>Người báo cáo</th><th>TG báo cáo</th></tr></thead>
-                        <tbody>
-                            ${data.map(i => {
-                                let sevBadge = '';
-                                switch(i.severity) {
-                                    case 'LOW': sevBadge = '<span class="badge badge-blue">Thấp</span>'; break;
-                                    case 'MEDIUM': sevBadge = '<span class="badge badge-yellow">Vừa</span>'; break;
-                                    case 'HIGH': sevBadge = '<span class="badge badge-red">Cao</span>'; break;
-                                    case 'CRITICAL': sevBadge = '<span style="background:#991b1b;color:#fff;padding:4px 10px;border-radius:50px;font-size:.75rem;font-weight:600;">Nghiêm trọng</span>'; break;
-                                    default: sevBadge = `<span class="badge badge-gray">${i.severity || '-'}</span>`;
-                                }
-                                let statClass = '';
-                                switch(i.status) {
-                                    case 'REPORTED': statClass = 'badge-yellow'; break;
-                                    case 'OPEN': statClass = 'badge-yellow'; break;
-                                    case 'IN_PROGRESS': statClass = 'badge-blue'; break;
-                                    case 'RESOLVED': statClass = 'badge-green'; break;
-                                    case 'CLOSED': statClass = 'badge-gray'; break;
-                                    default: statClass = 'badge-gray';
-                                }
-                                
-                                const canEditInc = (App.state.user.role === 'Admin' || App.state.user.role === 'ParkingManager');
-                                const incStatusOpts = { 'REPORTED': 'Mới báo cáo', 'OPEN': 'Mở', 'IN_PROGRESS': 'Đang xử lý', 'RESOLVED': 'Đã giải quyết', 'CLOSED': 'Đã đóng' };
-                                const statBadge = canEditInc ? `
-                                    <select onchange="window.updateIncidentStatus(${i.incidentId}, this.value)" class="badge ${statClass}" style="border:none; outline:none; cursor:pointer; font-weight:600; text-align:center;">
-                                        ${Object.entries(incStatusOpts).map(([k, v]) => `<option value="${k}" ${i.status === k ? 'selected' : ''}>${v}</option>`).join('')}
-                                    </select>
-                                ` : `<span class="badge ${statClass}">${incStatusOpts[i.status] || i.status}</span>`;
-
-                                return `
-                                <tr>
-                                    <td>#${i.incidentId}</td>
-                                    <td style="font-weight:600">${i.title || i.description || '-'}</td>
-                                    <td>${sevBadge}</td>
-                                    <td>${i.incidentType || '-'}</td>
-                                    <td>${statBadge}</td>
-                                    <td>${i.reporterName || '-'}</td>
-                                    <td>${i.reportTime ? new Date(i.reportTime).toLocaleString('vi-VN') : (i.createdAt ? new Date(i.createdAt).toLocaleString('vi-VN') : '-')}</td>
-                                </tr>`;
-                            }).join('')}
+                        <tbody id="incidents-tbody">
                         </tbody>
                     </table>
                 </div>
+                <div id="incidents-pagination" style="padding: 0 20px;"></div>
             </div>
-            
+
             <!-- Incident Modal -->
             <div id="incident-modal" class="modal-overlay hidden">
                 <div class="modal">
@@ -915,8 +1041,82 @@ const Pages = {
                     </form>
                 </div>
             </div>
+            </div>
             `;
         container.innerHTML = html;
+
+        let currentData = data;
+        let currentPage = 1;
+        const rowsPerPage = 15;
+
+        const renderTableBody = () => {
+            const tbody = document.getElementById('incidents-tbody');
+            if(!tbody) return;
+            
+            // Paginate
+            const totalPages = Math.ceil(currentData.length / rowsPerPage) || 1;
+            if(currentPage > totalPages) currentPage = totalPages;
+            if(currentPage < 1) currentPage = 1;
+            
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const pageData = currentData.slice(startIndex, startIndex + rowsPerPage);
+            
+            let tbodyHtml = '';
+            pageData.forEach(i => {
+                let sevBadge = '';
+                switch(i.severity) {
+                    case 'LOW': sevBadge = '<span class="badge badge-blue">Thấp</span>'; break;
+                    case 'MEDIUM': sevBadge = '<span class="badge badge-yellow">Vừa</span>'; break;
+                    case 'HIGH': sevBadge = '<span class="badge badge-red">Cao</span>'; break;
+                    case 'CRITICAL': sevBadge = '<span style="background:#991b1b;color:#fff;padding:4px 10px;border-radius:50px;font-size:.75rem;font-weight:600;">Nghiêm trọng</span>'; break;
+                    default: sevBadge = `<span class="badge badge-gray">${i.severity || '-'}</span>`;
+                }
+                let statClass = '';
+                switch(i.status) {
+                    case 'REPORTED': statClass = 'badge-yellow'; break;
+                    case 'OPEN': statClass = 'badge-yellow'; break;
+                    case 'IN_PROGRESS': statClass = 'badge-blue'; break;
+                    case 'RESOLVED': statClass = 'badge-green'; break;
+                    case 'CLOSED': statClass = 'badge-gray'; break;
+                    default: statClass = 'badge-gray';
+                }
+                
+                const canEditInc = (App.state.user.role === 'Admin' || App.state.user.role === 'ParkingManager');
+                const incStatusOpts = { 'REPORTED': 'Mới báo cáo', 'OPEN': 'Mở', 'IN_PROGRESS': 'Đang xử lý', 'RESOLVED': 'Đã giải quyết', 'CLOSED': 'Đã đóng' };
+                const statBadge = canEditInc ? `
+                    <select onchange="window.updateIncidentStatus(${i.incidentId}, this.value)" class="badge ${statClass}" style="border:none; outline:none; cursor:pointer; font-weight:600; text-align:center;">
+                        ${Object.entries(incStatusOpts).map(([k, v]) => `<option value="${k}" ${i.status === k ? 'selected' : ''}>${v}</option>`).join('')}
+                    </select>
+                ` : `<span class="badge ${statClass}">${incStatusOpts[i.status] || i.status}</span>`;
+
+                tbodyHtml += `
+                <tr>
+                    <td>#${i.incidentId}</td>
+                    <td style="font-weight:600">${i.title || i.description || '-'}</td>
+                    <td>${sevBadge}</td>
+                    <td>${i.incidentType || '-'}</td>
+                    <td>${statBadge}</td>
+                    <td>${i.reporterName || '-'}</td>
+                    <td>${i.reportTime ? new Date(i.reportTime).toLocaleString('vi-VN') : (i.createdAt ? new Date(i.createdAt).toLocaleString('vi-VN') : '-')}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = tbodyHtml;
+            
+            // Pagination controls
+            const pCont = document.getElementById('incidents-pagination');
+            if(pCont) {
+                pCont.innerHTML = `
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                        <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${currentData.length} kết quả)</span>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.incidentsChangePage(${currentPage - 1})">Trước</button>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.incidentsChangePage(${currentPage + 1})">Sau</button>
+                    </div>
+                `;
+            }
+        };
+
+        window.incidentsChangePage = (p) => { currentPage = p; renderTableBody(); };
+        renderTableBody();
 
         window.showIncidentModal = () => document.getElementById('incident-modal').classList.remove('hidden');
 
@@ -963,36 +1163,72 @@ const Pages = {
                 <div class="card-body no-pad table-wrapper">
                     <table class="data-table">
                         <thead><tr><th>ID</th><th>Khách hàng</th><th>Biển số xe</th><th>Chỗ/Khu vực</th><th>Ngày bắt đầu</th><th>Ngày kết thúc</th><th>Phí tháng</th><th>Trạng thái</th></tr></thead>
-                        <tbody>
-                            ${data.map(s => {
-                                let badge = '';
-                                switch(s.status) {
-                                    case 'ACTIVE': badge = '<span class="badge badge-green">Đang hoạt động</span>'; break;
-                                    case 'EXPIRED': badge = '<span class="badge badge-red">Đã hết hạn</span>'; break;
-                                    case 'CANCELLED': badge = '<span class="badge badge-gray">Đã hủy</span>'; break;
-                                    default: badge = `<span class="badge badge-gray">${s.status}</span>`;
-                                }
-                                let boundTo = '-';
-                                if (s.slotCode) boundTo = s.slotCode;
-                                else if (s.zoneName) boundTo = s.zoneName;
-
-                                return `
-                                <tr>
-                                    <td>#${s.subscriptionId}</td>
-                                    <td>${s.userName || '-'}</td>
-                                    <td style="font-weight:700">${s.licensePlate || '-'}</td>
-                                    <td>${boundTo}</td>
-                                    <td>${s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '-'}</td>
-                                    <td>${s.endDate ? new Date(s.endDate).toLocaleDateString('vi-VN') : '-'}</td>
-                                    <td>${s.monthlyFee ? s.monthlyFee.toLocaleString('vi-VN') + ' đ' : '-'}</td>
-                                    <td>${badge}</td>
-                                </tr>`;
-                            }).join('')}
+                        <tbody id="subscriptions-tbody">
                         </tbody>
                     </table>
                 </div>
+                <div id="subscriptions-pagination" style="padding: 0 20px;"></div>
             </div>`;
         container.innerHTML = html;
+
+        let currentData = data;
+        let currentPage = 1;
+        const rowsPerPage = 15;
+
+        const renderTableBody = () => {
+            const tbody = document.getElementById('subscriptions-tbody');
+            if(!tbody) return;
+            
+            // Paginate
+            const totalPages = Math.ceil(currentData.length / rowsPerPage) || 1;
+            if(currentPage > totalPages) currentPage = totalPages;
+            if(currentPage < 1) currentPage = 1;
+            
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const pageData = currentData.slice(startIndex, startIndex + rowsPerPage);
+            
+            let tbodyHtml = '';
+            pageData.forEach(s => {
+                let badge = '';
+                switch(s.status) {
+                    case 'ACTIVE': badge = '<span class="badge badge-green">Đang hoạt động</span>'; break;
+                    case 'EXPIRED': badge = '<span class="badge badge-red">Đã hết hạn</span>'; break;
+                    case 'CANCELLED': badge = '<span class="badge badge-gray">Đã hủy</span>'; break;
+                    default: badge = `<span class="badge badge-gray">${s.status}</span>`;
+                }
+                let boundTo = '-';
+                if (s.slotCode) boundTo = s.slotCode;
+                else if (s.zoneName) boundTo = s.zoneName;
+
+                tbodyHtml += `
+                <tr>
+                    <td>#${s.subscriptionId}</td>
+                    <td>${s.userName || '-'}</td>
+                    <td style="font-weight:700">${s.licensePlate || '-'}</td>
+                    <td>${boundTo}</td>
+                    <td>${s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '-'}</td>
+                    <td>${s.endDate ? new Date(s.endDate).toLocaleDateString('vi-VN') : '-'}</td>
+                    <td>${s.monthlyFee ? s.monthlyFee.toLocaleString('vi-VN') + ' đ' : '-'}</td>
+                    <td>${badge}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = tbodyHtml;
+            
+            // Pagination controls
+            const pCont = document.getElementById('subscriptions-pagination');
+            if(pCont) {
+                pCont.innerHTML = `
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                        <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${currentData.length} kết quả)</span>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.subscriptionsChangePage(${currentPage - 1})">Trước</button>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.subscriptionsChangePage(${currentPage + 1})">Sau</button>
+                    </div>
+                `;
+            }
+        };
+
+        window.subscriptionsChangePage = (p) => { currentPage = p; renderTableBody(); };
+        renderTableBody();
     },
 
     async renderUsers(container) {
@@ -1007,22 +1243,60 @@ const Pages = {
                 <div class="card-body no-pad table-wrapper">
                     <table class="data-table">
                         <thead><tr><th>ID</th><th>Họ Tên</th><th>Email</th><th>Số điện thoại</th><th>Vai trò</th><th>Trạng thái</th></tr></thead>
-                        <tbody>
-                            ${data.map(u => `
-                                <tr>
-                                    <td>#${u.userId}</td>
-                                    <td style="font-weight:600">${u.fullName}</td>
-                                    <td>${u.email}</td>
-                                    <td>${u.phoneNumber}</td>
-                                    <td><span class="badge badge-purple">${u.roleName}</span></td>
-                                    <td>${u.isActive ? '<span class="badge badge-green">Hoạt động</span>' : '<span class="badge badge-red">Khóa</span>'}</td>
-                                </tr>
-                            `).join('')}
+                        <tbody id="users-tbody">
                         </tbody>
                     </table>
                 </div>
+                <div id="users-pagination" style="padding: 0 20px;"></div>
             </div>`;
         container.innerHTML = html;
+
+        let currentData = data;
+        let currentPage = 1;
+        const rowsPerPage = 15;
+
+        const renderTableBody = () => {
+            const tbody = document.getElementById('users-tbody');
+            if(!tbody) return;
+            
+            // Paginate
+            const totalPages = Math.ceil(currentData.length / rowsPerPage) || 1;
+            if(currentPage > totalPages) currentPage = totalPages;
+            if(currentPage < 1) currentPage = 1;
+            
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const pageData = currentData.slice(startIndex, startIndex + rowsPerPage);
+            
+            let tbodyHtml = '';
+            pageData.forEach(u => {
+                tbodyHtml += `
+                    <tr>
+                        <td>#${u.userId}</td>
+                        <td style="font-weight:600">${u.fullName}</td>
+                        <td>${u.email}</td>
+                        <td>${u.phoneNumber}</td>
+                        <td><span class="badge badge-purple">${u.roleName}</span></td>
+                        <td>${u.isActive ? '<span class="badge badge-green">Hoạt động</span>' : '<span class="badge badge-red">Khóa</span>'}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = tbodyHtml;
+            
+            // Pagination controls
+            const pCont = document.getElementById('users-pagination');
+            if(pCont) {
+                pCont.innerHTML = `
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                        <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${currentData.length} kết quả)</span>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.usersChangePage(${currentPage - 1})">Trước</button>
+                        <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.usersChangePage(${currentPage + 1})">Sau</button>
+                    </div>
+                `;
+            }
+        };
+
+        window.usersChangePage = (p) => { currentPage = p; renderTableBody(); };
+        renderTableBody();
     },
 
     async renderReports(container) {
