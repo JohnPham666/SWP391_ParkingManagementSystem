@@ -31,8 +31,10 @@ import ReportManagement from './pages/admin/ReportManagement';
 
 // Staff Pages
 import StaffDashboard from './pages/staff/StaffDashboard';
-import StaffSessions from './pages/staff/StaffSessions';
 import StaffIncidents from './pages/staff/StaffIncidents';
+import StaffPayments from './pages/staff/StaffPayments';
+import StaffSlots from './pages/staff/StaffSlots';
+import StaffReservations from './pages/staff/StaffReservations';
 
 // Shared Components (To be moved by team later if needed)
 import VehicleManagement from './pages/admin/VehicleManagement';
@@ -100,11 +102,9 @@ function App() {
           {/* Nhánh 5: Quản trị (Staff) */}
           <Route path="/staff" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
             <Route index element={<StaffDashboard />} />
-            <Route path="sessions" element={<StaffSessions />} />
-            <Route path="slots" element={<SlotManagement />} />
-            <Route path="vehicles" element={<VehicleManagement />} />
-            <Route path="reservations" element={<ReservationManagement />} />
-            <Route path="payments" element={<PaymentManagement />} />
+            <Route path="slots" element={<StaffSlots />} />
+            <Route path="reservations" element={<StaffReservations />} />
+            <Route path="payments" element={<StaffPayments />} />
             <Route path="incidents" element={<StaffIncidents />} />
           </Route>
         </Routes>

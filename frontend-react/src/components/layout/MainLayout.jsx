@@ -64,18 +64,19 @@ const MainLayout = () => {
     { key: `${basePath}/logs`, icon: <FileTextOutlined />, label: 'System Logs', roles: ['Admin'] },
     
     // Shared Operational
-    { key: `${basePath}/sessions`, icon: <CarOutlined />, label: 'Parking Sessions', roles: ['ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/sessions`, icon: <CarOutlined />, label: 'Parking Sessions', roles: ['ParkingManager'] },
     { key: `${basePath}/slots`, icon: <DashboardOutlined />, label: 'Parking Slots', roles: ['ParkingManager', 'ParkingStaff'] },
-    { key: `${basePath}/vehicles`, icon: <CarOutlined />, label: 'Vehicles', roles: ['ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/vehicles`, icon: <CarOutlined />, label: 'Vehicles', roles: ['ParkingManager'] },
     { key: `${basePath}/reservations`, icon: <ProfileOutlined />, label: 'Reservations', roles: ['ParkingManager', 'ParkingStaff'] },
     { key: `${basePath}/payments`, icon: <ProfileOutlined />, label: 'Payments', roles: ['ParkingManager', 'ParkingStaff'] },
     { key: `${basePath}/incidents`, icon: <AlertOutlined />, label: 'Incidents', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/users`, icon: <TeamOutlined />, label: 'System Users', roles: ['Admin'] },
     
     // Manager & Admin
     { key: `${basePath}/buildings`, icon: <BuildOutlined />, label: 'Buildings', roles: ['Admin', 'ParkingManager'] },
     { key: `${basePath}/pricing`, icon: <SettingOutlined />, label: 'Pricing Policies', roles: ['Admin', 'ParkingManager'] },
 
-    // Manager only
+    // Subscriptions & Reports
     { key: `${basePath}/subscriptions`, icon: <ProfileOutlined />, label: 'Subscriptions', roles: ['ParkingManager'] },
     { key: `${basePath}/reports`, icon: <BarChartOutlined />, label: 'Reports', roles: ['ParkingManager'] },
   ];
