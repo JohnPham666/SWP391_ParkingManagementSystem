@@ -53,29 +53,29 @@ const MainLayout = () => {
     { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', danger: true, onClick: handleLogout }
   ];
 
+  const basePath = userRole === 'Admin' ? '/admin' : userRole === 'ParkingManager' ? '/manager' : '/staff';
+
   const allMenuItems = [
-    { key: '/admin', icon: <DashboardOutlined />, label: 'Dashboard', roles: ['Admin', 'ParkingManager'] },
+    { key: `${basePath}`, icon: <DashboardOutlined />, label: 'Dashboard', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
     
     // Admin only
-    { key: '/admin/users', icon: <TeamOutlined />, label: 'User Management', roles: ['Admin'] },
-    { key: '/admin/settings', icon: <SettingOutlined />, label: 'Settings', roles: ['Admin'] },
-    { key: '/admin/logs', icon: <FileTextOutlined />, label: 'System Logs', roles: ['Admin'] },
+    { key: `${basePath}/users`, icon: <TeamOutlined />, label: 'User Management', roles: ['Admin'] },
+    { key: `${basePath}/settings`, icon: <SettingOutlined />, label: 'Settings', roles: ['Admin'] },
+    { key: `${basePath}/logs`, icon: <FileTextOutlined />, label: 'System Logs', roles: ['Admin'] },
     
-    // Manager & Staff
-    { key: '/admin/sessions', icon: <CarOutlined />, label: 'Parking Sessions', roles: ['ParkingManager', 'ParkingStaff'] },
-    { key: '/admin/slots', icon: <DashboardOutlined />, label: 'Parking Slots', roles: ['ParkingManager', 'ParkingStaff'] },
-    { key: '/admin/vehicles', icon: <CarOutlined />, label: 'Vehicles', roles: ['ParkingManager', 'ParkingStaff'] },
-    { key: '/admin/reservations', icon: <ProfileOutlined />, label: 'Reservations', roles: ['ParkingManager', 'ParkingStaff'] },
-    { key: '/admin/payments', icon: <ProfileOutlined />, label: 'Payments', roles: ['ParkingManager', 'ParkingStaff'] },
+    // Shared Operational
+    { key: `${basePath}/sessions`, icon: <CarOutlined />, label: 'Parking Sessions', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/slots`, icon: <DashboardOutlined />, label: 'Parking Slots', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/vehicles`, icon: <CarOutlined />, label: 'Vehicles', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/reservations`, icon: <ProfileOutlined />, label: 'Reservations', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/payments`, icon: <ProfileOutlined />, label: 'Payments', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/incidents`, icon: <AlertOutlined />, label: 'Incidents', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
     
     // Manager only
-    { key: '/admin/subscriptions', icon: <ProfileOutlined />, label: 'Subscriptions', roles: ['ParkingManager'] },
-    { key: '/admin/buildings', icon: <BuildOutlined />, label: 'Buildings', roles: ['ParkingManager'] },
-    { key: '/admin/pricing', icon: <SettingOutlined />, label: 'Pricing Policies', roles: ['ParkingManager'] },
-    { key: '/admin/reports', icon: <BarChartOutlined />, label: 'Reports', roles: ['ParkingManager'] },
-    
-    // Shared Incidents
-    { key: '/admin/incidents', icon: <AlertOutlined />, label: 'Incidents', roles: ['ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/subscriptions`, icon: <ProfileOutlined />, label: 'Subscriptions', roles: ['ParkingManager'] },
+    { key: `${basePath}/buildings`, icon: <BuildOutlined />, label: 'Buildings', roles: ['ParkingManager'] },
+    { key: `${basePath}/pricing`, icon: <SettingOutlined />, label: 'Pricing Policies', roles: ['ParkingManager'] },
+    { key: `${basePath}/reports`, icon: <BarChartOutlined />, label: 'Reports', roles: ['ParkingManager'] },
   ];
 
   // Lọc menu theo role hiện tại
