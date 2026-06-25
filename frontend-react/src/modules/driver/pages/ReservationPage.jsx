@@ -1,9 +1,12 @@
 import React, { useEffect, useReducer, useState } from 'react';
-import { Card, Table, Modal, Form, DatePicker, Select, Button, Tag, Space, Popconfirm, Alert, message } from 'antd';
+import { Card, Table, Modal, Form, DatePicker, Select, Button, Tag, Space, Popconfirm, Alert, message, Row, Col, Typography, Skeleton, Empty } from 'antd';
+import { CalendarOutlined, PlusOutlined, DeleteOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 import { reservationStore } from '../store/reservationStore';
 import { vehicleStore } from '../store/vehicleStore';
 import { parkingStore } from '../store/parkingStore';
+
+const { Title, Text } = Typography;
 
 const ReservationPage = () => {
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -71,9 +74,7 @@ const ReservationPage = () => {
             setIsModalVisible(false);
             fetchData();
         } catch (error) {
-            if (error.errorFields) {
-                return;
-            }
+            if (error.errorFields) return;
             message.error('Failed to create reservation');
         }
     };
@@ -90,32 +91,34 @@ const ReservationPage = () => {
 
     const columns = [
         {
-            title: 'Reservation ID',
+            title: 'Ref ID',
             dataIndex: 'reservationId',
             key: 'reservationId',
-            render: (text, record) => record.reservationId || record.id || text,
+            render: (text, record) => <Text strong>#{record.reservationId || record.id || text}</Text>,
         },
         {
             title: 'Vehicle',
             key: 'vehicle',
-            render: (_, record) => record.vehicle?.licensePlate || record.licensePlate || 'N/A',
+            render: (_, record) => (
+                <Space>
+                    <Tag color="blue" style={{ borderRadius: 4 }}>{record.vehicle?.licensePlate || record.licensePlate || 'N/A'}</Tag>
+                </Space>
+            )
         },
         {
             title: 'Slot',
             key: 'slot',
-            render: (_, record) => record.slot?.slotName || record.parkingSlot?.slotName || record.slotId || 'N/A',
+            render: (_, record) => <Text strong>{record.slot?.slotName || record.parkingSlot?.slotName || record.slotId || 'N/A'}</Text>,
         },
         {
-            title: 'Start Time',
-            dataIndex: 'startTime',
-            key: 'startTime',
-            render: (time) => time ? new Date(time).toLocaleString() : 'N/A',
-        },
-        {
-            title: 'End Time',
-            dataIndex: 'endTime',
-            key: 'endTime',
-            render: (time) => time ? new Date(time).toLocaleString() : 'N/A',
+            title: 'Duration',
+            key: 'duration',
+            render: (_, record) => (
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <Text>{record.startTime ? new Date(record.startTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>to {record.endTime ? new Date(record.endTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}</Text>
+                </div>
+            )
         },
         {
             title: 'Status',
@@ -124,18 +127,18 @@ const ReservationPage = () => {
             render: (status) => {
                 const s = String(status).toUpperCase();
                 let color = 'default';
-                if (s === 'CONFIRMED' || s === 'COMPLETED') color = 'green';
-                else if (s === 'PENDING') color = 'gold';
-                else if (s === 'CANCELLED') color = 'volcano';
-                return <Tag color={color}>{s || 'UNKNOWN'}</Tag>;
+                if (s === 'CONFIRMED' || s === 'COMPLETED') color = 'success';
+                else if (s === 'PENDING') color = 'warning';
+                else if (s === 'CANCELLED') color = 'error';
+                return <Tag color={color} style={{ padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>{s}</Tag>;
             }
         },
         {
-            title: 'Payment Status',
+            title: 'Payment',
             key: 'paymentStatus',
             render: (_, record) => {
                 const pStatus = record.paymentStatus || record.payment?.status || record.payment?.paymentStatus;
-                if (!pStatus) return 'N/A';
+                if (!pStatus) return <Text type="secondary">Unpaid</Text>;
                 const ps = String(pStatus).toUpperCase();
                 return <Tag color={ps === 'PAID' || ps === 'COMPLETED' ? 'green' : 'gold'}>{ps}</Tag>;
             }
@@ -143,18 +146,21 @@ const ReservationPage = () => {
         {
             title: 'Actions',
             key: 'actions',
-            render: (_, record) => (
-                <Space size="middle">
-                    <Popconfirm
-                        title="Are you sure you want to cancel this reservation?"
-                        onConfirm={() => handleDelete(record.reservationId || record.id)}
-                        okText="Yes"
-                        cancelText="No"
-                    >
-                        <Button type="link" danger style={{ padding: 0 }}>Delete</Button>
-                    </Popconfirm>
-                </Space>
-            ),
+            align: 'right',
+            render: (_, record) => {
+                const s = String(record.status).toUpperCase();
+                const canCancel = s === 'PENDING' || s === 'CONFIRMED';
+                return (
+                    <Space size="middle">
+                        <Button type="primary" ghost size="small" style={{ borderRadius: 4 }}>Details</Button>
+                        {canCancel && (
+                            <Popconfirm title="Cancel this reservation?" onConfirm={() => handleDelete(record.reservationId || record.id)}>
+                                <Button type="text" danger icon={<DeleteOutlined />} size="small" />
+                            </Popconfirm>
+                        )}
+                    </Space>
+                );
+            },
         },
     ];
 
@@ -162,69 +168,128 @@ const ReservationPage = () => {
     const safeVehicles = Array.isArray(vehicleStore.vehicles) ? vehicleStore.vehicles : [];
     const safeSlots = Array.isArray(parkingStore.slots) ? parkingStore.slots : [];
 
+    const stats = {
+        total: safeReservations.length,
+        pending: safeReservations.filter(r => String(r.status).toUpperCase() === 'PENDING').length,
+        confirmed: safeReservations.filter(r => ['CONFIRMED', 'COMPLETED'].includes(String(r.status).toUpperCase())).length,
+        cancelled: safeReservations.filter(r => String(r.status).toUpperCase() === 'CANCELLED').length,
+    };
+
+    if (reservationStore.loading) {
+        return <Skeleton active paragraph={{ rows: 10 }} />;
+    }
+
     return (
-        <Card title="Reservations" extra={<Button type="primary" onClick={handleCreate}>Create Reservation</Button>}>
-            <Table
-                columns={columns}
-                dataSource={safeReservations}
-                rowKey={(record) => record.reservationId || record.id}
-                loading={reservationStore.loading}
-                pagination={{ pageSize: 10 }}
-            />
+        <div>
+            {/* Statistics Row */}
+            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                <Col xs={12} sm={6}>
+                    <Card className="saas-card" style={{ background: '#f8fafc' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ padding: 12, background: '#e2e8f0', borderRadius: '50%', color: '#64748b' }}><CalendarOutlined style={{ fontSize: 20 }} /></div>
+                            <div>
+                                <Text type="secondary" style={{ fontSize: 13 }}>Total</Text>
+                                <Title level={3} style={{ margin: 0 }}>{stats.total}</Title>
+                            </div>
+                        </div>
+                    </Card>
+                </Col>
+                <Col xs={12} sm={6}>
+                    <Card className="saas-card" style={{ background: '#fffbeb' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ padding: 12, background: '#fef3c7', borderRadius: '50%', color: '#d97706' }}><ClockCircleOutlined style={{ fontSize: 20 }} /></div>
+                            <div>
+                                <Text type="secondary" style={{ fontSize: 13 }}>Pending</Text>
+                                <Title level={3} style={{ margin: 0 }}>{stats.pending}</Title>
+                            </div>
+                        </div>
+                    </Card>
+                </Col>
+                <Col xs={12} sm={6}>
+                    <Card className="saas-card" style={{ background: '#f0fdf4' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ padding: 12, background: '#dcfce7', borderRadius: '50%', color: '#16a34a' }}><CheckCircleOutlined style={{ fontSize: 20 }} /></div>
+                            <div>
+                                <Text type="secondary" style={{ fontSize: 13 }}>Confirmed</Text>
+                                <Title level={3} style={{ margin: 0 }}>{stats.confirmed}</Title>
+                            </div>
+                        </div>
+                    </Card>
+                </Col>
+                <Col xs={12} sm={6}>
+                    <Card className="saas-card" style={{ background: '#fef2f2' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ padding: 12, background: '#fee2e2', borderRadius: '50%', color: '#dc2626' }}><CloseCircleOutlined style={{ fontSize: 20 }} /></div>
+                            <div>
+                                <Text type="secondary" style={{ fontSize: 13 }}>Cancelled</Text>
+                                <Title level={3} style={{ margin: 0 }}>{stats.cancelled}</Title>
+                            </div>
+                        </div>
+                    </Card>
+                </Col>
+            </Row>
+
+            <Card 
+                className="saas-card" 
+                title={<Title level={4} style={{ margin: 0 }}>Reservation History</Title>} 
+                extra={<Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ borderRadius: 8 }}>Book a Slot</Button>}
+                bodyStyle={{ padding: 0 }}
+            >
+                {safeReservations.length === 0 ? (
+                    <Empty 
+                        image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                        description={<Text type="secondary">You don't have any reservations yet.</Text>} 
+                        style={{ padding: '40px 0' }}
+                    >
+                        <Button type="primary" onClick={handleCreate}>Create your first reservation</Button>
+                    </Empty>
+                ) : (
+                    <Table
+                        columns={columns}
+                        dataSource={safeReservations}
+                        rowKey={(record) => record.reservationId || record.id}
+                        pagination={{ pageSize: 10 }}
+                        style={{ margin: 0 }}
+                    />
+                )}
+            </Card>
 
             <Modal
-                title="Create Reservation"
+                title={<Title level={4} style={{ margin: 0 }}>Book Parking Slot</Title>}
                 open={isModalVisible}
                 onOk={handleModalOk}
                 onCancel={() => setIsModalVisible(false)}
-                okText="Submit"
+                okText="Confirm Booking"
                 cancelText="Cancel"
+                destroyOnClose
             >
                 {errorAlert && <Alert message={errorAlert} type="error" showIcon style={{ marginBottom: 16 }} closable onClose={() => setErrorAlert(null)} />}
-                <Form form={form} layout="vertical">
-                    <Form.Item
-                        name="vehicleId"
-                        label="Vehicle"
-                        rules={[{ required: true, message: 'Please select a vehicle' }]}
-                    >
-                        <Select placeholder="Select a vehicle">
-                            {safeVehicles.map(v => (
-                                <Select.Option key={v.vehicleId || v.id} value={v.vehicleId || v.id}>
-                                    {v.licensePlate}
-                                </Select.Option>
-                            ))}
+                <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
+                    <Form.Item name="vehicleId" label="Select Vehicle" rules={[{ required: true }]}>
+                        <Select size="large" placeholder="Choose your vehicle">
+                            {safeVehicles.map(v => <Select.Option key={v.vehicleId || v.id} value={v.vehicleId || v.id}>{v.licensePlate} ({v.brand || 'N/A'})</Select.Option>)}
                         </Select>
                     </Form.Item>
-                    <Form.Item
-                        name="slotId"
-                        label="Slot"
-                        rules={[{ required: true, message: 'Please select a slot' }]}
-                    >
-                        <Select placeholder="Select a slot">
-                            {safeSlots.map(s => (
-                                <Select.Option key={s.slotId || s.id} value={s.slotId || s.id}>
-                                    {s.slotName || s.id}
-                                </Select.Option>
-                            ))}
+                    <Form.Item name="slotId" label="Select Slot" rules={[{ required: true }]}>
+                        <Select size="large" placeholder="Choose a parking slot">
+                            {safeSlots.map(s => <Select.Option key={s.slotId || s.id} value={s.slotId || s.id}>{s.slotName || s.id} - {s.buildingName}</Select.Option>)}
                         </Select>
                     </Form.Item>
-                    <Form.Item
-                        name="startTime"
-                        label="Start Time"
-                        rules={[{ required: true, message: 'Please select start time' }]}
-                    >
-                        <DatePicker showTime style={{ width: '100%' }} />
-                    </Form.Item>
-                    <Form.Item
-                        name="endTime"
-                        label="End Time"
-                        rules={[{ required: true, message: 'Please select end time' }]}
-                    >
-                        <DatePicker showTime style={{ width: '100%' }} />
-                    </Form.Item>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="startTime" label="Start Time" rules={[{ required: true }]}>
+                                <DatePicker showTime size="large" style={{ width: '100%' }} />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="endTime" label="End Time" rules={[{ required: true }]}>
+                                <DatePicker showTime size="large" style={{ width: '100%' }} />
+                            </Form.Item>
+                        </Col>
+                    </Row>
                 </Form>
             </Modal>
-        </Card>
+        </div>
     );
 };
 

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Layout, Menu, Avatar, Typography, Drawer, Button } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Layout, Menu, Avatar, Typography, Drawer, Button, Dropdown, Space, Badge } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     DashboardOutlined,
@@ -10,7 +10,10 @@ import {
     HistoryOutlined,
     AlertOutlined,
     DollarOutlined,
-    MenuOutlined
+    MenuOutlined,
+    BellOutlined,
+    LogoutOutlined,
+    SettingOutlined
 } from '@ant-design/icons';
 import '../assets/styles/driver.css';
 
@@ -20,19 +23,28 @@ const { Title, Text } = Typography;
 const DriverLayout = () => {
     const [collapsed, setCollapsed] = useState(false);
     const [drawerVisible, setDrawerVisible] = useState(false);
+    const [user, setUser] = useState(null);
     const navigate = useNavigate();
     const location = useLocation();
 
+    useEffect(() => {
+        const authStr = localStorage.getItem('parking_auth');
+        if (authStr) {
+            try {
+                setUser(JSON.parse(authStr));
+            } catch (e) {}
+        }
+    }, []);
+
     const menuItems = [
         { key: '/driver/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-        { key: '/driver/parking', icon: <CarOutlined />, label: 'Parking' },
+        { key: '/driver/parking', icon: <CarOutlined />, label: 'Find Parking' },
         { key: '/driver/reservations', icon: <CalendarOutlined />, label: 'Reservations' },
-        { key: '/driver/vehicles', icon: <CarOutlined />, label: 'Vehicles' },
+        { key: '/driver/vehicles', icon: <CarOutlined />, label: 'My Vehicles' },
         { key: '/driver/payments', icon: <CreditCardOutlined />, label: 'Payments' },
-        { key: '/driver/pricing', icon: <DollarOutlined />, label: 'Pricing' },
-        { key: '/driver/history', icon: <HistoryOutlined />, label: 'History' },
-        { key: '/driver/incidents', icon: <AlertOutlined />, label: 'Incidents' },
-        { key: '/driver/profile', icon: <UserOutlined />, label: 'Profile' },
+        { key: '/driver/pricing', icon: <DollarOutlined />, label: 'Pricing Policies' },
+        { key: '/driver/history', icon: <HistoryOutlined />, label: 'History Feed' },
+        { key: '/driver/incidents', icon: <AlertOutlined />, label: 'Report Incident' },
     ];
 
     const handleMenuClick = ({ key }) => {
@@ -40,27 +52,28 @@ const DriverLayout = () => {
         setDrawerVisible(false);
     };
 
-    const logoStyle = {
-        height: '32px',
-        margin: '16px',
-        color: '#f97316',
-        fontWeight: 'bold',
-        fontSize: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: collapsed ? 'center' : 'flex-start',
-        overflow: 'hidden',
-        whiteSpace: 'nowrap'
+    const handleLogout = () => {
+        localStorage.removeItem('parking_auth');
+        navigate('/login');
+    };
+
+    const userMenu = {
+        items: [
+            { key: 'profile', icon: <UserOutlined />, label: 'My Profile', onClick: () => navigate('/driver/profile') },
+            { key: 'settings', icon: <SettingOutlined />, label: 'Settings' },
+            { type: 'divider' },
+            { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', onClick: handleLogout, danger: true },
+        ]
     };
 
     const sidebarContent = (
         <>
-            <div style={logoStyle}>
-                {collapsed ? 'PMS' : 'Parking Management System'}
+            <div className="driver-logo-container">
+                <CarOutlined style={{ fontSize: '24px', color: '#ea580c' }} />
+                {!collapsed && <h1 className="driver-logo-text">ParkSmart</h1>}
             </div>
             <Menu
-                theme="light"
-                mode="inline"
+                className="driver-menu"
                 selectedKeys={[location.pathname]}
                 items={menuItems}
                 onClick={handleMenuClick}
@@ -68,50 +81,79 @@ const DriverLayout = () => {
         </>
     );
 
+    const currentDate = new Date().toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
     return (
-        <Layout style={{ minHeight: '100vh' }} className="driver-layout">
+        <Layout className="driver-layout">
             <Sider
                 collapsible
                 collapsed={collapsed}
                 onCollapse={(value) => setCollapsed(value)}
                 breakpoint="lg"
                 collapsedWidth="80"
-                className="desktop-sider"
-                theme="light"
+                width={260}
+                className="driver-sider"
+                trigger={null}
             >
                 {sidebarContent}
             </Sider>
 
             <Drawer
-                title="Menu"
+                title={null}
                 placement="left"
                 onClose={() => setDrawerVisible(false)}
                 open={drawerVisible}
                 styles={{ body: { padding: 0 } }}
-                className="mobile-drawer"
+                width={260}
             >
-                {sidebarContent}
+                <div style={{ height: '100%', background: 'linear-gradient(180deg, #ffffff 0%, #fff7ed 100%)' }}>
+                    {sidebarContent}
+                </div>
             </Drawer>
 
             <Layout>
-                <Header style={{ padding: '0 24px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div className="header-left">
+                <Header className="driver-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <Button 
-                            className="mobile-menu-btn" 
+                            type="text" 
+                            icon={collapsed ? <MenuOutlined /> : <MenuOutlined />} 
+                            onClick={() => setCollapsed(!collapsed)}
+                            className="desktop-menu-btn"
+                            style={{ display: window.innerWidth > 992 ? 'block' : 'none' }}
+                        />
+                        <Button 
                             type="text" 
                             icon={<MenuOutlined />} 
-                            onClick={() => setDrawerVisible(true)} 
+                            onClick={() => setDrawerVisible(true)}
+                            className="mobile-menu-btn"
+                            style={{ display: window.innerWidth <= 992 ? 'block' : 'none' }}
                         />
-                        <Title level={4} style={{ margin: 0, display: 'inline-block' }} className="desktop-title">
-                            Parking Management System
-                        </Title>
+                        <div>
+                            <Title level={4} style={{ margin: 0, fontWeight: 700 }}>
+                                Welcome back, {user?.fullName || 'Driver'}! 👋
+                            </Title>
+                            <Text type="secondary" style={{ fontSize: '13px' }}>{currentDate}</Text>
+                        </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <Text strong>Driver User</Text>
-                        <Avatar style={{ backgroundColor: '#f97316' }} icon={<UserOutlined />} />
+
+                    <div className="header-right">
+                        <Badge count={2} dot offset={[-5, 5]} color="#ea580c">
+                            <Button type="text" shape="circle" icon={<BellOutlined style={{ fontSize: '20px' }} />} />
+                        </Badge>
+                        <Dropdown menu={userMenu} placement="bottomRight" trigger={['click']}>
+                            <Space style={{ cursor: 'pointer' }}>
+                                <Avatar size="large" src={user?.avatar || undefined} icon={<UserOutlined />} style={{ backgroundColor: '#f97316' }} />
+                                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }} className="user-info-desktop">
+                                    <Text strong>{user?.fullName || 'Driver'}</Text>
+                                    <Tag color="orange" style={{ margin: 0, fontSize: '11px', border: 'none' }}>DRIVER</Tag>
+                                </div>
+                            </Space>
+                        </Dropdown>
                     </div>
                 </Header>
-                <Content style={{ margin: '24px 16px', padding: 24, background: '#f5f5f5', borderRadius: '8px' }}>
+                <Content className="driver-content animate-fade-in">
                     <Outlet />
                 </Content>
             </Layout>

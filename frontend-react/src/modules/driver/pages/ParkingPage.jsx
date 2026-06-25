@@ -1,13 +1,16 @@
 import React, { useEffect, useReducer, useState, useMemo } from 'react';
-import { Card, Table, Tag, Select, Row, Col, Descriptions, Drawer, Button, message } from 'antd';
+import { Card, Tag, Select, Row, Col, Descriptions, Drawer, Button, message, Skeleton, Empty, Typography, Input, Badge } from 'antd';
+import { SearchOutlined, FilterOutlined, CompassOutlined, BorderOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 import { parkingStore } from '../store/parkingStore';
 
 const { Option } = Select;
+const { Title, Text } = Typography;
 
 const ParkingPage = () => {
     const [, forceRender] = useReducer(x => x + 1, 0);
     const [drawerVisible, setDrawerVisible] = useState(false);
+    const [searchText, setSearchText] = useState('');
 
     useEffect(() => {
         fetchData();
@@ -39,10 +42,6 @@ const ParkingPage = () => {
         setDrawerVisible(true);
     };
 
-    const handleCloseDrawer = () => {
-        setDrawerVisible(false);
-    };
-
     const slots = Array.isArray(parkingStore.slots) ? parkingStore.slots : [];
 
     // Calculate dynamic options for filters
@@ -52,8 +51,6 @@ const ParkingPage = () => {
         const zones = new Set();
         const vehicleTypes = new Set();
         const statuses = new Set();
-
-        console.log("parkingStore.slots =", parkingStore.slots);
 
         slots.forEach(slot => {
             if (slot.buildingName) buildings.add(slot.buildingName);
@@ -70,13 +67,20 @@ const ParkingPage = () => {
             vehicleTypes: Array.from(vehicleTypes),
             statuses: Array.from(statuses)
         };
-    }, [parkingStore.slots, slots]);
+    }, [slots]);
 
     // Apply filters
     const filteredSlots = useMemo(() => {
-        console.log("parkingStore.slots =", parkingStore.slots);
         return slots.filter(slot => {
             const f = parkingStore.filters;
+            
+            // Text Search
+            if (searchText) {
+                const search = searchText.toLowerCase();
+                const code = (slot.slotName || slot.slotCode || '').toLowerCase();
+                if (!code.includes(search)) return false;
+            }
+
             if (f.buildingName && f.buildingName !== 'all' && slot.buildingName !== f.buildingName) return false;
             if (f.floorName && f.floorName !== 'all' && slot.floorName !== f.floorName) return false;
             if (f.zoneName && f.zoneName !== 'all' && slot.zoneName !== f.zoneName) return false;
@@ -84,166 +88,163 @@ const ParkingPage = () => {
             if (f.status && f.status !== 'all' && slot.status !== f.status) return false;
             return true;
         });
-    }, [parkingStore.slots, slots, parkingStore.filters.buildingName, parkingStore.filters.floorName, parkingStore.filters.zoneName, parkingStore.filters.vehicleTypeName, parkingStore.filters.status]);
+    }, [slots, searchText, parkingStore.filters.buildingName, parkingStore.filters.floorName, parkingStore.filters.zoneName, parkingStore.filters.vehicleTypeName, parkingStore.filters.status]);
 
-    const getStatusTag = (status) => {
+    const getStatusInfo = (status) => {
         const s = String(status).toUpperCase();
-        let color = 'default';
-        if (s === 'AVAILABLE') color = 'green';
-        else if (s === 'RESERVED') color = 'gold';
-        else if (s === 'OCCUPIED') color = 'red';
-        else if (s === 'LOCKED') color = 'default';
-        return <Tag color={color}>{s || 'UNKNOWN'}</Tag>;
+        if (s === 'AVAILABLE') return { color: 'green', hex: '#10b981', label: 'AVAILABLE' };
+        if (s === 'RESERVED') return { color: 'gold', hex: '#f59e0b', label: 'RESERVED' };
+        if (s === 'OCCUPIED') return { color: 'red', hex: '#ef4444', label: 'OCCUPIED' };
+        return { color: 'default', hex: '#94a3b8', label: s || 'UNKNOWN' };
     };
 
-    const columns = [
-        {
-            title: 'Slot Code',
-            dataIndex: 'slotName',
-            key: 'slotName',
-            render: (text, record) => text || record.slotCode || 'N/A'
-        },
-        {
-            title: 'Building',
-            dataIndex: 'buildingName',
-            key: 'buildingName',
-            render: (text) => text || 'N/A'
-        },
-        {
-            title: 'Floor',
-            dataIndex: 'floorName',
-            key: 'floorName',
-            render: (text) => text || 'N/A'
-        },
-        {
-            title: 'Zone',
-            dataIndex: 'zoneName',
-            key: 'zoneName',
-            render: (text) => text || 'N/A'
-        },
-        {
-            title: 'Vehicle Type',
-            dataIndex: 'vehicleTypeName',
-            key: 'vehicleTypeName',
-            render: (text) => text || 'N/A'
-        },
-        {
-            title: 'Status',
-            dataIndex: 'status',
-            key: 'status',
-            render: (status) => getStatusTag(status)
-        },
-        {
-            title: 'Capacity',
-            dataIndex: 'capacity',
-            key: 'capacity',
-            render: (val) => val != null ? val : 'N/A'
-        },
-        {
-            title: 'Current Occupancy',
-            dataIndex: 'currentOccupancy',
-            key: 'currentOccupancy',
-            render: (val) => val != null ? val : 'N/A'
-        },
-        {
-            title: 'Actions',
-            key: 'actions',
-            render: (_, record) => (
-                <Button type="link" onClick={() => handleView(record)} style={{ padding: 0 }}>View</Button>
-            )
-        }
-    ];
-
-    const selSlot = parkingStore.selectedSlot;
+    if (parkingStore.loading) {
+        return <Skeleton active paragraph={{ rows: 12 }} />;
+    }
 
     return (
-        <Card title="Parking Slots">
-            <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-                <Col xs={24} sm={12} md={8} lg={4}>
-                    <Select 
-                        style={{ width: '100%' }} 
-                        value={parkingStore.filters.buildingName || 'all'} 
-                        onChange={(val) => handleFilterChange('buildingName', val)}
-                    >
-                        <Option value="all">All Buildings</Option>
-                        {filterOptions.buildings.map(b => <Option key={b} value={b}>{b}</Option>)}
-                    </Select>
-                </Col>
-                <Col xs={24} sm={12} md={8} lg={4}>
-                    <Select 
-                        style={{ width: '100%' }} 
-                        value={parkingStore.filters.floorName || 'all'} 
-                        onChange={(val) => handleFilterChange('floorName', val)}
-                    >
-                        <Option value="all">All Floors</Option>
-                        {filterOptions.floors.map(f => <Option key={f} value={f}>{f}</Option>)}
-                    </Select>
-                </Col>
-                <Col xs={24} sm={12} md={8} lg={4}>
-                    <Select 
-                        style={{ width: '100%' }} 
-                        value={parkingStore.filters.zoneName || 'all'} 
-                        onChange={(val) => handleFilterChange('zoneName', val)}
-                    >
-                        <Option value="all">All Zones</Option>
-                        {filterOptions.zones.map(z => <Option key={z} value={z}>{z}</Option>)}
-                    </Select>
-                </Col>
-                <Col xs={24} sm={12} md={8} lg={4}>
-                    <Select 
-                        style={{ width: '100%' }} 
-                        value={parkingStore.filters.vehicleTypeName || 'all'} 
-                        onChange={(val) => handleFilterChange('vehicleTypeName', val)}
-                    >
-                        <Option value="all">All Vehicle Types</Option>
-                        {filterOptions.vehicleTypes.map(v => <Option key={v} value={v}>{v}</Option>)}
-                    </Select>
-                </Col>
-                <Col xs={24} sm={12} md={8} lg={4}>
-                    <Select 
-                        style={{ width: '100%' }} 
-                        value={parkingStore.filters.status || 'all'} 
-                        onChange={(val) => handleFilterChange('status', val)}
-                    >
-                        <Option value="all">All Statuses</Option>
-                        {filterOptions.statuses.map(s => <Option key={s} value={s}>{s}</Option>)}
-                    </Select>
-                </Col>
-            </Row>
+        <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <Title level={2} style={{ margin: 0 }}>Find Parking</Title>
+                
+                {/* Status Legend */}
+                <div style={{ display: 'flex', gap: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#10b981' }}></div><Text type="secondary">Available</Text></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#f59e0b' }}></div><Text type="secondary">Reserved</Text></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#ef4444' }}></div><Text type="secondary">Occupied</Text></div>
+                </div>
+            </div>
 
-            <Table 
-                columns={columns} 
-                dataSource={filteredSlots} 
-                rowKey={(record) => record.slotId || record.id || record.slotName || Math.random().toString()} 
-                loading={parkingStore.loading}
-                pagination={{ pageSize: 10 }}
-            />
+            <Card className="saas-card" style={{ marginBottom: 24 }} bodyStyle={{ padding: '16px 24px' }}>
+                <Row gutter={[16, 16]}>
+                    <Col xs={24} md={6}>
+                        <Input 
+                            prefix={<SearchOutlined />} 
+                            placeholder="Search slot code..." 
+                            value={searchText}
+                            onChange={e => setSearchText(e.target.value)}
+                            size="large"
+                        />
+                    </Col>
+                    <Col xs={12} sm={8} md={4}>
+                        <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.buildingName || 'all'} onChange={(v) => handleFilterChange('buildingName', v)}>
+                            <Option value="all">Building: All</Option>
+                            {filterOptions.buildings.map(b => <Option key={b} value={b}>{b}</Option>)}
+                        </Select>
+                    </Col>
+                    <Col xs={12} sm={8} md={4}>
+                        <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.floorName || 'all'} onChange={(v) => handleFilterChange('floorName', v)}>
+                            <Option value="all">Floor: All</Option>
+                            {filterOptions.floors.map(f => <Option key={f} value={f}>{f}</Option>)}
+                        </Select>
+                    </Col>
+                    <Col xs={12} sm={8} md={3}>
+                        <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.zoneName || 'all'} onChange={(v) => handleFilterChange('zoneName', v)}>
+                            <Option value="all">Zone: All</Option>
+                            {filterOptions.zones.map(z => <Option key={z} value={z}>{z}</Option>)}
+                        </Select>
+                    </Col>
+                    <Col xs={12} sm={8} md={4}>
+                        <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.vehicleTypeName || 'all'} onChange={(v) => handleFilterChange('vehicleTypeName', v)}>
+                            <Option value="all">Vehicle: All</Option>
+                            {filterOptions.vehicleTypes.map(v => <Option key={v} value={v}>{v}</Option>)}
+                        </Select>
+                    </Col>
+                    <Col xs={12} sm={8} md={3}>
+                        <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.status || 'all'} onChange={(v) => handleFilterChange('status', v)}>
+                            <Option value="all">Status: All</Option>
+                            {filterOptions.statuses.map(s => <Option key={s} value={s}>{s}</Option>)}
+                        </Select>
+                    </Col>
+                </Row>
+            </Card>
+
+            {filteredSlots.length === 0 ? (
+                <Empty description="No slots match your criteria" style={{ margin: '60px 0' }} />
+            ) : (
+                <Row gutter={[20, 20]}>
+                    {filteredSlots.map((slot, index) => {
+                        const statusInfo = getStatusInfo(slot.status);
+                        // Make the first available slot recommended randomly for demo purposes
+                        const isRecommended = slot.status === 'AVAILABLE' && index % 7 === 0;
+
+                        return (
+                            <Col xs={24} sm={12} md={8} lg={6} xl={4} key={slot.slotId || slot.id || slot.slotName}>
+                                <Badge.Ribbon text="Recommended" color="#ea580c" style={{ display: isRecommended ? 'block' : 'none' }}>
+                                    <Card 
+                                        hoverable 
+                                        className={`saas-card ${isRecommended ? 'recommended-slot' : ''}`}
+                                        bodyStyle={{ padding: 16 }}
+                                        onClick={() => handleView(slot)}
+                                    >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                            <Title level={3} style={{ margin: 0, fontWeight: 800 }}>{slot.slotName || slot.slotCode}</Title>
+                                            <div style={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: statusInfo.hex, boxShadow: `0 0 8px ${statusInfo.hex}66` }} />
+                                        </div>
+                                        
+                                        <div style={{ color: '#64748b', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                            <div><EnvironmentOutlined /> {slot.buildingName || 'N/A'} - {slot.floorName || 'N/A'}</div>
+                                            <div><BorderOutlined /> Zone: <Text strong>{slot.zoneName || 'N/A'}</Text></div>
+                                            <div><CompassOutlined /> {slot.vehicleTypeName || 'N/A'}</div>
+                                        </div>
+
+                                        <Divider style={{ margin: '12px 0' }} />
+                                        
+                                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                            <Tag color={statusInfo.color} style={{ margin: 0, border: 'none', fontWeight: 600 }}>{statusInfo.label}</Tag>
+                                        </div>
+                                    </Card>
+                                </Badge.Ribbon>
+                            </Col>
+                        );
+                    })}
+                </Row>
+            )}
 
             <Drawer
-                title="Slot Details"
+                title={<Title level={4} style={{ margin: 0 }}>Slot Information</Title>}
                 placement="right"
-                onClose={handleCloseDrawer}
+                onClose={() => setDrawerVisible(false)}
                 open={drawerVisible}
                 width={400}
+                bodyStyle={{ background: '#f8fafc' }}
             >
-                {selSlot && (
-                    <Descriptions column={1} bordered size="small">
-                        <Descriptions.Item label="Slot Code">{selSlot.slotName || selSlot.slotCode || 'N/A'}</Descriptions.Item>
-                        <Descriptions.Item label="Building">{selSlot.buildingName || 'N/A'}</Descriptions.Item>
-                        <Descriptions.Item label="Floor">{selSlot.floorName || 'N/A'}</Descriptions.Item>
-                        <Descriptions.Item label="Zone">{selSlot.zoneName || 'N/A'}</Descriptions.Item>
-                        <Descriptions.Item label="Vehicle Type">{selSlot.vehicleTypeName || 'N/A'}</Descriptions.Item>
-                        <Descriptions.Item label="Capacity">{selSlot.capacity != null ? selSlot.capacity : 'N/A'}</Descriptions.Item>
-                        <Descriptions.Item label="Current Occupancy">{selSlot.currentOccupancy != null ? selSlot.currentOccupancy : 'N/A'}</Descriptions.Item>
-                        <Descriptions.Item label="Status">{getStatusTag(selSlot.status)}</Descriptions.Item>
-                        <Descriptions.Item label="Area">{selSlot.area != null ? `${selSlot.area} m²` : 'N/A'}</Descriptions.Item>
-                        <Descriptions.Item label="Active">
-                            {selSlot.isActive !== undefined ? (selSlot.isActive ? <Tag color="green">Yes</Tag> : <Tag color="red">No</Tag>) : 'N/A'}
-                        </Descriptions.Item>
-                    </Descriptions>
+                {parkingStore.selectedSlot && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <Card className="saas-card" bodyStyle={{ textAlign: 'center', padding: '32px 16px' }}>
+                            <Title level={1} style={{ fontSize: 48, color: '#0f172a', margin: 0 }}>
+                                {parkingStore.selectedSlot.slotName || parkingStore.selectedSlot.slotCode || 'N/A'}
+                            </Title>
+                            <Tag color={getStatusInfo(parkingStore.selectedSlot.status).color} style={{ marginTop: 12, fontSize: 14, padding: '4px 12px' }}>
+                                {getStatusInfo(parkingStore.selectedSlot.status).label}
+                            </Tag>
+                        </Card>
+
+                        <Card className="saas-card" title="Location Details" size="small">
+                            <Descriptions column={1} size="small" labelStyle={{ color: '#64748b' }}>
+                                <Descriptions.Item label="Building">{parkingStore.selectedSlot.buildingName || 'N/A'}</Descriptions.Item>
+                                <Descriptions.Item label="Floor">{parkingStore.selectedSlot.floorName || 'N/A'}</Descriptions.Item>
+                                <Descriptions.Item label="Zone"><Text strong>{parkingStore.selectedSlot.zoneName || 'N/A'}</Text></Descriptions.Item>
+                            </Descriptions>
+                        </Card>
+
+                        <Card className="saas-card" title="Specifications" size="small">
+                            <Descriptions column={1} size="small" labelStyle={{ color: '#64748b' }}>
+                                <Descriptions.Item label="Vehicle Type">{parkingStore.selectedSlot.vehicleTypeName || 'N/A'}</Descriptions.Item>
+                                <Descriptions.Item label="Area">{parkingStore.selectedSlot.area != null ? `${parkingStore.selectedSlot.area} m²` : 'N/A'}</Descriptions.Item>
+                                <Descriptions.Item label="Capacity">{parkingStore.selectedSlot.capacity != null ? parkingStore.selectedSlot.capacity : 'N/A'}</Descriptions.Item>
+                            </Descriptions>
+                        </Card>
+
+                        {parkingStore.selectedSlot.status === 'AVAILABLE' && (
+                            <Button type="primary" size="large" style={{ marginTop: 16, height: 48, borderRadius: 8, fontSize: 16, fontWeight: 600 }}>
+                                Book this Slot
+                            </Button>
+                        )}
+                    </div>
                 )}
             </Drawer>
-        </Card>
+        </div>
     );
 };
 
