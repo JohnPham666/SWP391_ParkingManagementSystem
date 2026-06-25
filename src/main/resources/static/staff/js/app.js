@@ -838,11 +838,11 @@ const Pages = {
                 tbodyHtml += `
                 <tr>
                     <td>#${r.reservationId}</td>
-                    <td>${r.userName || '-'}</td>
+                    <td>${r.userFullName || r.guestName || '-'}</td>
                     <td>${r.licensePlate || '-'}</td>
                     <td>${r.slotCode || '-'}</td>
-                    <td>${new Date(r.startTime).toLocaleString('vi-VN')}</td>
-                    <td>${new Date(r.endTime).toLocaleString('vi-VN')}</td>
+                    <td>${r.reservationStart ? new Date(r.reservationStart).toLocaleString('vi-VN') : '-'}</td>
+                    <td>${r.reservationEnd ? new Date(r.reservationEnd).toLocaleString('vi-VN') : '-'}</td>
                     <td>${badge}</td>
                 </tr>`;
             });
