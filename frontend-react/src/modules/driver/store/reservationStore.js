@@ -1,1 +1,4 @@
-export const reservationStore = {};
+export const reservationStore = {
+  reservations: [],
+  selectedReservation: null
+};

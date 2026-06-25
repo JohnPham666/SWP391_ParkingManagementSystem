@@ -1,1 +1,5 @@
-export const vehicleStore = {};
+export const vehicleStore = {
+  vehicles: [],
+  vehicleTypes: [],
+  selectedVehicle: null
+};
