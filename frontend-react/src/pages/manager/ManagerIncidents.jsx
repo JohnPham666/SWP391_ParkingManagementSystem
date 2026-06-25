@@ -84,19 +84,6 @@ const IncidentManagement = () => {
       render: (_, record) => <span style={{ fontWeight: 600 }}>{record.title || record.description || '-'}</span>
     },
     {
-      title: 'Severity',
-      dataIndex: 'severity',
-      key: 'severity',
-      render: (sev) => {
-        let color = 'default';
-        if (sev === 'LOW') color = 'blue';
-        if (sev === 'MEDIUM') color = 'orange';
-        if (sev === 'HIGH') color = 'red';
-        if (sev === 'CRITICAL') color = '#991b1b'; // darker red
-        return <Tag color={color}>{sev || '-'}</Tag>;
-      }
-    },
-    {
       title: 'Type',
       dataIndex: 'incidentType',
       key: 'incidentType',
@@ -122,8 +109,8 @@ const IncidentManagement = () => {
     },
     {
       title: 'Reporter',
-      dataIndex: 'reporterName',
-      key: 'reporterName',
+      dataIndex: 'reportedByName',
+      key: 'reportedByName',
       render: (text) => text || '-'
     },
     {
@@ -160,12 +147,13 @@ const IncidentManagement = () => {
           size="large"
         />
         <Select 
-          placeholder="All statuses" 
+          defaultValue=""
           style={{ width: 160 }} 
           allowClear 
           size="large"
-          onChange={(val) => setFilters({ ...filters, status: val })}
+          onChange={(val) => setFilters({ ...filters, status: val || null })}
         >
+          <Option value="">All Statuses</Option>
           <Option value="REPORTED">Reported</Option>
           <Option value="OPEN">Open</Option>
           <Option value="IN_PROGRESS">In Progress</Option>

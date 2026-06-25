@@ -76,6 +76,7 @@ export const vehicleApi = {
   createVehicle: (data) => api.post('/vehicles', data),
   updateVehicle: (id, data) => api.put(`/vehicles/${id}`, data),
   deleteVehicle: (id) => api.delete(`/vehicles/${id}`),
+  approveVehicle: (id, isApproved) => api.put(`/vehicles/${id}/approve?isApproved=${isApproved}`),
 };
 
 export const reservationApi = {
@@ -141,8 +142,8 @@ export const pricingApi = {
 };
 
 export const reportApi = {
-  getRevenueSummary: (startDate, endDate) => api.get(`/reports/revenue-summary?startDate=${startDate}&endDate=${endDate}`),
-  getOccupancyRate: () => api.get('/reports/occupancy-rate'),
+  getRevenueTrend: (startDate, endDate) => api.get(`/reports/revenue/trend?fromDate=${startDate}&toDate=${endDate}`),
+  getOccupancyBreakdown: () => api.get('/reports/occupancy/breakdown'),
 };
 
 export const monitoringApi = {

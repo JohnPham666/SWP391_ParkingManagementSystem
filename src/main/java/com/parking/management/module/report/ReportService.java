@@ -5,7 +5,9 @@ import java.time.LocalDate;
 
 public interface ReportService {
     RevenueReportResponse getTotalRevenueByDateRange(LocalDate from, LocalDate to);
+    java.util.List<DailyRevenueDto> getDailyRevenueTrend(LocalDate from, LocalDate to);
     OccupancyReportResponse getOccupancyRateByFloor(Integer floorId);
+    java.util.List<ZoneOccupancyDto> getOccupancyBreakdown();
     SessionSummaryResponse getSessionCountByDate(LocalDate date);
     ParkingPredictionResponse generateParkingPrediction();
 }

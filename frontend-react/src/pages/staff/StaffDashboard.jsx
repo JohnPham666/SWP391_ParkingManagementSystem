@@ -27,6 +27,7 @@ const Dashboard = () => {
     totalRevenue: 1250000,
     activeSessions: 42,
     availableSlots: 156,
+  });
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
 
@@ -196,3 +197,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

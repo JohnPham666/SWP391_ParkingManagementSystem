@@ -38,6 +38,22 @@ public class ReportController {
                 reportService.getOccupancyRateByFloor(floorId));
     }
 
+    @Operation(summary = "Get revenue trend", description = "Get daily revenue trend within a date range")
+    @GetMapping("/revenue/trend")
+    public ApiResponse<java.util.List<com.parking.management.module.report.dto.DailyRevenueDto>> getRevenueTrend(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        return ApiResponse.success("Fetched revenue trend successfully",
+                reportService.getDailyRevenueTrend(fromDate, toDate));
+    }
+
+    @Operation(summary = "Get occupancy breakdown", description = "Get occupancy grouped by zones")
+    @GetMapping("/occupancy/breakdown")
+    public ApiResponse<java.util.List<com.parking.management.module.report.dto.ZoneOccupancyDto>> getOccupancyBreakdown() {
+        return ApiResponse.success("Fetched occupancy breakdown successfully",
+                reportService.getOccupancyBreakdown());
+    }
+
     @Operation(summary = "Generate parking prediction", description = "Generate parking prediction using machine learning or heuristics")
     @GetMapping("/predictions/parking")
     public ApiResponse<?> generateParkingPrediction() {
