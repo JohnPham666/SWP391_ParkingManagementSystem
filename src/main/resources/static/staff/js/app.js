@@ -261,85 +261,102 @@ const Pages = {
         
         const data = res.data;
         const sum = data.summary;
+        const rate = sum.occupancyRate || 0;
+        const circumference = 2 * Math.PI * 46;
+        const offset = circumference - (rate / 100) * circumference;
+        const gaugeColor = rate < 50 ? '#10b981' : (rate < 80 ? '#f59e0b' : '#ef4444');
+        const unusedSlots = sum.totalCapacity - sum.currentOccupancy - sum.reservedSlots;
         
         let html = `
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon blue"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 9h22M9 21V9"/><rect x="1" y="3" width="22" height="18" rx="2"/></svg></div>
-                    <div class="stat-info">
-                        <h3>${sum.totalCapacity}</h3>
-                        <p>Tổng số chỗ (sức chứa)</p>
+            <!-- ===== HERO ACTION BUTTONS ===== -->
+            <div class="dash-actions">
+                <button class="dash-action-btn checkin" id="dash-checkin-btn">
+                    <div class="action-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
                     </div>
+                    <div class="action-label">Check-in Vãng lai</div>
+                    <div class="action-desc">Xe vào không đặt trước</div>
+                </button>
+                <button class="dash-action-btn checkout" id="dash-checkout-btn">
+                    <div class="action-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                    </div>
+                    <div class="action-label">Check-out</div>
+                    <div class="action-desc">Thanh toán & trả xe</div>
+                </button>
+                <button class="dash-action-btn res-checkin" id="dash-res-checkin-btn">
+                    <div class="action-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>
+                    </div>
+                    <div class="action-label">Check-in Đặt chỗ</div>
+                    <div class="action-desc">Xe vào theo lượt đặt</div>
+                </button>
+            </div>
+
+            <!-- ===== STAT CARDS ===== -->
+            <div class="dash-stats">
+                <div class="dash-stat total">
+                    <div class="stat-icon-v2"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 9h22M9 21V9"/><rect x="1" y="3" width="22" height="18" rx="2"/></svg></div>
+                    <div class="stat-content"><h4>${sum.totalCapacity}</h4><p>Tổng sức chứa</p></div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon green"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg></div>
-                    <div class="stat-info">
-                        <h3>${sum.availableCapacity}</h3>
-                        <p>Chỗ trống</p>
-                    </div>
+                <div class="dash-stat available">
+                    <div class="stat-icon-v2"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg></div>
+                    <div class="stat-content"><h4>${sum.availableCapacity}</h4><p>Chỗ trống</p></div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon red"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 16H9m10 0h3v-3.15a1 1 0 00-.84-.99L16 11l-2.7-3.6a1 1 0 00-.8-.4H5.24a2 2 0 00-1.8 1.1l-.8 1.63A6 6 0 002 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg></div>
-                    <div class="stat-info">
-                        <h3>${sum.currentOccupancy}</h3>
-                        <p>Đang đỗ</p>
-                    </div>
+                <div class="dash-stat occupied">
+                    <div class="stat-icon-v2"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 16H9m10 0h3v-3.15a1 1 0 00-.84-.99L16 11l-2.7-3.6a1 1 0 00-.8-.4H5.24a2 2 0 00-1.8 1.1l-.8 1.63A6 6 0 002 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg></div>
+                    <div class="stat-content"><h4>${sum.currentOccupancy}</h4><p>Đang đỗ</p></div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon yellow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
-                    <div class="stat-info">
-                        <h3>${sum.reservedSlots}</h3>
-                        <p>Đã đặt</p>
-                    </div>
+                <div class="dash-stat reserved">
+                    <div class="stat-icon-v2"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+                    <div class="stat-content"><h4>${sum.reservedSlots}</h4><p>Đã đặt trước</p></div>
                 </div>
             </div>
 
-            <div class="card mb-4" style="margin-bottom: 24px;">
-                <div class="card-header">
-                    <h3 class="card-title">Tỷ lệ lấp đầy: ${sum.occupancyRate.toFixed(1)}%</h3>
+            <!-- ===== OCCUPANCY GAUGE ===== -->
+            <div class="dash-occupancy-card">
+                <div class="occupancy-gauge">
+                    <svg viewBox="0 0 120 120">
+                        <circle class="gauge-bg" cx="60" cy="60" r="46"/>
+                        <circle class="gauge-fill" cx="60" cy="60" r="46" stroke="${gaugeColor}" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"/>
+                    </svg>
+                    <div class="gauge-text">
+                        <span class="gauge-percent">${rate.toFixed(1)}%</span>
+                        <span class="gauge-label">Lấp đầy</span>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="occupancy-bar">
-                        <div class="occupancy-fill ${sum.occupancyRate < 50 ? 'low' : (sum.occupancyRate < 80 ? 'mid' : 'high')}" style="width: ${sum.occupancyRate}%"></div>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:0.85rem; color:var(--text-secondary)">
-                        <span>0%</span>
-                        <span>Sức chứa: ${sum.currentOccupancy} / ${sum.totalCapacity}</span>
-                        <span>100%</span>
-                    </div>
+                <div class="occupancy-details">
+                    <h3>Tình trạng bãi xe</h3>
+                    <div class="occupancy-detail-row"><div class="occupancy-dot green"></div><span>Chỗ trống</span><strong>${sum.availableCapacity}</strong></div>
+                    <div class="occupancy-detail-row"><div class="occupancy-dot orange"></div><span>Đang đỗ</span><strong>${sum.currentOccupancy}</strong></div>
+                    <div class="occupancy-detail-row"><div class="occupancy-dot yellow"></div><span>Đã đặt trước</span><strong>${sum.reservedSlots}</strong></div>
+                    <div class="occupancy-detail-row"><div class="occupancy-dot gray"></div><span>Còn trống (chưa đặt)</span><strong>${unusedSlots > 0 ? unusedSlots : 0}</strong></div>
                 </div>
             </div>
         `;
 
+        // Buildings
         if (data.buildings && data.buildings.length > 0) {
+            html += `<div class="dash-buildings-grid">`;
             data.buildings.forEach(b => {
-                html += `<div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header">
-                        <h3 class="card-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16M9 21v-4a2 2 0 012-2h2a2 2 0 012 2v4"/></svg>${b.buildingName}</h3>
-                        <div class="badge badge-blue">Đang đỗ: ${b.summary.currentOccupancy} / ${b.summary.totalCapacity}</div>
+                html += `<div class="dash-building-card">
+                    <div class="dash-building-header">
+                        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16M9 21v-4a2 2 0 012-2h2a2 2 0 012 2v4"/></svg>${b.buildingName}</h3>
+                        <span class="building-badge">${b.summary.currentOccupancy} / ${b.summary.totalCapacity} chỗ</span>
                     </div>
-                    <div class="card-body">
-                `;
+                    <div class="dash-building-body">`;
                 b.floors.forEach(f => {
-                    html += `<div style="margin-bottom: 20px;">
-                        <h4 style="font-size: .95rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);">${f.floorName}</h4>
-                    `;
+                    html += `<div class="dash-floor-section">
+                        <div class="dash-floor-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M4 20V8l8-5 8 5v12"/></svg>${f.floorName}</div>`;
                     f.zones.forEach(z => {
-                        html += `<div style="margin-bottom: 16px; background: var(--bg-page); padding: 16px; border-radius: var(--radius-sm);">
-                            <h5 style="font-size: .85rem; font-weight: 600; margin-bottom: 12px; display:flex; justify-content:space-between;">
-                                <span>${z.zoneName} <span style="font-weight:400; color:var(--text-muted)">(${z.description})</span></span>
-                                <span class="badge badge-gray">Đang đỗ: ${z.summary.currentOccupancy} / Sức chứa: ${z.summary.totalCapacity}</span>
-                            </h5>
+                        html += `<div class="dash-zone-box">
+                            <div class="dash-zone-header">
+                                <h5>${z.zoneName} <span>(${z.description})</span></h5>
+                                <span class="dash-zone-badge">${z.summary.currentOccupancy} / ${z.summary.totalCapacity}</span>
+                            </div>
                             <div class="slot-grid">`;
-                        
                         z.slots.forEach(s => {
-                            let statusClass = s.status.toLowerCase();
-                            html += `
-                                <div class="slot-cell ${statusClass}" title="${s.vehicleTypeName}">
-                                    ${s.slotCode}
-                                    <small>${s.status}</small>
-                                </div>
-                            `;
+                            html += `<div class="slot-cell ${s.status.toLowerCase()}" title="${s.vehicleTypeName}">${s.slotCode}<small>${s.status}</small></div>`;
                         });
                         html += `</div></div>`;
                     });
@@ -347,9 +364,104 @@ const Pages = {
                 });
                 html += `</div></div>`;
             });
+            html += `</div>`;
         }
 
+        // Modals
+        html += `
+            <div id="dash-walkin-modal" class="modal-overlay hidden">
+                <div class="modal">
+                    <div class="modal-header"><h3>Check-in Khách Vãng Lai</h3><button class="modal-close" onclick="document.getElementById('dash-walkin-modal').classList.add('hidden')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+                    <form id="dash-walkin-form">
+                        <div class="modal-body form-grid">
+                            <div class="form-group full-width"><label>Biển số xe *</label><input type="text" id="dash-walkin-plate" required /></div>
+                            <div class="form-group"><label>Loại xe *</label><select id="dash-walkin-type" required></select></div>
+                            <div class="form-group"><label>Cổng vào</label><select id="dash-walkin-gate"><option value="Gate A">Cổng A</option><option value="Gate B">Cổng B</option><option value="Gate C">Cổng C</option><option value="Gate D">Cổng D</option></select></div>
+                        </div>
+                        <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="document.getElementById('dash-walkin-modal').classList.add('hidden')">Hủy</button><button type="submit" class="btn btn-primary">Check-in</button></div>
+                    </form>
+                </div>
+            </div>
+            <div id="dash-checkout-modal" class="modal-overlay hidden">
+                <div class="modal">
+                    <div class="modal-header"><h3>Check-out</h3><button class="modal-close" onclick="document.getElementById('dash-checkout-modal').classList.add('hidden')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+                    <form id="dash-checkout-form">
+                        <div class="modal-body form-grid">
+                            <div class="form-group full-width"><label>Phiên gửi xe ID *</label><input type="number" id="dash-checkout-session-id" required /></div>
+                            <div class="form-group full-width"><label>Cổng ra</label><select id="dash-checkout-gate"><option value="Gate A">Cổng A</option><option value="Gate B">Cổng B</option><option value="Gate C">Cổng C</option><option value="Gate D">Cổng D</option></select></div>
+                            <div class="form-group full-width"><label>Phương thức thanh toán</label><select id="dash-checkout-payment"><option value="CASH">Tiền mặt</option><option value="BANK_TRANSFER">Chuyển khoản</option><option value="E_WALLET">Ví điện tử</option></select></div>
+                        </div>
+                        <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="document.getElementById('dash-checkout-modal').classList.add('hidden')">Hủy</button><button type="submit" class="btn btn-success">Check-out</button></div>
+                    </form>
+                </div>
+            </div>
+            <div id="dash-res-checkin-modal" class="modal-overlay hidden">
+                <div class="modal">
+                    <div class="modal-header"><h3>Check-in Đặt Chỗ</h3><button class="modal-close" onclick="document.getElementById('dash-res-checkin-modal').classList.add('hidden')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+                    <form id="dash-res-checkin-form">
+                        <div class="modal-body form-grid">
+                            <div class="form-group full-width"><label>Mã Đặt Chỗ (Reservation ID) *</label><input type="number" id="dash-res-checkin-id" required /></div>
+                            <div class="form-group full-width"><label>Cổng vào</label><select id="dash-res-checkin-gate"><option value="Gate A">Cổng A</option><option value="Gate B">Cổng B</option><option value="Gate C">Cổng C</option><option value="Gate D">Cổng D</option></select></div>
+                        </div>
+                        <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="document.getElementById('dash-res-checkin-modal').classList.add('hidden')">Hủy</button><button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;">Check-in</button></div>
+                    </form>
+                </div>
+            </div>
+        `;
+
         container.innerHTML = html;
+
+        // Wire up action buttons
+        document.getElementById('dash-checkin-btn').addEventListener('click', () => document.getElementById('dash-walkin-modal').classList.remove('hidden'));
+        document.getElementById('dash-checkout-btn').addEventListener('click', () => document.getElementById('dash-checkout-modal').classList.remove('hidden'));
+        document.getElementById('dash-res-checkin-btn').addEventListener('click', () => document.getElementById('dash-res-checkin-modal').classList.remove('hidden'));
+
+        // Populate vehicle types
+        const typeSelect = document.getElementById('dash-walkin-type');
+        const vtRes = await Api.getVehicleTypes();
+        if (vtRes.success && vtRes.data) {
+            vtRes.data.forEach(t => { const o = document.createElement('option'); o.value = t.vehicleTypeId; o.textContent = t.typeName; typeSelect.appendChild(o); });
+        }
+
+        // Walk-in form
+        document.getElementById('dash-walkin-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = { licensePlate: document.getElementById('dash-walkin-plate').value, vehicleTypeId: parseInt(document.getElementById('dash-walkin-type').value), entryGate: document.getElementById('dash-walkin-gate').value };
+            const r = await Api.walkIn(payload);
+            if (r.success) { App.showToast('Check-in vãng lai thành công', 'success'); document.getElementById('dash-walkin-modal').classList.add('hidden'); App.renderPage('dashboard'); }
+            else { App.showToast(r.message, 'error'); }
+        });
+
+        // Checkout form
+        document.getElementById('dash-checkout-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const sessionId = document.getElementById('dash-checkout-session-id').value;
+            const paymentMethod = document.getElementById('dash-checkout-payment').value;
+            const paymentPayload = { sessionId: parseInt(sessionId), paymentMethod };
+            const pRes = await Api.createPayment(paymentPayload);
+            if (!pRes.success && pRes.message && !pRes.message.includes('already has a PENDING payment')) { App.showToast(pRes.message || 'Lỗi tạo thanh toán', 'error'); return; }
+            let paymentId = pRes.data ? pRes.data.paymentId : null;
+            if (!paymentId && pRes.message && pRes.message.includes('Payment ID:')) { const m = pRes.message.match(/Payment ID:\s*(\d+)/); if (m) paymentId = parseInt(m[1], 10); }
+            if (!paymentId) { App.showToast('Không lấy được ID thanh toán.', 'error'); return; }
+            if (paymentMethod === 'CASH') {
+                const cRes = await Api.confirmCash(paymentId);
+                if (cRes.success) { App.showToast('Đã thu tiền mặt và check-out thành công!', 'success'); document.getElementById('dash-checkout-modal').classList.add('hidden'); App.renderPage('dashboard'); }
+                else { App.showToast(cRes.message || 'Lỗi xác nhận tiền mặt', 'error'); }
+            } else {
+                const vnRes = await Api.createVnPayUrl(paymentId);
+                if (vnRes.success && vnRes.data && vnRes.data.paymentUrl) { window.open(vnRes.data.paymentUrl, '_blank'); App.showToast('Đã mở cổng thanh toán VNPay.', 'info'); document.getElementById('dash-checkout-modal').classList.add('hidden'); App.renderPage('dashboard'); }
+                else { App.showToast(vnRes.message || 'Lỗi tạo link VNPay', 'error'); }
+            }
+        });
+
+        // Reservation check-in form
+        document.getElementById('dash-res-checkin-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = { reservationId: parseInt(document.getElementById('dash-res-checkin-id').value), entryGate: document.getElementById('dash-res-checkin-gate').value };
+            const r = await Api.checkIn(payload);
+            if (r.success) { App.showToast('Check-in đặt chỗ thành công', 'success'); document.getElementById('dash-res-checkin-modal').classList.add('hidden'); App.renderPage('dashboard'); }
+            else { App.showToast(r.message || 'Lỗi khi check-in', 'error'); }
+        });
     },
 
     async renderSessions(container) {
