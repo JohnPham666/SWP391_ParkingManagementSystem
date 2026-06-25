@@ -3,8 +3,9 @@
 Tài liệu này giúp các thành viên trong nhóm biết cách làm việc và sử dụng AI (Prompt) để tự động hóa việc chuyển đổi các trang giao diện (UI) được phân công từ JS thuần sang React.
 
 ## 1. Cấu trúc hiện tại cần nắm
-- **Code cũ (Thuần JS)**: Nằm ở `src/main/resources/static/manager/js/pages/` hoặc `staff/js/pages/`.
+- **Code cũ (Thuần JS)**: Nằm ở `src/main/resources/static/manager/js/pages/`, `staff/js/pages/`, hoặc trang index của khách.
 - **Code mới (React)**: 
+  - Thành viên làm role Driver/Khách hàng: Code nằm ở `frontend-react/src/pages/driver/`.
   - Thành viên làm role Staff: Code nằm ở `frontend-react/src/pages/staff/`.
   - Thành viên làm role Manager: Code nằm ở `frontend-react/src/pages/manager/`.
   - Thành viên làm role Admin: Code nằm ở `frontend-react/src/pages/admin/`.
@@ -31,7 +32,7 @@ Các thành viên hãy copy mẫu Prompt dưới đây, điền thông tin vào 
 > - File logic cũ: `src/main/resources/static/manager/js/pages/[Tên file cũ.js]`
 > 
 > **Yêu cầu đối với code React mới:**
-> 1. Viết Component mới nằm ở thư mục tương ứng `frontend-react/src/pages/[staff hoặc manager hoặc admin]/[Tên file mới.jsx]`.
+> 1. Viết Component mới nằm ở thư mục tương ứng `frontend-react/src/pages/[driver hoặc staff hoặc manager hoặc admin]/[Tên file mới.jsx]`.
 > 2. Sử dụng thư viện **Ant Design** (Table, Modal, Form, Button, Tag, Space).
 > 3. Các API call phải được định nghĩa thông qua file `api.js` đã có sẵn.
 > 4. Copy 100% các tính năng nghiệp vụ từ file cũ (Ví dụ: Thêm, Sửa, Xóa, Lọc dữ liệu, Phân trang). Không được bỏ sót bất kỳ tính năng nào.
