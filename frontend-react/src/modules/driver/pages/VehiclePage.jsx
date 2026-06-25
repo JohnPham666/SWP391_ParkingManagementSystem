@@ -1,7 +1,15 @@
 import React from 'react';
+import { Card, Typography } from 'antd';
+
+const { Title, Paragraph } = Typography;
 
 const VehiclePage = () => {
-    return <h1>Vehicle Page</h1>;
+    return (
+        <Card>
+            <Title level={2}>Vehicles</Title>
+            <Paragraph>Coming Soon</Paragraph>
+        </Card>
+    );
 };
 
 export default VehiclePage;

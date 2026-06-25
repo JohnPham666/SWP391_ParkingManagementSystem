@@ -1,1 +1,33 @@
+.driver-layout .ant-layout-sider {
+    background: #ffffff;
+}
 
+.driver-layout .ant-menu-item-selected {
+    background-color: #fff7ed !important;
+    color: #f97316 !important;
+}
+
+.driver-layout .ant-menu-item-selected .anticon {
+    color: #f97316 !important;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+}
+
+@media (max-width: 991px) {
+    .desktop-sider {
+        display: none !important;
+    }
+}
+
+@media (min-width: 992px) {
+    .mobile-drawer, .mobile-menu-btn {
+        display: none !important;
+    }
+    
+    .desktop-title {
+        display: inline-block !important;
+    }
+}

@@ -19,11 +19,11 @@ const DriverRoutes = () => {
                 <Route path="/driver/parking" element={<ParkingPage />} />
                 <Route path="/driver/reservations" element={<ReservationPage />} />
                 <Route path="/driver/vehicles" element={<VehiclePage />} />
-                <Route path="/driver/profile" element={<ProfilePage />} />
                 <Route path="/driver/payments" element={<PaymentPage />} />
                 <Route path="/driver/pricing" element={<PricingPage />} />
                 <Route path="/driver/history" element={<HistoryPage />} />
                 <Route path="/driver/incidents" element={<IncidentPage />} />
+                <Route path="/driver/profile" element={<ProfilePage />} />
             </Route>
         </Routes>
     );
