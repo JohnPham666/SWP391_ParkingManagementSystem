@@ -65,4 +65,6 @@ public class Vehicle {
     @Column(name = "isactive")
     private Boolean isActive = true;
 
+    @Column(name = "status", length = 20)
+    private String status = "PENDING"; // PENDING, APPROVED, REJECTED
 }
