@@ -120,7 +120,26 @@ Pages.renderDashboard = async function(container) {
                             </div>
                             <div class="slot-grid">`;
                         z.slots.forEach(s => {
-                            html += `<div class="slot-cell ${s.status.toLowerCase()}" title="${s.vehicleTypeName}">${s.slotCode}<small>${s.status}</small></div>`;
+                            let statName = '';
+                            switch(s.status) {
+                                case 'AVAILABLE': statName = 'Trống'; break;
+                                case 'OCCUPIED': statName = 'Đã đầy'; break;
+                                case 'RESERVED': statName = 'Đã đặt'; break;
+                                case 'LOCKED': statName = 'Khóa'; break;
+                                default: statName = s.status;
+                            }
+                            
+                            const isMoto = s.vehicleTypeName && s.vehicleTypeName.toLowerCase().includes('máy');
+                            const iconSvg = isMoto 
+                                ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="opacity: 0.7; margin-bottom: 2px;"><circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M15 6h5M12.5 12.5l3.5-6.5M5.5 13L9 6h3"/></svg>`
+                                : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="opacity: 0.7; margin-bottom: 2px;"><path d="M14 16H9m10 0h3v-3.15a1 1 0 00-.84-.99L16 11l-2.7-3.6a1 1 0 00-.8-.4H5.24a2 2 0 00-1.8 1.1l-.8 1.63A6 6 0 002 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>`;
+
+                            html += `<div class="slot-cell ${s.status.toLowerCase()}" title="${s.vehicleTypeName}" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding: 10px 4px;">
+                                ${iconSvg}
+                                <strong style="font-size:1.05rem; letter-spacing:0.5px;">${s.slotCode}</strong>
+                                <span style="font-size:0.75rem; font-weight:600; opacity:0.9;">${s.currentOccupancy || 0} / ${s.capacity || 1} xe</span>
+                                <small style="font-size:0.7rem; font-weight:700; text-transform:uppercase; margin-top:2px;">${statName}</small>
+                            </div>`;
                         });
                         html += `</div></div>`;
                     });
