@@ -25,6 +25,7 @@ public class VehicleResponse {
     private LocalDate registrationExpiry;
     private String vehicleImage;
     private String registrationPhoto;
+    private String status;
 
     public static VehicleResponse fromEntity(Vehicle vehicle) {
         VehicleResponse res = new VehicleResponse();
@@ -44,6 +45,7 @@ public class VehicleResponse {
         res.setRegistrationExpiry(vehicle.getRegistrationExpiry());
         res.setVehicleImage(vehicle.getVehicleImage());
         res.setRegistrationPhoto(vehicle.getRegistrationPhoto());
+        res.setStatus(vehicle.getStatus());
         return res;
     }
 }

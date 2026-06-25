@@ -341,4 +341,11 @@ public class VehicleService {
         }
     }
 
+    public VehicleResponse approveVehicle(Integer id, boolean isApproved) {
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+        vehicle.setStatus(isApproved ? "APPROVED" : "REJECTED");
+        return VehicleResponse.fromEntity(vehicleRepository.save(vehicle));
+    }
+
 }

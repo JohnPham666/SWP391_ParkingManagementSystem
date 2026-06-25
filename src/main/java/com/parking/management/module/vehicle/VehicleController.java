@@ -95,4 +95,11 @@ public class VehicleController {
                                                              @RequestParam(value = "type", defaultValue = "vehicle") String type) {
         return ApiResponse.success("Uploaded successfully", vehicleService.uploadMyVehicleImage(vehicleId, file, type));
     }
+
+    @Operation(summary = "Approve or reject a vehicle", description = "Manager/Admin approves a pending vehicle registration")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
+    @PutMapping("/{id}/approve")
+    public ApiResponse<VehicleResponse> approveVehicle(@PathVariable Integer id, @RequestParam boolean isApproved) {
+        return ApiResponse.success("Vehicle status updated successfully", vehicleService.approveVehicle(id, isApproved));
+    }
 }

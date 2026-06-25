@@ -11,7 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 
 @RestController
-@PreAuthorize("hasRole('Admin')")
+@PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
 @RequestMapping("/api/floors")
 @RequiredArgsConstructor
 @Tag(name = "Floor", description = "APIs for managing floors within parking buildings")
@@ -26,12 +26,14 @@ public class FloorController {
     }
 
     @Operation(summary = "Get floor by ID", description = "Retrieve a specific floor by its ID")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff', 'Driver')")
     @GetMapping("/{id}")
     public ApiResponse<FloorResponse> getById(@PathVariable Integer id) {
         return ApiResponse.success("Fetched successfully", service.getById(id));
     }
 
     @Operation(summary = "Get all floors", description = "Retrieve a list of all floors across all buildings")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff', 'Driver')")
     @GetMapping
     public ApiResponse<List<FloorResponse>> getAll(@RequestParam(required = false) Integer buildingId) {
         return ApiResponse.success("Fetched all successfully", service.getAll(buildingId));
