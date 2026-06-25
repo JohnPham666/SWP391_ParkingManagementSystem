@@ -98,6 +98,7 @@ CREATE TABLE Vehicles (
     VehicleImage        VARCHAR(255) NULL,
     OwnerPortrait       VARCHAR(500) NULL,
     RegistrationPhoto   VARCHAR(500) NULL,
+    Status              VARCHAR(20) DEFAULT 'PENDING' CHECK (Status IN ('PENDING', 'APPROVED', 'REJECTED')),
     IsActive            BOOLEAN DEFAULT TRUE,
     CONSTRAINT FK_Vehicles_VehicleTypes FOREIGN KEY (VehicleTypeID) REFERENCES VehicleTypes(VehicleTypeID),
     CONSTRAINT FK_Vehicles_Users FOREIGN KEY (UserID) REFERENCES Users(UserID)
@@ -162,6 +163,8 @@ CREATE TABLE ParkingSessions (
     ExitTime     TIMESTAMP NULL,
     EntryGate    VARCHAR(50),
     ExitGate     VARCHAR(50),
+    EntryImage   VARCHAR(500) NULL,
+    ExitImage    VARCHAR(500) NULL,
     Status       VARCHAR(20) NOT NULL CHECK (Status IN ('PARKING', 'PENDING_PAYMENT', 'COMPLETED', 'LOST_TICKET', 'UNPAID', 'VIOLATION')),
     EstimatedFee DECIMAL(10,2),
     FinalFee     DECIMAL(10,2),
@@ -201,7 +204,7 @@ CREATE TABLE Payments (
     SessionID     INT NULL,
     ReservationID INT NULL,
     Amount        DECIMAL(10,2) NOT NULL,
-    PaymentMethod VARCHAR(30) CHECK (PaymentMethod IN ('CASH', 'BANK_TRANSFER', 'E_WALLET', 'CREDIT_CARD')),
+    PaymentMethod VARCHAR(30) CHECK (PaymentMethod IN ('CASH', 'BANK_TRANSFER', 'E_WALLET', 'CREDIT_CARD', 'VNPAY')),
     PaymentStatus VARCHAR(20) CHECK (PaymentStatus IN ('PENDING', 'PAID', 'FAILED')),
     PaidAt        TIMESTAMP,
     CONSTRAINT FK_Payments_Sessions FOREIGN KEY (SessionID) REFERENCES ParkingSessions(SessionID),
@@ -409,22 +412,22 @@ INSERT INTO ParkingSlots (SlotID, ZoneID, SlotCode, VehicleTypeID, Area, Capacit
 SELECT setval('parkingslots_slotid_seq', (SELECT MAX(SlotID) FROM ParkingSlots));
 
 -- 9. VEHICLES
-INSERT INTO Vehicles (VehicleID, LicensePlate, VehicleTypeID, OwnerName, OwnerPhone, OwnerIdCard, UserID, Brand, VehicleColor, EngineNumber, ChassisNumber, ManufactureYear, RegistrationNumber, RegistrationDate, RegistrationExpiry, IsActive) OVERRIDING SYSTEM VALUE VALUES
-(1,  '51A-12345', 2, 'Nguyễn Hoàng Phúc', '0912345001', '079092001234',  9,  'Toyota',   'Trắng bạc', 'ENG-TOY-001', 'CHS-TOY-001', 2020, 'REG-001', '2020-06-01', '2026-06-01', TRUE),
-(2,  '59B-67890', 2, 'Võ Thị Mai',        '0912345002', '074094002345', 10,  'Honda',    'Đen bóng',  'ENG-HON-002', 'CHS-HON-002', 2019, 'REG-002', '2019-09-15', '2025-09-15', TRUE),
-(3,  '51C-11122', 2, 'Đặng Quốc Hùng',    '0912345003', '079089003456', 11,  'Mazda',    'Xanh dương','ENG-MAZ-003', 'CHS-MAZ-003', 2022, 'REG-003', '2022-03-20', '2028-03-20', TRUE),
-(4,  '51D-33344', 2, 'Lý Thị Cẩm',        '0912345004', '079098004567', 12,  'Ford',     'Đỏ đô',     'ENG-FOR-004', 'CHS-FOR-004', 2021, 'REG-004', '2021-07-10', '2027-07-10', TRUE),
-(5,  '51E-55566', 2, 'Trần Minh Khoa',    '0912345005', '079091005678', 13,  'KIA',      'Trắng ngọc','ENG-KIA-005', 'CHS-KIA-005', 2023, 'REG-005', '2023-01-05', '2029-01-05', TRUE),
-(6,  '50L-11111', 1, 'Đặng Quốc Hùng',    '0912345003', '079089003456', 11,  'Yamaha',   'Đỏ',        'ENG-YAM-006', 'CHS-YAM-006', 2021, 'REG-006', '2021-05-01', '2027-05-01', TRUE),
-(7,  '59K-22222', 1, 'Phan Thị Lan Anh',  '0912345006', '079096006789', 14,  'Honda',    'Trắng',     'ENG-HON-007', 'CHS-HON-007', 2022, 'REG-007', '2022-11-20', '2028-11-20', TRUE),
-(8,  '51H-33333', 1, 'Đỗ Đức Thành',      '0912345007', '079087007890', 15,  'SYM',      'Đen',       'ENG-SYM-008', 'CHS-SYM-008', 2020, 'REG-008', '2020-04-15', '2026-04-15', TRUE),
-(9,  '51F-99999', 3, 'Công ty Vận Tải ABC','0281234567', '031200112233', NULL,'Hino',     'Xanh lá',   'ENG-HIN-009', 'CHS-HIN-009', 2019, 'REG-009', '2019-08-01', '2025-08-01', TRUE),
-(10, '51G-88888', 3, 'Công ty TNHH XYZ',  '0289876543', '031200445566', NULL,'Isuzu',    'Trắng',     'ENG-ISU-010', 'CHS-ISU-010', 2021, 'REG-010', '2021-02-10', '2027-02-10', TRUE),
-(11, '29A-44444', 1, 'Trần Văn Bình',      '0912345008', NULL,           NULL, NULL,      NULL,         NULL,          NULL,          NULL,          NULL,  NULL,          NULL,          TRUE),
-(12, '43B-55555', 1, NULL,                 NULL,         NULL,           NULL, NULL,      NULL,         NULL,          NULL,          NULL,          NULL,  NULL,          NULL,          TRUE),
-(13, '51P-66666', 2, 'Nguyễn Thị Thanh',   '0912345009', NULL,           NULL, NULL,      NULL,         NULL,          NULL,          NULL,          NULL,  NULL,          NULL,          TRUE),
-(14, '51Q-77777', 1, 'Nguyễn Văn Cường',   '0912345010', '079090008910', 16,  'Honda',    'Xám bạc',    'ENG-HON-014', 'CHS-HON-014', 2018, 'REG-014', '2018-06-01', '2024-06-01', TRUE),
-(15, '51R-12399', 2, 'Lý Thị Cẩm',         '0912345004', '079098004567', 12,  'Mercedes', 'Đen',        'ENG-MER-015', 'CHS-MER-015', 2023, 'REG-015', '2023-05-01', '2029-05-01', TRUE);
+INSERT INTO Vehicles (VehicleID, LicensePlate, VehicleTypeID, OwnerName, OwnerPhone, OwnerIdCard, UserID, Brand, VehicleColor, EngineNumber, ChassisNumber, ManufactureYear, RegistrationNumber, RegistrationDate, RegistrationExpiry, Status, IsActive) OVERRIDING SYSTEM VALUE VALUES
+(1,  '51A-12345', 2, 'Nguyễn Hoàng Phúc', '0912345001', '079092001234',  9,  'Toyota',   'Trắng bạc', 'ENG-TOY-001', 'CHS-TOY-001', 2020, 'REG-001', '2020-06-01', '2026-06-01', 'APPROVED', TRUE),
+(2,  '59B-67890', 2, 'Võ Thị Mai',        '0912345002', '074094002345', 10,  'Honda',    'Đen bóng',  'ENG-HON-002', 'CHS-HON-002', 2019, 'REG-002', '2019-09-15', '2025-09-15', 'APPROVED', TRUE),
+(3,  '51C-11122', 2, 'Đặng Quốc Hùng',    '0912345003', '079089003456', 11,  'Mazda',    'Xanh dương','ENG-MAZ-003', 'CHS-MAZ-003', 2022, 'REG-003', '2022-03-20', '2028-03-20', 'APPROVED', TRUE),
+(4,  '51D-33344', 2, 'Lý Thị Cẩm',        '0912345004', '079098004567', 12,  'Ford',     'Đỏ đô',     'ENG-FOR-004', 'CHS-FOR-004', 2021, 'REG-004', '2021-07-10', '2027-07-10', 'APPROVED', TRUE),
+(5,  '51E-55566', 2, 'Trần Minh Khoa',    '0912345005', '079091005678', 13,  'KIA',      'Trắng ngọc','ENG-KIA-005', 'CHS-KIA-005', 2023, 'REG-005', '2023-01-05', '2029-01-05', 'APPROVED', TRUE),
+(6,  '50L-11111', 1, 'Đặng Quốc Hùng',    '0912345003', '079089003456', 11,  'Yamaha',   'Đỏ',        'ENG-YAM-006', 'CHS-YAM-006', 2021, 'REG-006', '2021-05-01', '2027-05-01', 'APPROVED', TRUE),
+(7,  '59K-22222', 1, 'Phan Thị Lan Anh',  '0912345006', '079096006789', 14,  'Honda',    'Trắng',     'ENG-HON-007', 'CHS-HON-007', 2022, 'REG-007', '2022-11-20', '2028-11-20', 'APPROVED', TRUE),
+(8,  '51H-33333', 1, 'Đỗ Đức Thành',      '0912345007', '079087007890', 15,  'SYM',      'Đen',       'ENG-SYM-008', 'CHS-SYM-008', 2020, 'REG-008', '2020-04-15', '2026-04-15', 'APPROVED', TRUE),
+(9,  '51F-99999', 3, 'Công ty Vận Tải ABC','0281234567', '031200112233', NULL,'Hino',     'Xanh lá',   'ENG-HIN-009', 'CHS-HIN-009', 2019, 'REG-009', '2019-08-01', '2025-08-01', 'APPROVED', TRUE),
+(10, '51G-88888', 3, 'Công ty TNHH XYZ',  '0289876543', '031200445566', NULL,'Isuzu',    'Trắng',     'ENG-ISU-010', 'CHS-ISU-010', 2021, 'REG-010', '2021-02-10', '2027-02-10', 'APPROVED', TRUE),
+(11, '29A-44444', 1, 'Trần Văn Bình',      '0912345008', NULL,           NULL, NULL,      NULL,         NULL,          NULL,          NULL,          NULL,  NULL,          NULL,          'APPROVED', TRUE),
+(12, '43B-55555', 1, NULL,                 NULL,         NULL,           NULL, NULL,      NULL,         NULL,          NULL,          NULL,          NULL,  NULL,          NULL,          'PENDING', TRUE),
+(13, '51P-66666', 2, 'Nguyễn Thị Thanh',   '0912345009', NULL,           NULL, NULL,      NULL,         NULL,          NULL,          NULL,          NULL,  NULL,          NULL,          'APPROVED', TRUE),
+(14, '51Q-77777', 1, 'Nguyễn Văn Cường',   '0912345010', '079090008910', 16,  'Honda',    'Xám bạc',    'ENG-HON-014', 'CHS-HON-014', 2018, 'REG-014', '2018-06-01', '2024-06-01', 'APPROVED', TRUE),
+(15, '51R-12399', 2, 'Lý Thị Cẩm',         '0912345004', '079098004567', 12,  'Mercedes', 'Đen',        'ENG-MER-015', 'CHS-MER-015', 2023, 'REG-015', '2023-05-01', '2029-05-01', 'APPROVED', TRUE);
 SELECT setval('vehicles_vehicleid_seq', (SELECT MAX(VehicleID) FROM Vehicles));
 
 -- 10. PARKING CARDS
@@ -443,36 +446,36 @@ INSERT INTO ParkingCards (CardID, Status) VALUES
 ('CARD-LOST-02', 'LOST');
 
 -- 11. PARKING SESSIONS
-INSERT INTO ParkingSessions (SessionID, VehicleID, SlotID, CardID, EntryTime, ExitTime, EntryGate, ExitGate, Status, EstimatedFee, FinalFee, CreatedBy) OVERRIDING SYSTEM VALUE VALUES
-(1,  1,  8,  'CARD-008', NOW() - INTERVAL '2 hours',  NULL, 'Cổng-A', NULL, 'PARKING',   20000, NULL,  4),
-(2,  2,  10, 'CARD-009', NOW() - INTERVAL '30 minutes', NULL,'Cổng-A', NULL, 'PARKING',   20000, NULL,  4),
-(3,  6,  1,  'CARD-010', NOW() - INTERVAL '5 hours',  NULL, 'Cổng-B', NULL, 'PARKING',   25000, NULL,  5),
-(4,  11, 2,  NULL,       NOW() - INTERVAL '1 hour',   NULL, 'Cổng-B', NULL, 'PARKING',    5000, NULL,  5),
-(5,  9,  30, NULL,       NOW() - INTERVAL '7 hours',  NULL, 'Cổng-C', NULL, 'PARKING',  105000, NULL,  4),
-(6,  15, 36, NULL,       NOW() - INTERVAL '3 hours',  NULL, 'Cổng-Q7-A', NULL, 'PARKING', 30000, NULL,  6),
-(7,  7,  33, NULL,       NOW() - INTERVAL '4 hours',  NULL, 'Cổng-Q7-B', NULL, 'PARKING', 20000, NULL,  7),
-(8,  3,  6,  NULL, NOW() - INTERVAL '6 hours',  NOW() - INTERVAL '4 hours', 'Cổng-A','Cổng-A','COMPLETED', 20000, 20000, 4),
-(9,  4,  7,  NULL, NOW() - INTERVAL '4 hours',  NOW() - INTERVAL '2 hours', 'Cổng-A','Cổng-A','COMPLETED', 20000, 20000, 4),
-(10, 5,  13, NULL, NOW() - INTERVAL '3 hours',  NOW() - INTERVAL '1 hour',  'Cổng-A','Cổng-A','COMPLETED', 20000, 20000, 5),
-(11, 7,  19, NULL, NOW() - INTERVAL '5 hours',  NOW() - INTERVAL '1 hour',  'Cổng-B','Cổng-B','COMPLETED', 20000, 20000, 5),
-(12, 1,  23, NULL, NOW() - INTERVAL '8 hours',  NOW() - INTERVAL '6 hours', 'Cổng-A','Cổng-A','COMPLETED', 40000, 40000, 4),
-(13, 6,  16, NULL, NOW() - INTERVAL '7 hours',  NOW() - INTERVAL '5 hours', 'Cổng-B','Cổng-B','COMPLETED', 10000, 10000, 4),
-(14, 8,  17, NULL, NOW() - INTERVAL '4 hours',  NOW() - INTERVAL '2 hours', 'Cổng-B','Cổng-B','COMPLETED',  5000,  5000, 5),
-(15, 10, 31, NULL, NOW() - INTERVAL '6 hours',  NOW() - INTERVAL '2 hours', 'Cổng-C','Cổng-C','COMPLETED', 60000, 60000, 4),
-(16, 2,  21, NULL, NOW() - INTERVAL '1 day' + INTERVAL '8 hours',  NOW() - INTERVAL '1 day' + INTERVAL '18 hours', 'Cổng-A','Cổng-A','COMPLETED',150000,150000,4),
-(17, 3,  11, NULL, NOW() - INTERVAL '1 day' + INTERVAL '7 hours',  NOW() - INTERVAL '1 day' + INTERVAL '12 hours', 'Cổng-A','Cổng-A','COMPLETED', 75000, 75000,5),
-(18, 5,  26, NULL, NOW() - INTERVAL '1 day' + INTERVAL '9 hours',  NOW() - INTERVAL '1 day' + INTERVAL '20 hours', 'Cổng-A','Cổng-A','COMPLETED',200000,200000,4),
-(19, 6,  4,  NULL, NOW() - INTERVAL '1 day' + INTERVAL '6 hours',  NOW() - INTERVAL '1 day' + INTERVAL '10 hours', 'Cổng-B','Cổng-B','COMPLETED', 20000, 20000,5),
-(20, 7,  39, NULL, NOW() - INTERVAL '1 day' + INTERVAL '10 hours', NOW() - INTERVAL '1 day' + INTERVAL '15 hours', 'Cổng-Q7-B','Cổng-Q7-B','COMPLETED',25000, 25000,6),
-(21, 1,  14, NULL, NOW() - INTERVAL '2 days' + INTERVAL '7 hours',  NOW() - INTERVAL '2 days' + INTERVAL '19 hours','Cổng-A','Cổng-A','COMPLETED',150000,150000,4),
-(22, 4,  25, NULL, NOW() - INTERVAL '2 days' + INTERVAL '8 hours',  NOW() - INTERVAL '2 days' + INTERVAL '11 hours','Cổng-B','Cổng-B','COMPLETED', 15000, 15000,5),
-(23, 8,  29, NULL, NOW() - INTERVAL '2 days' + INTERVAL '6 hours',  NOW() - INTERVAL '2 days' + INTERVAL '9 hours', 'Cổng-B','Cổng-B','COMPLETED', 15000, 15000,5),
-(24, 11, 3,  NULL, NOW() - INTERVAL '10 hours', NULL, 'Cổng-B', NULL, 'LOST_TICKET', 50000, NULL, 5),
-(25, 13, 20, NULL, NOW() - INTERVAL '6 hours',  NULL, 'Cổng-A', NULL, 'LOST_TICKET', 200000, NULL, 4),
-(26, 12, 2,  NULL, NOW() - INTERVAL '2 days' + INTERVAL '22 hours', NOW() - INTERVAL '2 days' + INTERVAL '23 hours', 'Cổng-B','Cổng-B','UNPAID', 10000, 10000, 5),
-(27, 14, 18, NULL, NOW() - INTERVAL '3 days' + INTERVAL '14 hours', NOW() - INTERVAL '3 days' + INTERVAL '15 hours', 'Cổng-B','Cổng-B','UNPAID',  5000,  5000, 4),
-(28, 6,  4,  NULL, NOW() - INTERVAL '1 day' + INTERVAL '13 hours', NOW() - INTERVAL '1 day' + INTERVAL '14 hours', 'Cổng-A','Cổng-A','VIOLATION', 5000, 20000, 4),
-(29, 9,  32, NULL, NOW() - INTERVAL '3 days' + INTERVAL '9 hours', NOW() - INTERVAL '3 days' + INTERVAL '11 hours', 'Cổng-C','Cổng-C','VIOLATION',30000, 60000, 5);
+INSERT INTO ParkingSessions (SessionID, VehicleID, SlotID, CardID, EntryTime, ExitTime, EntryGate, ExitGate, EntryImage, ExitImage, Status, EstimatedFee, FinalFee, CreatedBy) OVERRIDING SYSTEM VALUE VALUES
+(1,  1,  8,  'CARD-008', NOW() - INTERVAL '2 hours',  NULL, 'Cổng-A', NULL, '/uploads/sessions/entry_1.jpg', NULL, 'PARKING',   20000, NULL,  4),
+(2,  2,  10, 'CARD-009', NOW() - INTERVAL '30 minutes', NULL,'Cổng-A', NULL, '/uploads/sessions/entry_2.jpg', NULL, 'PARKING',   20000, NULL,  4),
+(3,  6,  1,  'CARD-010', NOW() - INTERVAL '5 hours',  NULL, 'Cổng-B', NULL, '/uploads/sessions/entry_3.jpg', NULL, 'PARKING',   25000, NULL,  5),
+(4,  11, 2,  NULL,       NOW() - INTERVAL '1 hour',   NULL, 'Cổng-B', NULL, '/uploads/sessions/entry_4.jpg', NULL, 'PARKING',    5000, NULL,  5),
+(5,  9,  30, NULL,       NOW() - INTERVAL '7 hours',  NULL, 'Cổng-C', NULL, '/uploads/sessions/entry_5.jpg', NULL, 'PARKING',  105000, NULL,  4),
+(6,  15, 36, NULL,       NOW() - INTERVAL '3 hours',  NULL, 'Cổng-Q7-A', NULL, '/uploads/sessions/entry_6.jpg', NULL, 'PARKING', 30000, NULL,  6),
+(7,  7,  33, NULL,       NOW() - INTERVAL '4 hours',  NULL, 'Cổng-Q7-B', NULL, '/uploads/sessions/entry_7.jpg', NULL, 'PARKING', 20000, NULL,  7),
+(8,  3,  6,  NULL, NOW() - INTERVAL '6 hours',  NOW() - INTERVAL '4 hours', 'Cổng-A','Cổng-A', '/uploads/sessions/entry_8.jpg', '/uploads/sessions/exit_8.jpg', 'COMPLETED', 20000, 20000, 4),
+(9,  4,  7,  NULL, NOW() - INTERVAL '4 hours',  NOW() - INTERVAL '2 hours', 'Cổng-A','Cổng-A', '/uploads/sessions/entry_9.jpg', '/uploads/sessions/exit_9.jpg', 'COMPLETED', 20000, 20000, 4),
+(10, 5,  13, NULL, NOW() - INTERVAL '3 hours',  NOW() - INTERVAL '1 hour',  'Cổng-A','Cổng-A', '/uploads/sessions/entry_10.jpg', '/uploads/sessions/exit_10.jpg', 'COMPLETED', 20000, 20000, 5),
+(11, 7,  19, NULL, NOW() - INTERVAL '5 hours',  NOW() - INTERVAL '1 hour',  'Cổng-B','Cổng-B', '/uploads/sessions/entry_11.jpg', '/uploads/sessions/exit_11.jpg', 'COMPLETED', 20000, 20000, 5),
+(12, 1,  23, NULL, NOW() - INTERVAL '8 hours',  NOW() - INTERVAL '6 hours', 'Cổng-A','Cổng-A', '/uploads/sessions/entry_12.jpg', '/uploads/sessions/exit_12.jpg', 'COMPLETED', 40000, 40000, 4),
+(13, 6,  16, NULL, NOW() - INTERVAL '7 hours',  NOW() - INTERVAL '5 hours', 'Cổng-B','Cổng-B', '/uploads/sessions/entry_13.jpg', '/uploads/sessions/exit_13.jpg', 'COMPLETED', 10000, 10000, 4),
+(14, 8,  17, NULL, NOW() - INTERVAL '4 hours',  NOW() - INTERVAL '2 hours', 'Cổng-B','Cổng-B', '/uploads/sessions/entry_14.jpg', '/uploads/sessions/exit_14.jpg', 'COMPLETED',  5000,  5000, 5),
+(15, 10, 31, NULL, NOW() - INTERVAL '6 hours',  NOW() - INTERVAL '2 hours', 'Cổng-C','Cổng-C', '/uploads/sessions/entry_15.jpg', '/uploads/sessions/exit_15.jpg', 'COMPLETED', 60000, 60000, 4),
+(16, 2,  21, NULL, NOW() - INTERVAL '1 day' + INTERVAL '8 hours',  NOW() - INTERVAL '1 day' + INTERVAL '18 hours', 'Cổng-A','Cổng-A', '/uploads/sessions/entry_16.jpg', '/uploads/sessions/exit_16.jpg', 'COMPLETED',150000,150000,4),
+(17, 3,  11, NULL, NOW() - INTERVAL '1 day' + INTERVAL '7 hours',  NOW() - INTERVAL '1 day' + INTERVAL '12 hours', 'Cổng-A','Cổng-A', '/uploads/sessions/entry_17.jpg', '/uploads/sessions/exit_17.jpg', 'COMPLETED', 75000, 75000,5),
+(18, 5,  26, NULL, NOW() - INTERVAL '1 day' + INTERVAL '9 hours',  NOW() - INTERVAL '1 day' + INTERVAL '20 hours', 'Cổng-A','Cổng-A', '/uploads/sessions/entry_18.jpg', '/uploads/sessions/exit_18.jpg', 'COMPLETED',200000,200000,4),
+(19, 6,  4,  NULL, NOW() - INTERVAL '1 day' + INTERVAL '6 hours',  NOW() - INTERVAL '1 day' + INTERVAL '10 hours', 'Cổng-B','Cổng-B', '/uploads/sessions/entry_19.jpg', '/uploads/sessions/exit_19.jpg', 'COMPLETED', 20000, 20000,5),
+(20, 7,  39, NULL, NOW() - INTERVAL '1 day' + INTERVAL '10 hours', NOW() - INTERVAL '1 day' + INTERVAL '15 hours', 'Cổng-Q7-B','Cổng-Q7-B', '/uploads/sessions/entry_20.jpg', '/uploads/sessions/exit_20.jpg', 'COMPLETED',25000, 25000,6),
+(21, 1,  14, NULL, NOW() - INTERVAL '2 days' + INTERVAL '7 hours',  NOW() - INTERVAL '2 days' + INTERVAL '19 hours','Cổng-A','Cổng-A', '/uploads/sessions/entry_21.jpg', '/uploads/sessions/exit_21.jpg', 'COMPLETED',150000,150000,4),
+(22, 4,  25, NULL, NOW() - INTERVAL '2 days' + INTERVAL '8 hours',  NOW() - INTERVAL '2 days' + INTERVAL '11 hours','Cổng-B','Cổng-B', '/uploads/sessions/entry_22.jpg', '/uploads/sessions/exit_22.jpg', 'COMPLETED', 15000, 15000,5),
+(23, 8,  29, NULL, NOW() - INTERVAL '2 days' + INTERVAL '6 hours',  NOW() - INTERVAL '2 days' + INTERVAL '9 hours', 'Cổng-B','Cổng-B', '/uploads/sessions/entry_23.jpg', '/uploads/sessions/exit_23.jpg', 'COMPLETED', 15000, 15000,5),
+(24, 11, 3,  NULL, NOW() - INTERVAL '10 hours', NULL, 'Cổng-B', NULL, '/uploads/sessions/entry_24.jpg', NULL, 'LOST_TICKET', 50000, NULL, 5),
+(25, 13, 20, NULL, NOW() - INTERVAL '6 hours',  NULL, 'Cổng-A', NULL, '/uploads/sessions/entry_25.jpg', NULL, 'LOST_TICKET', 200000, NULL, 4),
+(26, 12, 2,  NULL, NOW() - INTERVAL '2 days' + INTERVAL '22 hours', NOW() - INTERVAL '2 days' + INTERVAL '23 hours', 'Cổng-B','Cổng-B', '/uploads/sessions/entry_26.jpg', '/uploads/sessions/exit_26.jpg', 'UNPAID', 10000, 10000, 5),
+(27, 14, 18, NULL, NOW() - INTERVAL '3 days' + INTERVAL '14 hours', NOW() - INTERVAL '3 days' + INTERVAL '15 hours', 'Cổng-B','Cổng-B', '/uploads/sessions/entry_27.jpg', '/uploads/sessions/exit_27.jpg', 'UNPAID',  5000,  5000, 4),
+(28, 6,  4,  NULL, NOW() - INTERVAL '1 day' + INTERVAL '13 hours', NOW() - INTERVAL '1 day' + INTERVAL '14 hours', 'Cổng-A','Cổng-A', '/uploads/sessions/entry_28.jpg', '/uploads/sessions/exit_28.jpg', 'VIOLATION', 5000, 20000, 4),
+(29, 9,  32, NULL, NOW() - INTERVAL '3 days' + INTERVAL '9 hours', NOW() - INTERVAL '3 days' + INTERVAL '11 hours', 'Cổng-C','Cổng-C', '/uploads/sessions/entry_29.jpg', '/uploads/sessions/exit_29.jpg', 'VIOLATION',30000, 60000, 5);
 SELECT setval('parkingsessions_sessionid_seq', (SELECT MAX(SessionID) FROM ParkingSessions));
 
 -- 12. RESERVATIONS

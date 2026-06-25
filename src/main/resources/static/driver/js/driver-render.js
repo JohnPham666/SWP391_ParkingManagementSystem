@@ -290,7 +290,7 @@ const DriverRender = {
         return `
             <div class="page-header"><h2>Quản lý xe</h2><p>Thêm, sửa, xóa phương tiện của bạn.</p></div>
             <div class="card">
-                <div class="card-header"><span class="card-title">${this.iconCar()} Xe của tôi</span><button class="btn btn-primary btn-sm" onclick="window.Pages.showVehicleModal()">Thêm xe</button></div>
+                <div class="card-header"><span class="card-title">${this.iconCar()} Xe của tôi</span><button class="btn btn-primary btn-sm" onclick="window.Pages.showVehicleModal()">Đăng ký xe</button></div>
                 <div class="card-body">${vehicles.length ? vehicles.map(v => this.renderVehicleCard(v)).join('') : this.renderEmptyState(this.iconCar(), 'Chưa có phương tiện nào.')}</div>
             </div>
         `;
@@ -309,13 +309,23 @@ const DriverRender = {
                         <div class="form-group"><label>SĐT chủ xe <span style="color: var(--red);">*</span></label><input id="vehicle-ownerPhone" value="${DriverUtils.escapeAttr(vehicle?.ownerPhone || '')}" placeholder="Vui lòng nhập số điện thoại"></div>
                         <div class="form-group"><label>Hãng xe <span style="color: var(--red);">*</span></label><input id="vehicle-brand" value="${DriverUtils.escapeAttr(vehicle?.brand || '')}" placeholder="Vui lòng nhập hãng xe"></div>
                         <div class="form-group"><label>Màu xe <span style="color: var(--red);">*</span></label><input id="vehicle-color" value="${DriverUtils.escapeAttr(vehicle?.vehicleColor || '')}" placeholder="Vui lòng nhập màu xe"></div>
-                        <div class="form-group full-width"><label>Ảnh cà vẹt xe <span style="color: var(--red);">*</span></label><input id="vehicle-regPhoto-file" type="file" accept="image/*" ${vehicle?.registrationPhoto ? '' : 'required'}>
-                        ${vehicle?.registrationPhoto ? `<div style="margin-top: 4px;"><a href="${vehicle.registrationPhoto}" target="_blank">Xem ảnh hiện tại</a></div>` : ''}</div>
-                        <div class="form-group full-width"><label>Ảnh biển số xe <span style="color: var(--red);">*</span></label><input id="vehicle-image-file" type="file" accept="image/*" ${vehicle?.vehicleImage ? '' : 'required'}>
-                        ${vehicle?.vehicleImage ? `<div style="margin-top: 4px;"><a href="${vehicle.vehicleImage}" target="_blank">Xem ảnh hiện tại</a></div>` : ''}</div>
+                        <div class="form-group full-width" style="margin-bottom: 0;">
+                            <div class="vehicle-images-grid" style="margin-top: 0;">
+                                <div>
+                                    <label style="display:block; margin-bottom: 8px; font-size: .82rem; font-weight: 600; color: var(--text-secondary);">Ảnh biển số xe <span style="color: var(--red);">*</span></label>
+                                    <input id="vehicle-image-file" type="file" accept="image/*" ${vehicle?.vehicleImage ? '' : 'required'} style="margin-bottom: 12px;">
+                                    ${vehicle?.vehicleImage ? `<img src="${DriverUtils.escapeAttr(vehicle.vehicleImage)}" class="card-image-preview" onclick="window.Pages.showImagePreview('${DriverUtils.escapeAttr(vehicle.vehicleImage)}')" alt="Hình ảnh xe">` : `<div class="image-preview-placeholder">Chưa có hình ảnh xe</div>`}
+                                </div>
+                                <div>
+                                    <label style="display:block; margin-bottom: 8px; font-size: .82rem; font-weight: 600; color: var(--text-secondary);">Ảnh cà vẹt xe <span style="color: var(--red);">*</span></label>
+                                    <input id="vehicle-regPhoto-file" type="file" accept="image/*" ${vehicle?.registrationPhoto ? '' : 'required'} style="margin-bottom: 12px;">
+                                    ${vehicle?.registrationPhoto ? `<img src="${DriverUtils.escapeAttr(vehicle.registrationPhoto)}" class="card-image-preview" onclick="window.Pages.showImagePreview('${DriverUtils.escapeAttr(vehicle.registrationPhoto)}')" alt="Cà vẹt xe">` : `<div class="image-preview-placeholder">Chưa có hình ảnh cà vẹt xe</div>`}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="window.Pages.closeModal()">Hủy</button><button class="btn btn-primary" type="submit">Lưu</button></div>
+                <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="window.Pages.closeModal()">Hủy</button><button class="btn btn-primary" type="submit">Nộp</button></div>
             </form>
         `;
     },
@@ -350,7 +360,7 @@ const DriverRender = {
         `;
     },
 
-    renderEditProfileModal(fullName, email, phone, address) {
+    renderEditProfileModal(fullName, email, phone, address, dob) {
         return `
             <div class="modal-header">
                 <h3>Chỉnh sửa thông tin</h3>
@@ -369,6 +379,10 @@ const DriverRender = {
                     <div class="form-group full-width">
                         <label>Số điện thoại</label>
                         <input id="edit-profile-phone" type="tel" value="${DriverUtils.escapeAttr(phone)}">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Ngày sinh</label>
+                        <input id="edit-profile-dob" type="date" value="${DriverUtils.escapeAttr(dob)}">
                     </div>
                     <div class="form-group full-width">
                         <label>Địa chỉ</label>
@@ -438,12 +452,46 @@ const DriverRender = {
         `;
     },
 
-    renderPaymentPage() {
+    renderPaymentPage(payments) {
+        if (!payments || payments.length === 0) {
+            return `
+                <div class="page-header"><h2>Thanh toán</h2><p>Danh sách thanh toán.</p></div>
+                <div class="card">
+                    <div class="card-body">
+                        ${this.renderEmptyState(`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>`, 'Hiện không có yêu cầu thanh toán.')}
+                    </div>
+                </div>
+            `;
+        }
+
+        const tableRows = payments.map(p => `
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 12px 16px;">#${p.paymentId || p.id || '-'}</td>
+                <td style="padding: 12px 16px;">${p.paymentMethod || '-'}</td>
+                <td style="padding: 12px 16px; font-weight: 600; color: var(--accent-dark);">${DriverUtils.formatCurrency(p.amount || 0)}</td>
+                <td style="padding: 12px 16px;">${DriverUtils.statusBadge(p.paymentStatus || p.status)}</td>
+                <td style="padding: 12px 16px;">${DriverUtils.formatDateTime(p.paymentTime || p.createdAt || p.updatedAt)}</td>
+            </tr>
+        `).join('');
+
         return `
             <div class="page-header"><h2>Thanh toán</h2><p>Danh sách thanh toán.</p></div>
             <div class="card">
-                <div class="card-body">
-                    <p style="text-align:center;">Để thanh toán, vui lòng xem trong chi tiết <strong>Đặt chỗ</strong> hoặc yêu cầu nhân viên thanh toán khi <strong>Check-out</strong>. Backend chưa hỗ trợ API lấy danh sách thanh toán theo Driver.</p>
+                <div class="card-body" style="padding: 0; overflow-x: auto;">
+                    <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="background-color: var(--bg-color); border-bottom: 2px solid var(--border-color);">
+                                <th style="padding: 12px 16px;">Mã thanh toán</th>
+                                <th style="padding: 12px 16px;">Loại thanh toán</th>
+                                <th style="padding: 12px 16px;">Số tiền</th>
+                                <th style="padding: 12px 16px;">Trạng thái</th>
+                                <th style="padding: 12px 16px;">Thời gian</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         `;
@@ -472,7 +520,7 @@ const DriverRender = {
                             <tbody>
                                 ${policies.map(p => `
                                     <tr style="border-bottom: 1px solid var(--border-color);">
-                                        <td style="padding: 12px 16px; font-weight: 600;">${DriverUtils.escapeHtml(p.vehicleTypeName || 'Tất cả')}</td>
+                                        <td style="padding: 12px 16px; font-weight: 600;">${DriverUtils.escapeHtml(p.vehicleTypeName || 'Không xác định')}</td>
                                         <td style="padding: 12px 16px; color: var(--text-color);">${DriverUtils.formatCurrency(p.basePrice)}</td>
                                         <td style="padding: 12px 16px; color: var(--text-color);">
                                             ${DriverUtils.formatCurrency(p.rushHourPrice)}
@@ -491,7 +539,7 @@ const DriverRender = {
                                             ${p.lostTicketFee ? DriverUtils.formatCurrency(p.lostTicketFee) : '-'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: center;">
-                                            <span class="badge ${p.isActive ? 'badge-success' : 'badge-danger'}">${p.isActive ? 'Áp dụng' : 'Ngừng'}</span>
+                                            <span class="badge ${p.computedStatusClass || 'badge-success'}">${p.computedStatus || 'Hoạt động'}</span>
                                         </td>
                                     </tr>
                                 `).join('')}
@@ -503,10 +551,54 @@ const DriverRender = {
         `;
     },
 
-    renderHistoryPage() {
+    renderHistoryPage(historyData) {
+        if (!historyData || historyData.length === 0) {
+            return `
+                <div class="page-header"><h2>Lịch sử gửi xe</h2><p>Lịch sử các lần gửi xe và đặt chỗ.</p></div>
+                <div class="card">
+                    <div class="card-body">
+                        ${this.renderEmptyState(this.iconReceipt(), 'Tài khoản chưa từng sử dụng dịch vụ.')}
+                    </div>
+                </div>
+            `;
+        }
+
+        const listHtml = historyData.map(h => `
+            <div class="card" style="margin-bottom: 16px;">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="card-title" style="font-size: 1rem;">
+                        <span style="color: var(--primary-color); font-weight: 600;">#${h.reservationId}</span>
+                        <span style="margin: 0 8px; color: var(--border-color);">|</span>
+                        <span style="font-weight: 600;">${DriverUtils.escapeHtml(h.licensePlate)}</span>
+                    </span>
+                    ${DriverUtils.statusBadge(h.status)}
+                </div>
+                <div class="card-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Thời gian</div>
+                        <div style="font-weight: 500;">
+                            ${h.reservationStart ? DriverUtils.formatDateTime(h.reservationStart) : '-'} <br/> 
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">đến</span> 
+                            ${h.reservationEnd ? DriverUtils.formatDateTime(h.reservationEnd) : '-'}
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Vị trí</div>
+                        <div style="font-weight: 500;">${h.slotCode || 'Chưa xác định'}</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">${h.buildingName || ''} ${h.floorName ? '- ' + h.floorName : ''}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Chi phí</div>
+                        <div style="font-weight: 600; color: var(--accent-dark);">${DriverUtils.formatCurrency(h.amount || h.estimatedFee || 0)}</div>
+                        <div style="font-size: 0.8rem; margin-top: 2px;">${(h.paymentStatus === 'PAID' || h.paymentStatus === 'Thành công') ? '<span style="color:var(--green)">Đã thanh toán</span>' : '<span style="color:var(--orange)">Chưa thanh toán</span>'}</div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
         return `
-            <div class="page-header"><h2>Lịch sử gửi xe</h2><p>Lịch sử gửi xe.</p></div>
-            <div class="empty-state">${this.iconReceipt()}<p>Chưa có API Lịch sử gửi xe cho Driver. Vui lòng xem ở Đặt chỗ.</p></div>
+            <div class="page-header"><h2>Lịch sử gửi xe</h2><p>Lịch sử các lần gửi xe và đặt chỗ.</p></div>
+            ${listHtml}
         `;
     },
 
@@ -523,7 +615,18 @@ const DriverRender = {
                     <button class="btn btn-primary btn-full" type="submit" style="margin-top:10px;">Gửi báo cáo</button>
                 </form>
             </div>
-            <div class="card"><div class="card-header"><span class="card-title">Sự cố đã gửi</span></div><div class="card-body">${incidents.length ? incidents.map(i => this.renderIncidentCard(i)).join('') : this.renderEmptyState(this.iconAlert(), 'Chưa có báo cáo sự cố.')}</div></div>
+            <div class="card"><div class="card-header"><span class="card-title">Sự cố đã gửi</span></div><div class="card-body">${incidents.length ? incidents.map(i => this.renderIncidentCard(i)).join('') : this.renderEmptyState(this.iconAlert(), 'Tài khoản chưa từng báo cáo sự cố.')}</div></div>
+        `;
+    },
+
+    renderImagePreviewModal(url) {
+        return `
+            <div class="image-preview-overlay show" id="image-preview-modal" onclick="this.remove()">
+                <div class="image-preview-content" onclick="event.stopPropagation()">
+                    <button class="image-preview-close" onclick="document.getElementById('image-preview-modal').remove()">&times;</button>
+                    <img src="${DriverUtils.escapeAttr(url)}" alt="Preview">
+                </div>
+            </div>
         `;
     }
 };

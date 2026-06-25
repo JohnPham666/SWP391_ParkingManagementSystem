@@ -23,6 +23,9 @@ public class SessionResponse {
     private String entryGate;
     private String exitGate;
 
+    private String entryImage;
+    private String exitImage;
+
     private String status;
 
     private BigDecimal estimatedFee;
@@ -33,5 +36,11 @@ public class SessionResponse {
     
     private String customerName;
     private String customerPhone;
+
+    /**
+     * true nếu xe có vé tháng đang còn hiệu lực.
+     * Khi có vé tháng, phí gửi xe sẽ = 0 đồng lúc check-out.
+     */
+    private Boolean hasActiveSubscription;
     //====
 }

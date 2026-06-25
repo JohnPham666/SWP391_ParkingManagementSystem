@@ -14,6 +14,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class IncidentService {
 
     private final IncidentReportRepository incidentReportRepository;

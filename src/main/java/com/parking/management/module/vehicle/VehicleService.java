@@ -18,13 +18,13 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.access.AccessDeniedException;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class VehicleService {
 
     private final VehicleRepository vehicleRepository;
@@ -339,6 +339,13 @@ public class VehicleService {
                 && vehicleRepository.existsByChassisNumberAndVehicleIdNot(request.getChassisNumber(), id)) {
             throw new IllegalArgumentException("Chassis number already exists");
         }
+    }
+
+    public VehicleResponse approveVehicle(Integer id, boolean isApproved) {
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+        vehicle.setStatus(isApproved ? "APPROVED" : "REJECTED");
+        return VehicleResponse.fromEntity(vehicleRepository.save(vehicle));
     }
 
 }

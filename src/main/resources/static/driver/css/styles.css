@@ -456,6 +456,7 @@ textarea { resize: vertical; }
 @media (min-width: 900px) {
   .app-main { max-width: 1380px; margin: 0 auto; }
 }
+}
 @media (max-width: 640px) {
   .dashboard-hero-card { flex-direction: column; align-items: flex-start; }
   .dashboard-hero-actions, .dashboard-hero-actions .btn { width: 100%; }
@@ -464,4 +465,100 @@ textarea { resize: vertical; }
   .modal-footer .btn { width: 100%; }
   .toast-container { left: 12px; right: 12px; top: 12px; }
   .toast { min-width: 0; width: 100%; }
+}
+
+/* ===== VEHICLE IMAGE PREVIEW ===== */
+.vehicle-images-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .vehicle-images-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.card-image-preview {
+    width: 100%;
+    height: 200px;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    padding: 4px;
+    background-color: var(--bg-color, #f9fafb);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-image-preview:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.image-preview-placeholder {
+    width: 100%;
+    height: 200px;
+    border-radius: 8px;
+    border: 1px dashed var(--border-color, #e5e7eb);
+    background-color: var(--bg-color, #f9fafb);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted, #6b7280);
+    font-style: italic;
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 16px;
+}
+
+/* ===== IMAGE PREVIEW MODAL ===== */
+.image-preview-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.image-preview-overlay.show {
+    opacity: 1;
+}
+
+.image-preview-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+}
+
+.image-preview-content img {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    object-fit: contain;
+}
+
+.image-preview-close {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 32px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
 }

@@ -29,6 +29,23 @@ const Pages = {
         }
     },
 
+    showImagePreview(url) {
+        if (!url) return;
+        const existing = document.getElementById('image-preview-modal');
+        if (existing) existing.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', DriverRender.renderImagePreviewModal(url));
+        
+        const escListener = (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('image-preview-modal');
+                if (modal) modal.remove();
+                document.removeEventListener('keydown', escListener);
+            }
+        };
+        document.addEventListener('keydown', escListener);
+    },
+
     // ===============================
     // Block: Trang Chủ (Dashboard)
     // ===============================
@@ -505,12 +522,23 @@ const Pages = {
         const v = DriverState.vehicles.find(x => x.vehicleId === vehicleId);
         if(!v) return;
         
-        let imgHtml = '';
+        let imagesHtml = '<div class="vehicle-images-grid">';
+        
+        imagesHtml += `<div><label style="display:block; margin-bottom: 8px; font-weight: 600; font-size: .85rem; color: var(--text-secondary);">Hình ảnh xe</label>`;
         if (v.vehicleImage) {
-            imgHtml = `<div class="list-item"><div class="list-info"><h4>Hình ảnh xe</h4><div style="margin-top: 8px;"><img src="${DriverUtils.escapeAttr(v.vehicleImage)}" style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border-color);" alt="Hình ảnh xe"></div></div></div>`;
+            imagesHtml += `<img src="${DriverUtils.escapeAttr(v.vehicleImage)}" class="card-image-preview" onclick="window.Pages.showImagePreview('${DriverUtils.escapeAttr(v.vehicleImage)}')" alt="Hình ảnh xe">`;
         } else {
-            imgHtml = DriverRender.renderInfoRow('Hình ảnh xe', 'Chưa có thông tin');
+            imagesHtml += `<div class="image-preview-placeholder">Chưa có hình ảnh xe</div>`;
         }
+        imagesHtml += `</div>`;
+
+        imagesHtml += `<div><label style="display:block; margin-bottom: 8px; font-weight: 600; font-size: .85rem; color: var(--text-secondary);">Hình ảnh cà vẹt xe</label>`;
+        if (v.registrationPhoto) {
+            imagesHtml += `<img src="${DriverUtils.escapeAttr(v.registrationPhoto)}" class="card-image-preview" onclick="window.Pages.showImagePreview('${DriverUtils.escapeAttr(v.registrationPhoto)}')" alt="Cà vẹt xe">`;
+        } else {
+            imagesHtml += `<div class="image-preview-placeholder">Chưa có hình ảnh cà vẹt xe</div>`;
+        }
+        imagesHtml += `</div></div>`;
 
         this.openModal(`
             <div class="modal-header">
@@ -530,7 +558,9 @@ const Pages = {
                         ${DriverRender.renderInfoRow('Số máy', v.engineNumber || 'Chưa có thông tin')}
                         ${DriverRender.renderInfoRow('Số khung', v.chassisNumber || 'Chưa có thông tin')}
                         ${DriverRender.renderInfoRow('Năm sản xuất', v.manufactureYear || 'Chưa có thông tin')}
-                        ${imgHtml}
+                        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                            ${imagesHtml}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -565,7 +595,11 @@ const Pages = {
         const fullName = u.fullname || u.fullName || '';
         const email = u.email || '';
         const phone = u.phonenumber || u.phoneNumber || '';
-        const dob = u.dateofbirth || u.dateOfBirth || '';
+        let dob = u.dateofbirth || u.dateOfBirth || '';
+        if (dob && dob.length >= 10) {
+            const parts = dob.substring(0, 10).split('-');
+            if (parts.length === 3) dob = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
         const address = u.address || '';
         const role = u.roleName || u.role || u.rolename || 'Driver';
         let status = u.status !== undefined ? u.status : (u.isActive !== undefined ? u.isActive : (u.isactive !== undefined ? u.isactive : '-'));
@@ -583,8 +617,10 @@ const Pages = {
         const email = u.email || '';
         const phone = u.phonenumber || u.phoneNumber || '';
         const address = u.address || '';
+        let dob = u.dateOfBirth || u.dateofbirth || u.dob || '';
+        if (dob && dob.length >= 10) dob = dob.substring(0, 10);
 
-        this.openModal(DriverRender.renderEditProfileModal(fullName, email, phone, address));
+        this.openModal(DriverRender.renderEditProfileModal(fullName, email, phone, address, dob));
     },
 
     async submitEditProfile(event) {
@@ -595,10 +631,27 @@ const Pages = {
         btn.innerHTML = '<div class="btn-loader"></div>';
         err.classList.add('hidden');
 
+        const dobValue = document.getElementById('edit-profile-dob').value;
+
+        if (dobValue) {
+            const selectedDate = new Date(dobValue);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (selectedDate > today) {
+                btn.disabled = false;
+                btn.innerHTML = 'Lưu thay đổi';
+                err.classList.remove('hidden');
+                err.textContent = 'Ngày sinh không hợp lệ.';
+                return;
+            }
+        }
+
         const payload = {
             fullName: document.getElementById('edit-profile-name').value,
             phoneNumber: document.getElementById('edit-profile-phone').value,
-            address: document.getElementById('edit-profile-address').value
+            address: document.getElementById('edit-profile-address').value,
+            email: document.getElementById('edit-profile-email').value,
+            dateOfBirth: dobValue || null
         };
 
         const res = await window.Api.updateMyProfile(payload);
@@ -676,7 +729,34 @@ const Pages = {
 
 
     async payment(container) {
-        container.innerHTML = DriverRender.renderPaymentPage();
+        container.innerHTML = DriverRender.renderLoadingState();
+        
+        // Thay thế GET /api/payments bằng GET /api/reservations do lỗi 403 Access Denied
+        const res = await window.Api.getReservations();
+        
+        if (!res.success) {
+            container.innerHTML = `<div class="page-header"><h2>Thanh toán</h2><p>Danh sách thanh toán.</p></div>` + 
+                `<div class="card"><div class="card-body">` + 
+                DriverRender.renderEmptyState(`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>`, 'Hiện không có yêu cầu thanh toán.') + 
+                `</div></div>`;
+            return;
+        }
+
+        const reservations = res.data || [];
+        const currentUserId = window.Api?.user?.userId || window.Api?.user?.id;
+        
+        // Trích xuất dữ liệu thanh toán từ thông tin đặt chỗ của Driver hiện tại
+        const payments = reservations
+            .filter(r => currentUserId ? (r.userId == currentUserId) : true)
+            .map(r => ({
+                paymentId: r.paymentId || r.reservationId,
+                paymentMethod: 'Thanh toán đỗ xe',
+                amount: r.amount || r.estimatedFee,
+                paymentStatus: r.paymentStatus || r.status,
+                paymentTime: r.createdAt
+            }));
+
+        container.innerHTML = DriverRender.renderPaymentPage(payments);
     },
 
     async createVnPayUrl(paymentId) {
@@ -690,7 +770,15 @@ const Pages = {
 
     async pricing(container) {
         container.innerHTML = DriverRender.renderLoadingState();
-        const res = await window.Api.request('/api/pricings');
+        
+        if (!DriverState.vehicleTypes || DriverState.vehicleTypes.length === 0) {
+            const vtRes = await window.Api.getVehicleTypes();
+            if (vtRes.success) {
+                DriverState.vehicleTypes = vtRes.data || [];
+            }
+        }
+
+        const res = await window.Api.getPricingPolicies();
         
         if (!res.success) {
             container.innerHTML = `<div class="page-header"><h2>Chính sách giá</h2></div>` + DriverRender.renderEmptyState(DriverRender.iconTag(), res.message);
@@ -699,11 +787,48 @@ const Pages = {
 
         const policies = res.data || [];
         
+        const now = new Date();
+        policies.forEach(p => {
+            if (p.vehicleTypeId) {
+                const vt = DriverState.vehicleTypes.find(v => v.vehicleTypeId === p.vehicleTypeId || v.id === p.vehicleTypeId);
+                p.vehicleTypeName = vt ? (vt.typeName || vt.name) : `Loại xe ${p.vehicleTypeId}`;
+            }
+
+            if (p.effectiveTo && new Date(p.effectiveTo) < now) {
+                p.computedStatus = 'Hết hiệu lực';
+                p.computedStatusClass = 'badge-danger';
+            } else if (p.effectiveFrom && new Date(p.effectiveFrom) > now) {
+                p.computedStatus = 'Sắp áp dụng';
+                p.computedStatusClass = 'badge-warning';
+            } else {
+                p.computedStatus = 'Hoạt động';
+                p.computedStatusClass = 'badge-success';
+            }
+        });
+        
         container.innerHTML = DriverRender.renderPricingPage(policies);
     },
 
     async history(container) {
-        container.innerHTML = DriverRender.renderHistoryPage();
+        container.innerHTML = DriverRender.renderLoadingState();
+        const res = await window.Api.getReservations();
+        
+        if (!res.success) {
+            container.innerHTML = `<div class="page-header"><h2>Lịch sử gửi xe</h2><p>Lịch sử gửi xe.</p></div>` + 
+                `<div class="card"><div class="card-body">` + 
+                DriverRender.renderEmptyState(DriverRender.iconReceipt(), 'Tài khoản chưa từng sử dụng dịch vụ.') + 
+                `</div></div>`;
+            return;
+        }
+
+        const reservations = res.data || [];
+        const currentUserId = window.Api?.user?.userId || window.Api?.user?.id;
+        
+        const historyData = reservations
+            .filter(r => currentUserId ? (r.userId == currentUserId) : true)
+            .sort((a, b) => new Date(b.createdAt || b.reservationStart) - new Date(a.createdAt || a.reservationStart));
+
+        container.innerHTML = DriverRender.renderHistoryPage(historyData);
     },
 
     // ===============================
@@ -719,7 +844,12 @@ const Pages = {
             return;
         }
         
-        DriverState.incidents = res.data || [];
+        const allIncidents = res.data || [];
+        const u = App.state.user || window.Api?.user || {};
+        const currentUserId = u.userId || u.id || u.userid;
+        
+        // Strict filter to only show current user's incidents, never fallback to true
+        DriverState.incidents = allIncidents.filter(i => currentUserId && i.reportedById == currentUserId);
         
         container.innerHTML = DriverRender.renderIncidentPage(DriverState.incidents);
     },

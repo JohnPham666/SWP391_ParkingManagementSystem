@@ -91,7 +91,8 @@ const Api = {
 
     // Vehicles
     getVehicles() { return this.request('GET', '/vehicles'); },
-    getVehicle(id) { return this.request('GET', '/vehicles/' + id); },
+    getVehicleTypes() { return this.request('GET', '/vehicles/types'); },
+    approveVehicle(id, isApproved) { return this.request('PUT', `/vehicles/${id}/approve?isApproved=${isApproved}`); },
     createVehicle(data) { return this.request('POST', '/vehicles', data); },
     updateVehicle(id, data) { return this.request('PUT', '/vehicles/' + id, data); },
     deleteVehicle(id) { return this.request('DELETE', '/vehicles/' + id); },
@@ -105,7 +106,7 @@ const Api = {
     cancelReservation(id) { return this.request('DELETE', '/reservations/' + id); },
 
     // Payments
-    getPayments(page = 0, size = 10) { return this.request('GET', '/payments/page?page=' + page + '&size=' + size); },
+    getPayments() { return this.request('GET', '/payments'); },
     getPayment(id) { return this.request('GET', '/payments/' + id); },
     createPayment(data) { return this.request('POST', '/payments', data); },
     confirmCash(id) { return this.request('PUT', '/payments/' + id + '/confirm-cash'); },
@@ -149,10 +150,22 @@ const Api = {
 
     // Buildings
     getBuildings() { return this.request('GET', '/buildings'); },
+    getBuilding(id) { return this.request('GET', '/buildings/' + id); },
+    createBuilding(data) { return this.request('POST', '/buildings', data); },
+    updateBuilding(id, data) { return this.request('PUT', '/buildings/' + id, data); },
+    deleteBuilding(id) { return this.request('DELETE', '/buildings/' + id); },
 
     // Floors
     getFloors(buildingId) { return this.request('GET', '/floors' + (buildingId ? '?buildingId=' + buildingId : '')); },
+    getFloor(id) { return this.request('GET', '/floors/' + id); },
+    createFloor(data) { return this.request('POST', '/floors', data); },
+    updateFloor(id, data) { return this.request('PUT', '/floors/' + id, data); },
+    deleteFloor(id) { return this.request('DELETE', '/floors/' + id); },
 
     // Zones
     getZones(floorId) { return this.request('GET', '/zones' + (floorId ? '?floorId=' + floorId : '')); },
+    getZone(id) { return this.request('GET', '/zones/' + id); },
+    createZone(data) { return this.request('POST', '/zones', data); },
+    updateZone(id, data) { return this.request('PUT', '/zones/' + id, data); },
+    deleteZone(id) { return this.request('DELETE', '/zones/' + id); },
 };

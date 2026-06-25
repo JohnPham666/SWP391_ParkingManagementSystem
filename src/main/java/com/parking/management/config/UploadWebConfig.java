@@ -11,5 +11,7 @@ public class UploadWebConfig implements WebMvcConfigurer {
     public void addResourceHandlers(@org.springframework.lang.NonNull ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/uploads/vehicles/**")
                 .addResourceLocations("file:uploads/vehicles/");
+        registry.addResourceHandler("/uploads/sessions/**")
+                .addResourceLocations("file:uploads/sessions/");
     }
 }

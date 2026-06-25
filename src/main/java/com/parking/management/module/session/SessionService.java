@@ -23,9 +23,17 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.multipart.MultipartFile;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class SessionService {
     private final ParkingSessionRepository parkingSessionRepository;
     private final ReservationRepository reservationRepository;
@@ -36,6 +44,9 @@ public class SessionService {
     private final ParkingCardRepository parkingCardRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final SecurityUtils securityUtils;
+
+    @Value("${file.upload-dir.sessions:uploads/sessions}")
+    private String uploadDir;
 
     /*
      * CHECK-IN
@@ -166,7 +177,7 @@ public class SessionService {
         }
         parkingSlotRepository.save(slot);
 
-        // 5. Tạo ParkingSession
+        // 6. Tạo ParkingSession
         ParkingSession session = new ParkingSession();
         session.setVehicle(vehicle);
         session.setSlot(slot);
@@ -187,6 +198,7 @@ public class SessionService {
 
         return mapEntityToResponse(savedSession);
     }
+
     /*
      * CHECK-OUT
      *
@@ -194,10 +206,8 @@ public class SessionService {
      * 1. Nhận sessionId
      * 2. Tìm ParkingSession
      * 3. Kiểm tra session đang PARKING
-     * 4. Set ExitTime
-     * 5. Tính FinalFee
-     * 6. Đổi session PARKING -> COMPLETED
-     * 7. Đổi slot OCCUPIED -> AVAILABLE
+     * 4. Tính FinalFee (kiểm tra vé tháng → reservation → walk-in)
+     * 5. Gọi completeSessionAndFreeSlot() để hoàn tất
      */
     @Transactional
     public SessionResponse checkOut(Integer sessionId, CheckOutRequest request) {
@@ -217,10 +227,8 @@ public class SessionService {
         }
 
         LocalDateTime exitTime = LocalDateTime.now();
-
         session.setExitTime(exitTime);
         session.setExitGate(request.getExitGate());
-
         Long vehicleTypeId = Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId());
 
         // Kiểm tra xem session này có reservation đi kèm không
@@ -322,33 +330,55 @@ public class SessionService {
         return mapEntityToResponse(updatedSession);
     }
 
-    /*
-     * Hoàn tất phiên đỗ xe (Được gọi sau khi thanh toán thành công)
+    // ============================================================
+    // HELPER: Hoàn tất session và giải phóng slot
+    // ============================================================
+
+    /**
+     * Hoàn tất 1 ParkingSession và giải phóng slot tương ứng.
+     *
+     * Method này được thiết kế IDEMPOTENT (gọi nhiều lần không gây lỗi):
+     * - Nếu session đã COMPLETED rồi → return luôn, không làm gì thêm.
+     * - Nhờ vậy, dù PaymentService hay SessionService gọi, slot chỉ bị
+     *   giảm occupancy đúng 1 lần.
+     *
+     * @param sessionId   ID của ParkingSession cần hoàn tất
      */
     @Transactional
     public void completeSession(Integer sessionId) {
         ParkingSession session = parkingSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
-        
+
+        // --- IDEMPOTENT CHECK ---
+        // Nếu session đã COMPLETED rồi thì không làm gì nữa.
+        if (SessionStatus.COMPLETED.name().equals(session.getStatus())) {
+            return;
+        }
+
         session.setStatus(SessionStatus.COMPLETED.name());
-        
+
+        // 2. Trả lại ParkingCard (nếu có) về trạng thái ACTIVE
         if (session.getCard() != null) {
             ParkingCard card = session.getCard();
             card.setStatus("ACTIVE");
             parkingCardRepository.save(card);
         }
 
+        // 3. Giảm occupancy của slot và cập nhật trạng thái
         ParkingSlot slot = session.getSlot();
         if (slot != null) {
             int newOcc = slot.getCurrentOccupancy() - 1;
             if (newOcc < 0) newOcc = 0;
             slot.setCurrentOccupancy(newOcc);
+            
+            // Nếu slot còn chỗ trống → đổi về AVAILABLE
             if (slot.getCurrentOccupancy() < slot.getCapacity()) {
                 slot.setStatus(SlotStatus.AVAILABLE);
             }
             parkingSlotRepository.save(slot);
         }
-        
+
+        // 4. Lưu session đã cập nhật
         parkingSessionRepository.save(session);
     }
 
@@ -405,6 +435,45 @@ public class SessionService {
         return mapEntityToResponse(session);
     }
 
+    public SessionResponse uploadSessionImage(Integer sessionId, MultipartFile file, String type) {
+        ParkingSession session = parkingSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + sessionId));
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Image file is required");
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+
+        String prefix = "exit".equalsIgnoreCase(type) ? "exit_" : "entry_";
+        String fileName = prefix + sessionId + "_" + UUID.randomUUID() + extension;
+
+        try {
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+            Path filePath = uploadPath.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            String imageUrl = "/uploads/sessions/" + fileName;
+            
+            if ("exit".equalsIgnoreCase(type)) {
+                session.setExitImage(imageUrl);
+            } else {
+                session.setEntryImage(imageUrl);
+            }
+
+            return mapEntityToResponse(parkingSessionRepository.save(session));
+        } catch (Exception e) {
+            throw new RuntimeException("Could not upload image: " + e.getMessage());
+        }
+    }
+
     // SUPPORTIVE FUNCTION: map entity to response
     private SessionResponse mapEntityToResponse(ParkingSession session) {
         SessionResponse response = new SessionResponse();
@@ -439,9 +508,21 @@ public class SessionService {
         response.setExitTime(session.getExitTime());
         response.setEntryGate(session.getEntryGate());
         response.setExitGate(session.getExitGate());
+        response.setEntryImage(session.getEntryImage());
+        response.setExitImage(session.getExitImage());
         response.setStatus(session.getStatus());
         response.setEstimatedFee(session.getEstimatedFee());
         response.setFinalFee(session.getFinalFee());
+
+        // Kiểm tra vé tháng (Monthly Subscription)
+        // Giúp staff/driver biết ngay lúc check-in rằng xe có vé tháng
+        if (session.getVehicle() != null) {
+            List<MonthlySubscription> activeSubs = subscriptionRepository
+                    .findActiveSubscriptionsByVehicleId(session.getVehicle().getVehicleId());
+            response.setHasActiveSubscription(!activeSubs.isEmpty());
+        } else {
+            response.setHasActiveSubscription(false);
+        }
 
         return response;
     }

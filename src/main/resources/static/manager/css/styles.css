@@ -276,3 +276,59 @@ tbody tr:hover { background: var(--bg-hover); }
   .page-content { padding: 16px; }
   .topbar { padding: 0 16px; }
 }
+
+/* ===== NEW DASHBOARD STYLES ===== */
+.premium-card {
+    background: #fff;
+    border: none !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+}
+
+.stat-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.stat-content h3 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #1e293b;
+    margin: 0;
+}
+
+.stat-content p {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 4px 0 8px 0;
+}
+
+.stat-trend {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #f8fafc;
+}
+
+.scrollable-slots::-webkit-scrollbar {
+    width: 6px;
+}
+.scrollable-slots::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 4px;
+}
+.scrollable-slots::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr !important;
+    }
+}

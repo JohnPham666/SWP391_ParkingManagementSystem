@@ -51,7 +51,8 @@ public class SecurityConfig {
                                 "/css/**",
                                 "/js/**",
                                 "/images/**",
-                                "/assets/**"
+                                "/assets/**",
+                                "/uploads/**"
                         ).permitAll()
 
                         // Driver, Staff, Manager, Admin đều được tạo/báo incident

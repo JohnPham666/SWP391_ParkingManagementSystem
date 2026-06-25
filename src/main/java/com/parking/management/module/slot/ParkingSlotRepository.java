@@ -1,10 +1,12 @@
 package com.parking.management.module.slot;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,8 +16,13 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
     /**
      * Tìm slot trống đầu tiên phù hợp với loại xe.
      * Kiểm tra ĐỒNG THỜI: status = AVAILABLE, isActive = true, VÀ currentOccupancy < capacity.
-     * Tránh lỗi: slot AVAILABLE nhưng thực tế đã đầy do race condition.
+     *
+     * @Lock(PESSIMISTIC_WRITE) = SELECT ... FOR UPDATE trong PostgreSQL.
+     * Mục đích: Khóa row được chọn để tránh 2 request walk-in đồng thời
+     *           cùng lấy 1 slot → race condition.
+     * Row sẽ được mở khóa khi transaction kết thúc (commit hoặc rollback).
      */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM ParkingSlot s WHERE s.vehicleType.vehicleTypeId = :vehicleTypeId " +
            "AND s.status = com.parking.management.module.slot.SlotStatus.AVAILABLE " +
            "AND s.isActive = true " +
