@@ -293,44 +293,33 @@ const Pages = {
                 </button>
             </div>
 
-            <!-- ===== STAT CARDS ===== -->
-            <div class="dash-stats">
-                <div class="dash-stat total">
-                    <div class="stat-icon-v2"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 9h22M9 21V9"/><rect x="1" y="3" width="22" height="18" rx="2"/></svg></div>
-                    <div class="stat-content"><h4>${sum.totalCapacity}</h4><p>Tổng sức chứa</p></div>
-                </div>
-                <div class="dash-stat available">
-                    <div class="stat-icon-v2"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg></div>
-                    <div class="stat-content"><h4>${sum.availableCapacity}</h4><p>Chỗ trống</p></div>
-                </div>
-                <div class="dash-stat occupied">
-                    <div class="stat-icon-v2"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 16H9m10 0h3v-3.15a1 1 0 00-.84-.99L16 11l-2.7-3.6a1 1 0 00-.8-.4H5.24a2 2 0 00-1.8 1.1l-.8 1.63A6 6 0 002 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg></div>
-                    <div class="stat-content"><h4>${sum.currentOccupancy}</h4><p>Đang đỗ</p></div>
-                </div>
-                <div class="dash-stat reserved">
-                    <div class="stat-icon-v2"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
-                    <div class="stat-content"><h4>${sum.reservedSlots}</h4><p>Đã đặt trước</p></div>
-                </div>
-            </div>
-
-            <!-- ===== OCCUPANCY GAUGE ===== -->
-            <div class="dash-occupancy-card">
-                <div class="occupancy-gauge">
-                    <svg viewBox="0 0 120 120">
-                        <circle class="gauge-bg" cx="60" cy="60" r="46"/>
-                        <circle class="gauge-fill" cx="60" cy="60" r="46" stroke="${gaugeColor}" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"/>
+            <!-- ===== COMPREHENSIVE OCCUPANCY CARD ===== -->
+            <div class="dash-occupancy-card" style="margin-top: 10px;">
+                <div class="occupancy-gauge" style="width: 160px; height: 160px;">
+                    <svg viewBox="0 0 160 160" style="width: 160px; height: 160px;">
+                        <circle class="gauge-bg" cx="80" cy="80" r="64" stroke-width="12"/>
+                        <circle class="gauge-fill" cx="80" cy="80" r="64" stroke-width="12" stroke="${gaugeColor}" stroke-dasharray="${2 * Math.PI * 64}" stroke-dashoffset="${(2 * Math.PI * 64) - (rate / 100) * (2 * Math.PI * 64)}"/>
                     </svg>
                     <div class="gauge-text">
-                        <span class="gauge-percent">${rate.toFixed(1)}%</span>
-                        <span class="gauge-label">Lấp đầy</span>
+                        <span class="gauge-percent" style="font-size: 2rem;">${rate.toFixed(1)}%</span>
+                        <span class="gauge-label" style="font-size: 0.85rem;">Tỷ lệ lấp đầy</span>
                     </div>
                 </div>
                 <div class="occupancy-details">
-                    <h3>Tình trạng bãi xe</h3>
-                    <div class="occupancy-detail-row"><div class="occupancy-dot green"></div><span>Chỗ trống</span><strong>${sum.availableCapacity}</strong></div>
-                    <div class="occupancy-detail-row"><div class="occupancy-dot orange"></div><span>Đang đỗ</span><strong>${sum.currentOccupancy}</strong></div>
-                    <div class="occupancy-detail-row"><div class="occupancy-dot yellow"></div><span>Đã đặt trước</span><strong>${sum.reservedSlots}</strong></div>
-                    <div class="occupancy-detail-row"><div class="occupancy-dot gray"></div><span>Còn trống (chưa đặt)</span><strong>${unusedSlots > 0 ? unusedSlots : 0}</strong></div>
+                    <h3 style="font-size: 1.2rem; margin-bottom: 16px;">Tỷ lệ lấp đầy & Hiện trạng bãi xe</h3>
+                    
+                    <div class="occupancy-detail-row" style="background: rgba(14,165,233,.08); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; border: 1px solid rgba(14,165,233,.2);">
+                        <div class="occupancy-dot" style="background:#0ea5e9; width: 12px; height: 12px;"></div>
+                        <span style="font-weight:700; color:var(--text-primary); font-size: 0.95rem;">Tổng số chỗ (Sức chứa)</span>
+                        <strong style="color:#0ea5e9; font-size:1.3rem;">${sum.totalCapacity}</strong>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="occupancy-detail-row" style="background: var(--bg-page); border-radius: 6px; padding: 10px 14px;"><div class="occupancy-dot green"></div><span style="font-weight:600;">Chỗ trống</span><strong style="font-size:1.1rem;">${sum.availableCapacity}</strong></div>
+                        <div class="occupancy-detail-row" style="background: var(--bg-page); border-radius: 6px; padding: 10px 14px;"><div class="occupancy-dot orange"></div><span style="font-weight:600;">Đang đỗ</span><strong style="font-size:1.1rem;">${sum.currentOccupancy}</strong></div>
+                        <div class="occupancy-detail-row" style="background: var(--bg-page); border-radius: 6px; padding: 10px 14px;"><div class="occupancy-dot yellow"></div><span style="font-weight:600;">Đã đặt trước</span><strong style="font-size:1.1rem;">${sum.reservedSlots}</strong></div>
+                        <div class="occupancy-detail-row" style="background: var(--bg-page); border-radius: 6px; padding: 10px 14px;"><div class="occupancy-dot gray"></div><span style="font-weight:600;">Còn trống (chưa đặt)</span><strong style="font-size:1.1rem;">${unusedSlots > 0 ? unusedSlots : 0}</strong></div>
+                    </div>
                 </div>
             </div>
         `;
