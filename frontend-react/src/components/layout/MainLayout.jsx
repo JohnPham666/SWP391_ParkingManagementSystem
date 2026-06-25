@@ -64,17 +64,19 @@ const MainLayout = () => {
     { key: `${basePath}/logs`, icon: <FileTextOutlined />, label: 'System Logs', roles: ['Admin'] },
     
     // Shared Operational
-    { key: `${basePath}/sessions`, icon: <CarOutlined />, label: 'Parking Sessions', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
-    { key: `${basePath}/slots`, icon: <DashboardOutlined />, label: 'Parking Slots', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
-    { key: `${basePath}/vehicles`, icon: <CarOutlined />, label: 'Vehicles', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
-    { key: `${basePath}/reservations`, icon: <ProfileOutlined />, label: 'Reservations', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
-    { key: `${basePath}/payments`, icon: <ProfileOutlined />, label: 'Payments', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/sessions`, icon: <CarOutlined />, label: 'Parking Sessions', roles: ['ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/slots`, icon: <DashboardOutlined />, label: 'Parking Slots', roles: ['ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/vehicles`, icon: <CarOutlined />, label: 'Vehicles', roles: ['ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/reservations`, icon: <ProfileOutlined />, label: 'Reservations', roles: ['ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/payments`, icon: <ProfileOutlined />, label: 'Payments', roles: ['ParkingManager', 'ParkingStaff'] },
     { key: `${basePath}/incidents`, icon: <AlertOutlined />, label: 'Incidents', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
     
+    // Manager & Admin
+    { key: `${basePath}/buildings`, icon: <BuildOutlined />, label: 'Buildings', roles: ['Admin', 'ParkingManager'] },
+    { key: `${basePath}/pricing`, icon: <SettingOutlined />, label: 'Pricing Policies', roles: ['Admin', 'ParkingManager'] },
+
     // Manager only
     { key: `${basePath}/subscriptions`, icon: <ProfileOutlined />, label: 'Subscriptions', roles: ['ParkingManager'] },
-    { key: `${basePath}/buildings`, icon: <BuildOutlined />, label: 'Buildings', roles: ['ParkingManager'] },
-    { key: `${basePath}/pricing`, icon: <SettingOutlined />, label: 'Pricing Policies', roles: ['ParkingManager'] },
     { key: `${basePath}/reports`, icon: <BarChartOutlined />, label: 'Reports', roles: ['ParkingManager'] },
   ];
 

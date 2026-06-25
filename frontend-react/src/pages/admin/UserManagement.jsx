@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Switch, Popconfirm } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Switch, Popconfirm, Drawer, Descriptions, Avatar } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UserOutlined, StopOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { userApi, roleApi } from '../../services/api';
 
 const { Option } = Select;
@@ -11,6 +11,9 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   
   const [form] = Form.useForm();
 
@@ -65,7 +68,8 @@ const UserManagement = () => {
     setIsModalVisible(true);
   };
 
-  const handleEditUser = (user) => {
+  const handleEditUser = (user, e) => {
+    if(e) e.stopPropagation();
     setEditingUser(user);
     form.setFieldsValue({
       fullName: user.fullName,
@@ -74,6 +78,7 @@ const UserManagement = () => {
       roleId: user.roleId,
       isActive: user.isActive,
     });
+    setIsDrawerVisible(false);
     setIsModalVisible(true);
   };
 
@@ -96,11 +101,15 @@ const UserManagement = () => {
     });
   };
 
-  const handleToggleStatus = async (id, checked) => {
+  const handleToggleStatus = async (id, checked, e) => {
+    if(e) e.stopPropagation();
     try {
       await userApi.updateUserStatus(id, checked);
       message.success(`Account has been ${checked ? 'activated' : 'locked'}`);
       fetchUsers();
+      if (selectedUser && selectedUser.userId === id) {
+        setSelectedUser(prev => ({ ...prev, isActive: checked }));
+      }
     } catch (error) {
       message.error('Failed to update status');
     }
@@ -128,10 +137,19 @@ const UserManagement = () => {
       user.fullName?.toLowerCase().includes(filters.search.toLowerCase()) || 
       user.email?.toLowerCase().includes(filters.search.toLowerCase()) ||
       user.phoneNumber?.includes(filters.search);
-    const matchRole = !filters.roleId || user.roleId === filters.roleId;
+      
+    // Fix: roleId might be Number or String, or user might only have roleName. Let's compare safely.
+    const matchRole = !filters.roleId || 
+                      Number(user.roleId) === Number(filters.roleId) || 
+                      user.roleName === roles.find(r => r.roleId === filters.roleId)?.roleName;
+                      
     const matchStatus = filters.isActive === null || user.isActive === filters.isActive;
     return matchSearch && matchRole && matchStatus;
   });
+
+  const handleResetFilters = () => {
+    setFilters({ search: '', roleId: null, isActive: null });
+  };
 
   const columns = [
     {
@@ -164,26 +182,29 @@ const UserManagement = () => {
       title: 'Status',
       key: 'isActive',
       render: (_, record) => (
-        <Popconfirm
-          title={record.isActive ? "Are you sure you want to lock this account?" : "Are you sure you want to unlock this account?"}
-          onConfirm={() => handleToggleStatus(record.userId, !record.isActive)}
-          okText="Yes"
-          cancelText="No"
-        >
-          <Switch 
-            checked={record.isActive} 
-            checkedChildren="Active" 
-            unCheckedChildren="Locked"
-          />
-        </Popconfirm>
+        <div onClick={(e) => e.stopPropagation()}>
+          <Popconfirm
+            title={record.isActive ? "Lock this account?" : "Unlock this account?"}
+            onConfirm={(e) => handleToggleStatus(record.userId, !record.isActive, e)}
+            onCancel={(e) => e.stopPropagation()}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Switch 
+              checked={record.isActive} 
+              checkedChildren="Active" 
+              unCheckedChildren="Locked"
+            />
+          </Popconfirm>
+        </div>
       ),
     },
     {
       title: 'Actions',
       key: 'action',
       render: (_, record) => (
-        <Space size="middle">
-          <Button type="text" icon={<EditOutlined />} onClick={() => handleEditUser(record)} style={{ color: '#1890ff' }} />
+        <Space size="middle" onClick={(e) => e.stopPropagation()}>
+          <Button type="text" icon={<EditOutlined />} onClick={(e) => handleEditUser(record, e)} style={{ color: '#1890ff' }} />
           <Button type="text" icon={<DeleteOutlined />} onClick={() => handleDeleteUser(record.userId)} danger />
         </Space>
       ),
@@ -204,6 +225,7 @@ const UserManagement = () => {
         <Input 
           placeholder="Search name, email, phone..." 
           prefix={<SearchOutlined />} 
+          value={filters.search}
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           style={{ width: 250 }}
         />
@@ -211,6 +233,7 @@ const UserManagement = () => {
           placeholder="All Roles" 
           style={{ width: 150 }} 
           allowClear 
+          value={filters.roleId}
           onChange={(val) => setFilters({ ...filters, roleId: val })}
         >
           {roles.map(r => (
@@ -221,11 +244,13 @@ const UserManagement = () => {
           placeholder="All Statuses" 
           style={{ width: 160 }} 
           allowClear 
+          value={filters.isActive}
           onChange={(val) => setFilters({ ...filters, isActive: val })}
         >
           <Option value={true}>Active</Option>
           <Option value={false}>Locked</Option>
         </Select>
+        <Button onClick={handleResetFilters}>Reset Filters</Button>
       </Space>
 
       <Table 
@@ -235,7 +260,63 @@ const UserManagement = () => {
         loading={loading}
         pagination={{ pageSize: 10 }}
         scroll={{ x: 800 }}
+        onRow={(record) => ({
+          onClick: () => {
+            setSelectedUser(record);
+            setIsDrawerVisible(true);
+          },
+          style: { cursor: 'pointer' }
+        })}
       />
+
+      {/* DRAWER CHO USER DETAILS */}
+      <Drawer
+        title="User Profile"
+        width={400}
+        onClose={() => setIsDrawerVisible(false)}
+        open={isDrawerVisible}
+        extra={
+          <Space>
+            <Button icon={<EditOutlined />} onClick={() => handleEditUser(selectedUser)}>Edit</Button>
+            {selectedUser && (
+              <Popconfirm
+                title={selectedUser.isActive ? "Lock account?" : "Unlock account?"}
+                onConfirm={(e) => handleToggleStatus(selectedUser.userId, !selectedUser.isActive, e)}
+              >
+                <Button 
+                  danger={selectedUser.isActive} 
+                  type={!selectedUser.isActive ? "primary" : "default"}
+                  icon={selectedUser.isActive ? <StopOutlined /> : <CheckCircleOutlined />}
+                >
+                  {selectedUser.isActive ? 'Deactivate' : 'Activate'}
+                </Button>
+              </Popconfirm>
+            )}
+          </Space>
+        }
+      >
+        {selectedUser && (
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+            <Avatar size={80} icon={<UserOutlined />} style={{ backgroundColor: selectedUser.isActive ? '#87d068' : '#f56a00', marginBottom: 16 }} />
+            <br />
+            <Tag color={selectedUser.isActive ? 'success' : 'error'}>
+              {selectedUser.isActive ? 'ACTIVE' : 'LOCKED'}
+            </Tag>
+            
+            <Descriptions column={1} bordered size="small" style={{ marginTop: 24, textAlign: 'left' }}>
+              <Descriptions.Item label="Full Name"><strong>{selectedUser.fullName}</strong></Descriptions.Item>
+              <Descriptions.Item label="Email">{selectedUser.email}</Descriptions.Item>
+              <Descriptions.Item label="Phone">{selectedUser.phoneNumber || 'N/A'}</Descriptions.Item>
+              <Descriptions.Item label="Role">
+                <Tag color="blue">{selectedUser.roleName || 'Driver'}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Joined Date">
+                {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'}
+              </Descriptions.Item>
+            </Descriptions>
+          </div>
+        )}
+      </Drawer>
 
       <Modal
         title={editingUser ? "Edit User" : "Add New User"}

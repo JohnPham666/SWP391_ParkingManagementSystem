@@ -78,6 +78,8 @@ function App() {
             <Route path="reservations" element={<ReservationManagement />} />
             <Route path="payments" element={<PaymentManagement />} />
             <Route path="incidents" element={<AdminIncidents />} />
+            <Route path="buildings" element={<BuildingManagement />} />
+            <Route path="pricing" element={<PricingManagement />} />
           </Route>
 
           {/* Nhánh 4: Quản trị (Manager) */}
