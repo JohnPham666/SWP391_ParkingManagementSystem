@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap');
+
+/* Reset cơ bản */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  background-color: #f0f2f5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tùy chỉnh Carousel Ant Design cho Hero Section */
+.hero-carousel .slick-dots li button {
+  height: 8px !important;
+  border-radius: 4px !important;
+  background-color: rgba(234, 88, 12, 0.3) !important;
+}
+.hero-carousel .slick-dots li.slick-active button {
+  width: 24px !important;
+  background-color: #ea580c !important;
+}
