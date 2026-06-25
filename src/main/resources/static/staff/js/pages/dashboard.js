@@ -12,7 +12,8 @@ Pages.renderDashboard = async function(container) {
         const resReservations = await Api.getReservations();
         let pendingArrivals = 0;
         if (resReservations.success && resReservations.data) {
-            const todayStr = new Date().toISOString().split('T')[0];
+            const d = new Date();
+            const todayStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
             pendingArrivals = resReservations.data.filter(r => {
                 if (r.status !== 'CONFIRMED') return false;
                 const resDate = r.reservationStart ? r.reservationStart.split('T')[0] : '';

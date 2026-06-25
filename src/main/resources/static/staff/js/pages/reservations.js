@@ -1,11 +1,12 @@
-﻿    // ==========================================
+    // ==========================================
     // 4. �?T CH?: Qu?n l� y�u c?u d?t ch? tru?c c?a kh�ch h�ng (Driver)
     // ==========================================
 Pages.renderReservations = async function(container) {
         const res = await Api.getReservations();
         if (!res.success) return container.innerHTML = `<div class="empty-state"><p>${res.message}</p></div>`;
         const data = res.data || [];
-        const today = new Date().toISOString().split('T')[0];
+        const d = new Date();
+        const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 
         let html = `
             <div class="card">
