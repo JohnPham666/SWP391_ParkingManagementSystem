@@ -1,5 +1,6 @@
 export const vehicleStore = {
   vehicles: [],
   vehicleTypes: [],
-  selectedVehicle: null
+  selectedVehicle: null,
+  loading: false
 };
