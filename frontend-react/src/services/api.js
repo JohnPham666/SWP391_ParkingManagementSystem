@@ -143,6 +143,7 @@ export const pricingApi = {
 export const reportApi = {
   getRevenueSummary: (startDate, endDate) => api.get(`/reports/revenue-summary?startDate=${startDate}&endDate=${endDate}`),
   getOccupancyRate: () => api.get('/reports/occupancy-rate'),
+  getPredictions: () => api.get('/reports/predictions'),
 };
 
 export const monitoringApi = {
