@@ -159,11 +159,13 @@ const App = {
         document.getElementById('sidebar-user-role').textContent = user.role;
         document.getElementById('user-avatar').textContent = user.fullName.charAt(0).toUpperCase();
 
-        this.navigate('dashboard');
+        const savedPage = localStorage.getItem('staffCurrentPage') || 'dashboard';
+        this.navigate(savedPage);
     },
 
     navigate(page) {
         this.state.currentPage = page;
+        localStorage.setItem('staffCurrentPage', page);
         const titles = {
             'dashboard': 'Dashboard',
             'sessions': 'Quản lý phiên gửi xe',
@@ -1619,6 +1621,7 @@ const Pages = {
 };
 
 // Initialize App
+window.App = App;
 document.addEventListener('DOMContentLoaded', () => {
     App.init();
 });
