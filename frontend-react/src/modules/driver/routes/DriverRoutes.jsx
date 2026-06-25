@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import DriverLayout from '../layouts/DriverLayout';
 import DashboardPage from '../pages/DashboardPage';
 import ParkingPage from '../pages/ParkingPage';
@@ -15,6 +15,8 @@ const DriverRoutes = () => {
     return (
         <Routes>
             <Route element={<DriverLayout />}>
+                {/* Redirect /driver to /driver/dashboard */}
+                <Route path="/driver" element={<Navigate to="dashboard" replace />} />
                 <Route path="/driver/dashboard" element={<DashboardPage />} />
                 <Route path="/driver/parking" element={<ParkingPage />} />
                 <Route path="/driver/reservations" element={<ReservationPage />} />

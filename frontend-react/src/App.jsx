@@ -57,8 +57,12 @@ const PrivateRoute = ({ children, allowedRoles }) => {
       return <Navigate to="/login" replace />;
     }
     
-    // Check role
-    const role = auth.role.toUpperCase();
+    // Check role and normalize it by stripping 'ROLE_' prefix if it exists
+    let role = auth.role.toUpperCase();
+    if (role.startsWith('ROLE_')) {
+      role = role.substring(5);
+    }
+    
     if (allowedRoles && !allowedRoles.includes(role)) {
       // Redirect to their default dashboard
       const route = getDefaultRouteByRole(auth);
@@ -83,7 +87,7 @@ function App() {
 
           {/* New Driver Module Routes */}
           <Route path="/*" element={
-            <PrivateRoute allowedRoles={['ROLE_DRIVER']}>
+            <PrivateRoute allowedRoles={['DRIVER']}>
               <DriverRoutes />
             </PrivateRoute>
           } />
@@ -93,7 +97,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           
           {/* Nhánh 3: Quản trị (Admin) */}
-          <Route path="/admin" element={<PrivateRoute allowedRoles={['ROLE_ADMIN']}><MainLayout /></PrivateRoute>}>
+          <Route path="/admin" element={<PrivateRoute allowedRoles={['ADMIN']}><MainLayout /></PrivateRoute>}>
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="settings" element={<SystemSettings />} />
@@ -109,7 +113,7 @@ function App() {
           </Route>
 
           {/* Nhánh 4: Quản trị (Manager) */}
-          <Route path="/manager" element={<PrivateRoute allowedRoles={['ROLE_PARKING_MANAGER']}><MainLayout /></PrivateRoute>}>
+          <Route path="/manager" element={<PrivateRoute allowedRoles={['PARKING_MANAGER']}><MainLayout /></PrivateRoute>}>
             <Route index element={<ManagerDashboard />} />
             <Route path="sessions" element={<ManagerSessions />} />
             <Route path="slots" element={<SlotManagement />} />
@@ -124,7 +128,7 @@ function App() {
           </Route>
 
           {/* Nhánh 5: Quản trị (Staff) */}
-          <Route path="/staff" element={<PrivateRoute allowedRoles={['ROLE_PARKING_STAFF']}><MainLayout /></PrivateRoute>}>
+          <Route path="/staff" element={<PrivateRoute allowedRoles={['PARKING_STAFF']}><MainLayout /></PrivateRoute>}>
             <Route index element={<StaffDashboard />} />
             <Route path="sessions" element={<StaffSessions />} />
             <Route path="slots" element={<SlotManagement />} />

@@ -1,16 +1,19 @@
 export const getDefaultRouteByRole = (user) => {
   if (!user || !user.role) return '/login';
 
-  const role = user.role.toUpperCase();
+  let role = user.role.toUpperCase();
+  if (role.startsWith('ROLE_')) {
+    role = role.substring(5);
+  }
 
   switch (role) {
-    case 'ROLE_ADMIN':
+    case 'ADMIN':
       return '/admin';
-    case 'ROLE_PARKING_MANAGER':
+    case 'PARKING_MANAGER':
       return '/manager';
-    case 'ROLE_PARKING_STAFF':
+    case 'PARKING_STAFF':
       return '/staff';
-    case 'ROLE_DRIVER':
+    case 'DRIVER':
       return '/driver/dashboard';
     default:
       return '/';
