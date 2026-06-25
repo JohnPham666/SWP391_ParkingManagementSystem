@@ -123,9 +123,6 @@ const App = {
         document.querySelectorAll('.nav-item').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.preventDefault();
-                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-                e.currentTarget.classList.add('active');
-                
                 const page = e.currentTarget.dataset.page;
                 this.navigate(page);
                 
@@ -166,6 +163,16 @@ const App = {
     navigate(page) {
         this.state.currentPage = page;
         localStorage.setItem('staffCurrentPage', page);
+        
+        // Update sidebar active state
+        document.querySelectorAll('.nav-item').forEach(n => {
+            if (n.dataset.page === page) {
+                n.classList.add('active');
+            } else {
+                n.classList.remove('active');
+            }
+        });
+
         const titles = {
             'dashboard': 'Dashboard',
             'sessions': 'Quản lý phiên gửi xe',
