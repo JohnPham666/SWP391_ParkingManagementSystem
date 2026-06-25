@@ -520,6 +520,22 @@ const Pages = {
                 </div>
                 <div id="sessions-pagination" style="padding: 0 20px;"></div>
             </div>
+            
+            <!-- Session Detail Modal -->
+            <div id="session-detail-modal" class="modal-overlay hidden">
+                <div class="modal" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3>Chi tiết phiên gửi xe #<span id="sd-id"></span></h3>
+                        <button class="modal-close" onclick="document.getElementById('session-detail-modal').classList.add('hidden')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                    </div>
+                    <div class="modal-body" style="line-height: 1.8; font-size: 0.95rem;">
+                        <div id="sd-content">Đang tải...</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline" onclick="document.getElementById('session-detail-modal').classList.add('hidden')">Đóng</button>
+                    </div>
+                </div>
+            </div>
         `;
 
         container.innerHTML = html;
@@ -571,7 +587,7 @@ const Pages = {
                 }
                 tbodyHtml += `
                     <tr>
-                        <td>#${s.sessionId}</td>
+                        <td><a href="#" onclick="window.showSessionDetail(${s.sessionId}); return false;" style="color: var(--blue); font-weight: 700; text-decoration: none;">#${s.sessionId}</a></td>
                         <td style="font-weight:600">${s.licensePlate || '-'}</td>
                         <td>${s.slotCode || '-'}</td>
                         <td>${s.vehicleTypeName || '-'}</td>
@@ -603,6 +619,53 @@ const Pages = {
         document.getElementById('session-time-sort').addEventListener('change', () => { currentPage = 1; renderTableBody(); });
         
         renderTableBody();
+
+        window.showSessionDetail = async (id) => {
+            const modal = document.getElementById('session-detail-modal');
+            const content = document.getElementById('sd-content');
+            document.getElementById('sd-id').textContent = id;
+            content.innerHTML = '<div style="text-align:center; padding: 20px;">Đang tải dữ liệu...</div>';
+            modal.classList.remove('hidden');
+
+            const res = await Api.getSession(id);
+            if (!res.success) {
+                content.innerHTML = `<p style="color: var(--red);">${res.message || 'Lỗi tải dữ liệu'}</p>`;
+                return;
+            }
+            
+            const s = res.data;
+            
+            let statusBadge = '';
+            switch(s.status) {
+                case 'PARKING': statusBadge = '<span class="badge badge-blue">Đang đỗ</span>'; break;
+                case 'COMPLETED': statusBadge = '<span class="badge badge-green">Hoàn thành</span>'; break;
+                case 'UNPAID': statusBadge = '<span class="badge badge-yellow">Chưa thanh toán</span>'; break;
+                case 'LOST_TICKET': statusBadge = '<span class="badge badge-red">Mất vé</span>'; break;
+                default: statusBadge = `<span class="badge badge-gray">${s.status}</span>`;
+            }
+
+            content.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div><strong>Biển số xe:</strong> ${s.licensePlate || '-'}</div>
+                    <div><strong>Trạng thái:</strong> ${statusBadge}</div>
+                    
+                    <div><strong>Chỗ đỗ:</strong> ${s.slotCode || '-'}</div>
+                    <div><strong>Loại xe:</strong> ${s.vehicleTypeName || '-'}</div>
+                    
+                    <div><strong>Khách hàng:</strong> ${s.customerName || '-'}</div>
+                    <div><strong>Số điện thoại:</strong> ${s.customerPhone || '-'}</div>
+                    
+                    <div><strong>Giờ vào:</strong> ${s.entryTime ? new Date(s.entryTime).toLocaleString('vi-VN') : '-'}</div>
+                    <div><strong>Cổng vào:</strong> ${s.entryGate || '-'}</div>
+                    
+                    <div><strong>Giờ ra:</strong> ${s.exitTime ? new Date(s.exitTime).toLocaleString('vi-VN') : '-'}</div>
+                    <div><strong>Cổng ra:</strong> ${s.exitGate || '-'}</div>
+                    
+                    <div><strong>Phí dự kiến:</strong> <span style="color:var(--orange); font-weight:600;">${s.estimatedFee != null ? s.estimatedFee.toLocaleString('vi-VN') + ' đ' : '-'}</span></div>
+                    <div><strong>Phí thực tế:</strong> <span style="color:var(--green); font-weight:700;">${s.finalFee != null ? s.finalFee.toLocaleString('vi-VN') + ' đ' : '-'}</span></div>
+                </div>
+            `;
+        };
     },
 
     async renderSlots(container) {
