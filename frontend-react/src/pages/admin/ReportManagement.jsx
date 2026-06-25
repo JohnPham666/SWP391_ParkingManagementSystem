@@ -1,0 +1,147 @@
+import React, { useState, useEffect } from 'react';
+import { Card, Row, Col, Typography, DatePicker, Button, Statistic, message } from 'antd';
+import { DollarOutlined, CarOutlined } from '@ant-design/icons';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
+  LineChart, Line, AreaChart, Area, PieChart, Pie, Cell
+} from 'recharts';
+import { reportApi } from '../../services/api';
+import dayjs from 'dayjs';
+
+const { Title } = Typography;
+const { RangePicker } = DatePicker;
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#ea580c'];
+
+const ReportManagement = () => {
+  const [loading, setLoading] = useState(false);
+  const [dateRange, setDateRange] = useState([dayjs().subtract(7, 'days'), dayjs()]);
+  
+  // Dummy data for visualization until API returns actual data structure
+  const [revenueData, setRevenueData] = useState([
+    { date: '2023-11-14', revenue: 4000 },
+    { date: '2023-11-15', revenue: 3000 },
+    { date: '2023-11-16', revenue: 2000 },
+    { date: '2023-11-17', revenue: 2780 },
+    { date: '2023-11-18', revenue: 1890 },
+    { date: '2023-11-19', revenue: 2390 },
+    { date: '2023-11-20', revenue: 3490 },
+  ]);
+
+  const [occupancyData, setOccupancyData] = useState([
+    { name: 'Floor 1', value: 400 },
+    { name: 'Floor 2', value: 300 },
+    { name: 'Floor 3', value: 300 },
+    { name: 'VIP Zone', value: 200 },
+  ]);
+
+  useEffect(() => {
+    fetchReportData();
+  }, [dateRange]);
+
+  const fetchReportData = async () => {
+    setLoading(true);
+    try {
+      const start = dateRange[0].format('YYYY-MM-DD');
+      const end = dateRange[1].format('YYYY-MM-DD');
+      
+      // Fetch from API
+      // const revRes = await reportApi.getRevenueSummary(start, end);
+      // const occRes = await reportApi.getOccupancyRate();
+      
+      // If API returns success, map to state
+      // setRevenueData(revRes.data.data);
+      // setOccupancyData(occRes.data.data);
+      
+    } catch (error) {
+      // message.error('Failed to load report data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <Title level={3} style={{ margin: 0 }}>Statistical Reports</Title>
+        <RangePicker 
+          value={dateRange} 
+          onChange={dates => setDateRange(dates)} 
+          allowClear={false}
+        />
+      </div>
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} md={16}>
+          <Card title="Revenue Trend" loading={loading} style={{ height: '100%' }}>
+            <div style={{ height: 350 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ea580c" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <RechartsTooltip formatter={(value) => `${value.toLocaleString()} ₫`} />
+                  <Area type="monotone" dataKey="revenue" stroke="#ea580c" fillOpacity={1} fill="url(#colorRevenue)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} md={8}>
+          <Card title="Occupancy by Zone" loading={loading} style={{ height: '100%' }}>
+            <div style={{ height: 350, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={occupancyData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    paddingAngle={5}
+                    dataKey="value"
+                    label
+                  >
+                    {occupancyData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+        <Col span={24}>
+          <Card title="Daily Breakdown" loading={loading}>
+            <div style={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <RechartsTooltip formatter={(value) => `${value.toLocaleString()} ₫`} />
+                  <Legend />
+                  <Bar dataKey="revenue" fill="#1677ff" name="Revenue (VND)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </Col>
+      </Row>
+    </div>
+  );
+};
+
+export default ReportManagement;
