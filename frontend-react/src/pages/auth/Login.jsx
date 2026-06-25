@@ -3,6 +3,7 @@ import { Form, Input, Button, Typography, Checkbox, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { getDefaultRouteByRole } from '../../utils/authUtils';
 
 const { Title, Text } = Typography;
 
@@ -22,7 +23,15 @@ const Login = () => {
         message.success('Login successful!');
         const resData = response.data.data || response.data;
         localStorage.setItem('parking_auth', JSON.stringify(resData));
-        navigate('/admin');
+
+        const extractedRole = resData.role || 'UNKNOWN';
+        const route = getDefaultRouteByRole(resData);
+
+        console.log('LOGIN USER:', resData);
+        console.log('LOGIN ROLE:', extractedRole);
+        console.log('REDIRECT TO:', route);
+
+        navigate(route);
       } else {
         message.error(response.data.message || 'Login failed');
       }
