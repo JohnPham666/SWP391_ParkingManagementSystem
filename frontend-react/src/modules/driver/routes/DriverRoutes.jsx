@@ -1,0 +1,32 @@
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import DriverLayout from '../layouts/DriverLayout';
+import DashboardPage from '../pages/DashboardPage';
+import ParkingPage from '../pages/ParkingPage';
+import ReservationPage from '../pages/ReservationPage';
+import VehiclePage from '../pages/VehiclePage';
+import ProfilePage from '../pages/ProfilePage';
+import PaymentPage from '../pages/PaymentPage';
+import PricingPage from '../pages/PricingPage';
+import HistoryPage from '../pages/HistoryPage';
+import IncidentPage from '../pages/IncidentPage';
+
+const DriverRoutes = () => {
+    return (
+        <Routes>
+            <Route element={<DriverLayout />}>
+                <Route path="/driver/dashboard" element={<DashboardPage />} />
+                <Route path="/driver/parking" element={<ParkingPage />} />
+                <Route path="/driver/reservations" element={<ReservationPage />} />
+                <Route path="/driver/vehicles" element={<VehiclePage />} />
+                <Route path="/driver/profile" element={<ProfilePage />} />
+                <Route path="/driver/payments" element={<PaymentPage />} />
+                <Route path="/driver/pricing" element={<PricingPage />} />
+                <Route path="/driver/history" element={<HistoryPage />} />
+                <Route path="/driver/incidents" element={<IncidentPage />} />
+            </Route>
+        </Routes>
+    );
+};
+
+export default DriverRoutes;
