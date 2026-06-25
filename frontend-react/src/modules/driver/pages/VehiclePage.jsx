@@ -4,7 +4,6 @@ import { driverService } from '../services/driverService';
 import { vehicleStore } from '../store/vehicleStore';
 
 const VehiclePage = () => {
-    // UI states
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isViewModalVisible, setIsViewModalVisible] = useState(false);
     const [editingVehicle, setEditingVehicle] = useState(null);
@@ -25,10 +24,15 @@ const VehiclePage = () => {
                 driverService.loadVehicleTypes()
             ]);
             
-            vehicleStore.vehicles = vehiclesRes?.data || vehiclesRes || [];
-            vehicleStore.vehicleTypes = typesRes?.data || typesRes || [];
+            const vRes = vehiclesRes?.data || vehiclesRes;
+            vehicleStore.vehicles = Array.isArray(vRes) ? vRes : [];
+
+            const tRes = typesRes?.data || typesRes;
+            vehicleStore.vehicleTypes = Array.isArray(tRes) ? tRes : [];
         } catch (error) {
             message.error('Failed to load data');
+            vehicleStore.vehicles = [];
+            vehicleStore.vehicleTypes = [];
         } finally {
             vehicleStore.loading = false;
             forceRender();
@@ -154,11 +158,14 @@ const VehiclePage = () => {
         },
     ];
 
+    const safeVehicles = Array.isArray(vehicleStore.vehicles) ? vehicleStore.vehicles : [];
+    const safeVehicleTypes = Array.isArray(vehicleStore.vehicleTypes) ? vehicleStore.vehicleTypes : [];
+
     return (
         <Card title="My Vehicles" extra={<Button type="primary" onClick={handleAdd}>Register Vehicle</Button>}>
             <Table 
                 columns={columns} 
-                dataSource={vehicleStore.vehicles} 
+                dataSource={safeVehicles} 
                 rowKey={(record) => record.vehicleId || record.id || record.licensePlate} 
                 loading={vehicleStore.loading}
                 pagination={{ pageSize: 10 }}
@@ -186,7 +193,7 @@ const VehiclePage = () => {
                         rules={[{ required: true, message: 'Please select a vehicle type' }]}
                     >
                         <Select placeholder="Select a type">
-                            {vehicleStore.vehicleTypes.map(type => (
+                            {safeVehicleTypes.map(type => (
                                 <Select.Option key={type.vehicleTypeId || type.id} value={type.vehicleTypeId || type.id}>
                                     {type.name}
                                 </Select.Option>

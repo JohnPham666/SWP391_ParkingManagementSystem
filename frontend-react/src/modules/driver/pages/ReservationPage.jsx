@@ -25,11 +25,19 @@ const ReservationPage = () => {
                 driverService.loadSlots()
             ]);
 
-            reservationStore.reservations = reservationsRes?.data || reservationsRes || [];
-            vehicleStore.vehicles = vehiclesRes?.data || vehiclesRes || [];
-            parkingStore.slots = slotsRes?.data || slotsRes || [];
+            const rRes = reservationsRes?.data || reservationsRes;
+            reservationStore.reservations = Array.isArray(rRes) ? rRes : [];
+
+            const vRes = vehiclesRes?.data || vehiclesRes;
+            vehicleStore.vehicles = Array.isArray(vRes) ? vRes : [];
+
+            const sRes = slotsRes?.data || slotsRes;
+            parkingStore.slots = Array.isArray(sRes) ? sRes : [];
         } catch (error) {
             message.error('Failed to load data');
+            reservationStore.reservations = [];
+            vehicleStore.vehicles = [];
+            parkingStore.slots = [];
         } finally {
             reservationStore.loading = false;
             forceRender();
@@ -150,11 +158,15 @@ const ReservationPage = () => {
         },
     ];
 
+    const safeReservations = Array.isArray(reservationStore.reservations) ? reservationStore.reservations : [];
+    const safeVehicles = Array.isArray(vehicleStore.vehicles) ? vehicleStore.vehicles : [];
+    const safeSlots = Array.isArray(parkingStore.slots) ? parkingStore.slots : [];
+
     return (
         <Card title="Reservations" extra={<Button type="primary" onClick={handleCreate}>Create Reservation</Button>}>
             <Table
                 columns={columns}
-                dataSource={reservationStore.reservations}
+                dataSource={safeReservations}
                 rowKey={(record) => record.reservationId || record.id}
                 loading={reservationStore.loading}
                 pagination={{ pageSize: 10 }}
@@ -176,7 +188,7 @@ const ReservationPage = () => {
                         rules={[{ required: true, message: 'Please select a vehicle' }]}
                     >
                         <Select placeholder="Select a vehicle">
-                            {vehicleStore.vehicles.map(v => (
+                            {safeVehicles.map(v => (
                                 <Select.Option key={v.vehicleId || v.id} value={v.vehicleId || v.id}>
                                     {v.licensePlate}
                                 </Select.Option>
@@ -189,7 +201,7 @@ const ReservationPage = () => {
                         rules={[{ required: true, message: 'Please select a slot' }]}
                     >
                         <Select placeholder="Select a slot">
-                            {parkingStore.slots.map(s => (
+                            {safeSlots.map(s => (
                                 <Select.Option key={s.slotId || s.id} value={s.slotId || s.id}>
                                     {s.slotName || s.id}
                                 </Select.Option>
