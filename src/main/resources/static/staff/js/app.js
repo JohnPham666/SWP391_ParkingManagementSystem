@@ -586,8 +586,8 @@ const Pages = {
                     default: statusBadge = `<span class="badge badge-gray">${s.status}</span>`;
                 }
                 tbodyHtml += `
-                    <tr>
-                        <td><a href="#" onclick="window.showSessionDetail(${s.sessionId}); return false;" style="color: var(--blue); font-weight: 700; text-decoration: none;">#${s.sessionId}</a></td>
+                    <tr onclick="window.showSessionDetail(${s.sessionId})" style="cursor: pointer;" class="hoverable-row">
+                        <td style="color: var(--blue); font-weight: 700;">#${s.sessionId}</td>
                         <td style="font-weight:600">${s.licensePlate || '-'}</td>
                         <td>${s.slotCode || '-'}</td>
                         <td>${s.vehicleTypeName || '-'}</td>
@@ -603,7 +603,7 @@ const Pages = {
             const pCont = document.getElementById('sessions-pagination');
             if(pCont) {
                 pCont.innerHTML = `
-                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; padding: 15px 0;">
                         <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${filteredData.length} kết quả)</span>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.sessionsChangePage(${currentPage - 1})">Trước</button>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.sessionsChangePage(${currentPage + 1})">Sau</button>
@@ -760,7 +760,7 @@ const Pages = {
             const pCont = document.getElementById('slots-pagination');
             if(pCont) {
                 pCont.innerHTML = `
-                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; padding: 15px 0;">
                         <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${filteredData.length} kết quả)</span>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.slotsChangePage(${currentPage - 1})">Trước</button>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.slotsChangePage(${currentPage + 1})">Sau</button>
@@ -831,7 +831,7 @@ const Pages = {
             const pCont = document.getElementById('vehicles-pagination');
             if(pCont) {
                 pCont.innerHTML = `
-                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; padding: 15px 0;">
                         <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${currentData.length} kết quả)</span>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.vehiclesChangePage(${currentPage - 1})">Trước</button>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.vehiclesChangePage(${currentPage + 1})">Sau</button>
@@ -926,7 +926,7 @@ const Pages = {
             const pCont = document.getElementById('res-pagination');
             if(pCont) {
                 pCont.innerHTML = `
-                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; padding: 15px 0;">
                         <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${filteredData.length} kết quả)</span>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.resChangePage(${currentPage - 1})">Trước</button>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.resChangePage(${currentPage + 1})">Sau</button>
@@ -1016,7 +1016,7 @@ const Pages = {
             const pCont = document.getElementById('payments-pagination');
             if(pCont) {
                 pCont.innerHTML = `
-                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; padding: 15px 0;">
                         <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${currentData.length} kết quả)</span>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.paymentsChangePage(${currentPage - 1})">Trước</button>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.paymentsChangePage(${currentPage + 1})">Sau</button>
@@ -1169,7 +1169,7 @@ const Pages = {
             const pCont = document.getElementById('incidents-pagination');
             if(pCont) {
                 pCont.innerHTML = `
-                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; padding: 15px 0;">
                         <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${currentData.length} kết quả)</span>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.incidentsChangePage(${currentPage - 1})">Trước</button>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.incidentsChangePage(${currentPage + 1})">Sau</button>
@@ -1281,7 +1281,7 @@ const Pages = {
             const pCont = document.getElementById('subscriptions-pagination');
             if(pCont) {
                 pCont.innerHTML = `
-                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; padding: 15px 0;">
                         <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${currentData.length} kết quả)</span>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.subscriptionsChangePage(${currentPage - 1})">Trước</button>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.subscriptionsChangePage(${currentPage + 1})">Sau</button>
@@ -1349,7 +1349,7 @@ const Pages = {
             const pCont = document.getElementById('users-pagination');
             if(pCont) {
                 pCont.innerHTML = `
-                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 15px 0;">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; padding: 15px 0;">
                         <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${currentData.length} kết quả)</span>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.usersChangePage(${currentPage - 1})">Trước</button>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.usersChangePage(${currentPage + 1})">Sau</button>
