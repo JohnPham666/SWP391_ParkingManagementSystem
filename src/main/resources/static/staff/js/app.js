@@ -486,8 +486,15 @@ const Pages = {
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Danh sách phiên gửi xe</h3>
-                    <div class="toolbar">
-                        <input type="text" id="session-search" class="search-input" placeholder="Tìm biển số xe..." />
+                    <div class="toolbar" style="display: flex; gap: 10px;">
+                        <input type="text" id="session-search" class="search-input" placeholder="Tìm biển số xe..." style="flex: 1;" />
+                        <select id="session-status-filter" class="search-input" style="width: auto;">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="PARKING">Đang đỗ</option>
+                            <option value="COMPLETED">Hoàn thành</option>
+                            <option value="UNPAID">Chưa thanh toán</option>
+                            <option value="LOST_TICKET">Mất vé</option>
+                        </select>
                     </div>
                 </div>
                 <div class="card-body no-pad table-wrapper">
@@ -517,7 +524,7 @@ const Pages = {
             }
 
             html += `
-                <tr>
+                <tr data-status="${s.status}">
                     <td>#${s.sessionId}</td>
                     <td style="font-weight:600">${s.licensePlate || '-'}</td>
                     <td>${s.slotCode || '-'}</td>
@@ -540,15 +547,27 @@ const Pages = {
 
         // Search logic
         const searchInput = document.getElementById('session-search');
+        const statusFilter = document.getElementById('session-status-filter');
         const tbody = document.getElementById('sessions-tbody');
-        searchInput.addEventListener('input', (e) => {
-            const val = e.target.value.toLowerCase();
+        
+        const filterSessions = () => {
+            const textVal = searchInput.value.toLowerCase();
+            const statusVal = statusFilter.value;
             const rows = tbody.querySelectorAll('tr');
+            
             rows.forEach(row => {
                 const plate = row.children[1].textContent.toLowerCase();
-                row.style.display = plate.includes(val) ? '' : 'none';
+                const rowStatus = row.getAttribute('data-status');
+                
+                const matchText = plate.includes(textVal);
+                const matchStatus = statusVal === '' || rowStatus === statusVal;
+                
+                row.style.display = (matchText && matchStatus) ? '' : 'none';
             });
-        });
+        };
+
+        searchInput.addEventListener('input', filterSessions);
+        statusFilter.addEventListener('change', filterSessions);
     },
 
     async renderSlots(container) {
