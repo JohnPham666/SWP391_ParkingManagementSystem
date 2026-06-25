@@ -40,5 +40,37 @@ export const driverService = {
             console.error("Error deleting vehicle", error);
             throw error;
         }
+    },
+    loadReservations: async () => {
+        try {
+            return await driverApi.getReservations();
+        } catch (error) {
+            console.error("Error loading reservations", error);
+            throw error;
+        }
+    },
+    createReservation: async (data) => {
+        try {
+            return await driverApi.createReservation(data);
+        } catch (error) {
+            console.error("Error creating reservation", error);
+            throw error;
+        }
+    },
+    cancelReservation: async (id) => {
+        try {
+            return await driverApi.deleteReservation(id);
+        } catch (error) {
+            console.error("Error cancelling reservation", error);
+            throw error;
+        }
+    },
+    loadSlots: async () => {
+        try {
+            return await driverApi.getSlots();
+        } catch (error) {
+            console.error("Error loading slots", error);
+            throw error;
+        }
     }
 };

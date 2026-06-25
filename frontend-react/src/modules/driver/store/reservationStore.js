@@ -1,4 +1,5 @@
 export const reservationStore = {
   reservations: [],
-  selectedReservation: null
+  selectedReservation: null,
+  loading: false
 };

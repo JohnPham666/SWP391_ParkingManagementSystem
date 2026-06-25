@@ -20,5 +20,21 @@ export const driverApi = {
     deleteVehicle: async (id) => {
         const response = await axios.delete(`/api/vehicles/${id}`);
         return response.data;
+    },
+    getReservations: async () => {
+        const response = await axios.get('/api/reservations');
+        return response.data;
+    },
+    createReservation: async (data) => {
+        const response = await axios.post('/api/reservations', data);
+        return response.data;
+    },
+    deleteReservation: async (id) => {
+        const response = await axios.delete(`/api/reservations/${id}`);
+        return response.data;
+    },
+    getSlots: async () => {
+        const response = await axios.get('/api/slots');
+        return response.data;
     }
 };
