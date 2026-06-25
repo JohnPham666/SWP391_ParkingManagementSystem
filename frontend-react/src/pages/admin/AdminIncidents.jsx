@@ -122,9 +122,8 @@ const IncidentManagement = () => {
     },
     {
       title: 'Reporter',
-      dataIndex: 'reporterName',
-      key: 'reporterName',
-      render: (text) => text || '-'
+      key: 'reporter',
+      render: (_, record) => record.reporterName || record.reportedBy || record.reporter?.fullName || '-'
     },
     {
       title: 'Time',
@@ -155,6 +154,7 @@ const IncidentManagement = () => {
         <Input 
           placeholder="Search ID, title, description..." 
           prefix={<SearchOutlined />} 
+          value={filters.search}
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           style={{ width: 280 }}
           size="large"
@@ -164,6 +164,7 @@ const IncidentManagement = () => {
           style={{ width: 160 }} 
           allowClear 
           size="large"
+          value={filters.status}
           onChange={(val) => setFilters({ ...filters, status: val })}
         >
           <Option value="REPORTED">Reported</Option>
@@ -172,6 +173,7 @@ const IncidentManagement = () => {
           <Option value="RESOLVED">Resolved</Option>
           <Option value="CLOSED">Closed</Option>
         </Select>
+        <Button size="large" onClick={() => setFilters({ search: '', status: null })}>Reset Filters</Button>
       </Space>
 
       <Table 
