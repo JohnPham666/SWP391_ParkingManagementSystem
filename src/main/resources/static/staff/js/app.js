@@ -777,43 +777,20 @@ const Pages = {
         const today = new Date().toISOString().split('T')[0];
 
         let html = `
-            <div class="card" style="margin-bottom: 24px;">
-                <div class="card-header">
-                    <span class="card-title">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px; vertical-align:text-bottom;">
-                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                        </svg>
-                        Bộ lọc tìm kiếm
-                    </span>
-                    <button class="btn btn-outline btn-sm" onclick="window.resetResFilters()">Đặt lại</button>
-                </div>
-                <div class="card-body">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Biển số xe</label>
-                            <input type="text" id="res-search" class="search-input" placeholder="Tìm biển số..." style="width:100%; box-sizing:border-box;" />
-                        </div>
-                        <div class="form-group">
-                            <label>Trạng thái</label>
-                            <select id="res-status-filter" style="width:100%; box-sizing:border-box; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
-                                <option value="">Tất cả trạng thái</option>
-                                <option value="PENDING">Chờ xác nhận</option>
-                                <option value="CONFIRMED">Đã xác nhận</option>
-                                <option value="COMPLETED">Đã hoàn thành</option>
-                                <option value="CANCELLED">Đã hủy</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Ngày đặt chỗ</label>
-                            <input type="date" id="res-date-filter" value="${today}" style="width:100%; box-sizing:border-box; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Quản lý đặt chỗ</h3>
+                    <div class="toolbar" style="display: flex; gap: 10px;">
+                        <input type="text" id="res-search" class="search-input" placeholder="Tìm biển số xe..." style="flex: 1;" />
+                        <select id="res-status-filter" class="search-input" style="width: auto;">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="PENDING">Chờ xác nhận</option>
+                            <option value="CONFIRMED">Đã xác nhận</option>
+                            <option value="COMPLETED">Đã hoàn thành</option>
+                            <option value="CANCELLED">Đã hủy</option>
+                        </select>
+                        <input type="date" id="res-date-filter" class="search-input" value="${today}" style="width: auto;" />
+                    </div>
                 </div>
                 <div class="card-body no-pad table-wrapper">
                     <table class="data-table">
