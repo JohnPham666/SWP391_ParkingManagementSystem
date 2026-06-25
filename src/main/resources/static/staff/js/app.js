@@ -960,7 +960,7 @@ const Pages = {
                 <div class="card-header">
                     <h3 class="card-title">Lịch sử thanh toán</h3>
                     <div class="toolbar" style="display: flex; gap: 10px;">
-                        <input type="text" id="pay-search" class="search-input" placeholder="Tìm mã thanh toán..." style="flex: 1;" />
+                        <input type="text" id="pay-search" class="search-input" placeholder="Tìm mã TT, biển số..." style="flex: 1;" />
                         <select id="pay-status-filter" class="search-input" style="width: auto;">
                             <option value="">Tất cả trạng thái</option>
                             <option value="PENDING">Đang chờ</option>
@@ -1006,7 +1006,9 @@ const Pages = {
             const dateVal = document.getElementById('pay-date-filter') ? document.getElementById('pay-date-filter').value : '';
 
             const filteredData = currentData.filter(p => {
-                const searchMatch = !textVal || String(p.paymentId).includes(textVal);
+                const searchStrId = String(p.paymentId).toLowerCase();
+                const searchStrPlate = (p.licensePlate || '').toLowerCase();
+                const searchMatch = !textVal || searchStrId.includes(textVal) || searchStrPlate.includes(textVal);
                 const statusMatch = !statusVal || p.paymentStatus === statusVal;
                 const methodMatch = !methodVal || p.paymentMethod === methodVal;
                 
