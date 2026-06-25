@@ -86,6 +86,9 @@ body {
   position: sticky;
   top: 0;
   z-index: 9;
+  line-height: normal !important;
+  height: auto !important;
+  min-height: 64px;
 }
 
 .header-right {

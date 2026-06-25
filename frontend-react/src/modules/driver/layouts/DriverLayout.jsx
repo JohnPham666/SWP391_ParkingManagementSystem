@@ -153,11 +153,11 @@ const DriverLayout = () => {
                             className="mobile-menu-btn"
                             style={{ display: window.innerWidth <= 992 ? 'block' : 'none' }}
                         />
-                        <div>
-                            <Title level={4} style={{ margin: 0, fontWeight: 700 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <Title level={4} style={{ margin: 0, fontWeight: 700, lineHeight: 1.2, paddingTop: '8px' }}>
                                 Welcome back, {user?.fullName || 'Driver'}! 👋
                             </Title>
-                            <Text type="secondary" style={{ fontSize: '13px' }}>{currentDate}</Text>
+                            <Text type="secondary" style={{ fontSize: '13px', lineHeight: 1.2, paddingBottom: '8px' }}>{currentDate}</Text>
                         </div>
                     </div>
 
