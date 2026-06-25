@@ -953,10 +953,31 @@ const Pages = {
         const res = await Api.getPayments();
         if (!res.success) return container.innerHTML = `<div class="empty-state"><p>${res.message}</p></div>`;
         const data = res.data;
+        const methods = [...new Set(data.map(p => p.paymentMethod).filter(Boolean))];
+
         let html = `
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Lịch sử thanh toán</h3>
+                    <div class="toolbar" style="display: flex; gap: 10px;">
+                        <input type="text" id="pay-search" class="search-input" placeholder="Tìm mã thanh toán..." style="flex: 1;" />
+                        <select id="pay-status-filter" class="search-input" style="width: auto;">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="PENDING">Đang chờ</option>
+                            <option value="SUCCESS">Thành công</option>
+                            <option value="FAILED">Thất bại</option>
+                        </select>
+                        <select id="pay-method-filter" class="search-input" style="width: auto;">
+                            <option value="">Tất cả phương thức</option>
+                            ${methods.map(m => `<option value="${m}">${m}</option>`).join('')}
+                        </select>
+                        <select id="pay-type-filter" class="search-input" style="width: auto;">
+                            <option value="">Tất cả loại</option>
+                            <option value="SESSION">Phiên gửi xe</option>
+                            <option value="RESERVATION">Đặt chỗ</option>
+                        </select>
+                        <input type="date" id="pay-date-filter" class="search-input" style="width: auto;" />
+                    </div>
                 </div>
                 <div class="card-body no-pad table-wrapper">
                     <table class="data-table">
@@ -977,13 +998,43 @@ const Pages = {
             const tbody = document.getElementById('payments-tbody');
             if(!tbody) return;
             
+            // Filter
+            const textVal = document.getElementById('pay-search') ? document.getElementById('pay-search').value.toLowerCase() : '';
+            const statusVal = document.getElementById('pay-status-filter') ? document.getElementById('pay-status-filter').value : '';
+            const methodVal = document.getElementById('pay-method-filter') ? document.getElementById('pay-method-filter').value : '';
+            const typeVal = document.getElementById('pay-type-filter') ? document.getElementById('pay-type-filter').value : '';
+            const dateVal = document.getElementById('pay-date-filter') ? document.getElementById('pay-date-filter').value : '';
+
+            const filteredData = currentData.filter(p => {
+                const searchMatch = !textVal || String(p.paymentId).includes(textVal);
+                const statusMatch = !statusVal || p.paymentStatus === statusVal;
+                const methodMatch = !methodVal || p.paymentMethod === methodVal;
+                
+                let pType = p.sessionId ? 'SESSION' : (p.reservationId ? 'RESERVATION' : 'OTHER');
+                const typeMatch = !typeVal || pType === typeVal;
+                
+                let dateMatch = true;
+                if (dateVal) {
+                    const dt = p.paidAt || p.createdAt;
+                    if (dt) {
+                        const d = new Date(dt);
+                        const rDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                        dateMatch = rDate === dateVal;
+                    } else {
+                        dateMatch = false;
+                    }
+                }
+                
+                return searchMatch && statusMatch && methodMatch && typeMatch && dateMatch;
+            });
+            
             // Paginate
-            const totalPages = Math.ceil(currentData.length / rowsPerPage) || 1;
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage) || 1;
             if(currentPage > totalPages) currentPage = totalPages;
             if(currentPage < 1) currentPage = 1;
             
             const startIndex = (currentPage - 1) * rowsPerPage;
-            const pageData = currentData.slice(startIndex, startIndex + rowsPerPage);
+            const pageData = filteredData.slice(startIndex, startIndex + rowsPerPage);
             
             let tbodyHtml = '';
             pageData.forEach(p => {
@@ -1015,7 +1066,7 @@ const Pages = {
             if(pCont) {
                 pCont.innerHTML = `
                     <div style="display: flex; justify-content: center; align-items: center; gap: 10px; padding: 15px 0;">
-                        <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${currentData.length} kết quả)</span>
+                        <span style="font-size: 0.9rem; color: var(--text-muted)">Trang ${currentPage} / ${totalPages} (${filteredData.length} kết quả)</span>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === 1 ? 'disabled' : ''} onclick="window.paymentsChangePage(${currentPage - 1})">Trước</button>
                         <button class="btn btn-outline" style="padding: 4px 12px;" ${currentPage === totalPages ? 'disabled' : ''} onclick="window.paymentsChangePage(${currentPage + 1})">Sau</button>
                     </div>
@@ -1024,6 +1075,9 @@ const Pages = {
         };
 
         window.paymentsChangePage = (p) => { currentPage = p; renderTableBody(); };
+        const attachEvt = (id) => { const el = document.getElementById(id); if(el) el.addEventListener('input', () => { currentPage = 1; renderTableBody(); }); };
+        ['pay-search', 'pay-status-filter', 'pay-method-filter', 'pay-type-filter', 'pay-date-filter'].forEach(attachEvt);
+        
         renderTableBody();
 
         window.confirmPayment = async (id) => {
