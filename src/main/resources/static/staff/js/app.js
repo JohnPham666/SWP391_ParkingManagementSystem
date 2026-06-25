@@ -495,6 +495,10 @@ const Pages = {
                             <option value="UNPAID">Chưa thanh toán</option>
                             <option value="LOST_TICKET">Mất vé</option>
                         </select>
+                        <select id="session-time-sort" class="search-input" style="width: auto;">
+                            <option value="desc">Mới nhất -> Cũ nhất</option>
+                            <option value="asc">Cũ nhất -> Mới nhất</option>
+                        </select>
                     </div>
                 </div>
                 <div class="card-body no-pad table-wrapper">
@@ -524,7 +528,7 @@ const Pages = {
             }
 
             html += `
-                <tr data-status="${s.status}">
+                <tr data-status="${s.status}" data-time="${s.entryTime ? new Date(s.entryTime).getTime() : 0}">
                     <td>#${s.sessionId}</td>
                     <td style="font-weight:600">${s.licensePlate || '-'}</td>
                     <td>${s.slotCode || '-'}</td>
@@ -545,17 +549,30 @@ const Pages = {
 
         container.innerHTML = html;
 
-        // Search logic
+        // Search and Sort logic
         const searchInput = document.getElementById('session-search');
         const statusFilter = document.getElementById('session-status-filter');
+        const timeSort = document.getElementById('session-time-sort');
         const tbody = document.getElementById('sessions-tbody');
         
-        const filterSessions = () => {
+        const sortAndFilterSessions = () => {
             const textVal = searchInput.value.toLowerCase();
             const statusVal = statusFilter.value;
-            const rows = tbody.querySelectorAll('tr');
+            const sortVal = timeSort.value;
             
-            rows.forEach(row => {
+            const rowsArray = Array.from(tbody.querySelectorAll('tr'));
+            
+            // Sort rows
+            rowsArray.sort((a, b) => {
+                const timeA = parseInt(a.getAttribute('data-time'), 10);
+                const timeB = parseInt(b.getAttribute('data-time'), 10);
+                return sortVal === 'desc' ? timeB - timeA : timeA - timeB;
+            });
+            
+            // Re-append to apply order and filter visibility
+            rowsArray.forEach(row => {
+                tbody.appendChild(row);
+                
                 const plate = row.children[1].textContent.toLowerCase();
                 const rowStatus = row.getAttribute('data-status');
                 
@@ -566,8 +583,12 @@ const Pages = {
             });
         };
 
-        searchInput.addEventListener('input', filterSessions);
-        statusFilter.addEventListener('change', filterSessions);
+        searchInput.addEventListener('input', sortAndFilterSessions);
+        statusFilter.addEventListener('change', sortAndFilterSessions);
+        timeSort.addEventListener('change', sortAndFilterSessions);
+        
+        // Initial sort
+        sortAndFilterSessions();
     },
 
     async renderSlots(container) {
