@@ -259,6 +259,13 @@ const Pages = {
             return;
         }
         
+        // Fetch reservations to calculate pending arrivals (CONFIRMED but not checked in)
+        const resReservations = await Api.getReservations();
+        let pendingArrivals = 0;
+        if (resReservations.success && resReservations.data) {
+            pendingArrivals = resReservations.data.filter(r => r.status === 'CONFIRMED').length;
+        }
+        
         const data = res.data;
         const sum = data.summary;
         const rate = sum.occupancyRate || 0;
@@ -293,34 +300,47 @@ const Pages = {
                 </button>
             </div>
 
-            <!-- ===== COMPREHENSIVE OCCUPANCY CARD ===== -->
-            <div class="dash-occupancy-card" style="margin-top: 10px;">
-                <div class="occupancy-gauge" style="width: 160px; height: 160px;">
-                    <svg viewBox="0 0 160 160" style="width: 160px; height: 160px;">
-                        <circle class="gauge-bg" cx="80" cy="80" r="64" stroke-width="12"/>
-                        <circle class="gauge-fill" cx="80" cy="80" r="64" stroke-width="12" stroke="${gaugeColor}" stroke-dasharray="${2 * Math.PI * 64}" stroke-dashoffset="${(2 * Math.PI * 64) - (rate / 100) * (2 * Math.PI * 64)}"/>
-                    </svg>
-                    <div class="gauge-text">
-                        <span class="gauge-percent" style="font-size: 2rem;">${rate.toFixed(1)}%</span>
-                        <span class="gauge-label" style="font-size: 0.85rem;">Tỷ lệ lấp đầy</span>
+            <!-- ===== DASHBOARD MAIN STATS ROW ===== -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px;">
+                
+                <!-- COMPREHENSIVE OCCUPANCY CARD -->
+                <div class="dash-occupancy-card" style="margin-bottom: 0;">
+                    <div class="occupancy-gauge" style="width: 160px; height: 160px;">
+                        <svg viewBox="0 0 160 160" style="width: 160px; height: 160px;">
+                            <circle class="gauge-bg" cx="80" cy="80" r="64" stroke-width="12"/>
+                            <circle class="gauge-fill" cx="80" cy="80" r="64" stroke-width="12" stroke="${gaugeColor}" stroke-dasharray="${2 * Math.PI * 64}" stroke-dashoffset="${(2 * Math.PI * 64) - (rate / 100) * (2 * Math.PI * 64)}"/>
+                        </svg>
+                        <div class="gauge-text">
+                            <span class="gauge-percent" style="font-size: 2rem;">${rate.toFixed(1)}%</span>
+                            <span class="gauge-label" style="font-size: 0.85rem;">Tỷ lệ lấp đầy</span>
+                        </div>
+                    </div>
+                    <div class="occupancy-details">
+                        <h3 style="font-size: 1.2rem; margin-bottom: 16px;">Tỷ lệ lấp đầy & Hiện trạng bãi xe</h3>
+                        
+                        <div class="occupancy-detail-row" style="background: rgba(14,165,233,.08); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; border: 1px solid rgba(14,165,233,.2);">
+                            <div class="occupancy-dot" style="background:#0ea5e9; width: 12px; height: 12px;"></div>
+                            <span style="font-weight:700; color:var(--text-primary); font-size: 0.95rem;">Tổng số chỗ (Sức chứa)</span>
+                            <strong style="color:#0ea5e9; font-size:1.3rem;">${sum.totalCapacity}</strong>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div class="occupancy-detail-row" style="background: var(--bg-page); border-radius: 6px; padding: 10px 14px;"><div class="occupancy-dot green"></div><span style="font-weight:600;">Chỗ trống</span><strong style="font-size:1.1rem;">${sum.availableCapacity}</strong></div>
+                            <div class="occupancy-detail-row" style="background: var(--bg-page); border-radius: 6px; padding: 10px 14px;"><div class="occupancy-dot orange"></div><span style="font-weight:600;">Đang đỗ</span><strong style="font-size:1.1rem;">${sum.currentOccupancy}</strong></div>
+                            <div class="occupancy-detail-row" style="background: var(--bg-page); border-radius: 6px; padding: 10px 14px;"><div class="occupancy-dot yellow"></div><span style="font-weight:600;">Đã đặt trước</span><strong style="font-size:1.1rem;">${sum.reservedSlots}</strong></div>
+                            <div class="occupancy-detail-row" style="background: var(--bg-page); border-radius: 6px; padding: 10px 14px;"><div class="occupancy-dot gray"></div><span style="font-weight:600;">Còn trống (chưa đặt)</span><strong style="font-size:1.1rem;">${unusedSlots > 0 ? unusedSlots : 0}</strong></div>
+                        </div>
                     </div>
                 </div>
-                <div class="occupancy-details">
-                    <h3 style="font-size: 1.2rem; margin-bottom: 16px;">Tỷ lệ lấp đầy & Hiện trạng bãi xe</h3>
-                    
-                    <div class="occupancy-detail-row" style="background: rgba(14,165,233,.08); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; border: 1px solid rgba(14,165,233,.2);">
-                        <div class="occupancy-dot" style="background:#0ea5e9; width: 12px; height: 12px;"></div>
-                        <span style="font-weight:700; color:var(--text-primary); font-size: 0.95rem;">Tổng số chỗ (Sức chứa)</span>
-                        <strong style="color:#0ea5e9; font-size:1.3rem;">${sum.totalCapacity}</strong>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                        <div class="occupancy-detail-row" style="background: var(--bg-page); border-radius: 6px; padding: 10px 14px;"><div class="occupancy-dot green"></div><span style="font-weight:600;">Chỗ trống</span><strong style="font-size:1.1rem;">${sum.availableCapacity}</strong></div>
-                        <div class="occupancy-detail-row" style="background: var(--bg-page); border-radius: 6px; padding: 10px 14px;"><div class="occupancy-dot orange"></div><span style="font-weight:600;">Đang đỗ</span><strong style="font-size:1.1rem;">${sum.currentOccupancy}</strong></div>
-                        <div class="occupancy-detail-row" style="background: var(--bg-page); border-radius: 6px; padding: 10px 14px;"><div class="occupancy-dot yellow"></div><span style="font-weight:600;">Đã đặt trước</span><strong style="font-size:1.1rem;">${sum.reservedSlots}</strong></div>
-                        <div class="occupancy-detail-row" style="background: var(--bg-page); border-radius: 6px; padding: 10px 14px;"><div class="occupancy-dot gray"></div><span style="font-weight:600;">Còn trống (chưa đặt)</span><strong style="font-size:1.1rem;">${unusedSlots > 0 ? unusedSlots : 0}</strong></div>
-                    </div>
+
+                <!-- RESERVATION SUMMARY CARD -->
+                <div class="dash-occupancy-card" style="margin-bottom: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; border: none;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 16px; opacity: 0.9;"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>
+                    <h3 style="color: white; font-size: 1.2rem; margin-bottom: 8px;">Reservation</h3>
+                    <p style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 16px; max-width: 80%;">Khách đã đặt chỗ nhưng chưa Check-in</p>
+                    <strong style="font-size: 3.5rem; line-height: 1; font-weight: 800;">${pendingArrivals}</strong>
                 </div>
+
             </div>
         `;
 
