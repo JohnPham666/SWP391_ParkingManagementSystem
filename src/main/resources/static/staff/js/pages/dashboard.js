@@ -1,4 +1,4 @@
-﻿    // ==========================================
+    // ==========================================
     // 1. DASHBOARD: Th?ng k� t?ng quan b�i xe, t? l? l?p d?y, check-in/out nhanh
     // ==========================================
 Pages.renderDashboard = async function(container) {
@@ -12,7 +12,12 @@ Pages.renderDashboard = async function(container) {
         const resReservations = await Api.getReservations();
         let pendingArrivals = 0;
         if (resReservations.success && resReservations.data) {
-            pendingArrivals = resReservations.data.filter(r => r.status === 'CONFIRMED').length;
+            const todayStr = new Date().toISOString().split('T')[0];
+            pendingArrivals = resReservations.data.filter(r => {
+                if (r.status !== 'CONFIRMED') return false;
+                const resDate = r.reservationStart ? r.reservationStart.split('T')[0] : '';
+                return resDate === todayStr;
+            }).length;
         }
         
         const data = res.data;
