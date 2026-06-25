@@ -99,7 +99,7 @@ const PaymentPage = () => {
                 </Col>
             </Row>
 
-            <Card className="saas-card" title={<Title level={4} style={{ margin: 0 }}>Payment History</Title>} bodyStyle={{ padding: 0 }}>
+            <Card className="saas-card" title={<Title level={4} style={{ margin: 0 }}>Payment History</Title>} styles={{ body: { padding: 0 } }}>
                 {payments.length === 0 ? (
                     <Empty 
                         image="https://gw.alipayobjects.com/zos/antfincdn/ZHrcdLPrvN/empty.svg"

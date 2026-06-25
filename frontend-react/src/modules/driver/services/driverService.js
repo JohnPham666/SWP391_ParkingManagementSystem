@@ -5,7 +5,6 @@ export const driverService = {
         try {
             return await driverApi.getMyVehicles();
         } catch (error) {
-            console.error("Error loading vehicles", error);
             throw error;
         }
     },
@@ -13,7 +12,6 @@ export const driverService = {
         try {
             return await driverApi.getVehicleTypes();
         } catch (error) {
-            console.error("Error loading vehicle types", error);
             throw error;
         }
     },
@@ -21,7 +19,6 @@ export const driverService = {
         try {
             return await driverApi.createVehicle(vehicleData);
         } catch (error) {
-            console.error("Error creating vehicle", error);
             throw error;
         }
     },
@@ -29,7 +26,6 @@ export const driverService = {
         try {
             return await driverApi.updateVehicle(id, vehicleData);
         } catch (error) {
-            console.error("Error updating vehicle", error);
             throw error;
         }
     },
@@ -37,7 +33,6 @@ export const driverService = {
         try {
             return await driverApi.deleteVehicle(id);
         } catch (error) {
-            console.error("Error deleting vehicle", error);
             throw error;
         }
     },
@@ -45,7 +40,6 @@ export const driverService = {
         try {
             return await driverApi.getReservations();
         } catch (error) {
-            console.error("Error loading reservations", error);
             throw error;
         }
     },
@@ -53,7 +47,6 @@ export const driverService = {
         try {
             return await driverApi.createReservation(data);
         } catch (error) {
-            console.error("Error creating reservation", error);
             throw error;
         }
     },
@@ -61,17 +54,14 @@ export const driverService = {
         try {
             return await driverApi.deleteReservation(id);
         } catch (error) {
-            console.error("Error cancelling reservation", error);
             throw error;
         }
     },
     loadSlots: async () => {
         try {
             const response = await driverApi.getSlots();
-            console.log("SLOTS API RESPONSE:", response);
             return response;
         } catch (error) {
-            console.error("Error loading slots", error);
             throw error;
         }
     }

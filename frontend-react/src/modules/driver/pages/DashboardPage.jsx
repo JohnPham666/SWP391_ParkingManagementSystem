@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useReducer } from 'react';
-import { Row, Col, Card, Typography, Table, Button, Tag, Space, Progress, Skeleton } from 'antd';
+import { Row, Col, Card, Typography, Table, Button, Tag, Space, Progress, Skeleton, Empty } from 'antd';
 import { 
     CarOutlined, 
     CalendarOutlined, 
@@ -52,7 +52,7 @@ const DashboardPage = () => {
                 recentReservations: recent
             });
         } catch (error) {
-            console.error("Dashboard fetch error:", error);
+            // Error handling ignored for UI as per requirement
         } finally {
             setLoading(false);
         }
@@ -132,13 +132,17 @@ const DashboardPage = () => {
                 {/* Main Content Area */}
                 <Col xs={24} lg={16}>
                     <Card title="Recent Reservations" className="saas-card" extra={<Button type="link" onClick={() => navigate('/driver/reservations')}>View All</Button>}>
-                        <Table 
-                            columns={columns} 
-                            dataSource={stats.recentReservations} 
-                            rowKey={(r) => r.reservationId || r.id}
-                            pagination={false}
-                            size="middle"
-                        />
+                        {stats.recentReservations.length === 0 ? (
+                            <Empty description="No recent reservations found." style={{ margin: '40px 0' }} />
+                        ) : (
+                            <Table 
+                                columns={columns} 
+                                dataSource={stats.recentReservations} 
+                                rowKey={(r) => r.reservationId || r.id}
+                                pagination={false}
+                                size="middle"
+                            />
+                        )}
                     </Card>
 
                     <Card title="Parking Occupancy Overview" className="saas-card" style={{ marginTop: '24px' }}>

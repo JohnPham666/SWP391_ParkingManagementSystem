@@ -52,7 +52,7 @@ const PricingPage = () => {
                                 transform: plan.popular ? 'scale(1.05)' : 'none',
                                 zIndex: plan.popular ? 2 : 1
                             }}
-                            bodyStyle={{ padding: 32, display: 'flex', flexDirection: 'column', height: '100%' }}
+                            styles={{ body: { padding: 32, display: 'flex', flexDirection: 'column', height: '100%' } }}
                         >
                             {plan.popular && (
                                 <div style={{ position: 'absolute', top: 0, right: 0, background: plan.color, color: 'white', padding: '4px 12px', borderBottomLeftRadius: 12, fontWeight: 600, fontSize: 12 }}>

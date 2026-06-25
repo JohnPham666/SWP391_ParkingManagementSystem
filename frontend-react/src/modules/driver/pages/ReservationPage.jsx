@@ -233,7 +233,7 @@ const ReservationPage = () => {
                 className="saas-card" 
                 title={<Title level={4} style={{ margin: 0 }}>Reservation History</Title>} 
                 extra={<Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ borderRadius: 8 }}>Book a Slot</Button>}
-                bodyStyle={{ padding: 0 }}
+                styles={{ body: { padding: 0 } }}
             >
                 {safeReservations.length === 0 ? (
                     <Empty 

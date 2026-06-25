@@ -115,7 +115,7 @@ const ParkingPage = () => {
                 </div>
             </div>
 
-            <Card className="saas-card" style={{ marginBottom: 24 }} bodyStyle={{ padding: '16px 24px' }}>
+            <Card className="saas-card" style={{ marginBottom: 24 }} styles={{ body: { padding: '16px 24px' } }}>
                 <Row gutter={[16, 16]}>
                     <Col xs={24} md={6}>
                         <Input 
@@ -174,7 +174,7 @@ const ParkingPage = () => {
                                     <Card 
                                         hoverable 
                                         className={`saas-card ${isRecommended ? 'recommended-slot' : ''}`}
-                                        bodyStyle={{ padding: 16 }}
+                                        styles={{ body: { padding: 16 } }}
                                         onClick={() => handleView(slot)}
                                     >
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -207,11 +207,11 @@ const ParkingPage = () => {
                 onClose={() => setDrawerVisible(false)}
                 open={drawerVisible}
                 width={400}
-                bodyStyle={{ background: '#f8fafc' }}
+                styles={{ body: { background: '#f8fafc' } }}
             >
                 {parkingStore.selectedSlot && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                        <Card className="saas-card" bodyStyle={{ textAlign: 'center', padding: '32px 16px' }}>
+                        <Card className="saas-card" styles={{ body: { textAlign: 'center', padding: '32px 16px' } }}>
                             <Title level={1} style={{ fontSize: 48, color: '#0f172a', margin: 0 }}>
                                 {parkingStore.selectedSlot.slotName || parkingStore.selectedSlot.slotCode || 'N/A'}
                             </Title>

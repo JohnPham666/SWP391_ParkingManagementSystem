@@ -186,7 +186,7 @@ const VehiclePage = () => {
                                     <Card 
                                         hoverable 
                                         style={{ borderRadius: '12px', overflow: 'hidden' }}
-                                        bodyStyle={{ padding: 0 }}
+                                        styles={{ body: { padding: 0 } }}
                                     >
                                         <div style={{ 
                                             height: 120, 

@@ -103,7 +103,7 @@ const IncidentPage = () => {
                 </Col>
             </Row>
 
-            <Card className="saas-card" title={<Title level={4} style={{ margin: 0 }}>Your Reports</Title>} bodyStyle={{ padding: 0 }}>
+            <Card className="saas-card" title={<Title level={4} style={{ margin: 0 }}>Your Reports</Title>} styles={{ body: { padding: 0 } }}>
                 {incidents.length === 0 ? (
                     <Empty 
                         image={Empty.PRESENTED_IMAGE_SIMPLE}

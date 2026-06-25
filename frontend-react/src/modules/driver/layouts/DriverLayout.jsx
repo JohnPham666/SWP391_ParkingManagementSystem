@@ -37,14 +37,33 @@ const DriverLayout = () => {
     }, []);
 
     const menuItems = [
-        { key: '/driver/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-        { key: '/driver/parking', icon: <CarOutlined />, label: 'Find Parking' },
-        { key: '/driver/reservations', icon: <CalendarOutlined />, label: 'Reservations' },
-        { key: '/driver/vehicles', icon: <CarOutlined />, label: 'My Vehicles' },
-        { key: '/driver/payments', icon: <CreditCardOutlined />, label: 'Payments' },
-        { key: '/driver/pricing', icon: <DollarOutlined />, label: 'Pricing Policies' },
-        { key: '/driver/history', icon: <HistoryOutlined />, label: 'History Feed' },
-        { key: '/driver/incidents', icon: <AlertOutlined />, label: 'Report Incident' },
+        {
+            type: 'group',
+            label: 'MAIN',
+            children: [
+                { key: '/driver/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
+                { key: '/driver/parking', icon: <CarOutlined />, label: 'Find Parking' },
+                { key: '/driver/reservations', icon: <CalendarOutlined />, label: 'Reservations' },
+            ]
+        },
+        {
+            type: 'group',
+            label: 'MANAGEMENT',
+            children: [
+                { key: '/driver/vehicles', icon: <CarOutlined />, label: 'Vehicles' },
+                { key: '/driver/payments', icon: <CreditCardOutlined />, label: 'Payments' },
+                { key: '/driver/pricing', icon: <DollarOutlined />, label: 'Pricing' },
+            ]
+        },
+        {
+            type: 'group',
+            label: 'ACCOUNT',
+            children: [
+                { key: '/driver/history', icon: <HistoryOutlined />, label: 'History' },
+                { key: '/driver/incidents', icon: <AlertOutlined />, label: 'Incidents' },
+                { key: '/driver/profile', icon: <UserOutlined />, label: 'Profile' },
+            ]
+        }
     ];
 
     const handleMenuClick = ({ key }) => {
@@ -68,15 +87,19 @@ const DriverLayout = () => {
 
     const sidebarContent = (
         <>
-            <div className="driver-logo-container">
-                <CarOutlined style={{ fontSize: '24px', color: '#ea580c' }} />
-                {!collapsed && <h1 className="driver-logo-text">ParkSmart</h1>}
+            <div className="driver-logo-container" style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '24px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <CarOutlined style={{ fontSize: '28px', color: '#f97316' }} />
+                    {!collapsed && <Title level={3} className="driver-logo-text" style={{ margin: 0, color: '#f97316' }}>ParkSmart</Title>}
+                </div>
+                {!collapsed && <Text type="secondary" style={{ fontSize: '12px', marginTop: '8px', fontWeight: 600 }}>Smart Parking Solution</Text>}
             </div>
             <Menu
                 className="driver-menu"
                 selectedKeys={[location.pathname]}
                 items={menuItems}
                 onClick={handleMenuClick}
+                mode="inline"
             />
         </>
     );
@@ -118,7 +141,7 @@ const DriverLayout = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <Button 
                             type="text" 
-                            icon={collapsed ? <MenuOutlined /> : <MenuOutlined />} 
+                            icon={<MenuOutlined />} 
                             onClick={() => setCollapsed(!collapsed)}
                             className="desktop-menu-btn"
                             style={{ display: window.innerWidth > 992 ? 'block' : 'none' }}
@@ -139,7 +162,7 @@ const DriverLayout = () => {
                     </div>
 
                     <div className="header-right">
-                        <Badge count={2} dot offset={[-5, 5]} color="#ea580c">
+                        <Badge count={2} dot offset={[-5, 5]} color="#f97316">
                             <Button type="text" shape="circle" icon={<BellOutlined style={{ fontSize: '20px' }} />} />
                         </Badge>
                         <Dropdown menu={userMenu} placement="bottomRight" trigger={['click']}>
