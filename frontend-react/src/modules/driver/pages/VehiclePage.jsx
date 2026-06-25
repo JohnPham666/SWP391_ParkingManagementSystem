@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer } from 'react';
 import { Card, Table, Button, Modal, Form, Input, Select, Popconfirm, Tag, Space, message, Descriptions } from 'antd';
 import { driverService } from '../services/driverService';
 import { vehicleStore } from '../store/vehicleStore';
 
 const VehiclePage = () => {
-    const [vehicles, setVehicles] = useState(vehicleStore.vehicles || []);
-    const [vehicleTypes, setVehicleTypes] = useState(vehicleStore.vehicleTypes || []);
-    const [loading, setLoading] = useState(vehicleStore.loading || false);
+    // UI states
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isViewModalVisible, setIsViewModalVisible] = useState(false);
     const [editingVehicle, setEditingVehicle] = useState(null);
     const [viewingVehicle, setViewingVehicle] = useState(null);
+    const [, forceRender] = useReducer(x => x + 1, 0);
     const [form] = Form.useForm();
 
     useEffect(() => {
@@ -18,27 +17,21 @@ const VehiclePage = () => {
     }, []);
 
     const fetchData = async () => {
-        setLoading(true);
         vehicleStore.loading = true;
+        forceRender();
         try {
             const [vehiclesRes, typesRes] = await Promise.all([
                 driverService.loadMyVehicles(),
                 driverService.loadVehicleTypes()
             ]);
             
-            const vehiclesData = vehiclesRes?.data || vehiclesRes || [];
-            const typesData = typesRes?.data || typesRes || [];
-
-            vehicleStore.vehicles = vehiclesData;
-            vehicleStore.vehicleTypes = typesData;
-            
-            setVehicles(vehiclesData);
-            setVehicleTypes(typesData);
+            vehicleStore.vehicles = vehiclesRes?.data || vehiclesRes || [];
+            vehicleStore.vehicleTypes = typesRes?.data || typesRes || [];
         } catch (error) {
             message.error('Failed to load data');
         } finally {
-            setLoading(false);
             vehicleStore.loading = false;
+            forceRender();
         }
     };
 
@@ -165,9 +158,9 @@ const VehiclePage = () => {
         <Card title="My Vehicles" extra={<Button type="primary" onClick={handleAdd}>Register Vehicle</Button>}>
             <Table 
                 columns={columns} 
-                dataSource={vehicles} 
+                dataSource={vehicleStore.vehicles} 
                 rowKey={(record) => record.vehicleId || record.id || record.licensePlate} 
-                loading={loading}
+                loading={vehicleStore.loading}
                 pagination={{ pageSize: 10 }}
             />
 
@@ -193,7 +186,7 @@ const VehiclePage = () => {
                         rules={[{ required: true, message: 'Please select a vehicle type' }]}
                     >
                         <Select placeholder="Select a type">
-                            {vehicleTypes.map(type => (
+                            {vehicleStore.vehicleTypes.map(type => (
                                 <Select.Option key={type.vehicleTypeId || type.id} value={type.vehicleTypeId || type.id}>
                                     {type.name}
                                 </Select.Option>
