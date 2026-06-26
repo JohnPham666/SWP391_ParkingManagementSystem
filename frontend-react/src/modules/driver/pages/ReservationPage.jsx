@@ -75,13 +75,26 @@ const ReservationPage = () => {
             const vehicle = safeVehicles.find(v => (v.vehicleId || v.id) === values.vehicleId);
             const vTypeId = vehicle ? (vehicle.vehicleType?.vehicleTypeId || vehicle.vehicleTypeId || vehicle.vehicleType?.id) : null;
 
+            const authStr = localStorage.getItem('parking_auth');
+            let userId = null;
+            if (authStr) {
+                try {
+                    const parsedUser = JSON.parse(authStr);
+                    userId = parsedUser.userId || parsedUser.id;
+                } catch (e) {}
+            }
+
             const payload = {
                 ...values,
                 slotId: values.slotId || null,
                 vehicleTypeId: vTypeId,
-                startTime: values.startTime.toISOString(),
-                endTime: values.endTime.toISOString(),
+                userId: userId,
+                reservationStart: values.startTime.toISOString(),
+                reservationEnd: values.endTime.toISOString(),
             };
+
+            delete payload.startTime;
+            delete payload.endTime;
 
             await driverService.createReservation(payload);
             message.success('Reservation created successfully');
