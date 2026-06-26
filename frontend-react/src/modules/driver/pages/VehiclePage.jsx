@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useReducer, useMemo } from 'react';
-import { Card, Row, Col, Button, Modal, Form, Input, Select, Popconfirm, Tag, Space, message, Descriptions, Typography, Divider, Empty, Skeleton , theme } from 'antd';
+import { Card, Row, Col, Button, Modal, Form, Input, Select, Popconfirm, Tag, Space, message, Descriptions, Typography, Divider, Empty, Skeleton, Upload, theme } from 'antd';
 import { CarOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 import { vehicleStore } from '../store/vehicleStore';
@@ -62,7 +62,10 @@ const VehiclePage = () => {
             ownerName: record.ownerName,
             ownerPhone: record.ownerPhone,
             brand: record.brand,
-            color: record.color,
+            color: record.color || record.vehicleColor,
+            engineNumber: record.engineNumber,
+            chassisNumber: record.chassisNumber,
+            manufactureYear: record.manufactureYear,
         });
         setIsModalVisible(true);
     };
@@ -85,11 +88,12 @@ const VehiclePage = () => {
     const handleModalOk = async () => {
         try {
             const values = await form.validateFields();
+            const payload = { ...values, vehicleColor: values.color };
             if (editingVehicle) {
-                await driverService.updateVehicle(editingVehicle.vehicleId || editingVehicle.id, values);
+                await driverService.updateVehicle(editingVehicle.vehicleId || editingVehicle.id, payload);
                 message.success('Vehicle updated successfully');
             } else {
-                await driverService.registerVehicle(values);
+                await driverService.registerVehicle(payload);
                 message.success('Vehicle registered successfully');
             }
             setIsModalVisible(false);
@@ -265,12 +269,45 @@ const VehiclePage = () => {
                             </Form.Item>
                         </Col>
                         <Col span={12}>
-                            <Form.Item name="brand" label="Brand"><Input size="large" /></Form.Item>
+                            <Form.Item name="brand" label="Brand (Hãng xe)"><Input size="large" /></Form.Item>
                         </Col>
                         <Col span={12}>
-                            <Form.Item name="color" label="Color"><Input size="large" /></Form.Item>
+                            <Form.Item name="color" label="Color (Màu xe)"><Input size="large" /></Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="engineNumber" label="Engine No. (Số máy)"><Input size="large" /></Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="chassisNumber" label="Chassis No. (Số khung)"><Input size="large" /></Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="manufactureYear" label="Manufacture Year (Năm sản xuất)"><Input type="number" size="large" /></Form.Item>
                         </Col>
                     </Row>
+                    
+                    <div style={{ marginTop: 16, background: '#f8fafc', padding: '16px', borderRadius: '8px' }}>
+                        <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 8, color: '#334155' }}>Ảnh đính kèm (Tối đa 20 ảnh)</Text>
+                        <ul style={{ color: '#64748b', fontSize: 14, marginBottom: 16, listStyleType: 'none', paddingLeft: 0 }}>
+                            <li style={{ marginBottom: 4 }}>- Ảnh chân dung người đăng ký</li>
+                            <li style={{ marginBottom: 4 }}>- Ảnh mặt trước CMND/CCCD/Hộ chiếu/Giấy khai sinh</li>
+                            <li style={{ marginBottom: 4 }}>- Ảnh mặt sau CMND/CCCD</li>
+                            <li style={{ marginBottom: 4 }}>- Hình chụp giấy đăng ký xe máy/ô tô (nếu đăng ký gửi xe máy/xe ô tô)</li>
+                            <li style={{ marginBottom: 4 }}>- Hình chụp CĐ cùng xe đạp/xe đạp điện (nếu đăng ký gửi xe đạp/xe đạp điện)</li>
+                            <li style={{ marginBottom: 4 }}>- Đối với xe ô tô: xác nhận cư trú tại căn hộ (Tạm trú/thường trú) nộp trong vòng 30 ngày kể từ ngày đăng ký (trừ CSH và vợ chồng con cái, anh/chị/em ruột, tứ thân phụ mẫu và các căn shop)</li>
+                            <li style={{ marginBottom: 4 }}>- Đối với xe máy/xe đạp: Đăng ký xe ngoài hạn mức cần có xác nhận cư trú tại căn hộ (tạm trú/thường trú)</li>
+                        </ul>
+                        <Upload
+                            listType="picture-card"
+                            multiple
+                            maxCount={20}
+                            customRequest={({ file, onSuccess }) => setTimeout(() => onSuccess("ok"), 500)}
+                        >
+                            <div>
+                                <PlusOutlined />
+                                <div style={{ marginTop: 8 }}>Upload</div>
+                            </div>
+                        </Upload>
+                    </div>
                 </Form>
             </Modal>
 
@@ -288,7 +325,10 @@ const VehiclePage = () => {
                             <Descriptions.Item label="Owner Name">{viewingVehicle.ownerName}</Descriptions.Item>
                             <Descriptions.Item label="Owner Phone">{viewingVehicle.ownerPhone}</Descriptions.Item>
                             <Descriptions.Item label="Brand">{viewingVehicle.brand}</Descriptions.Item>
-                            <Descriptions.Item label="Color">{viewingVehicle.color}</Descriptions.Item>
+                            <Descriptions.Item label="Color">{viewingVehicle.color || viewingVehicle.vehicleColor}</Descriptions.Item>
+                            <Descriptions.Item label="Engine No.">{viewingVehicle.engineNumber || 'N/A'}</Descriptions.Item>
+                            <Descriptions.Item label="Chassis No.">{viewingVehicle.chassisNumber || 'N/A'}</Descriptions.Item>
+                            <Descriptions.Item label="Mfg Year">{viewingVehicle.manufactureYear || 'N/A'}</Descriptions.Item>
                             <Descriptions.Item label="Status">
                                 <Tag color={viewingVehicle.status === 'ACTIVE' ? 'green' : 'default'}>{viewingVehicle.status}</Tag>
                             </Descriptions.Item>
