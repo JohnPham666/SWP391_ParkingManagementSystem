@@ -1,6 +1,7 @@
 import React, { useEffect, useReducer, useState } from 'react';
 import { Card, Table, Modal, Form, DatePicker, Select, Button, Tag, Space, Popconfirm, Alert, message, Row, Col, Typography, Skeleton, Empty , theme } from 'antd';
 import { CalendarOutlined, PlusOutlined, DeleteOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { driverService } from '../services/driverService';
 import { reservationStore } from '../store/reservationStore';
 import { vehicleStore } from '../store/vehicleStore';
@@ -52,6 +53,11 @@ const ReservationPage = () => {
     const handleCreate = () => {
         setErrorAlert(null);
         form.resetFields();
+        const now = dayjs();
+        form.setFieldsValue({
+            startTime: now,
+            endTime: now.add(1, 'day')
+        });
         setSelectedVehicleType(null);
         setIsModalVisible(true);
     };
