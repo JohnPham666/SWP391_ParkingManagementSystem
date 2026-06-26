@@ -94,7 +94,7 @@ const DriverLayout = () => {
 
     const sidebarContent = (
         <>
-            <div className="driver-logo-container" style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '24px 16px' }}>
+            <div className="driver-logo-container" style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '24px 16px', cursor: 'pointer' }} onClick={() => navigate('/driver/dashboard')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <CarOutlined style={{ fontSize: '28px', color: '#f97316' }} />
                     {!collapsed && <Title level={3} className="driver-logo-text" style={{ margin: 0, color: '#f97316' }}>ParkSmart</Title>}

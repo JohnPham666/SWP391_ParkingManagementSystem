@@ -1,6 +1,6 @@
 import React, { useEffect, useReducer, useState, useMemo } from 'react';
 import { Card, Tag, Select, Row, Col, Descriptions, Drawer, Button, message, Skeleton, Empty, Typography, Input, Divider , theme } from 'antd';
-import { SearchOutlined, CompassOutlined, BorderOutlined, EnvironmentOutlined, CarOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { SearchOutlined, CompassOutlined, BorderOutlined, EnvironmentOutlined, CarOutlined, ThunderboltOutlined, ReloadOutlined } from '@ant-design/icons';
 import Icon from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { driverService } from '../services/driverService';
@@ -54,6 +54,19 @@ const ParkingPage = () => {
 
     const handleFilterChange = (key, value) => {
         parkingStore.filters[key] = value;
+        forceRender();
+    };
+
+    const handleResetFilter = () => {
+        parkingStore.filters = {
+            buildingName: '',
+            floorName: '',
+            zoneName: '',
+            vehicleTypeName: '',
+            status: '',
+            startTime: '',
+            endTime: ''
+        };
         forceRender();
     };
 
@@ -192,6 +205,12 @@ const ParkingPage = () => {
             return true;
         });
 
+        finalFilteredSlots.sort((a, b) => {
+            const idA = a.slotId || a.id || 0;
+            const idB = b.slotId || b.id || 0;
+            return idA - idB;
+        });
+
         return sortAndRecommendSlots(finalFilteredSlots);
     }, [slots, parkingStore.filters.buildingName, parkingStore.filters.floorName, parkingStore.filters.zoneName, parkingStore.filters.vehicleTypeName, parkingStore.filters.status, parkingStore.filters.startTime, parkingStore.filters.endTime, parkingStore.allReservations, parkingStore.allSessions]);
 
@@ -263,7 +282,7 @@ const ParkingPage = () => {
                         </Select>
                     </Col>
                 </Row>
-                <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                <Row gutter={[16, 16]} style={{ marginTop: 16, alignItems: 'flex-end' }}>
                     <Col xs={12} sm={8} md={6}>
                         <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Thời gian bắt đầu</div>
                         <Input 
@@ -281,6 +300,15 @@ const ParkingPage = () => {
                             value={parkingStore.filters.endTime || ''} 
                             onChange={(e) => handleFilterChange('endTime', e.target.value)} 
                         />
+                    </Col>
+                    <Col xs={12} sm={8} md={6}>
+                        <Button 
+                            size="large" 
+                            onClick={handleResetFilter} 
+                            icon={<ReloadOutlined />}
+                        >
+                            Đặt lại
+                        </Button>
                     </Col>
                 </Row>
             </Card>
@@ -403,7 +431,7 @@ const ParkingPage = () => {
                                 Slot xe máy không hỗ trợ đặt trước.
                             </div>
                         ) : (
-                            <Button type="primary" size="large" onClick={() => navigate('/driver/reservations')} style={{ marginTop: 16, height: 48, borderRadius: 8, fontSize: 16, fontWeight: 600 }}>
+                            <Button type="primary" size="large" onClick={() => navigate('/driver/reservations', { state: { prefilledSlot: parkingStore.selectedSlot } })} style={{ marginTop: 16, height: 48, borderRadius: 8, fontSize: 16, fontWeight: 600 }}>
                                 Book this Slot
                             </Button>
                         )}

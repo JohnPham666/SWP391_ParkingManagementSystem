@@ -22,6 +22,8 @@ const DashboardPage = () => {
         totalSlots: 0,
         occupiedSlots: 0,
         reservedSlots: 0,
+        totalCapacity: 0,
+        currentOccupancy: 0,
         motorbikeSlots: 'N/A',
         carSlots: 'N/A',
         occupancyRate: 0,
@@ -53,11 +55,16 @@ const DashboardPage = () => {
             const occupiedSlots = slots.filter(s => String(s.status).toUpperCase() === 'OCCUPIED');
             const reservedSlots = slots.filter(s => String(s.status).toUpperCase() === 'RESERVED');
             const totalSlots = slots.length;
-            const occupancyRate = totalSlots > 0 ? Math.round((occupiedSlots.length / totalSlots) * 100) : 0;
 
             let motorbikeCount = 0;
             let carCount = 0;
+            let totalCapacity = 0;
+            let currentOccupancy = 0;
+            
             slots.forEach(s => {
+                totalCapacity += (s.capacity || 1);
+                currentOccupancy += (s.currentOccupancy || 0);
+                
                 const typeName = (s.vehicleType?.name || s.vehicleTypeName || '').toLowerCase();
                 if (typeName.includes('motor') || typeName.includes('xe máy')) {
                     motorbikeCount++;
@@ -65,6 +72,8 @@ const DashboardPage = () => {
                     carCount++;
                 }
             });
+
+            const occupancyRate = totalCapacity > 0 ? Number((currentOccupancy / totalCapacity * 100).toFixed(1)) : 0;
 
             const todayStr = new Date().toDateString();
             const todaysReservations = reservations.filter(r => r.reservationStart && new Date(r.reservationStart).toDateString() === todayStr);
@@ -74,6 +83,8 @@ const DashboardPage = () => {
                 activeReservations: activeReservations.length,
                 availableSlots: availableSlots.length,
                 totalSlots,
+                totalCapacity,
+                currentOccupancy,
                 occupiedSlots: occupiedSlots.length,
                 reservedSlots: reservedSlots.length,
                 motorbikeSlots: motorbikeCount,
@@ -190,7 +201,7 @@ const DashboardPage = () => {
                         />
                         <div style={{ marginTop: '16px' }}>
                             <Title level={5} style={{ margin: 0 }}>Current Occupancy</Title>
-                            <Text type="secondary">Real-time status of all parking zones</Text>
+                            <Text type="secondary">{stats.currentOccupancy} / {stats.totalCapacity} Occupied</Text>
                         </div>
                     </Col>
                     
@@ -224,9 +235,9 @@ const DashboardPage = () => {
                             <Text strong style={{ display: 'block', marginBottom: '8px' }}>Capacity Breakdown</Text>
                             <Progress 
                                 percent={100} 
-                                success={{ percent: stats.totalSlots ? (stats.availableSlots / stats.totalSlots) * 100 : 0, strokeColor: token.colorSuccess }} 
+                                success={{ percent: stats.totalCapacity ? ((stats.totalCapacity - stats.currentOccupancy) / stats.totalCapacity) * 100 : 0, strokeColor: token.colorSuccess }} 
                                 strokeColor={token.colorWarning}
-                                format={() => `${stats.totalSlots} Total`}
+                                format={() => `${stats.totalCapacity} Total`}
                             />
                             <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
                                 <Tag color={token.colorSuccess}>Available</Tag>

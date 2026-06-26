@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Typography, Button, Table, Tag, Modal, Form, Input, Upload, message, Empty , theme, Skeleton, Select } from 'antd';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertOutlined, UploadOutlined, CheckCircleOutlined, SyncOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 
@@ -13,10 +14,25 @@ const IncidentPage = () => {
     const [incidents, setIncidents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const location = useLocation();
+    const navigate = useNavigate();
     
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        if (location.state?.autoOpen) {
+            form.resetFields();
+            form.setFieldsValue({
+                title: location.state.incidentType,
+                reservationId: location.state.reservationId,
+                description: location.state.description
+            });
+            setIsModalVisible(true);
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location.state, navigate]);
 
     const fetchData = async () => {
         setLoading(true);
