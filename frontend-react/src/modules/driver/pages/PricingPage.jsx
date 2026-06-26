@@ -49,24 +49,25 @@ const PricingPage = () => {
                     const color = isMotorbike ? '#ea580c' : '#3b82f6';
                     const bg = isMotorbike ? '#fff7ed' : '#eff6ff';
                     
+                    const formatCurrency = (val) => val != null ? `${val.toLocaleString()} VND` : 'N/A';
+                    
                     const features = [
-                        `Base Price: ${p.basePrice?.toLocaleString()} VND/hr`,
-                        `Rush Hour (${p.rushHourStart || 'N/A'} - ${p.rushHourEnd || 'N/A'}): ${p.rushHourPrice?.toLocaleString()} VND/hr`,
-                        `Max Daily: ${p.maxDailyRate?.toLocaleString()} VND`,
-                        `Lost Ticket: ${p.lostTicketFee?.toLocaleString()} VND`,
-                        `Overtime: ${p.overtimeFeePerHour?.toLocaleString()} VND/hr`
+                        `Base Price: ${formatCurrency(p.basePrice)}/hr`,
+                        `Rush Hour (${p.rushHourStart || 'N/A'} - ${p.rushHourEnd || 'N/A'}): ${formatCurrency(p.rushHourPrice)}/hr`,
+                        `Max Daily: ${formatCurrency(p.maxDailyRate)}`,
+                        `Lost Ticket: ${formatCurrency(p.lostTicketFee)}`,
+                        `Overtime: ${formatCurrency(p.overtimeFeePerHour)}/hr`
                     ];
                     
                     return {
                         id: p.pricingPolicyId || p.id,
                         type: vTypeName,
                         name: p.policyName,
-                        price: `${p.basePrice?.toLocaleString()} VND`,
-                        unit: 'per hour',
+                        price: p.basePrice != null ? p.basePrice.toLocaleString() : '0',
+                        unit: 'VND / hour',
                         color: color,
                         bg: bg,
-                        features: features,
-                        popular: !isMotorbike
+                        features: features
                     };
                 });
                 
@@ -104,26 +105,19 @@ const PricingPage = () => {
                             style={{ 
                                 height: '100%', 
                                 borderTop: `4px solid ${plan.color}`,
-                                position: 'relative',
-                                transform: plan.popular ? 'scale(1.05)' : 'none',
-                                zIndex: plan.popular ? 2 : 1
+                                position: 'relative'
                             }}
                             styles={{ body: { padding: 32, display: 'flex', flexDirection: 'column', height: '100%' } }}
                         >
-                            {plan.popular && (
-                                <div style={{ position: 'absolute', top: 0, right: 0, background: plan.color, color: token.colorText, padding: '4px 12px', borderBottomLeftRadius: 12, fontWeight: 600, fontSize: 12 }}>
-                                    MOST POPULAR
-                                </div>
-                            )}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
                                 <Tag color={plan.bg} style={{ color: plan.color, padding: '4px 12px', borderRadius: 16, border: 'none', fontWeight: 600, alignSelf: 'flex-start' }}>
                                     {plan.type}
                                 </Tag>
                                 <Text strong style={{ fontSize: 16 }}>{plan.name}</Text>
                             </div>
-                            <div style={{ marginBottom: 24 }}>
-                                <span style={{ fontSize: 48, fontWeight: 800, color: token.colorText }}>{plan.price}</span>
-                                <span style={{ color: token.colorTextSecondary, marginLeft: 8 }}>{plan.unit}</span>
+                            <div style={{ marginBottom: 24, display: 'flex', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 40, fontWeight: 800, color: token.colorText }}>{plan.price}</span>
+                                <span style={{ color: token.colorTextSecondary, marginLeft: 8, fontWeight: 600 }}>{plan.unit}</span>
                             </div>
                             
                             <Divider style={{ margin: '0 0 24px 0' }} />
@@ -136,23 +130,6 @@ const PricingPage = () => {
                                     </div>
                                 ))}
                             </div>
-
-                            <Button 
-                                type={plan.popular ? 'primary' : 'default'} 
-                                size="large" 
-                                style={{ 
-                                    width: '100%', 
-                                    marginTop: 24, 
-                                    borderRadius: 8,
-                                    height: 48,
-                                    fontWeight: 600,
-                                    background: plan.popular ? plan.color : undefined,
-                                    borderColor: plan.color,
-                                    color: plan.popular ? 'white' : plan.color
-                                }}
-                            >
-                                Learn More
-                            </Button>
                         </Card>
                     </Col>
                 ))}
