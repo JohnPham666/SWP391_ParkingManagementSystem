@@ -14,6 +14,7 @@ const ReservationPage = () => {
     const [errorAlert, setErrorAlert] = useState(null);
     const [, forceRender] = useReducer(x => x + 1, 0);
     const [form] = Form.useForm();
+    const [selectedVehicleType, setSelectedVehicleType] = useState(null);
 
     useEffect(() => {
         fetchData();
@@ -51,6 +52,7 @@ const ReservationPage = () => {
     const handleCreate = () => {
         setErrorAlert(null);
         form.resetFields();
+        setSelectedVehicleType(null);
         setIsModalVisible(true);
     };
 
@@ -64,8 +66,13 @@ const ReservationPage = () => {
                 return;
             }
 
+            const vehicle = safeVehicles.find(v => (v.vehicleId || v.id) === values.vehicleId);
+            const vTypeId = vehicle ? (vehicle.vehicleType?.vehicleTypeId || vehicle.vehicleTypeId || vehicle.vehicleType?.id) : null;
+
             const payload = {
                 ...values,
+                slotId: values.slotId || null,
+                vehicleTypeId: vTypeId,
                 startTime: values.startTime.toISOString(),
                 endTime: values.endTime.toISOString(),
             };
@@ -176,6 +183,32 @@ const ReservationPage = () => {
         cancelled: safeReservations.filter(r => String(r.status).toUpperCase() === 'CANCELLED').length,
     };
 
+    const filteredSlots = safeSlots.filter(s => {
+        const sType = (s.vehicleTypeName || '').toLowerCase();
+        return !sType.includes('motor') && !sType.includes('xe máy');
+    });
+
+    const handleVehicleChange = (vehicleId) => {
+        const vehicle = safeVehicles.find(v => (v.vehicleId || v.id) === vehicleId);
+        if (vehicle) {
+            const vTypeName = (vehicle.vehicleType?.typeName || vehicle.vehicleType?.name || vehicle.vehicleTypeName || '').toLowerCase();
+            setSelectedVehicleType(vTypeName);
+            
+            const isMotorbike = vTypeName.includes('motor') || vTypeName.includes('xe máy');
+            if (!isMotorbike) {
+                // Auto fill the first available car slot
+                const firstAvailable = filteredSlots.find(s => s.status === 'AVAILABLE');
+                if (firstAvailable) {
+                    form.setFieldsValue({ slotId: firstAvailable.slotId || firstAvailable.id });
+                } else {
+                    form.setFieldsValue({ slotId: undefined });
+                }
+            } else {
+                form.setFieldsValue({ slotId: undefined });
+            }
+        }
+    };
+
     if (reservationStore.loading) {
         return <Skeleton active paragraph={{ rows: 10 }} />;
     }
@@ -267,13 +300,30 @@ const ReservationPage = () => {
                 {errorAlert && <Alert message={errorAlert} type="error" showIcon style={{ marginBottom: 16 }} closable onClose={() => setErrorAlert(null)} />}
                 <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
                     <Form.Item name="vehicleId" label="Select Vehicle" rules={[{ required: true }]}>
-                        <Select size="large" placeholder="Choose your vehicle">
+                        <Select size="large" placeholder="Choose your vehicle" onChange={handleVehicleChange}>
                             {safeVehicles.map(v => <Select.Option key={v.vehicleId || v.id} value={v.vehicleId || v.id}>{v.licensePlate} ({v.brand || 'N/A'})</Select.Option>)}
                         </Select>
                     </Form.Item>
-                    <Form.Item name="slotId" label="Select Slot" rules={[{ required: true }]}>
-                        <Select size="large" placeholder="Choose a parking slot">
-                            {safeSlots.map(s => <Select.Option key={s.slotId || s.id} value={s.slotId || s.id}>{s.slotName || s.id} - {s.buildingName}</Select.Option>)}
+                    
+                    <Form.Item 
+                        name="slotId" 
+                        label="Select Slot" 
+                        rules={[{ 
+                            required: selectedVehicleType && !selectedVehicleType.includes('motor') && !selectedVehicleType.includes('xe máy'), 
+                            message: 'Please select a parking slot' 
+                        }]}
+                    >
+                        <Select 
+                            size="large" 
+                            placeholder={selectedVehicleType && (selectedVehicleType.includes('motor') || selectedVehicleType.includes('xe máy')) ? "Motorbikes do not require a specific slot" : "Choose a parking slot"}
+                            disabled={selectedVehicleType && (selectedVehicleType.includes('motor') || selectedVehicleType.includes('xe máy'))}
+                        >
+                            <Select.Option value="">-- Auto-assign (Any available) --</Select.Option>
+                            {filteredSlots.map(s => (
+                                <Select.Option key={s.slotId || s.id} value={s.slotId || s.id}>
+                                    {s.slotCode || s.slotName || s.id} - {s.buildingName} ({s.vehicleTypeName})
+                                </Select.Option>
+                            ))}
                         </Select>
                     </Form.Item>
                     <Row gutter={16}>
