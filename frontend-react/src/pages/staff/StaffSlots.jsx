@@ -63,10 +63,10 @@ const StaffSlots = () => {
   });
 
   const getStatusColor = (status) => {
-    if (status === 'AVAILABLE') return { bg: '#f0fdf4', border: '#bbf7d0', text: '#16a34a' };
-    if (status === 'OCCUPIED') return { bg: '#fef2f2', border: '#fecaca', text: '#dc2626' };
-    if (status === 'RESERVED') return { bg: '#fffbeb', border: '#fde68a', text: '#d97706' };
-    return { bg: '#f3f4f6', border: '#e5e7eb', text: '#4b5563' }; // LOCKED or others
+    if (status === 'AVAILABLE') return { bg: '#f0fdf4', border: '#bbf7d0', text: '#16a34a', label: 'Trống' };
+    if (status === 'OCCUPIED') return { bg: '#fef2f2', border: '#fecaca', text: '#dc2626', label: 'Đang đỗ' };
+    if (status === 'RESERVED') return { bg: '#fffbeb', border: '#fde68a', text: '#d97706', label: 'Đã đặt' };
+    return { bg: '#f3f4f6', border: '#e5e7eb', text: '#4b5563', label: 'Khóa' }; // LOCKED or others
   };
 
   const getVehicleIcon = (type) => {
@@ -149,30 +149,44 @@ const StaffSlots = () => {
                         {zSlots.map(s => {
                           const colors = getStatusColor(s.status);
                           return (
-                            <div 
-                              key={s.slotId}
-                              title={`${s.vehicleTypeName} | Cap: ${s.currentOccupancy}/${s.capacity}`}
-                              style={{ 
-                                padding: '10px 16px', 
-                                border: `2px solid ${colors.border}`, 
-                                borderRadius: '8px',
-                                backgroundColor: colors.bg,
-                                textAlign: 'center',
-                                minWidth: '90px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                gap: '4px',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                              }}
-                            >
-                              <div style={{ fontSize: '20px' }}>{getVehicleIcon(s.vehicleTypeName)}</div>
-                              <div style={{ fontWeight: '900', fontSize: '16px', color: '#1f2937' }}>{s.slotCode}</div>
-                              <div style={{ fontSize: '12px', fontWeight: 'bold', color: colors.text }}>{s.status}</div>
-                              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px', background: '#fff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e5e7eb' }}>
-                                {s.currentOccupancy || 0}/{s.capacity || 1}
+                              <div 
+                                key={s.slotId}
+                                title={`${s.vehicleTypeName} | Sức chứa: ${s.currentOccupancy}/${s.capacity}`}
+                                style={{ 
+                                  padding: '10px 16px', 
+                                  border: `2px solid ${colors.border}`, 
+                                  borderRadius: '8px',
+                                  backgroundColor: colors.bg,
+                                  textAlign: 'center',
+                                  minWidth: '90px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                  cursor: 'pointer'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(-4px) scale(1.05)';
+                                  e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+                                }}
+                              >
+                                <div style={{ fontSize: '24px', transition: 'transform 0.3s ease' }} 
+                                     onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                                     onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                                  {getVehicleIcon(s.vehicleTypeName)}
+                                </div>
+                                <div style={{ fontWeight: '900', fontSize: '16px', color: '#1f2937' }}>{s.slotCode}</div>
+                                <div style={{ fontSize: '12px', fontWeight: 'bold', color: colors.text }}>{colors.label}</div>
+                                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px', background: '#fff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e5e7eb' }}>
+                                  {s.currentOccupancy || 0}/{s.capacity || 1} xe
+                                </div>
                               </div>
-                            </div>
                           );
                         })}
                       </div>

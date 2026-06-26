@@ -15,10 +15,14 @@ const StaffReservations = () => {
 
   useEffect(() => {
     fetchReservations();
+    const interval = setInterval(() => {
+      fetchReservations(true);
+    }, 10000);
+    return () => clearInterval(interval);
   }, [location.search]);
 
-  const fetchReservations = async () => {
-    setLoading(true);
+  const fetchReservations = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await reservationApi.getReservations();
       let data = res.data?.success ? res.data.data : res.data;

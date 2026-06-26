@@ -29,4 +29,14 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer> {
              AND p.paidAt BETWEEN :fromDateTime AND :toDateTime
            """)
     Long countPaidPayments(LocalDateTime fromDateTime, LocalDateTime toDateTime);
+
+    @Query(value = """
+           SELECT DATE(p.paidat) as date, SUM(p.amount) as revenue
+           FROM payments p
+           WHERE p.paymentstatus = 'PAID'
+             AND p.paidat BETWEEN :fromDateTime AND :toDateTime
+           GROUP BY DATE(p.paidat)
+           ORDER BY DATE(p.paidat) ASC
+           """, nativeQuery = true)
+    java.util.List<Object[]> getDailyRevenueTrendNative(LocalDateTime fromDateTime, LocalDateTime toDateTime);
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Upload, Row, Col, Typography, Divider } from 'antd';
+import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Upload, Row, Col, Typography, Divider, DatePicker } from 'antd';
 import { SearchOutlined, CarOutlined, CreditCardOutlined, UploadOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { sessionApi, paymentApi, vehicleApi } from '../../services/api';
 import dayjs from 'dayjs';
@@ -201,72 +201,70 @@ const SessionManagement = () => {
     }
   };
 
+  // Extract unique vehicle types from sessions
+  const uniqueVehicleTypes = Array.from(new Set(sessions.map(s => s.vehicleTypeName || s.vehicleType?.typeName || 'Ô tô')));
+
   // Filter
   const filteredSessions = sessions.filter(session => {
     const searchMatch = !filters.search || 
       session.licensePlate?.toLowerCase().includes(filters.search.toLowerCase()) ||
       session.sessionId?.toString().includes(filters.search);
-    const statusMatch = !filters.status || session.status === filters.status;
-    return searchMatch && statusMatch;
+    const statusMatch = !filters.status || session.status === filters.status || (filters.status === 'ACTIVE' && session.status === 'PARKING');
+    const typeMatch = !filters.vehicleType || (session.vehicleTypeName || session.vehicleType?.typeName || 'Ô tô') === filters.vehicleType;
+    const dateMatch = !filters.date || dayjs(session.checkInTime || session.checkinTime || session.entryTime).format('MM/DD/YYYY') === filters.date;
+    return searchMatch && statusMatch && typeMatch && dateMatch;
   });
 
   const columns = [
     { title: 'ID', dataIndex: 'sessionId', key: 'sessionId', render: (text) => <strong>#{text}</strong> },
-    { title: 'License Plate', dataIndex: 'licensePlate', key: 'licensePlate', render: (text) => <Tag color="blue" style={{ fontSize: 14, fontWeight: 'bold' }}>{text || 'N/A'}</Tag> },
-    { title: 'Slot', dataIndex: 'slotCode', key: 'slotCode', render: text => text || '-' },
-    { title: 'Entry Time', dataIndex: 'checkInTime', key: 'checkInTime', render: (time) => time ? dayjs(time).format('DD/MM/YYYY HH:mm:ss') : '-' },
-    { title: 'Gate', dataIndex: 'entryGate', key: 'entryGate', render: text => text || '-' },
+    { title: 'LICENSE PLATE', dataIndex: 'licensePlate', key: 'licensePlate', render: (text) => <strong style={{ fontSize: 14 }}>{text || 'N/A'}</strong> },
+    { title: 'SLOT', dataIndex: 'slotCode', key: 'slotCode', render: text => text || '-' },
+    { title: 'VEHICLE TYPE', key: 'vehicleType', render: (_, record) => record.vehicleTypeName || record.vehicleType?.typeName || 'Car' },
+    { title: 'ENTRY TIME', key: 'checkInTime', render: (_, record) => {
+        const time = record.checkInTime || record.checkinTime || record.entryTime;
+        return time ? dayjs(time).format('HH:mm:ss DD/MM/YYYY') : '-';
+    }},
     {
-      title: 'Status',
+      title: 'STATUS',
       dataIndex: 'status',
       key: 'status',
-      render: (status) => (
-        <Tag color={status === 'ACTIVE' ? 'green' : status === 'COMPLETED' ? 'default' : 'red'}>
-          {status === 'ACTIVE' ? 'Active' : status === 'COMPLETED' ? 'Completed' : status}
-        </Tag>
-      )
+      render: (status) => {
+        let color = 'default';
+        let text = status;
+        if (status === 'ACTIVE' || status === 'PARKING') { color = 'error'; text = 'Parking'; }
+        else if (status === 'COMPLETED') { color = 'success'; text = 'Completed'; }
+        else if (status === 'UNPAID') { color = 'warning'; text = 'Unpaid'; }
+        else if (status === 'LOST_TICKET') { color = 'purple'; text = 'Lost Ticket'; }
+        return <Tag color={color}>{text}</Tag>;
+      }
     },
-  ];
-
-  if (!isStaff) {
-    columns.push({
-      title: 'Total Fee',
-      dataIndex: 'totalFee',
-      key: 'totalFee',
-      render: (fee) => fee ? <strong style={{ color: '#ea580c' }}>{fee.toLocaleString()} ₫</strong> : '-'
-    });
-    columns.push({
-      title: 'Actions',
+    {
+      title: 'ACTION',
       key: 'action',
       render: (_, record) => (
-        <Space size="middle">
-          {record.status === 'ACTIVE' && (
-            <Button type="primary" danger size="small" onClick={() => {
-              // Quick check-out trigger for Manager
-              setCheckoutSessionData({ ...record, exitTime: new Date().toISOString() });
-              setCheckOutStep(1);
-              setIsCheckOutVisible(true);
-              checkOutSearchForm.setFieldsValue({ licensePlate: record.licensePlate });
-            }} icon={<CreditCardOutlined />}>
-              Check-out
-            </Button>
-          )}
-          <Button type="default" size="small" onClick={() => {
+        <Button 
+          style={{ borderRadius: 6, padding: '4px 16px', height: 'auto', borderColor: '#d9d9d9' }} 
+          onClick={() => {
             setSummaryData({
+              sessionId: record.sessionId,
+              status: record.status,
               plate: record.licensePlate,
-              type: record.vehicleTypeName || 'N/A',
-              time: dayjs(record.checkInTime).format('DD/MM/YYYY HH:mm:ss'),
+              type: record.vehicleTypeName || record.vehicleType?.typeName || 'N/A',
+              time: record.checkInTime || record.checkinTime || record.entryTime ? dayjs(record.checkInTime || record.checkinTime || record.entryTime).format('HH:mm:ss DD/MM/YYYY') : '-',
+              exitTime: record.checkOutTime ? dayjs(record.checkOutTime).format('HH:mm:ss DD/MM/YYYY') : '-',
               gate: record.entryGate,
+              exitGate: record.exitGate,
+              slot: record.slotCode,
               image: record.entryImage || null
             });
             setIsSummaryVisible(true);
-          }}>
-            Details
-          </Button>
-        </Space>
+          }}
+        >
+          View
+        </Button>
       ),
-    });
-  }
+    }
+  ];
 
   return (
     <div>
@@ -314,32 +312,42 @@ const SessionManagement = () => {
       <Card>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '16px' }}>
           {!isStaff && (
-            <Title level={4} style={{ margin: 0 }}>Session Management</Title>
+            <Title level={4} style={{ margin: 0 }}>Parking Sessions</Title>
           )}
           <Space style={{ flexWrap: 'wrap' }}>
             <Input 
-            placeholder="Search plate..." 
-            prefix={<SearchOutlined />} 
-            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-            style={{ width: 250 }}
-            size="large"
-          />
-          <Select 
-            placeholder="All Statuses" 
-            style={{ width: 160 }} 
-            allowClear 
-            size="large"
-            onChange={(val) => setFilters({ ...filters, status: val })}
-          >
-            <Option value="ACTIVE">Active</Option>
-            <Option value="COMPLETED">Completed</Option>
-          </Select>
-          {!isStaff && (
-             <Button type="primary" icon={<CarOutlined />} onClick={() => setIsWalkInVisible(true)} style={{ backgroundColor: '#10b981' }}>
-                Add Walk-in
-             </Button>
-          )}
-        </Space>
+              placeholder="Search plate..." 
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              style={{ width: 180 }}
+            />
+            <Select 
+              defaultValue=""
+              style={{ width: 160 }} 
+              onChange={(val) => setFilters({ ...filters, status: val })}
+            >
+              <Option value="">All Statuses</Option>
+              <Option value="ACTIVE">Parking</Option>
+              <Option value="COMPLETED">Completed</Option>
+              <Option value="UNPAID">Unpaid</Option>
+              <Option value="LOST_TICKET">Lost Ticket</Option>
+            </Select>
+            <Select 
+              defaultValue=""
+              style={{ width: 150 }} 
+              onChange={(val) => setFilters({ ...filters, vehicleType: val })}
+            >
+              <Option value="">All Vehicle Types</Option>
+              {uniqueVehicleTypes.map(type => (
+                <Option key={type} value={type}>{type}</Option>
+              ))}
+            </Select>
+            <DatePicker 
+              format="MM/DD/YYYY" 
+              placeholder="mm/dd/yyyy" 
+              onChange={(date, dateString) => setFilters({ ...filters, date: dateString })}
+              style={{ width: 130 }}
+            />
+          </Space>
         </div>
 
         <Table 
@@ -416,20 +424,78 @@ const SessionManagement = () => {
         title="Session Summary"
         open={isSummaryVisible}
         onCancel={() => setIsSummaryVisible(false)}
-        footer={[
-          <Button key="close" type="primary" onClick={() => setIsSummaryVisible(false)}>Close</Button>
-        ]}
-        width={400}
+        footer={null}
+        width={600}
       >
         {summaryData && (
-          <div style={{ textAlign: 'center' }}>
-            {summaryData.image && (
-              <img src={summaryData.image} alt="Entry" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px' }} />
-            )}
-            <p><strong>Plate:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1677ff' }}>{summaryData.plate}</span></p>
-            <p><strong>Type:</strong> {summaryData.type}</p>
-            <p><strong>Entry:</strong> {summaryData.time}</p>
-            <p><strong>Gate:</strong> {summaryData.gate}</p>
+          <div>
+            <Divider style={{ margin: '12px 0' }} />
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Text type="secondary">Session ID</Text>
+                <div style={{ fontWeight: 'bold', fontSize: 16 }}>#{summaryData.sessionId || '-'}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary">Status</Text>
+                <div>
+                   {(() => {
+                      let sColor = 'default';
+                      let sText = summaryData.status;
+                      if (sText === 'ACTIVE' || sText === 'PARKING') { sColor = 'error'; sText = 'Parking'; }
+                      else if (sText === 'COMPLETED') { sColor = 'success'; sText = 'Completed'; }
+                      else if (sText === 'UNPAID') { sColor = 'warning'; sText = 'Unpaid'; }
+                      else if (sText === 'LOST_TICKET') { sColor = 'purple'; sText = 'Lost Ticket'; }
+                      return <Tag color={sColor} style={{ borderRadius: 12 }}>{sText}</Tag>;
+                   })()}
+                </div>
+              </Col>
+              
+              <Col span={12}>
+                <Text type="secondary">License Plate</Text>
+                <div style={{ fontWeight: 'bold', fontSize: 16 }}>{summaryData.plate || '-'}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary">Vehicle Type</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.type || '-'}</div>
+              </Col>
+              
+              <Col span={12}>
+                <Text type="secondary">Entry Time</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.time || '-'}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary">Entry Gate</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.gate || '-'}</div>
+              </Col>
+              
+              <Col span={12}>
+                <Text type="secondary">Exit Time</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.exitTime || '-'}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary">Exit Gate</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.exitGate || '-'}</div>
+              </Col>
+
+              <Col span={12}>
+                <Text type="secondary">Parking Slot</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.slot || '-'}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary">Staff (In/Out)</Text>
+                <div style={{ fontSize: 16 }}>- / -</div>
+              </Col>
+            </Row>
+
+            <Divider style={{ margin: '16px 0', borderBlockColor: 'transparent' }} />
+            <Text type="secondary">Entry Image</Text>
+            <div style={{ marginTop: 8 }}>
+              {summaryData.image ? (
+                <img src={summaryData.image} alt="Entry" style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px' }} />
+              ) : (
+                <Text type="secondary" italic style={{ fontSize: 16 }}>No image available</Text>
+              )}
+            </div>
           </div>
         )}
       </Modal>
