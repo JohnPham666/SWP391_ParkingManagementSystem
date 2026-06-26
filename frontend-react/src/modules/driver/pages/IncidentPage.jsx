@@ -26,7 +26,6 @@ const IncidentPage = () => {
             form.resetFields();
             form.setFieldsValue({
                 title: location.state.incidentType,
-                reservationId: location.state.reservationId,
                 description: location.state.description
             });
             setIsModalVisible(true);
@@ -130,7 +129,7 @@ const IncidentPage = () => {
             const payload = {
                 incidentType: values.title,
                 description: values.description,
-                sessionId: values.reservationId ? parseInt(values.reservationId) : null,
+                sessionId: null,
                 status: 'OPEN'
             };
             
@@ -241,9 +240,6 @@ const IncidentPage = () => {
                     </Form.Item>
                     <Form.Item name="description" label="Detailed Description" rules={[{ required: true }]}>
                         <TextArea rows={4} placeholder="Please describe exactly what happened and when..." />
-                    </Form.Item>
-                    <Form.Item name="reservationId" label="Related Reservation (Optional)">
-                        <Input placeholder="Enter Reservation ID" size="large" />
                     </Form.Item>
                     <Form.Item label="Photo Evidence (Optional)">
                         <Upload listType="picture" maxCount={3}>

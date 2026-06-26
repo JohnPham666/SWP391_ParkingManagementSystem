@@ -434,7 +434,7 @@ const ReservationPage = () => {
 
     const filteredSlots = safeSlots.filter(s => {
         const sType = (s.vehicleTypeName || '').toLowerCase();
-        return !sType.includes('motor') && !sType.includes('xe máy');
+        return !sType.includes('motor') && !sType.includes('xe máy') && String(s.status).toUpperCase() === 'AVAILABLE';
     });
 
     const handleVehicleChange = (vehicleId) => {
@@ -697,8 +697,7 @@ const ReservationPage = () => {
                             state: {
                                 autoOpen: true,
                                 incidentType: 'OTHER',
-                                reservationId: cancelledReservationId,
-                                description: 'I cancelled the reservation that I already paid, I want a refund'
+                                description: `I cancelled the reservation that I already paid, I want a refund.\nReservation ID: ${cancelledReservationId}`
                             }
                         });
                     }}>
