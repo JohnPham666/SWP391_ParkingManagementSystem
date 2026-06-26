@@ -1,6 +1,7 @@
 import React, { useEffect, useReducer, useState, useMemo } from 'react';
-import { Card, Tag, Select, Row, Col, Descriptions, Drawer, Button, message, Skeleton, Empty, Typography, Input, Badge, Divider , theme } from 'antd';
-import { SearchOutlined, CompassOutlined, BorderOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { Card, Tag, Select, Row, Col, Descriptions, Drawer, Button, message, Skeleton, Empty, Typography, Input, Divider , theme } from 'antd';
+import { SearchOutlined, CompassOutlined, BorderOutlined, EnvironmentOutlined, CarOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { driverService } from '../services/driverService';
 import { parkingStore } from '../store/parkingStore';
 
@@ -9,6 +10,7 @@ const { Title, Text } = Typography;
 
 const ParkingPage = () => {
     const { token } = theme.useToken();
+    const navigate = useNavigate();
     const [, forceRender] = useReducer(x => x + 1, 0);
     const [drawerVisible, setDrawerVisible] = useState(false);
     const [searchText, setSearchText] = useState('');
@@ -78,8 +80,10 @@ const ParkingPage = () => {
             // Text Search
             if (searchText) {
                 const search = searchText.toLowerCase();
-                const code = (slot.slotName || slot.slotCode || '').toLowerCase();
-                if (!code.includes(search)) return false;
+                const code = (slot.slotCode || '').toLowerCase();
+                const building = (slot.buildingName || '').toLowerCase();
+                const zone = (slot.zoneName || '').toLowerCase();
+                if (!code.includes(search) && !building.includes(search) && !zone.includes(search)) return false;
             }
 
             if (f.buildingName && f.buildingName !== 'all' && slot.buildingName !== f.buildingName) return false;
@@ -94,8 +98,10 @@ const ParkingPage = () => {
     const getStatusInfo = (status) => {
         const s = String(status).toUpperCase();
         if (s === 'AVAILABLE') return { color: 'green', hex: '#10b981', label: 'AVAILABLE' };
-        if (s === 'RESERVED') return { color: 'gold', hex: '#f59e0b', label: 'RESERVED' };
+        if (s === 'RESERVED') return { color: 'orange', hex: '#f97316', label: 'RESERVED' };
         if (s === 'OCCUPIED') return { color: 'red', hex: '#ef4444', label: 'OCCUPIED' };
+        if (s === 'MAINTENANCE') return { color: 'default', hex: '#9ca3af', label: 'MAINTENANCE' };
+        if (s === 'DISABLED' || s === 'LOCKED') return { color: 'default', hex: '#4b5563', label: s };
         return { color: 'default', hex: '#94a3b8', label: s || 'UNKNOWN' };
     };
 
@@ -111,7 +117,7 @@ const ParkingPage = () => {
                 {/* Status Legend */}
                 <div style={{ display: 'flex', gap: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#10b981' }}></div><Text type="secondary">Available</Text></div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#f59e0b' }}></div><Text type="secondary">Reserved</Text></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#f97316' }}></div><Text type="secondary">Reserved</Text></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#ef4444' }}></div><Text type="secondary">Occupied</Text></div>
                 </div>
             </div>
@@ -164,38 +170,36 @@ const ParkingPage = () => {
                 <Empty description="No slots match your criteria" style={{ margin: '60px 0' }} />
             ) : (
                 <Row gutter={[20, 20]}>
-                    {filteredSlots.map((slot, index) => {
+                    {filteredSlots.map((slot) => {
                         const statusInfo = getStatusInfo(slot.status);
-                        // Make the first available slot recommended randomly for demo purposes
-                        const isRecommended = slot.status === 'AVAILABLE' && index % 7 === 0;
 
                         return (
-                            <Col xs={24} sm={12} md={8} lg={6} xl={4} key={slot.slotId || slot.id || slot.slotName}>
-                                <Badge.Ribbon text="Recommended" color="#ea580c" style={{ display: isRecommended ? 'block' : 'none' }}>
-                                    <Card 
-                                        hoverable 
-                                        className={`saas-card ${isRecommended ? 'recommended-slot' : ''}`}
-                                        styles={{ body: { padding: 16 } }}
-                                        onClick={() => handleView(slot)}
-                                    >
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                                            <Title level={3} style={{ margin: 0, fontWeight: 800 }}>{slot.slotName || slot.slotCode}</Title>
-                                            <div style={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: statusInfo.hex, boxShadow: `0 0 8px ${statusInfo.hex}66` }} />
+                            <Col xs={24} sm={12} md={8} lg={6} xl={4} key={slot.slotId || slot.id || slot.slotCode}>
+                                <Card 
+                                    hoverable 
+                                    className="saas-card"
+                                    styles={{ body: { padding: 16 } }}
+                                    onClick={() => handleView(slot)}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                        <Title level={3} style={{ margin: 0, fontWeight: 800 }}>{slot.slotCode || 'N/A'}</Title>
+                                        <div style={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: statusInfo.hex, boxShadow: `0 0 8px ${statusInfo.hex}66` }} />
+                                    </div>
+                                    
+                                    <div style={{ color: token.colorTextSecondary, fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        <div><EnvironmentOutlined /> {slot.buildingName || 'N/A'} - {slot.floorName || 'N/A'}</div>
+                                        <div><BorderOutlined /> Zone: <Text strong>{slot.zoneName || 'N/A'}</Text></div>
+                                        <div>
+                                            {String(slot.vehicleTypeName || '').toLowerCase().includes('motor') ? <CompassOutlined /> : String(slot.vehicleTypeName || '').toLowerCase().includes('ev') ? <ThunderboltOutlined /> : <CarOutlined />} {slot.vehicleTypeName || 'N/A'}
                                         </div>
-                                        
-                                        <div style={{ color: token.colorTextSecondary, fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                            <div><EnvironmentOutlined /> {slot.buildingName || 'N/A'} - {slot.floorName || 'N/A'}</div>
-                                            <div><BorderOutlined /> Zone: <Text strong>{slot.zoneName || 'N/A'}</Text></div>
-                                            <div><CompassOutlined /> {slot.vehicleTypeName || 'N/A'}</div>
-                                        </div>
+                                    </div>
 
-                                        <Divider style={{ margin: '12px 0' }} />
-                                        
-                                        <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                            <Tag color={statusInfo.color} style={{ margin: 0, border: 'none', fontWeight: 600 }}>{statusInfo.label}</Tag>
-                                        </div>
-                                    </Card>
-                                </Badge.Ribbon>
+                                    <Divider style={{ margin: '12px 0' }} />
+                                    
+                                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                        <Tag color={statusInfo.color} style={{ margin: 0, border: 'none', fontWeight: 600 }}>{statusInfo.label}</Tag>
+                                    </div>
+                                </Card>
                             </Col>
                         );
                     })}
@@ -214,7 +218,7 @@ const ParkingPage = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                         <Card className="saas-card" styles={{ body: { textAlign: 'center', padding: '32px 16px' } }}>
                             <Title level={1} style={{ fontSize: 48, color: token.colorText, margin: 0 }}>
-                                {parkingStore.selectedSlot.slotName || parkingStore.selectedSlot.slotCode || 'N/A'}
+                                {parkingStore.selectedSlot.slotCode || 'N/A'}
                             </Title>
                             <Tag color={getStatusInfo(parkingStore.selectedSlot.status).color} style={{ marginTop: 12, fontSize: 14, padding: '4px 12px' }}>
                                 {getStatusInfo(parkingStore.selectedSlot.status).label}
@@ -238,7 +242,7 @@ const ParkingPage = () => {
                         </Card>
 
                         {parkingStore.selectedSlot.status === 'AVAILABLE' && (
-                            <Button type="primary" size="large" style={{ marginTop: 16, height: 48, borderRadius: 8, fontSize: 16, fontWeight: 600 }}>
+                            <Button type="primary" size="large" onClick={() => navigate('/driver/reservations')} style={{ marginTop: 16, height: 48, borderRadius: 8, fontSize: 16, fontWeight: 600 }}>
                                 Book this Slot
                             </Button>
                         )}
