@@ -23,5 +23,9 @@ public class VehicleRequest {
     private String registrationNumber;   // Số đăng ký (trên cà vẹt xe)
     private String registrationExpiry;   // Ngày hết hạn đăng kiểm (yyyy-MM-dd)
     private String vehicleImage;
-    private String registrationPhoto;    // Ảnh cà vẹt xe
+    private String ownerPortrait;
+    private String registrationPhotoFront;
+    private String registrationPhotoBack;
+    private String idCardFront;
+    private String idCardBack;
 }

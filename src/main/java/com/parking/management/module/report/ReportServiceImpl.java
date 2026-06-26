@@ -97,6 +97,11 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
+    public java.util.List<com.parking.management.module.report.dto.ZoneOccupancyDto> getFloorOccupancyBreakdown() {
+        return parkingSlotRepository.getFloorOccupancyBreakdown();
+    }
+
+    @Override
     public SessionSummaryResponse getSessionCountByDate(LocalDate date) {
         return new SessionSummaryResponse();
     }

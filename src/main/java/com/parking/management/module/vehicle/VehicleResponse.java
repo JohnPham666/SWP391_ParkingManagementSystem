@@ -24,7 +24,11 @@ public class VehicleResponse {
     private String registrationNumber;
     private LocalDate registrationExpiry;
     private String vehicleImage;
-    private String registrationPhoto;
+    private String ownerPortrait;
+    private String registrationPhotoFront;
+    private String registrationPhotoBack;
+    private String idCardFront;
+    private String idCardBack;
     private String status;
 
     public static VehicleResponse fromEntity(Vehicle vehicle) {
@@ -44,7 +48,11 @@ public class VehicleResponse {
         res.setRegistrationNumber(vehicle.getRegistrationNumber());
         res.setRegistrationExpiry(vehicle.getRegistrationExpiry());
         res.setVehicleImage(vehicle.getVehicleImage());
-        res.setRegistrationPhoto(vehicle.getRegistrationPhoto());
+        res.setOwnerPortrait(vehicle.getOwnerPortrait());
+        res.setRegistrationPhotoFront(vehicle.getRegistrationPhotoFront());
+        res.setRegistrationPhotoBack(vehicle.getRegistrationPhotoBack());
+        res.setIdCardFront(vehicle.getIdCardFront());
+        res.setIdCardBack(vehicle.getIdCardBack());
         res.setStatus(vehicle.getStatus());
         return res;
     }
