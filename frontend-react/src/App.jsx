@@ -127,7 +127,7 @@ function App() {
           </Route>
 
           {/* Nhánh 4: Quản trị (Manager) */}
-          <Route path="/manager" element={<PrivateRoute allowedRoles={['PARKING_MANAGER', 'PARKINGMANAGER', 'ADMIN']}><MainLayout /></PrivateRoute>}>
+          <Route path="/manager" element={<PrivateRoute allowedRoles={['PARKINGMANAGER', 'PARKING_MANAGER', 'ADMIN']}><MainLayout /></PrivateRoute>}>
             <Route index element={<ManagerDashboard />} />
             <Route path="users" element={<ManagerUsers />} />
             <Route path="sessions" element={<ManagerSessions />} />
@@ -143,7 +143,7 @@ function App() {
           </Route>
 
           {/* Nhánh 5: Quản trị (Staff) */}
-          <Route path="/staff" element={<PrivateRoute allowedRoles={['PARKING_STAFF', 'PARKINGSTAFF', 'ADMIN']}><MainLayout /></PrivateRoute>}>
+          <Route path="/staff" element={<PrivateRoute allowedRoles={['PARKINGSTAFF', 'PARKING_STAFF', 'ADMIN']}><MainLayout /></PrivateRoute>}>
             <Route index element={<StaffDashboard />} />
             <Route path="slots" element={<StaffSlots />} />
             <Route path="reservations" element={<StaffReservations />} />
