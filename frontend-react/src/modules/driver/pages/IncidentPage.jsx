@@ -100,8 +100,9 @@ const IncidentPage = () => {
             dataIndex: 'status',
             key: 'status',
             render: (status) => {
-                let color = status === 'RESOLVED' ? 'green' : (status === 'IN PROGRESS' ? 'blue' : 'orange');
-                return <Tag color={color}>{status}</Tag>
+                let color = (status === 'RESOLVED' || status === 'CLOSED') ? 'green' : (status === 'IN_PROGRESS' || status === 'IN PROGRESS' ? 'blue' : 'orange');
+                let displayStatus = status === 'IN_PROGRESS' ? 'IN PROGRESS' : status;
+                return <Tag color={color}>{displayStatus}</Tag>
             }
         },
         {
@@ -120,7 +121,7 @@ const IncidentPage = () => {
                 incidentType: values.title,
                 description: values.description,
                 sessionId: values.reservationId ? parseInt(values.reservationId) : null,
-                status: 'PENDING'
+                status: 'OPEN'
             };
             
             await driverService.createIncident(payload);
@@ -138,8 +139,8 @@ const IncidentPage = () => {
 
     const stats = {
         total: incidents.length,
-        inProgress: incidents.filter(i => i.status === 'IN PROGRESS' || i.status === 'PENDING').length,
-        resolved: incidents.filter(i => i.status === 'RESOLVED').length
+        active: incidents.filter(i => i.status === 'OPEN' || i.status === 'IN_PROGRESS' || i.status === 'IN PROGRESS').length,
+        resolved: incidents.filter(i => i.status === 'RESOLVED' || i.status === 'CLOSED').length
     };
 
     if (loading) return <Skeleton active paragraph={{ rows: 10 }} />;
@@ -177,8 +178,8 @@ const IncidentPage = () => {
                                 <SyncOutlined style={{ fontSize: 24 }} />
                             </div>
                             <div>
-                                <Text type="secondary">In Progress</Text>
-                                <Title level={2} style={{ margin: 0, color: token.colorInfo }}>{stats.inProgress}</Title>
+                                <Text type="secondary">Active Reports</Text>
+                                <Title level={2} style={{ margin: 0, color: token.colorInfo }}>{stats.active}</Title>
                             </div>
                         </div>
                     </Card>
