@@ -120,8 +120,8 @@ const VehiclePage = () => {
 
     // Stats
     const totalVehicles = safeVehicles.length;
-    const cars = safeVehicles.filter(v => (v.vehicleType?.name || v.vehicleTypeName || '').toLowerCase().includes('car')).length;
-    const motorbikes = safeVehicles.filter(v => (v.vehicleType?.name || v.vehicleTypeName || '').toLowerCase().includes('motor')).length;
+    const cars = safeVehicles.filter(v => (v.vehicleType?.typeName || v.vehicleType?.name || v.vehicleTypeName || '').toLowerCase().includes('car')).length;
+    const motorbikes = safeVehicles.filter(v => (v.vehicleType?.typeName || v.vehicleType?.name || v.vehicleTypeName || '').toLowerCase().includes('motor')).length;
 
     if (vehicleStore.loading) {
         return <Skeleton active paragraph={{ rows: 10 }} />;
@@ -170,7 +170,7 @@ const VehiclePage = () => {
                         >
                             <Select.Option value="all">All Types</Select.Option>
                             {safeVehicleTypes.map(t => (
-                                <Select.Option key={t.vehicleTypeId || t.id} value={t.vehicleTypeId || t.id}>{t.name}</Select.Option>
+                                <Select.Option key={t.vehicleTypeId || t.id} value={t.vehicleTypeId || t.id}>{t.typeName || t.name}</Select.Option>
                             ))}
                         </Select>
                     </div>
@@ -185,7 +185,7 @@ const VehiclePage = () => {
                 ) : (
                     <Row gutter={[24, 24]}>
                         {filteredVehicles.map(vehicle => {
-                            const isCar = (vehicle.vehicleType?.name || vehicle.vehicleTypeName || '').toLowerCase().includes('car');
+                            const isCar = (vehicle.vehicleType?.typeName || vehicle.vehicleType?.name || vehicle.vehicleTypeName || '').toLowerCase().includes('car');
                             return (
                                 <Col xs={24} sm={12} md={8} lg={6} key={vehicle.vehicleId || vehicle.id}>
                                     <Card 
@@ -222,7 +222,7 @@ const VehiclePage = () => {
                                             <Divider style={{ margin: '12px 0' }} />
                                             
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <Tag color="blue">{vehicle.vehicleType?.name || vehicle.vehicleTypeName || 'N/A'}</Tag>
+                                                <Tag color="blue">{vehicle.vehicleType?.typeName || vehicle.vehicleType?.name || vehicle.vehicleTypeName || 'N/A'}</Tag>
                                                 <Space size="small">
                                                     <Button type="text" shape="circle" icon={<EyeOutlined />} onClick={() => handleView(vehicle)} />
                                                     <Button type="text" shape="circle" icon={<EditOutlined />} onClick={() => handleEdit(vehicle)} />
@@ -260,7 +260,7 @@ const VehiclePage = () => {
                         <Col span={12}>
                             <Form.Item name="vehicleTypeId" label="Vehicle Type" rules={[{ required: true }]}>
                                 <Select size="large">
-                                    {safeVehicleTypes.map(t => <Select.Option key={t.vehicleTypeId || t.id} value={t.vehicleTypeId || t.id}>{t.name}</Select.Option>)}
+                                    {safeVehicleTypes.map(t => <Select.Option key={t.vehicleTypeId || t.id} value={t.vehicleTypeId || t.id}>{t.typeName || t.name}</Select.Option>)}
                                 </Select>
                             </Form.Item>
                         </Col>
@@ -327,7 +327,7 @@ const VehiclePage = () => {
                     <div style={{ marginTop: 24 }}>
                         <Descriptions column={1} bordered size="middle" styles={{ label: { width: '120px', background: token.colorFillAlter, fontWeight: 600 } }}>
                             <Descriptions.Item label="License Plate"><Text strong style={{ fontSize: 16 }}>{viewingVehicle.licensePlate}</Text></Descriptions.Item>
-                            <Descriptions.Item label="Vehicle Type">{viewingVehicle.vehicleType?.name || viewingVehicle.vehicleTypeName || 'N/A'}</Descriptions.Item>
+                            <Descriptions.Item label="Vehicle Type">{viewingVehicle.vehicleType?.typeName || viewingVehicle.vehicleType?.name || viewingVehicle.vehicleTypeName || 'N/A'}</Descriptions.Item>
                             <Descriptions.Item label="Owner Name">{viewingVehicle.ownerName}</Descriptions.Item>
                             <Descriptions.Item label="Owner Phone">{viewingVehicle.ownerPhone}</Descriptions.Item>
                             <Descriptions.Item label="Brand">{viewingVehicle.brand}</Descriptions.Item>
