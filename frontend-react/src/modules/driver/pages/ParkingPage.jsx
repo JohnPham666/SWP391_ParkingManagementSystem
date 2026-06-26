@@ -23,7 +23,6 @@ const ParkingPage = () => {
     const navigate = useNavigate();
     const [, forceRender] = useReducer(x => x + 1, 0);
     const [drawerVisible, setDrawerVisible] = useState(false);
-    const [searchText, setSearchText] = useState('');
 
     useEffect(() => {
         fetchData();
@@ -185,15 +184,6 @@ const ParkingPage = () => {
 
         const finalFilteredSlots = processedSlots.filter(slot => {
             
-            // Text Search
-            if (searchText) {
-                const search = searchText.toLowerCase();
-                const code = (slot.slotCode || '').toLowerCase();
-                const building = (slot.buildingName || '').toLowerCase();
-                const zone = (slot.zoneName || '').toLowerCase();
-                if (!code.includes(search) && !building.includes(search) && !zone.includes(search)) return false;
-            }
-
             if (f.buildingName && f.buildingName !== 'all' && f.buildingName !== '' && slot.buildingName !== f.buildingName) return false;
             if (f.floorName && f.floorName !== 'all' && f.floorName !== '' && slot.floorName !== f.floorName) return false;
             if (f.zoneName && f.zoneName !== 'all' && f.zoneName !== '' && slot.zoneName !== f.zoneName) return false;
@@ -203,7 +193,7 @@ const ParkingPage = () => {
         });
 
         return sortAndRecommendSlots(finalFilteredSlots);
-    }, [slots, searchText, parkingStore.filters.buildingName, parkingStore.filters.floorName, parkingStore.filters.zoneName, parkingStore.filters.vehicleTypeName, parkingStore.filters.status, parkingStore.filters.startTime, parkingStore.filters.endTime, parkingStore.allReservations, parkingStore.allSessions]);
+    }, [slots, parkingStore.filters.buildingName, parkingStore.filters.floorName, parkingStore.filters.zoneName, parkingStore.filters.vehicleTypeName, parkingStore.filters.status, parkingStore.filters.startTime, parkingStore.filters.endTime, parkingStore.allReservations, parkingStore.allSessions]);
 
     const getStatusInfo = (status) => {
         const s = String(status).toUpperCase();
@@ -234,62 +224,63 @@ const ParkingPage = () => {
 
             <Card className="saas-card" style={{ marginBottom: 24 }} styles={{ body: { padding: '16px 24px' } }}>
                 <Row gutter={[16, 16]}>
-                    <Col xs={24} md={6}>
-                        <Input 
-                            prefix={<SearchOutlined />} 
-                            placeholder="Search slot code, building, zone..." 
-                            value={searchText}
-                            onChange={e => setSearchText(e.target.value)}
-                            size="large"
-                        />
+                    <Col xs={12} sm={8} md={4}>
+                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Tòa nhà</div>
+                        <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.buildingName || 'all'} onChange={(v) => handleFilterChange('buildingName', v)}>
+                            <Option value="all">Tất cả</Option>
+                            {filterOptions.buildings.map(b => <Option key={b} value={b}>{b}</Option>)}
+                        </Select>
                     </Col>
+                    <Col xs={12} sm={8} md={4}>
+                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Tầng</div>
+                        <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.floorName || 'all'} onChange={(v) => handleFilterChange('floorName', v)}>
+                            <Option value="all">Tất cả</Option>
+                            {filterOptions.floors.map(f => <Option key={f} value={f}>{f}</Option>)}
+                        </Select>
+                    </Col>
+                    <Col xs={12} sm={8} md={4}>
+                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Khu vực</div>
+                        <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.zoneName || 'all'} onChange={(v) => handleFilterChange('zoneName', v)}>
+                            <Option value="all">Tất cả</Option>
+                            {filterOptions.zones.map(z => <Option key={z} value={z}>{z}</Option>)}
+                        </Select>
+                    </Col>
+                    <Col xs={12} sm={8} md={4}>
+                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Loại xe</div>
+                        <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.vehicleTypeName || 'all'} onChange={(v) => handleFilterChange('vehicleTypeName', v)}>
+                            <Option value="all">Tất cả</Option>
+                            {filterOptions.vehicleTypes.map(v => <Option key={v} value={v}>{v}</Option>)}
+                        </Select>
+                    </Col>
+                    <Col xs={12} sm={8} md={8}>
+                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Trạng thái</div>
+                        <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.status || 'all'} onChange={(v) => handleFilterChange('status', v)}>
+                            <Option value="all">Tất cả</Option>
+                            <Option value="AVAILABLE">Trống</Option>
+                            <Option value="OCCUPIED">Đang sử dụng</Option>
+                            <Option value="RESERVED">Đã đặt</Option>
+                            <Option value="LOCKED">Khóa</Option>
+                        </Select>
+                    </Col>
+                </Row>
+                <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
                     <Col xs={12} sm={8} md={6}>
+                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Thời gian bắt đầu</div>
                         <Input 
                             type="datetime-local" 
                             size="large" 
                             value={parkingStore.filters.startTime || ''} 
                             onChange={(e) => handleFilterChange('startTime', e.target.value)} 
-                            placeholder="Start Time"
                         />
                     </Col>
                     <Col xs={12} sm={8} md={6}>
+                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Thời gian kết thúc</div>
                         <Input 
                             type="datetime-local" 
                             size="large" 
                             value={parkingStore.filters.endTime || ''} 
                             onChange={(e) => handleFilterChange('endTime', e.target.value)} 
-                            placeholder="End Time"
                         />
-                    </Col>
-                    <Col xs={12} sm={8} md={6}>
-                        <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.buildingName || 'all'} onChange={(v) => handleFilterChange('buildingName', v)}>
-                            <Option value="all">Building: All</Option>
-                            {filterOptions.buildings.map(b => <Option key={b} value={b}>{b}</Option>)}
-                        </Select>
-                    </Col>
-                    <Col xs={12} sm={8} md={6}>
-                        <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.floorName || 'all'} onChange={(v) => handleFilterChange('floorName', v)}>
-                            <Option value="all">Floor: All</Option>
-                            {filterOptions.floors.map(f => <Option key={f} value={f}>{f}</Option>)}
-                        </Select>
-                    </Col>
-                    <Col xs={12} sm={8} md={4}>
-                        <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.zoneName || 'all'} onChange={(v) => handleFilterChange('zoneName', v)}>
-                            <Option value="all">Zone: All</Option>
-                            {filterOptions.zones.map(z => <Option key={z} value={z}>{z}</Option>)}
-                        </Select>
-                    </Col>
-                    <Col xs={12} sm={8} md={4}>
-                        <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.vehicleTypeName || 'all'} onChange={(v) => handleFilterChange('vehicleTypeName', v)}>
-                            <Option value="all">Vehicle: All</Option>
-                            {filterOptions.vehicleTypes.map(v => <Option key={v} value={v}>{v}</Option>)}
-                        </Select>
-                    </Col>
-                    <Col xs={12} sm={8} md={4}>
-                        <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.status || 'all'} onChange={(v) => handleFilterChange('status', v)}>
-                            <Option value="all">Status: All</Option>
-                            {filterOptions.statuses.map(s => <Option key={s} value={s}>{s}</Option>)}
-                        </Select>
                     </Col>
                 </Row>
             </Card>
@@ -297,61 +288,75 @@ const ParkingPage = () => {
             {filteredSlots.length === 0 ? (
                 <Empty description="No slots match your criteria" style={{ margin: '60px 0' }} />
             ) : (
-                <Row gutter={[20, 20]}>
-                    {filteredSlots.map((slot) => {
-                        const statusInfo = getStatusInfo(slot.status);
+                <>
+                    {Object.entries(
+                        filteredSlots.reduce((acc, slot) => {
+                            const b = slot.buildingName || 'Khu vực chung';
+                            if (!acc[b]) acc[b] = [];
+                            acc[b].push(slot);
+                            return acc;
+                        }, {})
+                    ).map(([buildingName, buildingSlots]) => (
+                        <div key={buildingName} style={{ marginBottom: 40 }}>
+                            <Title level={4} style={{ marginBottom: 16, color: token.colorTextHeading }}>{buildingName}</Title>
+                            <Row gutter={[20, 20]}>
+                                {buildingSlots.map((slot) => {
+                                    const statusInfo = getStatusInfo(slot.status);
 
-                        return (
-                            <Col xs={24} sm={12} md={8} lg={6} xl={4} key={slot.slotId || slot.id || slot.slotCode}>
-                                <Card 
-                                    hoverable 
-                                    className="saas-card"
-                                    styles={{ body: { padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' } }}
-                                    onClick={() => handleView(slot)}
-                                    style={{
-                                        ... (slot.isRecommended ? { border: `2px solid ${token.colorPrimary}`, boxShadow: `0 4px 16px ${token.colorPrimary}40`, transform: 'scale(1.02)' } : { border: `1px solid ${statusInfo.hex}30` }),
-                                        borderRadius: 16,
-                                        position: 'relative',
-                                        backgroundColor: statusInfo.hex + '0A',
-                                        overflow: 'hidden',
-                                        transition: 'all 0.3s ease'
-                                    }}
-                                >
-                                    {slot.isRecommended && (
-                                        <div style={{ position: 'absolute', top: 0, right: 0, background: token.colorPrimary, color: '#fff', fontSize: '0.7rem', fontWeight: 800, padding: '4px 16px', borderBottomLeftRadius: 16, zIndex: 2, letterSpacing: 0.5, boxShadow: '-2px 2px 8px rgba(0,0,0,0.1)' }}>
-                                            ĐỀ XUẤT
-                                        </div>
-                                    )}
-                                    
-                                    <div style={{ 
-                                        width: 56, height: 56, borderRadius: '50%', backgroundColor: statusInfo.hex + '1A', 
-                                        display: 'flex', justifyContent: 'center', alignItems: 'center', 
-                                        color: statusInfo.hex, marginBottom: 12 
-                                    }}>
-                                        {String(slot.vehicleTypeName || '').toLowerCase().includes('motor') || String(slot.vehicleTypeName || '').toLowerCase().includes('xe máy') ? <MotorbikeIcon style={{ fontSize: 28 }} /> : <CarOutlined style={{ fontSize: 28 }} />}
-                                    </div>
-                                    
-                                    <Title level={3} style={{ margin: 0, fontWeight: 800, color: statusInfo.hex }}>
-                                        {slot.slotCode || 'N/A'}
-                                    </Title>
-                                    
-                                    <Text type="secondary" style={{ fontSize: 13, marginTop: 4, fontWeight: 600 }}>
-                                        {slot.vehicleTypeName || 'N/A'} • {slot.floorName || 'N/A'}
-                                    </Text>
-                                    
-                                    <div style={{ marginTop: 16, padding: '8px 16px', width: '100%', backgroundColor: '#fff', borderRadius: 8, border: `1px solid ${token.colorBorderSecondary}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>Lấp đầy</Text>
-                                        <Text strong style={{ fontSize: 14 }}>{slot.currentOccupancy || 0} / {slot.capacity || 1}</Text>
-                                    </div>
-                                    
-                                    <div style={{ marginTop: 12, padding: '6px 16px', borderRadius: 20, backgroundColor: statusInfo.hex, color: '#fff', fontWeight: 700, fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-                                        {statusInfo.label}
-                                    </div>
-                                </Card>
-                            </Col>
-                        );
-                    })}
-                </Row>
+                                    return (
+                                        <Col xs={24} sm={12} md={8} lg={6} xl={4} key={slot.slotId || slot.id || slot.slotCode}>
+                                            <Card 
+                                                hoverable 
+                                                className="saas-card"
+                                                styles={{ body: { padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' } }}
+                                                onClick={() => handleView(slot)}
+                                                style={{
+                                                    ... (slot.isRecommended ? { border: `2px solid ${token.colorPrimary}`, boxShadow: `0 4px 16px ${token.colorPrimary}40`, transform: 'scale(1.02)' } : { border: `1px solid ${statusInfo.hex}30` }),
+                                                    borderRadius: 16,
+                                                    position: 'relative',
+                                                    backgroundColor: statusInfo.hex + '0A',
+                                                    overflow: 'hidden',
+                                                    transition: 'all 0.3s ease'
+                                                }}
+                                            >
+                                                {slot.isRecommended && (
+                                                    <div style={{ position: 'absolute', top: 0, right: 0, background: token.colorPrimary, color: '#fff', fontSize: '0.7rem', fontWeight: 800, padding: '4px 16px', borderBottomLeftRadius: 16, zIndex: 2, letterSpacing: 0.5, boxShadow: '-2px 2px 8px rgba(0,0,0,0.1)' }}>
+                                                        ĐỀ XUẤT
+                                                    </div>
+                                                )}
+                                                
+                                                <div style={{ 
+                                                    width: 56, height: 56, borderRadius: '50%', backgroundColor: statusInfo.hex + '1A', 
+                                                    display: 'flex', justifyContent: 'center', alignItems: 'center', 
+                                                    color: statusInfo.hex, marginBottom: 12 
+                                                }}>
+                                                    {String(slot.vehicleTypeName || '').toLowerCase().includes('motor') || String(slot.vehicleTypeName || '').toLowerCase().includes('xe máy') ? <MotorbikeIcon style={{ fontSize: 28 }} /> : <CarOutlined style={{ fontSize: 28 }} />}
+                                                </div>
+                                                
+                                                <Title level={3} style={{ margin: 0, fontWeight: 800, color: statusInfo.hex }}>
+                                                    {slot.slotCode || 'N/A'}
+                                                </Title>
+                                                
+                                                <Text type="secondary" style={{ fontSize: 13, marginTop: 4, fontWeight: 600 }}>
+                                                    {slot.vehicleTypeName || 'N/A'} • {slot.floorName || 'N/A'}
+                                                </Text>
+                                                
+                                                <div style={{ marginTop: 16, padding: '8px 16px', width: '100%', backgroundColor: '#fff', borderRadius: 8, border: `1px solid ${token.colorBorderSecondary}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>Lấp đầy</Text>
+                                                    <Text strong style={{ fontSize: 14 }}>{slot.currentOccupancy || 0} / {slot.capacity || 1}</Text>
+                                                </div>
+                                                
+                                                <div style={{ marginTop: 12, padding: '6px 16px', borderRadius: 20, backgroundColor: statusInfo.hex, color: '#fff', fontWeight: 700, fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                                                    {statusInfo.label}
+                                                </div>
+                                            </Card>
+                                        </Col>
+                                    );
+                                })}
+                            </Row>
+                        </div>
+                    ))}
+                </>
             )}
 
             <Drawer
