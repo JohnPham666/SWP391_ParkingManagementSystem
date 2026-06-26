@@ -61,7 +61,6 @@ const IncidentPage = () => {
                     date: new Date(inc.createdAt || inc.date).toLocaleDateString(),
                     title: inc.incidentType || inc.title,
                     status: String(inc.status || 'PENDING').toUpperCase(),
-                    resolution: inc.resolution || 'Pending review',
                     description: inc.description
                 }));
                 
@@ -120,11 +119,6 @@ const IncidentPage = () => {
                 let displayStatus = status === 'IN_PROGRESS' ? 'IN PROGRESS' : status;
                 return <Tag color={color}>{displayStatus}</Tag>
             }
-        },
-        {
-            title: 'Resolution',
-            dataIndex: 'resolution',
-            key: 'resolution'
         }
     ];
 
