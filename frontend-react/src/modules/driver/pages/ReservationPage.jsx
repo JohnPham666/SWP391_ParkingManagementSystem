@@ -89,8 +89,8 @@ const ReservationPage = () => {
                 slotId: values.slotId || null,
                 vehicleTypeId: vTypeId,
                 userId: userId,
-                reservationStart: values.startTime.toISOString(),
-                reservationEnd: values.endTime.toISOString(),
+                reservationStart: values.startTime.format('YYYY-MM-DDTHH:mm:ss'),
+                reservationEnd: values.endTime.format('YYYY-MM-DDTHH:mm:ss'),
             };
 
             delete payload.startTime;
