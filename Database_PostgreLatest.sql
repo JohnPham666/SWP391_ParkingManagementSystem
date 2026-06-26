@@ -415,22 +415,22 @@ INSERT INTO ParkingSlots (SlotID, ZoneID, SlotCode, VehicleTypeID, Area, Capacit
 SELECT setval('parkingslots_slotid_seq', (SELECT MAX(SlotID) FROM ParkingSlots));
 
 -- 9. VEHICLES
-INSERT INTO Vehicles (VehicleID, LicensePlate, VehicleTypeID, OwnerName, OwnerPhone, OwnerIdCard, UserID, Brand, VehicleColor, EngineNumber, ChassisNumber, ManufactureYear, RegistrationNumber, RegistrationDate, RegistrationExpiry, IsActive) OVERRIDING SYSTEM VALUE VALUES
-(1,  '51A-12345', 2, 'Nguyễn Hoàng Phúc', '0912345001', '079092001234',  9,  'Toyota',   'Trắng bạc', 'ENG-TOY-001', 'CHS-TOY-001', 2020, 'REG-001', '2020-06-01', '2026-06-01', TRUE),
-(2,  '59B-67890', 2, 'Võ Thị Mai',        '0912345002', '074094002345', 10,  'Honda',    'Đen bóng',  'ENG-HON-002', 'CHS-HON-002', 2019, 'REG-002', '2019-09-15', '2025-09-15', TRUE),
-(3,  '51C-11122', 2, 'Đặng Quốc Hùng',    '0912345003', '079089003456', 11,  'Mazda',    'Xanh dương','ENG-MAZ-003', 'CHS-MAZ-003', 2022, 'REG-003', '2022-03-20', '2028-03-20', TRUE),
-(4,  '51D-33344', 2, 'Lý Thị Cẩm',        '0912345004', '079098004567', 12,  'Ford',     'Đỏ đô',     'ENG-FOR-004', 'CHS-FOR-004', 2021, 'REG-004', '2021-07-10', '2027-07-10', TRUE),
-(5,  '51E-55566', 2, 'Trần Minh Khoa',    '0912345005', '079091005678', 13,  'KIA',      'Trắng ngọc','ENG-KIA-005', 'CHS-KIA-005', 2023, 'REG-005', '2023-01-05', '2029-01-05', TRUE),
-(6,  '50L-11111', 1, 'Đặng Quốc Hùng',    '0912345003', '079089003456', 11,  'Yamaha',   'Đỏ',        'ENG-YAM-006', 'CHS-YAM-006', 2021, 'REG-006', '2021-05-01', '2027-05-01', TRUE),
-(7,  '59K-22222', 1, 'Phan Thị Lan Anh',  '0912345006', '079096006789', 14,  'Honda',    'Trắng',     'ENG-HON-007', 'CHS-HON-007', 2022, 'REG-007', '2022-11-20', '2028-11-20', TRUE),
-(8,  '51H-33333', 1, 'Đỗ Đức Thành',      '0912345007', '079087007890', 15,  'SYM',      'Đen',       'ENG-SYM-008', 'CHS-SYM-008', 2020, 'REG-008', '2020-04-15', '2026-04-15', TRUE),
-(9,  '51F-99999', 3, 'Công ty Vận Tải ABC','0281234567', '031200112233', NULL,'Hino',     'Xanh lá',   'ENG-HIN-009', 'CHS-HIN-009', 2019, 'REG-009', '2019-08-01', '2025-08-01', TRUE),
-(10, '51G-88888', 3, 'Công ty TNHH XYZ',  '0289876543', '031200445566', NULL,'Isuzu',    'Trắng',     'ENG-ISU-010', 'CHS-ISU-010', 2021, 'REG-010', '2021-02-10', '2027-02-10', TRUE),
-(11, '29A-44444', 1, 'Trần Văn Bình',      '0912345008', NULL,           NULL, NULL,      NULL,         NULL,          NULL,          NULL,          NULL,  NULL,          NULL,          TRUE),
-(12, '43B-55555', 1, NULL,                 NULL,         NULL,           NULL, NULL,      NULL,         NULL,          NULL,          NULL,          NULL,  NULL,          NULL,          TRUE),
-(13, '51P-66666', 2, 'Nguyễn Thị Thanh',   '0912345009', NULL,           NULL, NULL,      NULL,         NULL,          NULL,          NULL,          NULL,  NULL,          NULL,          TRUE),
-(14, '51Q-77777', 1, 'Nguyễn Văn Cường',   '0912345010', '079090008910', 16,  'Honda',    'Xám bạc',    'ENG-HON-014', 'CHS-HON-014', 2018, 'REG-014', '2018-06-01', '2024-06-01', TRUE),
-(15, '51R-12399', 2, 'Lý Thị Cẩm',         '0912345004', '079098004567', 12,  'Mercedes', 'Đen',        'ENG-MER-015', 'CHS-MER-015', 2023, 'REG-015', '2023-05-01', '2029-05-01', TRUE);
+INSERT INTO Vehicles (VehicleID, LicensePlate, VehicleTypeID, OwnerName, OwnerPhone, OwnerIdCard, UserID, Brand, VehicleColor, EngineNumber, ChassisNumber, ManufactureYear, RegistrationNumber, RegistrationDate, RegistrationExpiry, Status, IsActive) OVERRIDING SYSTEM VALUE VALUES
+(1,  '51A-12345', 2, 'Nguyễn Hoàng Phúc', '0912345001', '079092001234',  9,  'Toyota',   'Trắng bạc', 'ENG-TOY-001', 'CHS-TOY-001', 2020, 'REG-001', '2020-06-01', '2026-06-01', 'APPROVED', TRUE),
+(2,  '59B-67890', 2, 'Võ Thị Mai',        '0912345002', '074094002345', 10,  'Honda',    'Đen bóng',  'ENG-HON-002', 'CHS-HON-002', 2019, 'REG-002', '2019-09-15', '2025-09-15', 'APPROVED', TRUE),
+(3,  '51C-11122', 2, 'Đặng Quốc Hùng',    '0912345003', '079089003456', 11,  'Mazda',    'Xanh dương','ENG-MAZ-003', 'CHS-MAZ-003', 2022, 'REG-003', '2022-03-20', '2028-03-20', 'APPROVED', TRUE),
+(4,  '51D-33344', 2, 'Lý Thị Cẩm',        '0912345004', '079098004567', 12,  'Ford',     'Đỏ đô',     'ENG-FOR-004', 'CHS-FOR-004', 2021, 'REG-004', '2021-07-10', '2027-07-10', 'APPROVED', TRUE),
+(5,  '51E-55566', 2, 'Trần Minh Khoa',    '0912345005', '079091005678', 13,  'KIA',      'Trắng ngọc','ENG-KIA-005', 'CHS-KIA-005', 2023, 'REG-005', '2023-01-05', '2029-01-05', 'APPROVED', TRUE),
+(6,  '50L-11111', 1, 'Đặng Quốc Hùng',    '0912345003', '079089003456', 11,  'Yamaha',   'Đỏ',        'ENG-YAM-006', 'CHS-YAM-006', 2021, 'REG-006', '2021-05-01', '2027-05-01', 'APPROVED', TRUE),
+(7,  '59K-22222', 1, 'Phan Thị Lan Anh',  '0912345006', '079096006789', 14,  'Honda',    'Trắng',     'ENG-HON-007', 'CHS-HON-007', 2022, 'REG-007', '2022-11-20', '2028-11-20', 'APPROVED', TRUE),
+(8,  '51H-33333', 1, 'Đỗ Đức Thành',      '0912345007', '079087007890', 15,  'SYM',      'Đen',       'ENG-SYM-008', 'CHS-SYM-008', 2020, 'REG-008', '2020-04-15', '2026-04-15', 'APPROVED', TRUE),
+(9,  '51F-99999', 3, 'Công ty Vận Tải ABC','0281234567', '031200112233', NULL,'Hino',     'Xanh lá',   'ENG-HIN-009', 'CHS-HIN-009', 2019, 'REG-009', '2019-08-01', '2025-08-01', 'APPROVED', TRUE),
+(10, '51G-88888', 3, 'Công ty TNHH XYZ',  '0289876543', '031200445566', NULL,'Isuzu',    'Trắng',     'ENG-ISU-010', 'CHS-ISU-010', 2021, 'REG-010', '2021-02-10', '2027-02-10', 'APPROVED', TRUE),
+(11, '29A-44444', 1, 'Trần Văn Bình',      '0912345008', NULL,           NULL, NULL,      NULL,         NULL,          NULL,          NULL,          NULL,  NULL,          NULL,          'APPROVED', TRUE),
+(12, '43B-55555', 1, NULL,                 NULL,         NULL,           NULL, NULL,      NULL,         NULL,          NULL,          NULL,          NULL,  NULL,          NULL,          'PENDING', TRUE),
+(13, '51P-66666', 2, 'Nguyễn Thị Thanh',   '0912345009', NULL,           NULL, NULL,      NULL,         NULL,          NULL,          NULL,          NULL,  NULL,          NULL,          'APPROVED', TRUE),
+(14, '51Q-77777', 1, 'Nguyễn Văn Cường',   '0912345010', '079090008910', 16,  'Honda',    'Xám bạc',    'ENG-HON-014', 'CHS-HON-014', 2018, 'REG-014', '2018-06-01', '2024-06-01', 'APPROVED', TRUE),
+(15, '51R-12399', 2, 'Lý Thị Cẩm',         '0912345004', '079098004567', 12,  'Mercedes', 'Đen',        'ENG-MER-015', 'CHS-MER-015', 2023, 'REG-015', '2023-05-01', '2029-05-01', 'APPROVED', TRUE);
 SELECT setval('vehicles_vehicleid_seq', (SELECT MAX(VehicleID) FROM Vehicles));
 
 -- 10. PARKING CARDS

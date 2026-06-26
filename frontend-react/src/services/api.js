@@ -147,7 +147,10 @@ export const reportApi = {
   getRevenueTrend: (fromDate, toDate) => api.get('/reports/revenue/trend', { params: { fromDate, toDate } }),
   getOccupancyBreakdown: () => api.get('/reports/occupancy/breakdown'),
   getFloorOccupancyBreakdown: () => api.get('/reports/occupancy/floor-breakdown'),
-  getParkingPrediction: () => api.get('/reports/predictions/parking')
+  getParkingPrediction: () => api.get('/reports/predictions/parking'),
+  getRevenueSummary: (startDate, endDate) => api.get(`/reports/revenue-summary?startDate=${startDate}&endDate=${endDate}`),
+  getOccupancyRate: () => api.get('/reports/occupancy-rate'),
+  getPredictions: () => api.get('/reports/predictions'),
 };
 
 export const monitoringApi = {

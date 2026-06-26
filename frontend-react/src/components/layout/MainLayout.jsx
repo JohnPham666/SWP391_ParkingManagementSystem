@@ -71,19 +71,20 @@ const MainLayout = () => {
     { key: `${basePath}/logs`, icon: <FileTextOutlined />, label: 'System Logs', roles: ['Admin'] },
     
     // Shared Operational
-    { key: `${basePath}/sessions`, icon: <PlusCircleOutlined />, label: 'Parking Sessions', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
+    // Shared Operational
+    { key: `${basePath}/sessions`, icon: <CarOutlined />, label: 'Parking Sessions', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/slots`, icon: <DashboardOutlined />, label: 'Parking Slots', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
     { key: `${basePath}/vehicles`, icon: <CarOutlined />, label: 'Vehicles', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
     { key: `${basePath}/reservations`, icon: <CalendarOutlined />, label: 'Reservations', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
     { key: `${basePath}/payments`, icon: <CreditCardOutlined />, label: 'Payments', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
-    
-    // Manager only (Vé tháng)
-    { key: `${basePath}/subscriptions`, icon: <CalendarOutlined />, label: 'Subscriptions', roles: ['ParkingManager'] },
-    
-    // Sự cố
     { key: `${basePath}/incidents`, icon: <WarningOutlined />, label: 'Incidents', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
     
-    // Manager only
-    { key: `${basePath}/buildings`, icon: <BankOutlined />, label: 'Parking Config', roles: ['ParkingManager'] },
+    // Manager & Admin
+    { key: `${basePath}/buildings`, icon: <BankOutlined />, label: 'Parking Config (Buildings)', roles: ['Admin', 'ParkingManager'] },
+    { key: `${basePath}/pricing`, icon: <DollarOutlined />, label: 'Pricing Policies', roles: ['Admin', 'ParkingManager'] },
+
+    // Manager only (Vé tháng)
+    { key: `${basePath}/subscriptions`, icon: <ProfileOutlined />, label: 'Subscriptions', roles: ['ParkingManager'] },
     { key: `${basePath}/reports`, icon: <BarChartOutlined />, label: 'Reports', roles: ['ParkingManager'] },
 
     // Other items not in screenshot but needed for others

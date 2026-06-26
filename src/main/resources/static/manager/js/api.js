@@ -5,7 +5,7 @@ const Api = {
     token: null,
 
     init() {
-        const saved = localStorage.getItem('parking_auth');
+        const saved = localStorage.getItem('parking_manager_auth');
         if (saved) {
             try {
                 const auth = JSON.parse(saved);
@@ -18,12 +18,12 @@ const Api = {
 
     saveAuth(data) {
         this.token = data.token;
-        localStorage.setItem('parking_auth', JSON.stringify(data));
+        localStorage.setItem('parking_manager_auth', JSON.stringify(data));
     },
 
     clearAuth() {
         this.token = null;
-        localStorage.removeItem('parking_auth');
+        localStorage.removeItem('parking_manager_auth');
     },
 
     headers() {

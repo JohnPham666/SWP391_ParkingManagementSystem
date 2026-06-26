@@ -1,0 +1,182 @@
+/* SaaS Design System for Driver Module - Cleaned up for Theme Token Support */
+:root {
+  --primary-color: #ea580c;
+  --primary-hover: #f97316;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+.driver-layout {
+  min-height: 100vh;
+}
+
+.driver-sider {
+  box-shadow: var(--shadow-sm);
+  z-index: 10;
+}
+
+.driver-logo-container {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 16px;
+  /* border-bottom managed by theme or removed */
+}
+
+.driver-logo-text {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary-color);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.driver-menu {
+  padding: 16px 8px;
+}
+
+.driver-menu .ant-menu-item {
+  border-radius: var(--radius-md) !important;
+  margin-bottom: 8px !important;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+/* Let Ant Design handle selected states and hovers to avoid dark mode conflicts, 
+   except maybe for the primary color highlight. */
+.driver-menu .ant-menu-item-selected {
+  background-color: var(--primary-color) !important;
+  color: white !important;
+  box-shadow: var(--shadow-md);
+}
+
+.driver-header {
+  padding: 0 24px !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 9;
+  line-height: normal !important;
+  height: auto !important;
+  min-height: 64px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.driver-content {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.saas-card {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-sm) !important;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.saas-card:hover {
+  box-shadow: var(--shadow-md) !important;
+}
+
+.saas-card .ant-card-head {
+  padding: 16px 24px;
+  min-height: auto;
+}
+
+.saas-card .ant-card-head-title {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.saas-card .ant-card-body {
+  padding: 24px;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-color);
+}
+
+.stat-icon {
+  font-size: 32px;
+  color: var(--primary-color);
+  margin-bottom: 16px;
+  width: 64px;
+  height: 64px;
+  line-height: 64px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.stat-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.action-card {
+  cursor: pointer;
+  text-align: center;
+  padding: 24px;
+}
+
+.action-card:hover .action-icon {
+  transform: scale(1.1);
+}
+
+.action-icon {
+  font-size: 36px;
+  color: var(--primary-color);
+  transition: all 0.3s ease;
+  margin-bottom: 16px;
+}
+
+.recommended-slot {
+  border: 2px solid var(--primary-color) !important;
+  position: relative;
+}
+
+.recommended-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}

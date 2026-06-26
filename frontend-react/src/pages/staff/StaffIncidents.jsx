@@ -15,10 +15,14 @@ const IncidentManagement = () => {
 
   useEffect(() => {
     fetchIncidents();
+    const interval = setInterval(() => {
+      fetchIncidents(true); // pass true to indicate silent refresh if needed
+    }, 10000);
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchIncidents = async () => {
-    setLoading(true);
+  const fetchIncidents = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await incidentApi.getIncidents();
       let data = res.data?.success ? res.data.data : res.data;
