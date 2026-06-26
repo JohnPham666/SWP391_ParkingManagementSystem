@@ -16,6 +16,7 @@ import DriverRoutes from './modules/driver/routes/DriverRoutes';
 
 // Pages
 import LandingPage from './pages/driver/LandingPage';
+import DriverDashboard from './pages/driver/DriverDashboard';
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSessions from './pages/admin/AdminSessions';
@@ -95,6 +96,7 @@ function App() {
           {/* Nhánh 1: Khách hàng (Driver) - Landing Page public */}
           <Route path="/" element={<OldDriverLayout />}>
             <Route index element={<LandingPage />} />
+
           </Route>
 
           {/* New Driver Module Routes */}
@@ -125,7 +127,7 @@ function App() {
           </Route>
 
           {/* Nhánh 4: Quản trị (Manager) */}
-          <Route path="/manager" element={<PrivateRoute allowedRoles={['PARKING_MANAGER']}><MainLayout /></PrivateRoute>}>
+          <Route path="/manager" element={<PrivateRoute allowedRoles={['PARKING_MANAGER', 'ADMIN']}><MainLayout /></PrivateRoute>}>
             <Route index element={<ManagerDashboard />} />
             <Route path="users" element={<ManagerUsers />} />
             <Route path="sessions" element={<ManagerSessions />} />
@@ -141,7 +143,7 @@ function App() {
           </Route>
 
           {/* Nhánh 5: Quản trị (Staff) */}
-          <Route path="/staff" element={<PrivateRoute allowedRoles={['PARKING_STAFF']}><MainLayout /></PrivateRoute>}>
+          <Route path="/staff" element={<PrivateRoute allowedRoles={['PARKING_STAFF', 'ADMIN']}><MainLayout /></PrivateRoute>}>
             <Route index element={<StaffDashboard />} />
             <Route path="slots" element={<StaffSlots />} />
             <Route path="reservations" element={<StaffReservations />} />

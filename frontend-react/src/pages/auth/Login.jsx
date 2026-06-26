@@ -23,7 +23,6 @@ const Login = () => {
         message.success('Login successful!');
         const resData = response.data.data || response.data;
         localStorage.setItem('parking_auth', JSON.stringify(resData));
-
         const extractedRole = resData.role || 'UNKNOWN';
         const route = getDefaultRouteByRole(resData);
 

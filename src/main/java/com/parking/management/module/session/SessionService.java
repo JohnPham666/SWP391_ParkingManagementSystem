@@ -96,6 +96,15 @@ public class SessionService {
             throw new IllegalArgumentException("Reservation is not CONFIRMED (maybe not paid yet). Current status: " + reservation.getStatus());
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(reservation.getReservationStart().minusMinutes(30))) {
+            throw new IllegalArgumentException("Quá sớm để check-in cho lịch đặt chỗ này (chỉ hỗ trợ check-in trước 30 phút). Vui lòng check-in theo diện khách vãng lai (Walk-in).");
+        }
+        
+        if (now.isAfter(reservation.getReservationEnd())) {
+            throw new IllegalArgumentException("Lịch đặt chỗ này đã quá hạn sử dụng.");
+        }
+
         if (slot.getCurrentOccupancy() >= slot.getCapacity()) {
             throw new IllegalArgumentException("Rất tiếc, ô đỗ đã bị xe vãng lai lấn chiếm (vượt sức chứa)!");
         }

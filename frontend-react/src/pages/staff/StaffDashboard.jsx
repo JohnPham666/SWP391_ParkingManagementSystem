@@ -61,7 +61,7 @@ const StaffDashboard = () => {
       if (Array.isArray(resList)) {
         const todayStr = dayjs().format('YYYY-MM-DD');
         const todayRes = resList.filter(r => 
-          r.startTime && dayjs(r.startTime).format('YYYY-MM-DD') === todayStr && r.status === 'CONFIRMED'
+          r.reservationStart && dayjs(r.reservationStart).format('YYYY-MM-DD') === todayStr && (r.status === 'CONFIRMED' || r.status === 'COMPLETED' || r.status === 'PENDING')
         );
         setTodayReservationList(todayRes);
       }
@@ -77,7 +77,12 @@ const StaffDashboard = () => {
   const handleLicensePlateChange = (e) => {
     const plate = e.target.value.toUpperCase();
     if (plate.length >= 4) {
-      const match = todayReservationList.find(r => r.licensePlate && r.licensePlate.toUpperCase() === plate);
+      const now = dayjs();
+      const match = todayReservationList.find(r => 
+        r.licensePlate && r.licensePlate.toUpperCase() === plate && r.status === 'CONFIRMED' && 
+        now.isAfter(dayjs(r.reservationStart).subtract(30, 'minute')) && 
+        now.isBefore(dayjs(r.reservationEnd))
+      );
       setMatchedReservation(match || null);
     } else {
       setMatchedReservation(null);
@@ -86,9 +91,13 @@ const StaffDashboard = () => {
 
   const handleFallbackSearch = () => {
     if (!searchFallback) return;
+    const now = dayjs();
     const match = todayReservationList.find(r => 
-      r.reservationId.toString() === searchFallback || 
-      (r.userPhone && r.userPhone.includes(searchFallback))
+      (r.reservationId.toString() === searchFallback || 
+      (r.userFullName && r.userFullName.toLowerCase().includes(searchFallback.toLowerCase()))) && 
+      r.status === 'CONFIRMED' &&
+      now.isAfter(dayjs(r.reservationStart).subtract(30, 'minute')) && 
+      now.isBefore(dayjs(r.reservationEnd))
     );
     if (match) {
       setMatchedReservation(match);
@@ -157,9 +166,12 @@ const StaffDashboard = () => {
       
       const targetSession = res.data.data;
       
-      const pRes = await paymentApi.createPayment({ sessionId: targetSession.sessionId, paymentMethod: 'CASH' });
-      let paymentId = pRes.data?.data?.paymentId;
-      let finalFee = pRes.data?.data?.amount || targetSession.estimatedFee || 0;
+      let finalFee = targetSession.estimatedFee || 0;
+      
+      const hadReservation = todayReservationList.some(r => r.licensePlate === targetSession.licensePlate && r.status === 'COMPLETED');
+      if (hadReservation) {
+        finalFee = 0;
+      }
 
       let exitImageUrl = null;
       let exitImageFile = null;
@@ -170,7 +182,6 @@ const StaffDashboard = () => {
 
       setCheckoutSessionData({
         ...targetSession,
-        paymentId,
         exitImageFile,
         exitImageUrl,
         exitTime: new Date().toISOString(),
@@ -190,13 +201,30 @@ const StaffDashboard = () => {
   const handleCheckOutConfirm = async (values) => {
     try {
       const sessionId = checkoutSessionData.sessionId;
-      const paymentId = checkoutSessionData.paymentId;
+      
+      // 1. Call Check-out to finalize session fee, exit time, and update Reservation to COMPLETED
+      const checkOutRes = await sessionApi.checkOut(sessionId, { exitGate: 'Gate A' });
+      const updatedSession = checkOutRes.data?.data || checkOutRes.data;
       
       if (checkoutSessionData.exitImageFile) {
         await sessionApi.uploadSessionImage(sessionId, checkoutSessionData.exitImageFile, 'exit');
       }
 
-      if (values.paymentMethod === 'CASH') {
+      if (updatedSession?.status === 'COMPLETED') {
+         message.success('Check-out Successful (Pre-paid / Zero Fee)');
+         setIsCheckOutVisible(false);
+         setCheckOutStep(1);
+         checkOutSearchForm.resetFields();
+         checkOutConfirmForm.resetFields();
+         fetchData();
+         return;
+      }
+      
+      // 2. Create Payment
+      const pRes = await paymentApi.createPayment({ sessionId: sessionId, paymentMethod: values.paymentMethod });
+      const paymentId = pRes.data?.data?.paymentId;
+
+      if (values.paymentMethod === 'CASH' || checkoutSessionData.totalFee === 0) {
          await paymentApi.confirmCash(paymentId);
          message.success('Check-out & Payment Successful!');
       } else {
@@ -404,6 +432,7 @@ const StaffDashboard = () => {
               placeholder="e.g. 29A-12345" 
               style={{ textTransform: 'uppercase', fontSize: '18px', fontWeight: 'bold' }} 
               onChange={handleLicensePlateChange}
+              onPressEnter={(e) => e.preventDefault()}
             />
           </Form.Item>
 
@@ -414,7 +443,10 @@ const StaffDashboard = () => {
                 <Text strong style={{ color: '#065f46', fontSize: '16px' }}>Reservation Found!</Text>
               </div>
               <p style={{ margin: 0 }}><strong>ID:</strong> #{matchedReservation.reservationId}</p>
-              <p style={{ margin: 0 }}><strong>Customer:</strong> {matchedReservation.userName || 'Guest'}</p>
+              <p style={{ margin: 0 }}><strong>Customer:</strong> {matchedReservation.userFullName || 'Guest'}</p>
+              <p style={{ margin: 0 }}><strong>License Plate:</strong> {matchedReservation.licensePlate}</p>
+              <p style={{ margin: 0 }}><strong>Vehicle Type:</strong> {matchedReservation.vehicleTypeName || 'N/A'}</p>
+              <p style={{ margin: 0 }}><strong>Time:</strong> {dayjs(matchedReservation.reservationStart).format('HH:mm')} - {dayjs(matchedReservation.reservationEnd).format('HH:mm')}</p>
               <p style={{ margin: 0 }}><strong>Slot:</strong> {matchedReservation.slotCode || 'Any'}</p>
             </div>
           ) : (
@@ -520,9 +552,13 @@ const StaffDashboard = () => {
             <Row gutter={16} style={{ marginBottom: '20px' }}>
               <Col span={12} style={{ textAlign: 'center' }}>
                 <p><strong>Entry Image</strong></p>
-                <div style={{ height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
-                  <Text type="secondary">No Image</Text>
-                </div>
+                {checkoutSessionData.entryImage ? (
+                  <img src={`http://localhost:8080${checkoutSessionData.entryImage}`} alt="Entry" style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px' }} />
+                ) : (
+                  <div style={{ height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                    <Text type="secondary">No Image</Text>
+                  </div>
+                )}
               </Col>
               <Col span={12} style={{ textAlign: 'center' }}>
                 <p><strong>Exit Image</strong></p>
