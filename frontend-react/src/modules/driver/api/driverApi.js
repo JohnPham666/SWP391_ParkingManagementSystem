@@ -56,5 +56,9 @@ export const driverApi = {
     createVnPayUrl: async (paymentId) => {
         const response = await api.post(`/payments/${paymentId}/vnpay-url`);
         return response.data;
+    },
+    getPricings: async () => {
+        const response = await api.get('/pricings');
+        return response.data;
     }
 };

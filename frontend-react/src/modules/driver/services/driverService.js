@@ -89,5 +89,17 @@ export const driverService = {
             console.error('Failed to change password:', error);
             throw error;
         }
+    },
+
+    createPayment: async (data) => {
+        return await driverApi.createPayment(data);
+    },
+
+    createVnPayUrl: async (paymentId) => {
+        return await driverApi.createVnPayUrl(paymentId);
+    },
+
+    loadPricings: async () => {
+        return await driverApi.getPricings();
     }
 };
