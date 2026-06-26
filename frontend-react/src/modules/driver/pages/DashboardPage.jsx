@@ -25,10 +25,7 @@ const DashboardPage = () => {
         motorbikeSlots: 'N/A',
         carSlots: 'N/A',
         occupancyRate: 0,
-        todaysReservations: 0,
-        todaysCheckins: 0,
-        todaysCheckouts: 0,
-        peakHours: 'N/A'
+        todaysReservations: 0
     });
 
     useEffect(() => {
@@ -60,22 +57,17 @@ const DashboardPage = () => {
 
             let motorbikeCount = 0;
             let carCount = 0;
-            let typeAvailable = false;
             slots.forEach(s => {
-                const typeName = s.vehicleType?.name || s.vehicleTypeName || '';
-                if (typeName.toLowerCase().includes('motor')) {
+                const typeName = (s.vehicleType?.name || s.vehicleTypeName || '').toLowerCase();
+                if (typeName.includes('motor') || typeName.includes('xe máy')) {
                     motorbikeCount++;
-                    typeAvailable = true;
-                } else if (typeName.toLowerCase().includes('car')) {
+                } else if (typeName.includes('car') || typeName.includes('ô tô') || typeName.includes('xe hơi')) {
                     carCount++;
-                    typeAvailable = true;
                 }
             });
 
             const todayStr = new Date().toDateString();
             const todaysReservations = reservations.filter(r => r.reservationStart && new Date(r.reservationStart).toDateString() === todayStr);
-            const todaysCheckins = 'N/A';
-            const todaysCheckouts = 'N/A';
 
             setStats({
                 vehicles: vehicles.length,
@@ -84,13 +76,10 @@ const DashboardPage = () => {
                 totalSlots,
                 occupiedSlots: occupiedSlots.length,
                 reservedSlots: reservedSlots.length,
-                motorbikeSlots: typeAvailable ? motorbikeCount : 'N/A',
-                carSlots: typeAvailable ? carCount : 'N/A',
+                motorbikeSlots: motorbikeCount,
+                carSlots: carCount,
                 occupancyRate,
-                todaysReservations: todaysReservations.length,
-                todaysCheckins: todaysCheckins.length,
-                todaysCheckouts: todaysCheckouts.length,
-                peakHours: 'N/A'
+                todaysReservations: todaysReservations.length
             });
         } catch (error) {
             // Error handling ignored for UI as per requirement
@@ -222,9 +211,6 @@ const DashboardPage = () => {
                             <Col xs={12} sm={8}>
                                 <Statistic title="Motorbike Slots" value={stats.motorbikeSlots} />
                             </Col>
-                            <Col xs={12} sm={8}>
-                                <Statistic title="Peak Hours" value={stats.peakHours} />
-                            </Col>
                         </Row>
                         
                         <Divider style={{ margin: '24px 0' }} />
@@ -232,8 +218,6 @@ const DashboardPage = () => {
                         <Title level={5} style={{ marginBottom: '16px' }}>Today's Activity</Title>
                         <Space size="large" wrap>
                             <Badge status="processing" text={<Text>Reservations: {stats.todaysReservations}</Text>} />
-                            <Badge status="success" text={<Text>Check-ins: {stats.todaysCheckins}</Text>} />
-                            <Badge status="warning" text={<Text>Check-outs: {stats.todaysCheckouts}</Text>} />
                         </Space>
                         
                         <div style={{ marginTop: '24px' }}>
