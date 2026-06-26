@@ -23,12 +23,20 @@ const ParkingPage = () => {
         parkingStore.loading = true;
         forceRender();
         try {
-            const slotsRes = await driverService.loadSlots();
-            const result = slotsRes?.data || slotsRes;
-            parkingStore.slots = Array.isArray(result) ? result : [];
+            const [slotsRes, resRes, sesRes] = await Promise.all([
+                driverService.loadSlots(),
+                driverService.loadReservations(),
+                driverService.loadSessions()
+            ]);
+            
+            parkingStore.slots = Array.isArray(slotsRes?.data || slotsRes) ? (slotsRes?.data || slotsRes) : [];
+            parkingStore.allReservations = Array.isArray(resRes?.data || resRes) ? (resRes?.data || resRes) : [];
+            parkingStore.allSessions = Array.isArray(sesRes?.data || sesRes) ? (sesRes?.data || sesRes) : [];
         } catch (error) {
-            message.error('Failed to load parking slots');
+            message.error('Failed to load parking data');
             parkingStore.slots = [];
+            parkingStore.allReservations = [];
+            parkingStore.allSessions = [];
         } finally {
             parkingStore.loading = false;
             forceRender();
@@ -74,8 +82,97 @@ const ParkingPage = () => {
 
     // Apply filters
     const filteredSlots = useMemo(() => {
-        return slots.filter(slot => {
-            const f = parkingStore.filters;
+        const isSlotReservedSoon = (slotId, allReservations = []) => {
+            const now = Date.now();
+            const THIRTY_MINUTES_MS = 30 * 60 * 1000;
+            return allReservations.some(r => {
+                if (r.slotId !== slotId) return false;
+                if (r.status === 'CANCELLED' || r.status === 'COMPLETED') return false;
+                const rStart = new Date(r.reservationStart).getTime();
+                const rEnd = new Date(r.reservationEnd).getTime();
+                if (now > rEnd) return false;
+                return (rStart - now) <= THIRTY_MINUTES_MS;
+            });
+        };
+
+        const isReservationOverlap = (slotId, allReservations, reqStart, reqEnd) => {
+            return allReservations.some(r => {
+                if (r.slotId !== slotId) return false;
+                if (r.status === 'CANCELLED' || r.status === 'COMPLETED') return false;
+                const rStart = new Date(r.reservationStart).getTime();
+                const rEnd = new Date(r.reservationEnd).getTime();
+                return rStart < reqEnd && rEnd > reqStart;
+            });
+        };
+
+        const isSessionOverlap = (slotId, allSessions, reqStart, reqEnd) => {
+            return allSessions.some(s => {
+                if (s.slotId !== slotId) return false;
+                if (s.status === 'COMPLETED') return false; 
+                const sStart = new Date(s.entryTime).getTime();
+                const sEnd = s.exitTime ? new Date(s.exitTime).getTime() : Infinity;
+                return sStart < reqEnd && sEnd > reqStart;
+            });
+        };
+
+        let processedSlots = slots.map(slot => {
+            let newSlot = { ...slot };
+            if (newSlot.status === 'AVAILABLE' || newSlot.status === 'RESERVED') {
+                if (isSlotReservedSoon(newSlot.slotId, parkingStore.allReservations)) {
+                    newSlot.status = 'RESERVED';
+                } else {
+                    newSlot.status = 'AVAILABLE';
+                }
+            }
+            return newSlot;
+        });
+
+        const f = parkingStore.filters;
+
+        if (f.startTime && f.endTime) {
+            const reqStart = new Date(f.startTime).getTime();
+            const reqEnd = new Date(f.endTime).getTime();
+            if (reqEnd > reqStart) {
+                processedSlots = processedSlots.filter(slot => {
+                    if (slot.status !== 'AVAILABLE') return false;
+                    const isResOverlap = isReservationOverlap(slot.slotId, parkingStore.allReservations, reqStart, reqEnd);
+                    const isSesOverlap = isSessionOverlap(slot.slotId, parkingStore.allSessions, reqStart, reqEnd);
+                    return !isResOverlap && !isSesOverlap;
+                });
+            } else {
+                message.warning('Thời gian kết thúc phải sau thời gian bắt đầu.');
+            }
+        }
+
+        const canReserveSlot = (slot) => {
+            return slot && slot.status === 'AVAILABLE' && !String(slot.vehicleTypeName || '').toLowerCase().includes('motor');
+        };
+
+        const sortAndRecommendSlots = (slotsToProcess) => {
+            slotsToProcess.forEach(s => s.isRecommended = false);
+            const reservableSlots = slotsToProcess.filter(s => canReserveSlot(s));
+            if (reservableSlots.length > 0) {
+                const sorted = [...reservableSlots].sort((a, b) => {
+                    const floorA = a.floorName || '';
+                    const floorB = b.floorName || '';
+                    if (floorA !== floorB) return floorA.localeCompare(floorB);
+
+                    const zoneA = a.zoneName || '';
+                    const zoneB = b.zoneName || '';
+                    if (zoneA !== zoneB) return zoneA.localeCompare(zoneB);
+
+                    const codeA = a.slotCode || '';
+                    const codeB = b.slotCode || '';
+                    return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
+                });
+                const bestSlotId = sorted[0].slotId;
+                const bestSlot = slotsToProcess.find(s => s.slotId === bestSlotId);
+                if (bestSlot) bestSlot.isRecommended = true;
+            }
+            return slotsToProcess;
+        };
+
+        const finalFilteredSlots = processedSlots.filter(slot => {
             
             // Text Search
             if (searchText) {
@@ -86,14 +183,16 @@ const ParkingPage = () => {
                 if (!code.includes(search) && !building.includes(search) && !zone.includes(search)) return false;
             }
 
-            if (f.buildingName && f.buildingName !== 'all' && slot.buildingName !== f.buildingName) return false;
-            if (f.floorName && f.floorName !== 'all' && slot.floorName !== f.floorName) return false;
-            if (f.zoneName && f.zoneName !== 'all' && slot.zoneName !== f.zoneName) return false;
-            if (f.vehicleTypeName && f.vehicleTypeName !== 'all' && slot.vehicleTypeName !== f.vehicleTypeName) return false;
-            if (f.status && f.status !== 'all' && slot.status !== f.status) return false;
+            if (f.buildingName && f.buildingName !== 'all' && f.buildingName !== '' && slot.buildingName !== f.buildingName) return false;
+            if (f.floorName && f.floorName !== 'all' && f.floorName !== '' && slot.floorName !== f.floorName) return false;
+            if (f.zoneName && f.zoneName !== 'all' && f.zoneName !== '' && slot.zoneName !== f.zoneName) return false;
+            if (f.vehicleTypeName && f.vehicleTypeName !== 'all' && f.vehicleTypeName !== '' && slot.vehicleTypeName !== f.vehicleTypeName) return false;
+            if (f.status && f.status !== 'all' && f.status !== '' && slot.status !== f.status) return false;
             return true;
         });
-    }, [slots, searchText, parkingStore.filters.buildingName, parkingStore.filters.floorName, parkingStore.filters.zoneName, parkingStore.filters.vehicleTypeName, parkingStore.filters.status]);
+
+        return sortAndRecommendSlots(finalFilteredSlots);
+    }, [slots, searchText, parkingStore.filters.buildingName, parkingStore.filters.floorName, parkingStore.filters.zoneName, parkingStore.filters.vehicleTypeName, parkingStore.filters.status, parkingStore.filters.startTime, parkingStore.filters.endTime, parkingStore.allReservations, parkingStore.allSessions]);
 
     const getStatusInfo = (status) => {
         const s = String(status).toUpperCase();
@@ -127,25 +226,43 @@ const ParkingPage = () => {
                     <Col xs={24} md={6}>
                         <Input 
                             prefix={<SearchOutlined />} 
-                            placeholder="Search slot code..." 
+                            placeholder="Search slot code, building, zone..." 
                             value={searchText}
                             onChange={e => setSearchText(e.target.value)}
                             size="large"
                         />
                     </Col>
-                    <Col xs={12} sm={8} md={4}>
+                    <Col xs={12} sm={8} md={6}>
+                        <Input 
+                            type="datetime-local" 
+                            size="large" 
+                            value={parkingStore.filters.startTime || ''} 
+                            onChange={(e) => handleFilterChange('startTime', e.target.value)} 
+                            placeholder="Start Time"
+                        />
+                    </Col>
+                    <Col xs={12} sm={8} md={6}>
+                        <Input 
+                            type="datetime-local" 
+                            size="large" 
+                            value={parkingStore.filters.endTime || ''} 
+                            onChange={(e) => handleFilterChange('endTime', e.target.value)} 
+                            placeholder="End Time"
+                        />
+                    </Col>
+                    <Col xs={12} sm={8} md={6}>
                         <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.buildingName || 'all'} onChange={(v) => handleFilterChange('buildingName', v)}>
                             <Option value="all">Building: All</Option>
                             {filterOptions.buildings.map(b => <Option key={b} value={b}>{b}</Option>)}
                         </Select>
                     </Col>
-                    <Col xs={12} sm={8} md={4}>
+                    <Col xs={12} sm={8} md={6}>
                         <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.floorName || 'all'} onChange={(v) => handleFilterChange('floorName', v)}>
                             <Option value="all">Floor: All</Option>
                             {filterOptions.floors.map(f => <Option key={f} value={f}>{f}</Option>)}
                         </Select>
                     </Col>
-                    <Col xs={12} sm={8} md={3}>
+                    <Col xs={12} sm={8} md={4}>
                         <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.zoneName || 'all'} onChange={(v) => handleFilterChange('zoneName', v)}>
                             <Option value="all">Zone: All</Option>
                             {filterOptions.zones.map(z => <Option key={z} value={z}>{z}</Option>)}
@@ -157,7 +274,7 @@ const ParkingPage = () => {
                             {filterOptions.vehicleTypes.map(v => <Option key={v} value={v}>{v}</Option>)}
                         </Select>
                     </Col>
-                    <Col xs={12} sm={8} md={3}>
+                    <Col xs={12} sm={8} md={4}>
                         <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.status || 'all'} onChange={(v) => handleFilterChange('status', v)}>
                             <Option value="all">Status: All</Option>
                             {filterOptions.statuses.map(s => <Option key={s} value={s}>{s}</Option>)}
@@ -180,7 +297,13 @@ const ParkingPage = () => {
                                     className="saas-card"
                                     styles={{ body: { padding: 16 } }}
                                     onClick={() => handleView(slot)}
+                                    style={slot.isRecommended ? { border: `2px solid ${token.colorPrimary}`, boxShadow: `0 0 8px ${token.colorPrimary}40`, transform: 'scale(1.02)', position: 'relative' } : {}}
                                 >
+                                    {slot.isRecommended && (
+                                        <div style={{ position: 'absolute', top: -10, right: -10, background: token.colorPrimary, color: 'white', fontSize: '0.75rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: 12, boxShadow: '0 2px 6px rgba(0,0,0,0.2)', zIndex: 2 }}>
+                                            Đề xuất
+                                        </div>
+                                    )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                                         <Title level={3} style={{ margin: 0, fontWeight: 800 }}>{slot.slotCode || 'N/A'}</Title>
                                         <div style={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: statusInfo.hex, boxShadow: `0 0 8px ${statusInfo.hex}66` }} />
@@ -241,7 +364,15 @@ const ParkingPage = () => {
                             </Descriptions>
                         </Card>
 
-                        {parkingStore.selectedSlot.status === 'AVAILABLE' && (
+                        {parkingStore.selectedSlot.status !== 'AVAILABLE' ? (
+                            <div style={{ marginBottom: 12, fontSize: '0.85rem', textAlign: 'center', color: '#f59e0b', background: '#fffbeb', padding: 10, borderRadius: 6 }}>
+                                Slot này hiện không thể đặt chỗ.
+                            </div>
+                        ) : String(parkingStore.selectedSlot.vehicleTypeName || '').toLowerCase().includes('motor') ? (
+                            <div style={{ marginBottom: 12, fontSize: '0.85rem', textAlign: 'center', color: '#f59e0b', background: '#fffbeb', padding: 10, borderRadius: 6 }}>
+                                Slot xe máy không hỗ trợ đặt trước.
+                            </div>
+                        ) : (
                             <Button type="primary" size="large" onClick={() => navigate('/driver/reservations')} style={{ marginTop: 16, height: 48, borderRadius: 8, fontSize: 16, fontWeight: 600 }}>
                                 Book this Slot
                             </Button>

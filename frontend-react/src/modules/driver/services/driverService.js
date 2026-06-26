@@ -64,5 +64,12 @@ export const driverService = {
         } catch (error) {
             throw error;
         }
+    },
+    loadSessions: async () => {
+        try {
+            return await driverApi.getSessions();
+        } catch (error) {
+            throw error;
+        }
     }
 };

@@ -36,5 +36,9 @@ export const driverApi = {
     getSlots: async () => {
         const response = await axios.get('/api/slots');
         return response.data;
+    },
+    getSessions: async () => {
+        const response = await axios.get('/api/sessions');
+        return response.data;
     }
 };

@@ -1,5 +1,7 @@
 export const parkingStore = {
   slots: [],
+  allReservations: [],
+  allSessions: [],
   selectedSlot: null,
   filters: {
     buildingName: '',
