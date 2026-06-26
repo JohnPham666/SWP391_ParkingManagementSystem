@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { monitoringApi, incidentApi } from '../../services/api';
+import { monitoringApi, incidentApi, vehicleApi } from '../../services/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -33,6 +33,7 @@ const ManagerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
   const [unresolvedIncidentsCount, setUnresolvedIncidentsCount] = useState(0);
+  const [pendingVehiclesCount, setPendingVehiclesCount] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const navigate = useNavigate();
@@ -47,9 +48,10 @@ const ManagerDashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [res, incidentRes] = await Promise.all([
+        const [res, incidentRes, vehicleRes] = await Promise.all([
           monitoringApi.getDashboard(),
-          incidentApi.getIncidents()
+          incidentApi.getIncidents(),
+          vehicleApi.getVehicles()
         ]);
         
         if (res.data?.success) {
@@ -60,6 +62,12 @@ const ManagerDashboard = () => {
         if (Array.isArray(incidentsList)) {
           const unresolved = incidentsList.filter(i => ['REPORTED', 'OPEN', 'IN_PROGRESS'].includes(i.status));
           setUnresolvedIncidentsCount(unresolved.length);
+        }
+
+        let vehicleList = vehicleRes.data?.success ? vehicleRes.data.data : vehicleRes.data;
+        if (Array.isArray(vehicleList)) {
+          const pending = vehicleList.filter(v => v.status === 'PENDING');
+          setPendingVehiclesCount(pending.length);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -236,7 +244,7 @@ const ManagerDashboard = () => {
       
       <Row gutter={[16, 16]}>
         {!isStaff && (
-          <Col xs={24} sm={12} md={12}>
+          <Col xs={24} sm={12} md={8}>
             <Card 
               bordered={false} 
               hoverable
@@ -253,7 +261,7 @@ const ManagerDashboard = () => {
             </Card>
           </Col>
         )}
-        <Col xs={24} sm={12} md={isStaff ? 24 : 12}>
+        <Col xs={24} sm={12} md={isStaff ? 12 : 8}>
           <Card 
             bordered={false} 
             hoverable
@@ -265,6 +273,21 @@ const ManagerDashboard = () => {
               value={unresolvedIncidentsCount}
               prefix={<AlertOutlined />}
               valueStyle={{ color: '#cf1322', fontWeight: 600 }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={isStaff ? 12 : 8}>
+          <Card 
+            bordered={false} 
+            hoverable
+            onClick={() => navigate('/manager/vehicles')}
+            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer', borderLeft: '4px solid #faad14' }}
+          >
+            <Statistic
+              title="Pending Vehicles"
+              value={pendingVehiclesCount}
+              prefix={<CarOutlined />}
+              valueStyle={{ color: '#faad14', fontWeight: 600 }}
             />
           </Card>
         </Col>
