@@ -16,7 +16,16 @@ const getPaymentStatus = (reservation) => {
     if (reservationStatus === 'CANCELLED') return 'CANCELLED';
     return String(reservation?.paymentStatus || reservation?.payment?.status || reservation?.payment?.paymentStatus || 'UNPAID').toUpperCase();
 };
+const isReservationExpired = (reservation) => {
+    if (String(reservation?.status || '').toUpperCase() !== 'PENDING') return false;
+    if (!reservation?.createdAt) return false;
+    const createdTime = new Date(reservation.createdAt).getTime();
+    const expireTime = createdTime + 15 * 60 * 1000;
+    return new Date().getTime() > expireTime;
+};
+
 const canPayReservation = (reservation) => {
+    if (isReservationExpired(reservation)) return false;
     const reservationStatus = String(reservation?.status || '').toUpperCase();
     const paymentStatus = getPaymentStatus(reservation);
     return ['PENDING', 'PENDING_PAYMENT'].includes(reservationStatus) && ['UNPAID', 'PENDING', 'FAILED'].includes(paymentStatus);
@@ -27,6 +36,7 @@ const CountdownTimer = ({ createdAt, onExpire }) => {
     const [timeLeft, setTimeLeft] = useState('');
     
     useEffect(() => {
+        let hasExpired = false;
         const calculateTimeLeft = () => {
             if (!createdAt) return null;
             const createdTime = new Date(createdAt).getTime();
@@ -43,17 +53,31 @@ const CountdownTimer = ({ createdAt, onExpire }) => {
             return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         };
         
-        setTimeLeft(calculateTimeLeft());
+        const initialTl = calculateTimeLeft();
+        setTimeLeft(initialTl);
+        if (initialTl === '00:00') {
+             hasExpired = true;
+             if (onExpire) setTimeout(onExpire, 0);
+        }
+
         const timer = setInterval(() => {
+            if (hasExpired) {
+                 clearInterval(timer);
+                 return;
+            }
             const tl = calculateTimeLeft();
             setTimeLeft(tl);
-            if (tl === '00:00') clearInterval(timer);
+            if (tl === '00:00') {
+                clearInterval(timer);
+                hasExpired = true;
+                if (onExpire) onExpire();
+            }
         }, 1000);
         
         return () => clearInterval(timer);
-    }, [createdAt]);
+    }, [createdAt, onExpire]);
     
-    if (!timeLeft || timeLeft === '00:00') return <Text type="danger" style={{ fontSize: 13, fontWeight: 'bold' }}>Expired</Text>;
+    if (!timeLeft || timeLeft === '00:00') return null;
     return <Text type="danger" style={{ fontSize: 13, fontWeight: 'bold' }}>{timeLeft}</Text>;
 };
 
@@ -371,15 +395,20 @@ const ReservationPage = () => {
             dataIndex: 'status',
             key: 'status',
             render: (status, record) => {
-                const s = String(status).toUpperCase();
+                let s = String(status).toUpperCase();
+                const expired = isReservationExpired(record);
+                if (s === 'PENDING' && expired) {
+                    s = 'EXPIRED';
+                }
+                
                 let color = 'default';
                 if (s === 'CONFIRMED' || s === 'COMPLETED') color = 'success';
                 else if (s === 'PENDING') color = 'warning';
-                else if (s === 'CANCELLED') color = 'error';
+                else if (s === 'CANCELLED' || s === 'EXPIRED') color = 'error';
                 return (
                     <Space size="small">
                         <Tag color={color} style={{ padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>{s}</Tag>
-                        {s === 'PENDING' && <CountdownTimer createdAt={record.createdAt} />}
+                        {s === 'PENDING' && <CountdownTimer createdAt={record.createdAt} onExpire={forceRender} />}
                     </Space>
                 );
             }
@@ -402,7 +431,8 @@ const ReservationPage = () => {
             align: 'right',
             render: (_, record) => {
                 const s = String(record.status).toUpperCase();
-                const canCancel = s === 'PENDING' || s === 'CONFIRMED';
+                const expired = isReservationExpired(record);
+                const canCancel = (s === 'PENDING' || s === 'CONFIRMED') && !expired;
                 
                 return (
                     <Space size="middle">
@@ -623,8 +653,8 @@ const ReservationPage = () => {
                             <Descriptions.Item label="Start Time">{viewingReservation.reservationStart || viewingReservation.startTime ? new Date(viewingReservation.reservationStart || viewingReservation.startTime).toLocaleString() : 'N/A'}</Descriptions.Item>
                             <Descriptions.Item label="End Time">{viewingReservation.reservationEnd || viewingReservation.endTime ? new Date(viewingReservation.reservationEnd || viewingReservation.endTime).toLocaleString() : 'N/A'}</Descriptions.Item>
                             <Descriptions.Item label="Status">
-                                <Tag color={String(viewingReservation.status).toUpperCase() === 'CONFIRMED' || String(viewingReservation.status).toUpperCase() === 'COMPLETED' ? 'success' : String(viewingReservation.status).toUpperCase() === 'CANCELLED' ? 'error' : 'warning'}>
-                                    {String(viewingReservation.status).toUpperCase()}
+                                <Tag color={String(viewingReservation.status).toUpperCase() === 'CONFIRMED' || String(viewingReservation.status).toUpperCase() === 'COMPLETED' ? 'success' : String(viewingReservation.status).toUpperCase() === 'CANCELLED' || isReservationExpired(viewingReservation) ? 'error' : 'warning'}>
+                                    {isReservationExpired(viewingReservation) ? 'EXPIRED' : String(viewingReservation.status).toUpperCase()}
                                 </Tag>
                             </Descriptions.Item>
                             <Descriptions.Item label="Payment Status">
