@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Statistic, Typography, Button, Spin, message, Modal, Form, Input, Select, Upload, Tag } from 'antd';
+import { Row, Col, Card, Statistic, Typography, Button, Spin, message, Modal, Form, Input, Select, Upload, Tag, Progress } from 'antd';
 import { 
   CarOutlined, 
   SafetyCertificateOutlined,
@@ -227,57 +227,98 @@ const StaffDashboard = () => {
       <Title level={2} style={{ marginBottom: 24 }}>Staff Dashboard</Title>
 
       <Row gutter={[24, 24]}>
-        {/* Card 1: Capacity */}
-        <Col xs={24} sm={12}>
+        <Col xs={24} lg={16}>
           <Card 
-            hoverable 
-            onClick={() => navigate('/staff/slots')}
             style={{ 
               boxShadow: '0 4px 12px rgba(0,0,0,0.08)', 
               borderRadius: '12px',
-              borderLeft: '6px solid #1677ff'
+              height: '100%'
             }}
           >
-            <Statistic
-              title={<span style={{ fontSize: '16px', fontWeight: 'bold' }}>Current / Total Capacity</span>}
-              value={`${sum.currentOccupancy} / ${sum.totalCapacity}`}
-              prefix={<CarOutlined style={{ color: '#1677ff' }} />}
-              valueStyle={{ color: '#1f2937', fontWeight: 800, fontSize: '32px' }}
-            />
-            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text type="secondary">View Building & Slots Details</Text>
-              <ArrowRightOutlined style={{ color: '#1677ff' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '32px', flexWrap: 'wrap' }}>
+              <div style={{ textAlign: 'center' }}>
+                <Progress 
+                  type="circle" 
+                  percent={sum.totalCapacity > 0 ? parseFloat((sum.currentOccupancy / sum.totalCapacity * 100).toFixed(1)) : 0} 
+                  strokeColor={sum.occupancyRate < 50 ? '#10b981' : (sum.occupancyRate < 80 ? '#f59e0b' : '#ef4444')}
+                  size={160}
+                  strokeWidth={8}
+                />
+                <div style={{ marginTop: '12px', fontWeight: 'bold', color: '#6b7280' }}>Tỷ lệ lấp đầy</div>
+              </div>
+              
+              <div style={{ flex: 1, minWidth: '250px' }}>
+                <Title level={4} style={{ marginBottom: 20 }}>Hiện trạng bãi xe</Title>
+                
+                <div style={{ background: 'rgba(14,165,233,.08)', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', border: '1px solid rgba(14,165,233,.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', background: '#0ea5e9', marginRight: '8px' }}></div>
+                    <Text strong style={{ fontSize: '16px' }}>Tổng số chỗ (Sức chứa)</Text>
+                  </div>
+                  <Text strong style={{ fontSize: '20px', color: '#0ea5e9' }}>{sum.totalCapacity}</Text>
+                </div>
+                
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                      <Text><div style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#10b981', marginRight: '6px' }}></div> Chỗ trống</Text>
+                      <Text strong>{sum.availableCapacity}</Text>
+                    </div>
+                  </Col>
+                  <Col span={12}>
+                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                      <Text><div style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b', marginRight: '6px' }}></div> Đang đỗ</Text>
+                      <Text strong>{sum.currentOccupancy}</Text>
+                    </div>
+                  </Col>
+                  <Col span={12}>
+                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                      <Text><div style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#eab308', marginRight: '6px' }}></div> Đã đặt trước</Text>
+                      <Text strong>{sum.reservedSlots}</Text>
+                    </div>
+                  </Col>
+                  <Col span={12}>
+                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                      <Text><div style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#9ca3af', marginRight: '6px' }}></div> Chưa đặt</Text>
+                      <Text strong>{sum.totalCapacity - sum.currentOccupancy - sum.reservedSlots}</Text>
+                    </div>
+                  </Col>
+                </Row>
+              </div>
             </div>
           </Card>
         </Col>
 
         {/* Card 2: Reservations */}
-        <Col xs={24} sm={12}>
+        <Col xs={24} lg={8}>
           <Card 
             hoverable 
             onClick={() => navigate('/staff/reservations?date=today')}
             style={{ 
               boxShadow: '0 4px 12px rgba(0,0,0,0.08)', 
               borderRadius: '12px',
-              borderLeft: '6px solid #ea580c'
+              background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+              color: 'white',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center',
+              border: 'none'
             }}
+            bodyStyle={{ width: '100%' }}
           >
-            <Statistic
-              title={<span style={{ fontSize: '16px', fontWeight: 'bold' }}>Today's Reservations</span>}
-              value={todayReservationList.length}
-              prefix={<SafetyCertificateOutlined style={{ color: '#ea580c' }} />}
-              valueStyle={{ color: '#1f2937', fontWeight: 800, fontSize: '32px' }}
-            />
-            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text type="secondary">Manage Reservations</Text>
-              <ArrowRightOutlined style={{ color: '#ea580c' }} />
-            </div>
+            <SafetyCertificateOutlined style={{ fontSize: '48px', color: 'rgba(255,255,255,0.9)', marginBottom: '16px' }} />
+            <h3 style={{ color: 'white', fontSize: '20px', margin: '0 0 8px 0' }}>Reservation</h3>
+            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginBottom: '16px' }}>Khách đã đặt chỗ nhưng chưa Check-in</p>
+            <div style={{ fontSize: '64px', fontWeight: '900', lineHeight: 1 }}>{todayReservationList.length}</div>
           </Card>
         </Col>
       </Row>
 
       {/* 3 Big Buttons */}
-      <div style={{ marginTop: 40 }}>
+      <div style={{ marginTop: 24 }}>
         <Title level={4} style={{ marginBottom: 16 }}>Quick Actions</Title>
         <Row gutter={[24, 24]}>
           <Col xs={24} md={12}>
