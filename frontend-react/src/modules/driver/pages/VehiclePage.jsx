@@ -226,6 +226,7 @@ const VehiclePage = () => {
                                         hoverable 
                                         style={{ borderRadius: '12px', overflow: 'hidden' }}
                                         styles={{ body: { padding: 0 } }}
+                                        onClick={() => handleView(vehicle)}
                                     >
                                         <div style={{ 
                                             height: 120, 
@@ -240,7 +241,7 @@ const VehiclePage = () => {
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                                                 <div>
                                                     <Title level={4} style={{ margin: 0, fontWeight: 800, letterSpacing: '1px' }}>{vehicle.licensePlate}</Title>
-                                                    <Text type="secondary">{vehicle.brand || 'Unknown Brand'} • {vehicle.color || 'No Color'}</Text>
+                                                    <Text type="secondary">{vehicle.brand || 'Unknown Brand'}{vehicle.color ? ` • ${vehicle.color}` : ''}</Text>
                                                 </div>
                                                 <Tag color={
                                                     vehicle.status === 'APPROVED' ? 'green' : 
@@ -258,10 +259,8 @@ const VehiclePage = () => {
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <Tag color="blue">{vehicle.vehicleType?.typeName || vehicle.vehicleType?.name || vehicle.vehicleTypeName || 'N/A'}</Tag>
                                                 <Space size="small">
-                                                    <Button type="text" shape="circle" icon={<EyeOutlined />} onClick={() => handleView(vehicle)} />
-                                                    <Button type="text" shape="circle" icon={<EditOutlined />} onClick={() => handleEdit(vehicle)} />
-                                                    <Popconfirm title="Delete this vehicle?" onConfirm={() => handleDelete(vehicle.vehicleId || vehicle.id)}>
-                                                        <Button type="text" danger shape="circle" icon={<DeleteOutlined />} />
+                                                    <Popconfirm title="Delete this vehicle?" onConfirm={(e) => { e.stopPropagation(); handleDelete(vehicle.vehicleId || vehicle.id); }} onCancel={(e) => e.stopPropagation()}>
+                                                        <Button type="text" danger shape="circle" icon={<DeleteOutlined />} onClick={(e) => e.stopPropagation()} />
                                                     </Popconfirm>
                                                 </Space>
                                             </div>

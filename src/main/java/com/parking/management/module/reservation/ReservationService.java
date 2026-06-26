@@ -198,6 +198,13 @@ public class ReservationService {
         }
 
         reservation.setStatus("CANCELLED");
+        
+        ParkingSlot slot = reservation.getSlot();
+        if (slot != null && slot.getStatus() == SlotStatus.RESERVED) {
+            slot.setStatus(SlotStatus.AVAILABLE);
+            parkingSlotRepository.save(slot);
+        }
+
         reservationRepository.save(reservation);
     }
 

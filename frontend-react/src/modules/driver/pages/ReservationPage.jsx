@@ -1,6 +1,7 @@
 import React, { useEffect, useReducer, useState } from 'react';
 import { Card, Table, Modal, Form, DatePicker, Select, Button, Tag, Space, Popconfirm, Alert, message, Row, Col, Typography, Skeleton, Empty, theme, Descriptions } from 'antd';
-import { CalendarOutlined, PlusOutlined, DeleteOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { CalendarOutlined, PlusOutlined, DeleteOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, AlertOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { driverService } from '../services/driverService';
 import { reservationStore } from '../store/reservationStore';
@@ -10,12 +11,23 @@ import { parkingStore } from '../store/parkingStore';
 const { Title, Text } = Typography;
 
 const getReservationId = (reservation) => reservation?.reservationId || reservation?.id;
+const isReservationExpired = (reservation) => {
+    if (String(reservation?.status || '').toUpperCase() !== 'PENDING') return false;
+    if (!reservation?.createdAt) return false;
+    const createdTime = new Date(reservation.createdAt).getTime();
+    const expireTime = createdTime + 15 * 60 * 1000;
+    return new Date().getTime() > expireTime;
+};
+
 const getPaymentStatus = (reservation) => {
     const reservationStatus = String(reservation?.status || '').toUpperCase();
     if (reservationStatus === 'CANCELLED') return 'CANCELLED';
+    if (reservationStatus === 'EXPIRED' || isReservationExpired(reservation)) return 'UNPAID';
     return String(reservation?.paymentStatus || reservation?.payment?.status || reservation?.payment?.paymentStatus || 'UNPAID').toUpperCase();
 };
+
 const canPayReservation = (reservation) => {
+    if (isReservationExpired(reservation)) return false;
     const reservationStatus = String(reservation?.status || '').toUpperCase();
     const paymentStatus = getPaymentStatus(reservation);
     return ['PENDING', 'PENDING_PAYMENT'].includes(reservationStatus) && ['UNPAID', 'PENDING', 'FAILED'].includes(paymentStatus);
@@ -26,6 +38,7 @@ const CountdownTimer = ({ createdAt, onExpire }) => {
     const [timeLeft, setTimeLeft] = useState('');
     
     useEffect(() => {
+        let hasExpired = false;
         const calculateTimeLeft = () => {
             if (!createdAt) return null;
             const createdTime = new Date(createdAt).getTime();
@@ -42,17 +55,31 @@ const CountdownTimer = ({ createdAt, onExpire }) => {
             return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         };
         
-        setTimeLeft(calculateTimeLeft());
+        const initialTl = calculateTimeLeft();
+        setTimeLeft(initialTl);
+        if (initialTl === '00:00') {
+             hasExpired = true;
+             if (onExpire) setTimeout(onExpire, 0);
+        }
+
         const timer = setInterval(() => {
+            if (hasExpired) {
+                 clearInterval(timer);
+                 return;
+            }
             const tl = calculateTimeLeft();
             setTimeLeft(tl);
-            if (tl === '00:00') clearInterval(timer);
+            if (tl === '00:00') {
+                clearInterval(timer);
+                hasExpired = true;
+                if (onExpire) onExpire();
+            }
         }, 1000);
         
         return () => clearInterval(timer);
-    }, [createdAt]);
+    }, [createdAt, onExpire]);
     
-    if (!timeLeft || timeLeft === '00:00') return <Text type="danger" style={{ fontSize: 13, fontWeight: 'bold' }}>Expired</Text>;
+    if (!timeLeft || timeLeft === '00:00') return null;
     return <Text type="danger" style={{ fontSize: 13, fontWeight: 'bold' }}>{timeLeft}</Text>;
 };
 
@@ -63,6 +90,8 @@ const ReservationPage = () => {
     const [, forceRender] = useReducer(x => x + 1, 0);
     const [form] = Form.useForm();
     const [selectedVehicleType, setSelectedVehicleType] = useState(null);
+    const location = useLocation();
+    const navigate = useNavigate();
     
     // Details Modal State
     const [isDetailsVisible, setIsDetailsVisible] = useState(false);
@@ -71,6 +100,12 @@ const ReservationPage = () => {
     // Payment State
     const [payingReservationId, setPayingReservationId] = useState(null);
     const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+
+    // Cancellation and Refund State
+    const [cancelPaidModalVisible, setCancelPaidModalVisible] = useState(false);
+    const [reservationToCancel, setReservationToCancel] = useState(null);
+    const [refundInstructionModalVisible, setRefundInstructionModalVisible] = useState(false);
+    const [cancelledReservationId, setCancelledReservationId] = useState(null);
 
     useEffect(() => {
         fetchData();
@@ -134,7 +169,13 @@ const ReservationPage = () => {
             ]);
 
             const rRes = reservationsRes?.data || reservationsRes;
-            reservationStore.reservations = Array.isArray(rRes) ? rRes : [];
+            const resArray = Array.isArray(rRes) ? rRes : [];
+            resArray.sort((a, b) => {
+                const idA = a.reservationId || a.id || 0;
+                const idB = b.reservationId || b.id || 0;
+                return idB - idA;
+            });
+            reservationStore.reservations = resArray;
 
             const vRes = vehiclesRes?.data || vehiclesRes;
             vehicleStore.vehicles = Array.isArray(vRes) ? vRes : [];
@@ -151,6 +192,29 @@ const ReservationPage = () => {
             forceRender();
         }
     };
+
+    const safeReservations = Array.isArray(reservationStore.reservations) ? reservationStore.reservations : [];
+    const safeVehicles = Array.isArray(vehicleStore.vehicles) ? vehicleStore.vehicles : [];
+    const safeSlots = Array.isArray(parkingStore.slots) ? parkingStore.slots : [];
+
+    useEffect(() => {
+        if (safeSlots.length > 0 && location.state?.prefilledSlot) {
+            const slot = location.state.prefilledSlot;
+            setErrorAlert(null);
+            form.resetFields();
+            const now = dayjs().add(5, 'minute');
+            
+            form.setFieldsValue({
+                startTime: now,
+                endTime: now.add(1, 'day'),
+                slotId: slot.slotId || slot.id
+            });
+            setIsModalVisible(true);
+            
+            // clear state
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [safeSlots.length, location.state, navigate]);
 
     const handleCreate = () => {
         setErrorAlert(null);
@@ -227,6 +291,26 @@ const ReservationPage = () => {
             await driverService.cancelReservation(id);
             message.success('Reservation cancelled successfully');
             fetchData();
+        } catch (error) {
+            message.error('Failed to cancel reservation');
+        }
+    };
+
+    const handleCancelPaidClick = (record) => {
+        setReservationToCancel(record);
+        setCancelPaidModalVisible(true);
+    };
+
+    const confirmCancelPaid = async () => {
+        if (!reservationToCancel) return;
+        const id = reservationToCancel.reservationId || reservationToCancel.id;
+        try {
+            await driverService.cancelReservation(id);
+            message.success('Reservation cancelled successfully');
+            fetchData();
+            setCancelPaidModalVisible(false);
+            setCancelledReservationId(id);
+            setRefundInstructionModalVisible(true);
         } catch (error) {
             message.error('Failed to cancel reservation');
         }
@@ -313,15 +397,20 @@ const ReservationPage = () => {
             dataIndex: 'status',
             key: 'status',
             render: (status, record) => {
-                const s = String(status).toUpperCase();
+                let s = String(status).toUpperCase();
+                const expired = isReservationExpired(record);
+                if (s === 'PENDING' && expired) {
+                    s = 'EXPIRED';
+                }
+                
                 let color = 'default';
                 if (s === 'CONFIRMED' || s === 'COMPLETED') color = 'success';
                 else if (s === 'PENDING') color = 'warning';
-                else if (s === 'CANCELLED') color = 'error';
+                else if (s === 'CANCELLED' || s === 'EXPIRED') color = 'error';
                 return (
                     <Space size="small">
                         <Tag color={color} style={{ padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>{s}</Tag>
-                        {s === 'PENDING' && <CountdownTimer createdAt={record.createdAt} />}
+                        {s === 'PENDING' && <CountdownTimer createdAt={record.createdAt} onExpire={forceRender} />}
                     </Space>
                 );
             }
@@ -344,7 +433,8 @@ const ReservationPage = () => {
             align: 'right',
             render: (_, record) => {
                 const s = String(record.status).toUpperCase();
-                const canCancel = s === 'PENDING' || s === 'CONFIRMED';
+                const expired = isReservationExpired(record);
+                const canCancel = (s === 'PENDING' || s === 'CONFIRMED') && !expired;
                 
                 return (
                     <Space size="middle">
@@ -353,19 +443,19 @@ const ReservationPage = () => {
                         )}
                         <Button type="default" ghost={false} size="small" style={{ borderRadius: 4 }} onClick={() => handleViewDetails(record)}>Details</Button>
                         {canCancel && (
-                            <Popconfirm title="Cancel this reservation?" onConfirm={() => handleDelete(record.reservationId || record.id)}>
-                                <Button type="text" danger icon={<DeleteOutlined />} size="small" />
-                            </Popconfirm>
+                            (getPaymentStatus(record) === 'PAID' || getPaymentStatus(record) === 'COMPLETED') ? (
+                                <Button type="text" danger icon={<DeleteOutlined />} size="small" onClick={() => handleCancelPaidClick(record)} />
+                            ) : (
+                                <Popconfirm title="Cancel this reservation?" onConfirm={() => handleDelete(record.reservationId || record.id)}>
+                                    <Button type="text" danger icon={<DeleteOutlined />} size="small" />
+                                </Popconfirm>
+                            )
                         )}
                     </Space>
                 );
             },
         },
     ];
-
-    const safeReservations = Array.isArray(reservationStore.reservations) ? reservationStore.reservations : [];
-    const safeVehicles = Array.isArray(vehicleStore.vehicles) ? vehicleStore.vehicles : [];
-    const safeSlots = Array.isArray(parkingStore.slots) ? parkingStore.slots : [];
 
     const stats = {
         total: safeReservations.length,
@@ -376,7 +466,7 @@ const ReservationPage = () => {
 
     const filteredSlots = safeSlots.filter(s => {
         const sType = (s.vehicleTypeName || '').toLowerCase();
-        return !sType.includes('motor') && !sType.includes('xe máy');
+        return !sType.includes('motor') && !sType.includes('xe máy') && String(s.status).toUpperCase() === 'AVAILABLE';
     });
 
     const handleVehicleChange = (vehicleId) => {
@@ -387,12 +477,16 @@ const ReservationPage = () => {
             
             const isMotorbike = vTypeName.includes('motor') || vTypeName.includes('xe máy');
             if (!isMotorbike) {
-                // Auto fill the first available car slot
-                const firstAvailable = filteredSlots.find(s => s.status === 'AVAILABLE');
-                if (firstAvailable) {
-                    form.setFieldsValue({ slotId: firstAvailable.slotId || firstAvailable.id });
-                } else {
-                    form.setFieldsValue({ slotId: undefined });
+                const currentSlotId = form.getFieldValue('slotId');
+                const isValidSlot = currentSlotId && filteredSlots.some(s => (s.slotId || s.id) === currentSlotId);
+                
+                if (!isValidSlot) {
+                    const firstAvailable = filteredSlots.find(s => s.status === 'AVAILABLE');
+                    if (firstAvailable) {
+                        form.setFieldsValue({ slotId: firstAvailable.slotId || firstAvailable.id });
+                    } else {
+                        form.setFieldsValue({ slotId: undefined });
+                    }
                 }
             } else {
                 form.setFieldsValue({ slotId: undefined });
@@ -561,8 +655,8 @@ const ReservationPage = () => {
                             <Descriptions.Item label="Start Time">{viewingReservation.reservationStart || viewingReservation.startTime ? new Date(viewingReservation.reservationStart || viewingReservation.startTime).toLocaleString() : 'N/A'}</Descriptions.Item>
                             <Descriptions.Item label="End Time">{viewingReservation.reservationEnd || viewingReservation.endTime ? new Date(viewingReservation.reservationEnd || viewingReservation.endTime).toLocaleString() : 'N/A'}</Descriptions.Item>
                             <Descriptions.Item label="Status">
-                                <Tag color={String(viewingReservation.status).toUpperCase() === 'CONFIRMED' || String(viewingReservation.status).toUpperCase() === 'COMPLETED' ? 'success' : String(viewingReservation.status).toUpperCase() === 'CANCELLED' ? 'error' : 'warning'}>
-                                    {String(viewingReservation.status).toUpperCase()}
+                                <Tag color={String(viewingReservation.status).toUpperCase() === 'CONFIRMED' || String(viewingReservation.status).toUpperCase() === 'COMPLETED' ? 'success' : String(viewingReservation.status).toUpperCase() === 'CANCELLED' || isReservationExpired(viewingReservation) ? 'error' : 'warning'}>
+                                    {isReservationExpired(viewingReservation) ? 'EXPIRED' : String(viewingReservation.status).toUpperCase()}
                                 </Tag>
                             </Descriptions.Item>
                             <Descriptions.Item label="Payment Status">
@@ -600,6 +694,64 @@ const ReservationPage = () => {
                         This window will automatically close and update your reservation once the payment is successful.
                     </Text>
                     <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                </div>
+            </Modal>
+
+            <Modal
+                title={<Title level={4} style={{ margin: 0, color: token.colorError }}><AlertOutlined /> Confirm Cancellation</Title>}
+                open={cancelPaidModalVisible}
+                onOk={confirmCancelPaid}
+                onCancel={() => setCancelPaidModalVisible(false)}
+                okText="Yes, Cancel"
+                cancelText="No, Keep it"
+                okButtonProps={{ danger: true }}
+                centered
+                width={500}
+            >
+                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                    <CloseCircleOutlined style={{ fontSize: 48, color: token.colorError, marginBottom: 16 }} />
+                    <Title level={4}>Reservation already paid!</Title>
+                    <Title level={5}>Are you sure you want to cancel it?</Title>
+                </div>
+            </Modal>
+
+            <Modal
+                title={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><InfoCircleOutlined style={{ color: token.colorInfo, fontSize: 24 }} /><Title level={4} style={{ margin: 0 }}>Refund Instructions</Title></div>}
+                open={refundInstructionModalVisible}
+                closable={false}
+                footer={[
+                    <Button key="understood" onClick={() => setRefundInstructionModalVisible(false)}>
+                        Understood
+                    </Button>,
+                    <Button key="report" type="primary" onClick={() => {
+                        setRefundInstructionModalVisible(false);
+                        navigate('/driver/incidents', {
+                            state: {
+                                autoOpen: true,
+                                incidentType: 'OTHER',
+                                description: `I cancelled the reservation that I already paid, I want a refund.\nReservation ID: ${cancelledReservationId}`
+                            }
+                        });
+                    }}>
+                        Report
+                    </Button>
+                ]}
+                centered
+                width={600}
+            >
+                <div style={{ padding: '16px 0' }}>
+                    <Text style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
+                        To receive a refund for your cancelled reservation, please follow these steps:
+                    </Text>
+                    <ul style={{ fontSize: 15, lineHeight: '1.8', marginBottom: 24, paddingLeft: 24 }}>
+                        <li>Click the <strong>Report</strong> button below to go to the Incident Report page.</li>
+                        <li>A form with the title <strong>Other issue</strong> and pre-filled content will appear.</li>
+                        <li>Please upload an image of your <strong>Bank Account QR code</strong> or provide your bank account details.</li>
+                        <li><em>Note: The bank account owner name must match your registered name in the system.</em></li>
+                    </ul>
+                    <div style={{ padding: '12px 16px', background: token.colorFillAlter, borderRadius: 8, border: `1px solid ${token.colorBorder}` }}>
+                        <Text strong>Your Reservation ID: </Text> <Text type="danger" strong>{cancelledReservationId}</Text>
+                    </div>
                 </div>
             </Modal>
         </div>

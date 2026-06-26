@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Typography, Button, Table, Tag, Modal, Form, Input, Upload, message, Empty , theme, Skeleton, Select } from 'antd';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertOutlined, UploadOutlined, CheckCircleOutlined, SyncOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 
@@ -13,10 +14,24 @@ const IncidentPage = () => {
     const [incidents, setIncidents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const location = useLocation();
+    const navigate = useNavigate();
     
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        if (location.state?.autoOpen) {
+            form.resetFields();
+            form.setFieldsValue({
+                title: location.state.incidentType,
+                description: location.state.description
+            });
+            setIsModalVisible(true);
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location.state, navigate]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -45,7 +60,6 @@ const IncidentPage = () => {
                     date: new Date(inc.createdAt || inc.date).toLocaleDateString(),
                     title: inc.incidentType || inc.title,
                     status: String(inc.status || 'PENDING').toUpperCase(),
-                    resolution: inc.resolution || 'Pending review',
                     description: inc.description
                 }));
                 
@@ -104,11 +118,6 @@ const IncidentPage = () => {
                 let displayStatus = status === 'IN_PROGRESS' ? 'IN PROGRESS' : status;
                 return <Tag color={color}>{displayStatus}</Tag>
             }
-        },
-        {
-            title: 'Resolution',
-            dataIndex: 'resolution',
-            key: 'resolution'
         }
     ];
 
@@ -120,7 +129,7 @@ const IncidentPage = () => {
             const payload = {
                 incidentType: values.title,
                 description: values.description,
-                sessionId: values.reservationId ? parseInt(values.reservationId) : null,
+                sessionId: null,
                 status: 'OPEN'
             };
             
@@ -231,9 +240,6 @@ const IncidentPage = () => {
                     </Form.Item>
                     <Form.Item name="description" label="Detailed Description" rules={[{ required: true }]}>
                         <TextArea rows={4} placeholder="Please describe exactly what happened and when..." />
-                    </Form.Item>
-                    <Form.Item name="reservationId" label="Related Reservation (Optional)">
-                        <Input placeholder="Enter Reservation ID" size="large" />
                     </Form.Item>
                     <Form.Item label="Photo Evidence (Optional)">
                         <Upload listType="picture" maxCount={3}>

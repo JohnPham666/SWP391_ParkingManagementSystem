@@ -1,6 +1,6 @@
 import React, { useEffect, useReducer, useState, useMemo } from 'react';
-import { Card, Tag, Select, Row, Col, Descriptions, Drawer, Button, message, Skeleton, Empty, Typography, Input, Divider , theme } from 'antd';
-import { SearchOutlined, CompassOutlined, BorderOutlined, EnvironmentOutlined, CarOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { Card, Tag, Select, Row, Col, Descriptions, Drawer, Button, message, Skeleton, Empty, Typography, Input, Divider, theme } from 'antd';
+import { SearchOutlined, CompassOutlined, BorderOutlined, EnvironmentOutlined, CarOutlined, ThunderboltOutlined, ReloadOutlined } from '@ant-design/icons';
 import Icon from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { driverService } from '../services/driverService';
@@ -11,9 +11,9 @@ const { Title, Text } = Typography;
 
 const MotorbikeSvg = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="1em" height="1em">
-        <circle cx="5.5" cy="16.5" r="3.5"/>
-        <circle cx="18.5" cy="16.5" r="3.5"/>
-        <path d="M15 6h5M12.5 12.5l3.5-6.5M5.5 13L9 6h3"/>
+        <circle cx="5.5" cy="16.5" r="3.5" />
+        <circle cx="18.5" cy="16.5" r="3.5" />
+        <path d="M15 6h5M12.5 12.5l3.5-6.5M5.5 13L9 6h3" />
     </svg>
 );
 const MotorbikeIcon = (props) => <Icon component={MotorbikeSvg} {...props} />;
@@ -37,7 +37,7 @@ const ParkingPage = () => {
                 driverService.loadReservations(),
                 driverService.loadSessions()
             ]);
-            
+
             parkingStore.slots = Array.isArray(slotsRes?.data || slotsRes) ? (slotsRes?.data || slotsRes) : [];
             parkingStore.allReservations = Array.isArray(resRes?.data || resRes) ? (resRes?.data || resRes) : [];
             parkingStore.allSessions = Array.isArray(sesRes?.data || sesRes) ? (sesRes?.data || sesRes) : [];
@@ -54,6 +54,19 @@ const ParkingPage = () => {
 
     const handleFilterChange = (key, value) => {
         parkingStore.filters[key] = value;
+        forceRender();
+    };
+
+    const handleResetFilter = () => {
+        parkingStore.filters = {
+            buildingName: '',
+            floorName: '',
+            zoneName: '',
+            vehicleTypeName: '',
+            status: '',
+            startTime: '',
+            endTime: ''
+        };
         forceRender();
     };
 
@@ -117,7 +130,7 @@ const ParkingPage = () => {
         const isSessionOverlap = (slotId, allSessions, reqStart, reqEnd) => {
             return allSessions.some(s => {
                 if (s.slotId !== slotId) return false;
-                if (s.status === 'COMPLETED') return false; 
+                if (s.status === 'COMPLETED') return false;
                 const sStart = new Date(s.entryTime).getTime();
                 const sEnd = s.exitTime ? new Date(s.exitTime).getTime() : Infinity;
                 return sStart < reqEnd && sEnd > reqStart;
@@ -126,11 +139,9 @@ const ParkingPage = () => {
 
         let processedSlots = slots.map(slot => {
             let newSlot = { ...slot };
-            if (newSlot.status === 'AVAILABLE' || newSlot.status === 'RESERVED') {
+            if (newSlot.status === 'AVAILABLE') {
                 if (isSlotReservedSoon(newSlot.slotId, parkingStore.allReservations)) {
                     newSlot.status = 'RESERVED';
-                } else {
-                    newSlot.status = 'AVAILABLE';
                 }
             }
             return newSlot;
@@ -183,13 +194,19 @@ const ParkingPage = () => {
         };
 
         const finalFilteredSlots = processedSlots.filter(slot => {
-            
+
             if (f.buildingName && f.buildingName !== 'all' && f.buildingName !== '' && slot.buildingName !== f.buildingName) return false;
             if (f.floorName && f.floorName !== 'all' && f.floorName !== '' && slot.floorName !== f.floorName) return false;
             if (f.zoneName && f.zoneName !== 'all' && f.zoneName !== '' && slot.zoneName !== f.zoneName) return false;
             if (f.vehicleTypeName && f.vehicleTypeName !== 'all' && f.vehicleTypeName !== '' && slot.vehicleTypeName !== f.vehicleTypeName) return false;
             if (f.status && f.status !== 'all' && f.status !== '' && slot.status !== f.status) return false;
             return true;
+        });
+
+        finalFilteredSlots.sort((a, b) => {
+            const idA = a.slotId || a.id || 0;
+            const idB = b.slotId || b.id || 0;
+            return idA - idB;
         });
 
         return sortAndRecommendSlots(finalFilteredSlots);
@@ -213,7 +230,7 @@ const ParkingPage = () => {
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <Title level={2} style={{ margin: 0 }}>Find Parking</Title>
-                
+
                 {/* Status Legend */}
                 <div style={{ display: 'flex', gap: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#10b981' }}></div><Text type="secondary">Available</Text></div>
@@ -263,24 +280,33 @@ const ParkingPage = () => {
                         </Select>
                     </Col>
                 </Row>
-                <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                <Row gutter={[16, 16]} style={{ marginTop: 16, alignItems: 'flex-end' }}>
                     <Col xs={12} sm={8} md={6}>
                         <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Thời gian bắt đầu</div>
-                        <Input 
-                            type="datetime-local" 
-                            size="large" 
-                            value={parkingStore.filters.startTime || ''} 
-                            onChange={(e) => handleFilterChange('startTime', e.target.value)} 
+                        <Input
+                            type="datetime-local"
+                            size="large"
+                            value={parkingStore.filters.startTime || ''}
+                            onChange={(e) => handleFilterChange('startTime', e.target.value)}
                         />
                     </Col>
                     <Col xs={12} sm={8} md={6}>
                         <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Thời gian kết thúc</div>
-                        <Input 
-                            type="datetime-local" 
-                            size="large" 
-                            value={parkingStore.filters.endTime || ''} 
-                            onChange={(e) => handleFilterChange('endTime', e.target.value)} 
+                        <Input
+                            type="datetime-local"
+                            size="large"
+                            value={parkingStore.filters.endTime || ''}
+                            onChange={(e) => handleFilterChange('endTime', e.target.value)}
                         />
+                    </Col>
+                    <Col xs={12} sm={8} md={6}>
+                        <Button
+                            size="large"
+                            onClick={handleResetFilter}
+                            icon={<ReloadOutlined />}
+                        >
+                            Đặt lại
+                        </Button>
                     </Col>
                 </Row>
             </Card>
@@ -305,8 +331,8 @@ const ParkingPage = () => {
 
                                     return (
                                         <Col xs={24} sm={12} md={8} lg={6} xl={4} key={slot.slotId || slot.id || slot.slotCode}>
-                                            <Card 
-                                                hoverable 
+                                            <Card
+                                                hoverable
                                                 className="saas-card"
                                                 styles={{ body: { padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' } }}
                                                 onClick={() => handleView(slot)}
@@ -324,28 +350,28 @@ const ParkingPage = () => {
                                                         ĐỀ XUẤT
                                                     </div>
                                                 )}
-                                                
-                                                <div style={{ 
-                                                    width: 56, height: 56, borderRadius: '50%', backgroundColor: statusInfo.hex + '1A', 
-                                                    display: 'flex', justifyContent: 'center', alignItems: 'center', 
-                                                    color: statusInfo.hex, marginBottom: 12 
+
+                                                <div style={{
+                                                    width: 56, height: 56, borderRadius: '50%', backgroundColor: statusInfo.hex + '1A',
+                                                    display: 'flex', justifyContent: 'center', alignItems: 'center',
+                                                    color: statusInfo.hex, marginBottom: 12
                                                 }}>
                                                     {String(slot.vehicleTypeName || '').toLowerCase().includes('motor') || String(slot.vehicleTypeName || '').toLowerCase().includes('xe máy') ? <MotorbikeIcon style={{ fontSize: 28 }} /> : <CarOutlined style={{ fontSize: 28 }} />}
                                                 </div>
-                                                
+
                                                 <Title level={3} style={{ margin: 0, fontWeight: 800, color: statusInfo.hex }}>
                                                     {slot.slotCode || 'N/A'}
                                                 </Title>
-                                                
+
                                                 <Text type="secondary" style={{ fontSize: 13, marginTop: 4, fontWeight: 600 }}>
                                                     {slot.vehicleTypeName || 'N/A'} • {slot.floorName || 'N/A'}
                                                 </Text>
-                                                
+
                                                 <div style={{ marginTop: 16, padding: '8px 16px', width: '100%', backgroundColor: '#fff', borderRadius: 8, border: `1px solid ${token.colorBorderSecondary}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>Lấp đầy</Text>
                                                     <Text strong style={{ fontSize: 14 }}>{slot.currentOccupancy || 0} / {slot.capacity || 1}</Text>
                                                 </div>
-                                                
+
                                                 <div style={{ marginTop: 12, padding: '6px 16px', borderRadius: 20, backgroundColor: statusInfo.hex, color: '#fff', fontWeight: 700, fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase' }}>
                                                     {statusInfo.label}
                                                 </div>
@@ -403,7 +429,7 @@ const ParkingPage = () => {
                                 Slot xe máy không hỗ trợ đặt trước.
                             </div>
                         ) : (
-                            <Button type="primary" size="large" onClick={() => navigate('/driver/reservations')} style={{ marginTop: 16, height: 48, borderRadius: 8, fontSize: 16, fontWeight: 600 }}>
+                            <Button type="primary" size="large" onClick={() => navigate('/driver/reservations', { state: { prefilledSlot: parkingStore.selectedSlot } })} style={{ marginTop: 16, height: 48, borderRadius: 8, fontSize: 16, fontWeight: 600 }}>
                                 Book this Slot
                             </Button>
                         )}
