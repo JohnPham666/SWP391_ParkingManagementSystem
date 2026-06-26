@@ -208,8 +208,14 @@ const VehiclePage = () => {
                                                     <Title level={4} style={{ margin: 0, fontWeight: 800, letterSpacing: '1px' }}>{vehicle.licensePlate}</Title>
                                                     <Text type="secondary">{vehicle.brand || 'Unknown Brand'} • {vehicle.color || 'No Color'}</Text>
                                                 </div>
-                                                <Tag color={vehicle.status === 'ACTIVE' ? 'green' : 'default'} style={{ borderRadius: '10px' }}>
-                                                    {vehicle.status || 'UNKNOWN'}
+                                                <Tag color={
+                                                    vehicle.status === 'APPROVED' ? 'green' : 
+                                                    vehicle.status === 'PENDING' ? 'orange' : 
+                                                    vehicle.status === 'REJECTED' ? 'red' : 'default'
+                                                } style={{ borderRadius: '10px' }}>
+                                                    {vehicle.status === 'PENDING' ? 'Đang chờ xét duyệt' :
+                                                     vehicle.status === 'APPROVED' ? 'Đã duyệt' :
+                                                     vehicle.status === 'REJECTED' ? 'Bị từ chối' : vehicle.status || 'UNKNOWN'}
                                                 </Tag>
                                             </div>
                                             
@@ -330,7 +336,15 @@ const VehiclePage = () => {
                             <Descriptions.Item label="Chassis No.">{viewingVehicle.chassisNumber || 'N/A'}</Descriptions.Item>
                             <Descriptions.Item label="Mfg Year">{viewingVehicle.manufactureYear || 'N/A'}</Descriptions.Item>
                             <Descriptions.Item label="Status">
-                                <Tag color={viewingVehicle.status === 'ACTIVE' ? 'green' : 'default'}>{viewingVehicle.status}</Tag>
+                                                <Tag color={
+                                                    viewingVehicle.status === 'APPROVED' ? 'green' : 
+                                                    viewingVehicle.status === 'PENDING' ? 'orange' : 
+                                                    viewingVehicle.status === 'REJECTED' ? 'red' : 'default'
+                                                }>
+                                                    {viewingVehicle.status === 'PENDING' ? 'Đang chờ xét duyệt' :
+                                                     viewingVehicle.status === 'APPROVED' ? 'Đã duyệt' :
+                                                     viewingVehicle.status === 'REJECTED' ? 'Bị từ chối' : viewingVehicle.status || 'UNKNOWN'}
+                                                </Tag>
                             </Descriptions.Item>
                         </Descriptions>
                     </div>

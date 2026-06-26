@@ -98,7 +98,7 @@ CREATE TABLE Vehicles (
     VehicleImage        VARCHAR(255) NULL,
     OwnerPortrait       VARCHAR(500) NULL,
     RegistrationPhoto   VARCHAR(500) NULL,
-    Status              VARCHAR(20) DEFAULT 'PENDING',
+    Status              VARCHAR(20) DEFAULT 'PENDING' CHECK (Status IN ('PENDING', 'APPROVED', 'REJECTED')),
     IsActive            BOOLEAN DEFAULT TRUE,
     CONSTRAINT FK_Vehicles_VehicleTypes FOREIGN KEY (VehicleTypeID) REFERENCES VehicleTypes(VehicleTypeID),
     CONSTRAINT FK_Vehicles_Users FOREIGN KEY (UserID) REFERENCES Users(UserID)
