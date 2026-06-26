@@ -11,17 +11,19 @@ import { parkingStore } from '../store/parkingStore';
 const { Title, Text } = Typography;
 
 const getReservationId = (reservation) => reservation?.reservationId || reservation?.id;
-const getPaymentStatus = (reservation) => {
-    const reservationStatus = String(reservation?.status || '').toUpperCase();
-    if (reservationStatus === 'CANCELLED') return 'CANCELLED';
-    return String(reservation?.paymentStatus || reservation?.payment?.status || reservation?.payment?.paymentStatus || 'UNPAID').toUpperCase();
-};
 const isReservationExpired = (reservation) => {
     if (String(reservation?.status || '').toUpperCase() !== 'PENDING') return false;
     if (!reservation?.createdAt) return false;
     const createdTime = new Date(reservation.createdAt).getTime();
     const expireTime = createdTime + 15 * 60 * 1000;
     return new Date().getTime() > expireTime;
+};
+
+const getPaymentStatus = (reservation) => {
+    const reservationStatus = String(reservation?.status || '').toUpperCase();
+    if (reservationStatus === 'CANCELLED') return 'CANCELLED';
+    if (reservationStatus === 'EXPIRED' || isReservationExpired(reservation)) return 'UNPAID';
+    return String(reservation?.paymentStatus || reservation?.payment?.status || reservation?.payment?.paymentStatus || 'UNPAID').toUpperCase();
 };
 
 const canPayReservation = (reservation) => {

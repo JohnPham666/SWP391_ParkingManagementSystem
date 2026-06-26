@@ -44,17 +44,17 @@ public class ReservationScheduler {
             return;
         }
 
-        log.info("Auto-cancelling {} stale PENDING reservations (older than 15 minutes)",
+        log.info("Auto-expiring {} stale PENDING reservations (older than 15 minutes)",
                 staleReservations.size());
 
         for (Reservation reservation : staleReservations) {
-            reservation.setStatus("CANCELLED");
-            log.debug("Cancelled stale reservation ID: {}, created at: {}",
+            reservation.setStatus("EXPIRED");
+            log.debug("Expired stale reservation ID: {}, created at: {}",
                     reservation.getReservationId(), reservation.getCreatedAt());
         }
 
         reservationRepository.saveAll(staleReservations);
 
-        log.info("Successfully cancelled {} stale reservations", staleReservations.size());
+        log.info("Successfully expired {} stale reservations", staleReservations.size());
     }
 }
