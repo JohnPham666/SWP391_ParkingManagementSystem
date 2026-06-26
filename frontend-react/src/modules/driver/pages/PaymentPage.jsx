@@ -12,9 +12,43 @@ const PaymentPage = () => {
     const [stats, setStats] = useState({ totalPaid: '0 VND', pending: '0', monthly: '0 VND' });
     const [isPendingModalVisible, setIsPendingModalVisible] = useState(false);
 
+    // Payment State
+    const [payingReservationId, setPayingReservationId] = useState(null);
+    const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        let interval;
+        if (paymentModalVisible && payingReservationId) {
+            interval = setInterval(() => {
+                fetchData();
+            }, 3000);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [paymentModalVisible, payingReservationId]);
+
+    useEffect(() => {
+        if (paymentModalVisible && payingReservationId) {
+            const currentRes = payments.find(r => (r.reservationId || r.id) === payingReservationId);
+            if (currentRes) {
+                const pStatus = String(currentRes.status || '').toUpperCase();
+                if (pStatus === 'PAID' || pStatus === 'COMPLETED') {
+                    setPaymentModalVisible(false);
+                    setPayingReservationId(null);
+                    message.success({ content: 'Payment completed successfully!', key: 'payment_success', duration: 4 });
+                } else if (pStatus === 'FAILED') {
+                    setPaymentModalVisible(false);
+                    setPayingReservationId(null);
+                    message.error({ content: 'Payment failed or was cancelled.', key: 'payment_failed' });
+                }
+            }
+        }
+    }, [payments, paymentModalVisible, payingReservationId]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -86,7 +120,9 @@ const PaymentPage = () => {
             
             if (paymentUrl) {
                 message.success({ content: 'Redirecting to VNPay...', key: 'payment' });
-                window.location.href = paymentUrl;
+                window.open(paymentUrl, '_blank');
+                setPayingReservationId(reservation.reservationId || reservation.id);
+                setPaymentModalVisible(true);
             } else {
                 message.error({ content: 'Failed to get payment URL', key: 'payment' });
             }
@@ -228,6 +264,31 @@ const PaymentPage = () => {
                         scroll={{ y: 400 }}
                     />
                 )}
+            </Modal>
+
+            <Modal
+                title={<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><ClockCircleOutlined style={{ color: token.colorPrimary, fontSize: 24 }} /><Title level={4} style={{ margin: 0 }}>Waiting for Payment</Title></div>}
+                open={paymentModalVisible}
+                closable={false}
+                footer={[
+                    <Button key="cancel" onClick={() => {
+                        setPaymentModalVisible(false);
+                        setPayingReservationId(null);
+                    }}>
+                        Close
+                    </Button>
+                ]}
+                centered
+            >
+                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                    <div className="spinner" style={{ border: `4px solid ${token.colorFillSecondary}`, borderTop: `4px solid ${token.colorPrimary}`, borderRadius: '50%', width: 48, height: 48, margin: '0 auto 24px', animation: 'spin 1s linear infinite' }} />
+                    <Title level={5}>A new tab was opened for VNPay</Title>
+                    <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
+                        Please complete your transaction securely in the newly opened tab.<br />
+                        This window will automatically close and update your payment status once successful.
+                    </Text>
+                    <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                </div>
             </Modal>
         </div>
     );
