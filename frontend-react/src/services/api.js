@@ -144,6 +144,9 @@ export const pricingApi = {
 export const reportApi = {
   getRevenueTrend: (startDate, endDate) => api.get(`/reports/revenue/trend?fromDate=${startDate}&toDate=${endDate}`),
   getOccupancyBreakdown: () => api.get('/reports/occupancy/breakdown'),
+  getRevenueSummary: (startDate, endDate) => api.get(`/reports/revenue-summary?startDate=${startDate}&endDate=${endDate}`),
+  getOccupancyRate: () => api.get('/reports/occupancy-rate'),
+  getPredictions: () => api.get('/reports/predictions'),
 };
 
 export const monitoringApi = {

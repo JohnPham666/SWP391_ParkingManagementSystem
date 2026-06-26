@@ -1,200 +1,208 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Statistic, Typography } from 'antd';
+import { Row, Col, Card, Statistic, Typography, Table, Tag, Space, Button } from 'antd';
 import { 
-  CarOutlined, 
-  DollarOutlined, 
+  BankOutlined, 
+  TeamOutlined, 
   SafetyCertificateOutlined,
-  CheckCircleOutlined
+  AlertOutlined,
+  ArrowRightOutlined,
+  HistoryOutlined,
+  DollarCircleOutlined
 } from '@ant-design/icons';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Navigate } from 'react-router-dom';
-import { monitoringApi } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
+import { buildingApi, userApi, incidentApi } from '../../services/api';
 
 const { Title, Text } = Typography;
 
-const data = [
-  { name: 'Mon', revenue: 4000 },
-  { name: 'Tue', revenue: 3000 },
-  { name: 'Wed', revenue: 2000 },
-  { name: 'Thu', revenue: 2780 },
-  { name: 'Fri', revenue: 1890 },
-  { name: 'Sat', revenue: 2390 },
-  { name: 'Sun', revenue: 3490 },
-];
-
-const Dashboard = () => {
-  const [stats, setStats] = useState({
-    totalRevenue: 1250000,
-    activeSessions: 42,
-    availableSlots: 156,
-  });
+const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState(null);
+  const [stats, setStats] = useState({
+    buildingsCount: 0,
+    usersCount: 0,
+    pendingIncidentsCount: 0,
+    activeSessions: 42, // Mock for Security
+    failedLogins: 3    // Mock for Security
+  });
 
-  const auth = JSON.parse(localStorage.getItem('parking_auth') || '{}');
-  const isStaff = auth.user?.roleName === 'ParkingStaff' || auth.role === 'ParkingStaff' || auth.user?.role === 'ParkingStaff';
+  const mockLogs = [
+    { key: '1', time: '10 mins ago', user: 'admin@parksmart.com', action: 'Login Success', ip: '192.168.1.45', status: 'success' },
+    { key: '2', time: '15 mins ago', user: 'staff1@parksmart.com', action: 'Login Success', ip: '192.168.1.12', status: 'success' },
+    { key: '3', time: '1 hour ago', user: 'unknown', action: 'Login Failed', ip: '113.160.2.14', status: 'failed' },
+    { key: '4', time: '2 hours ago', user: 'manager@parksmart.com', action: 'Login Success', ip: '192.168.1.66', status: 'success' },
+    { key: '5', time: '2 hours ago', user: 'unknown', action: 'Login Failed', ip: '113.160.2.14', status: 'failed' },
+  ];
+
+  const logColumns = [
+    { title: 'Time', dataIndex: 'time', key: 'time', width: 120 },
+    { title: 'User / Target', dataIndex: 'user', key: 'user' },
+    { 
+      title: 'Status', 
+      dataIndex: 'status', 
+      key: 'status',
+      render: (status) => (
+        <Tag color={status === 'success' ? 'green' : 'red'}>
+          {status.toUpperCase()}
+        </Tag>
+      )
+    },
+    { title: 'IP Address', dataIndex: 'ip', key: 'ip' },
+  ];
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchAdminStats = async () => {
       try {
-        const res = await monitoringApi.getDashboard();
-        if (res.data?.success) {
-          setDashboardData(res.data.data);
-        }
+        const [buildingsRes, usersRes, incidentsRes] = await Promise.all([
+          buildingApi.getBuildings().catch(() => ({ data: { data: [] } })),
+          userApi.getUsers().catch(() => ({ data: { data: [] } })),
+          incidentApi.getIncidents().catch(() => ({ data: { data: [] } }))
+        ]);
+
+        const buildings = buildingsRes.data?.data || [];
+        const users = usersRes.data?.data || [];
+        const incidents = incidentsRes.data?.data || [];
+        const pendingIncidents = incidents.filter(i => i.status !== 'RESOLVED');
+
+        setStats(prev => ({
+          ...prev,
+          buildingsCount: buildings.length,
+          usersCount: users.length,
+          pendingIncidentsCount: pendingIncidents.length
+        }));
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        console.error('Failed to fetch admin stats', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchDashboardData();
+    fetchAdminStats();
   }, []);
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}>Loading...</div>;
-  if (!dashboardData) return <div style={{ textAlign: 'center', padding: '50px' }}>Error loading data</div>;
-
-  const sum = dashboardData.summary;
-
   return (
-    <div>
-      <Title level={2} style={{ marginBottom: 24 }}>System Dashboard</Title>
-      
+    <div className="admin-dashboard">
+      <Title level={2} style={{ marginBottom: 24 }}>Command Center</Title>
+
       <Row gutter={[16, 16]}>
-        {!isStaff && (
-          <Col xs={24} sm={12} md={6}>
-            <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-              <Statistic
-                title="Total Revenue (This Week)"
-                value={1250000} // Mock data for Admin
-                prefix={<DollarOutlined />}
-                suffix="₫"
-                valueStyle={{ color: '#3f8600', fontWeight: 600 }}
-              />
-            </Card>
-          </Col>
-        )}
-        <Col xs={24} sm={12} md={isStaff ? 8 : 6}>
-          <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+        {/* CARD 1: BUILDINGS */}
+        <Col xs={24} sm={12} md={8} lg={8}>
+          <Card 
+            hoverable 
+            style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', borderColor: '#e6f4ff' }}
+            onClick={() => navigate('/admin/buildings')}
+          >
             <Statistic
-              title="Total Capacity"
-              value={sum.totalCapacity}
-              prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#1677ff', fontWeight: 600 }}
+              title={<span style={{ fontSize: 16, fontWeight: 500, color: '#1677ff' }}>Buildings Network</span>}
+              value={stats.buildingsCount}
+              prefix={<BankOutlined style={{ color: '#1677ff' }} />}
+              suffix={<ArrowRightOutlined style={{ fontSize: 14, color: '#bfbfbf', marginLeft: 8 }} />}
+              valueStyle={{ fontSize: 32, fontWeight: 'bold' }}
             />
+            <div style={{ marginTop: 12 }}>
+              <Text type="secondary">Manage facilities, floors, and zones</Text>
+            </div>
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={isStaff ? 8 : 6}>
-          <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+
+        {/* CARD 2: USERS */}
+        <Col xs={24} sm={12} md={8} lg={8}>
+          <Card 
+            hoverable 
+            style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', borderColor: '#f6ffed' }}
+            onClick={() => navigate('/admin/users')}
+          >
             <Statistic
-              title="Current Occupancy"
-              value={sum.currentOccupancy}
-              prefix={<CarOutlined />}
-              valueStyle={{ color: '#ea580c', fontWeight: 600 }}
+              title={<span style={{ fontSize: 16, fontWeight: 500, color: '#52c41a' }}>System Users</span>}
+              value={stats.usersCount}
+              prefix={<TeamOutlined style={{ color: '#52c41a' }} />}
+              suffix={<ArrowRightOutlined style={{ fontSize: 14, color: '#bfbfbf', marginLeft: 8 }} />}
+              valueStyle={{ fontSize: 32, fontWeight: 'bold' }}
             />
+            <div style={{ marginTop: 12 }}>
+              <Text type="secondary">Manage access and roles</Text>
+            </div>
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={isStaff ? 8 : 6}>
-          <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+
+        {/* CARD 3: PRICING POLICIES */}
+        <Col xs={24} sm={12} md={8} lg={8}>
+          <Card 
+            hoverable 
+            style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', borderColor: '#e6fffb' }}
+            onClick={() => navigate('/admin/pricing')}
+          >
             <Statistic
-              title="Reserved Slots"
-              value={sum.reservedSlots}
-              prefix={<SafetyCertificateOutlined />}
-              valueStyle={{ color: '#cf1322', fontWeight: 600 }}
+              title={<span style={{ fontSize: 16, fontWeight: 500, color: '#13c2c2' }}>Pricing Policies</span>}
+              value="Configuration"
+              prefix={<DollarCircleOutlined style={{ color: '#13c2c2' }} />}
+              suffix={<ArrowRightOutlined style={{ fontSize: 14, color: '#bfbfbf', marginLeft: 8 }} />}
+              valueStyle={{ fontSize: 24, fontWeight: 'bold' }}
             />
+            <div style={{ marginTop: 12 }}>
+              <Text type="secondary">Manage vehicle rates and fees</Text>
+            </div>
+          </Card>
+        </Col>
+
+        {/* CARD 4: PENDING INCIDENTS */}
+        <Col xs={24} sm={12} md={12} lg={12}>
+          <Card 
+            hoverable 
+            style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', borderColor: '#ffccc7', background: stats.pendingIncidentsCount > 0 ? '#fff1f0' : '#fff' }}
+            onClick={() => navigate('/admin/incidents')}
+          >
+            <Statistic
+              title={<span style={{ fontSize: 16, fontWeight: 500, color: '#f5222d' }}>Pending Incidents</span>}
+              value={stats.pendingIncidentsCount}
+              prefix={<AlertOutlined style={{ color: '#f5222d' }} />}
+              suffix={<ArrowRightOutlined style={{ fontSize: 14, color: '#bfbfbf', marginLeft: 8 }} />}
+              valueStyle={{ fontSize: 32, fontWeight: 'bold', color: stats.pendingIncidentsCount > 0 ? '#cf1322' : 'inherit' }}
+            />
+            <div style={{ marginTop: 12 }}>
+              <Text type="secondary">{stats.pendingIncidentsCount > 0 ? 'Requires immediate attention' : 'All systems normal'}</Text>
+            </div>
+          </Card>
+        </Col>
+
+        {/* CARD 5: SECURITY & HEALTH */}
+        <Col xs={24} sm={24} md={12} lg={12}>
+          <Card 
+            style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', borderColor: '#fffb8f' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+              <SafetyCertificateOutlined style={{ fontSize: 20, color: '#faad14', marginRight: 8 }} />
+              <Text strong style={{ fontSize: 16, color: '#faad14' }}>Security & Health</Text>
+            </div>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Statistic title="Active Sessions" value={stats.activeSessions} valueStyle={{ color: '#389e0d', fontSize: 24 }} />
+              </Col>
+              <Col span={12}>
+                <Statistic title="Failed Logins" value={stats.failedLogins} valueStyle={{ color: '#cf1322', fontSize: 24 }} />
+              </Col>
+            </Row>
           </Card>
         </Col>
       </Row>
 
+      {/* CARD 4: RECENT LOGS */}
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col span={24}>
-          <Card title={`Occupancy Rate: ${sum.occupancyRate.toFixed(1)}%`} bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            <div style={{ width: '100%', height: '24px', backgroundColor: '#e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
-              <div 
-                style={{ 
-                  height: '100%', 
-                  width: `${sum.occupancyRate}%`, 
-                  backgroundColor: sum.occupancyRate > 80 ? '#ef4444' : sum.occupancyRate > 50 ? '#f59e0b' : '#10b981',
-                  transition: 'width 0.5s ease-in-out'
-                }} 
-              />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-              <Text type="secondary">0%</Text>
-              <Text strong>Occupancy: {sum.currentOccupancy} / {sum.totalCapacity}</Text>
-              <Text type="secondary">100%</Text>
-            </div>
+          <Card 
+            title={<Space><HistoryOutlined /> Recent Login Activities</Space>}
+            extra={<Button type="link" onClick={() => navigate('/admin/logs')}>View Full Logs</Button>}
+            style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+          >
+            <Table 
+              dataSource={mockLogs} 
+              columns={logColumns} 
+              pagination={false}
+              size="middle"
+            />
           </Card>
         </Col>
       </Row>
-
-      {!isStaff && (
-        <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-          <Col span={24}>
-            <Card title="Revenue Trend" bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-              <div style={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => `${value.toLocaleString()} ₫`} />
-                    <Line type="monotone" dataKey="revenue" stroke="#ea580c" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
-          </Col>
-        </Row>
-      )}
-
-      {isStaff && dashboardData.buildings?.length > 0 && (
-        <div style={{ marginTop: 24 }}>
-          {dashboardData.buildings.map(b => (
-            <Card key={b.buildingId} title={b.buildingName} style={{ marginBottom: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-              {b.floors.map(f => (
-                <div key={f.floorId} style={{ marginBottom: 20 }}>
-                  <Title level={5} type="secondary">{f.floorName}</Title>
-                  {f.zones.map(z => (
-                    <div key={z.zoneId} style={{ marginBottom: 16, background: '#f8fafc', padding: 16, borderRadius: 8 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                        <Text strong>{z.zoneName} <Text type="secondary" style={{ fontWeight: 'normal' }}>({z.description})</Text></Text>
-                        <Text>Occupancy: {z.summary.currentOccupancy} / {z.summary.totalCapacity}</Text>
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                        {z.slots.map(s => {
-                          const isAvailable = s.status === 'AVAILABLE';
-                          const isOccupied = s.status === 'OCCUPIED';
-                          return (
-                            <div 
-                              key={s.slotId}
-                              title={s.vehicleTypeName}
-                              style={{ 
-                                padding: '8px 12px', 
-                                border: '1px solid #d9d9d9', 
-                                borderRadius: '4px',
-                                backgroundColor: isAvailable ? '#f6ffed' : isOccupied ? '#fff1f0' : '#fffbe6',
-                                borderColor: isAvailable ? '#b7eb8f' : isOccupied ? '#ffa39e' : '#ffe58f',
-                                textAlign: 'center',
-                                minWidth: '60px'
-                              }}
-                            >
-                              <div style={{ fontWeight: 'bold' }}>{s.slotCode}</div>
-                              <div style={{ fontSize: '10px', color: '#8c8c8c' }}>{s.status}</div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </Card>
-          ))}
-        </div>
-      )}
     </div>
   );
 };
 
-export default Dashboard;
-
+export default AdminDashboard;
