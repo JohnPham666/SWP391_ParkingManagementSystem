@@ -70,12 +70,12 @@ const MainLayout = () => {
     
     // Shared Operational
     // Shared Operational
-    { key: `${basePath}/sessions`, icon: <CarOutlined />, label: 'Parking Sessions', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
-    { key: `${basePath}/slots`, icon: <DashboardOutlined />, label: 'Parking Slots', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
-    { key: `${basePath}/vehicles`, icon: <CarOutlined />, label: 'Vehicles', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
-    { key: `${basePath}/reservations`, icon: <CalendarOutlined />, label: 'Reservations', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
-    { key: `${basePath}/payments`, icon: <CreditCardOutlined />, label: 'Payments', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
-    { key: `${basePath}/incidents`, icon: <WarningOutlined />, label: 'Incidents', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/sessions`, icon: <CarOutlined />, label: 'Parking Sessions', roles: ['ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/slots`, icon: <DashboardOutlined />, label: 'Parking Slots', roles: ['ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/vehicles`, icon: <CarOutlined />, label: 'Vehicles', roles: ['ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/reservations`, icon: <CalendarOutlined />, label: 'Reservations', roles: ['ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/payments`, icon: <CreditCardOutlined />, label: 'Payments', roles: ['ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/incidents`, icon: <WarningOutlined />, label: 'Incidents', roles: ['ParkingManager', 'ParkingStaff'] },
     
     // Manager & Admin
     { key: `${basePath}/buildings`, icon: <BankOutlined />, label: 'Parking Config (Buildings)', roles: ['Admin', 'ParkingManager'] },
@@ -84,9 +84,6 @@ const MainLayout = () => {
     // Manager only (Vé tháng)
     { key: `${basePath}/subscriptions`, icon: <ProfileOutlined />, label: 'Subscriptions', roles: ['ParkingManager'] },
     { key: `${basePath}/reports`, icon: <BarChartOutlined />, label: 'Reports', roles: ['ParkingManager'] },
-
-    // Other items not in screenshot but needed for others
-    { key: `${basePath}/slots`, icon: <AppstoreOutlined />, label: 'Parking Slots', roles: ['Admin', 'ParkingStaff'] },
   ];
 
   // Lọc menu theo role hiện tại

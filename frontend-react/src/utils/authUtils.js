@@ -9,9 +9,11 @@ export const getDefaultRouteByRole = (user) => {
   switch (role) {
     case 'ADMIN':
       return '/admin';
-    case 'PARKING_MANAGER':
+    case 'PARKINGMANAGER':
+    case 'PARKING_MANAGER': // Fallback just in case
       return '/manager';
-    case 'PARKING_STAFF':
+    case 'PARKINGSTAFF':
+    case 'PARKING_STAFF': // Fallback just in case
       return '/staff';
     case 'DRIVER':
       return '/driver/dashboard';
