@@ -22,7 +22,19 @@ const Login = () => {
         message.success('Login successful!');
         const resData = response.data.data || response.data;
         localStorage.setItem('parking_auth', JSON.stringify(resData));
-        navigate('/admin');
+        
+        const user = resData.user || resData;
+        const role = user.role || 'Staff';
+
+        if (role === 'Admin') {
+          navigate('/admin');
+        } else if (role === 'ParkingManager') {
+          navigate('/manager');
+        } else if (role === 'ParkingStaff' || role === 'Staff') {
+          navigate('/staff');
+        } else {
+          navigate('/');
+        }
       } else {
         message.error(response.data.message || 'Login failed');
       }

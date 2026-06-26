@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Select, Tag, message, Card, Space, Input, Typography } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { Table, Select, Tag, message, Card, Space, Input, Typography, Modal } from 'antd';
+import { SearchOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { reservationApi } from '../../services/api';
 import dayjs from 'dayjs';
 
@@ -35,13 +35,35 @@ const ManagerReservations = () => {
     }
   };
 
-  const handleStatusChange = async (id, status) => {
+  const updateStatusInDb = async (id, status) => {
     try {
       await reservationApi.updateReservationStatus(id, status);
       message.success('Reservation status updated successfully');
       fetchReservations();
     } catch (error) {
       message.error(error.response?.data?.message || 'Failed to update status');
+    }
+  };
+
+  const handleStatusChange = (id, newStatus, currentStatus) => {
+    if (currentStatus === 'PENDING' && newStatus === 'CONFIRMED') {
+      Modal.confirm({
+        title: 'Manual Reservation Confirmation',
+        icon: <ExclamationCircleOutlined />,
+        content: 'This customer does not have a successful payment transaction in the system. Are you sure you want to confirm this reservation manually?',
+        okText: 'Confirm',
+        cancelText: 'Cancel',
+        onOk: () => updateStatusInDb(id, newStatus)
+      });
+    } else {
+      Modal.confirm({
+        title: 'Confirm Status Change',
+        icon: <ExclamationCircleOutlined />,
+        content: `Are you sure you want to change the status of this reservation to ${newStatus}? This manual override will be recorded in the system.`,
+        okText: 'Confirm',
+        cancelText: 'Cancel',
+        onOk: () => updateStatusInDb(id, newStatus)
+      });
     }
   };
 
@@ -75,7 +97,7 @@ const ManagerReservations = () => {
           <div style={{ backgroundColor: bgColor, borderRadius: 20, padding: '0px 4px', display: 'inline-block' }}>
             <Select 
               value={status} 
-              onChange={(val) => handleStatusChange(record.reservationId, val)}
+              onChange={(val) => handleStatusChange(record.reservationId, val, status)}
               style={{ width: 135, fontWeight: 600 }}
               bordered={false}
               suffixIcon={<span style={{ color, fontSize: 10 }}>▼</span>}

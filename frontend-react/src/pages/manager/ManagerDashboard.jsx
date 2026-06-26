@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Statistic, Typography, Table, Select, Button, Space, Tag } from 'antd';
+import { Row, Col, Card, Statistic, Typography, Table, Select, Button, Space, Tag, Modal, Descriptions } from 'antd';
 import { 
   CarOutlined, 
   DollarOutlined, 
   SafetyCertificateOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
+  AlertOutlined
 } from '@ant-design/icons';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Navigate } from 'react-router-dom';
-import { monitoringApi } from '../../services/api';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { monitoringApi, incidentApi } from '../../services/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -31,6 +32,10 @@ const ManagerDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
+  const [unresolvedIncidentsCount, setUnresolvedIncidentsCount] = useState(0);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const navigate = useNavigate();
 
   // Filters for Table 2
   const [statusFilter, setStatusFilter] = useState('');
@@ -42,9 +47,19 @@ const ManagerDashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const res = await monitoringApi.getDashboard();
+        const [res, incidentRes] = await Promise.all([
+          monitoringApi.getDashboard(),
+          incidentApi.getIncidents()
+        ]);
+        
         if (res.data?.success) {
           setDashboardData(res.data.data);
+        }
+        
+        let incidentsList = incidentRes.data?.success ? incidentRes.data.data : incidentRes.data;
+        if (Array.isArray(incidentsList)) {
+          const unresolved = incidentsList.filter(i => ['REPORTED', 'OPEN', 'IN_PROGRESS'].includes(i.status));
+          setUnresolvedIncidentsCount(unresolved.length);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -140,7 +155,14 @@ const ManagerDashboard = () => {
               slotCode: s.slotCode,
               location: `${b.buildingName} - ${f.floorName} - ${z.zoneName}`,
               vehicleType: vType,
-              status: s.status
+              status: s.status,
+              fullData: {
+                ...s,
+                buildingName: b.buildingName,
+                floorName: f.floorName,
+                zoneName: z.zoneName,
+                vehicleTypeName: vType
+              }
             });
           });
         });
@@ -195,10 +217,15 @@ const ManagerDashboard = () => {
       title: 'ACTION',
       key: 'actions',
       render: (_, record) => {
-        if (record.status === 'AVAILABLE') {
-          return <Button size="small">Lock</Button>;
-        }
-        return null;
+        return (
+          <Space>
+            <Button size="small" type="primary" onClick={() => {
+              setSelectedSlot(record.fullData);
+              setIsModalVisible(true);
+            }}>View</Button>
+            {record.status === 'AVAILABLE' && <Button size="small">Lock</Button>}
+          </Space>
+        );
       }
     },
   ];
@@ -209,8 +236,13 @@ const ManagerDashboard = () => {
       
       <Row gutter={[16, 16]}>
         {!isStaff && (
-          <Col xs={24} sm={12} md={6}>
-            <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <Col xs={24} sm={12} md={12}>
+            <Card 
+              bordered={false} 
+              hoverable
+              onClick={() => navigate('/manager/reports')}
+              style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer', borderLeft: '4px solid #3f8600' }}
+            >
               <Statistic
                 title="Total Revenue (This Week)"
                 value={1250000}
@@ -221,32 +253,17 @@ const ManagerDashboard = () => {
             </Card>
           </Col>
         )}
-        <Col xs={24} sm={12} md={isStaff ? 8 : 6}>
-          <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+        <Col xs={24} sm={12} md={isStaff ? 24 : 12}>
+          <Card 
+            bordered={false} 
+            hoverable
+            onClick={() => navigate('/manager/incidents')}
+            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer', borderLeft: '4px solid #cf1322' }}
+          >
             <Statistic
-              title="Total Capacity"
-              value={sum.totalCapacity}
-              prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#1677ff', fontWeight: 600 }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={isStaff ? 8 : 6}>
-          <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            <Statistic
-              title="Current Occupancy"
-              value={sum.currentOccupancy}
-              prefix={<CarOutlined />}
-              valueStyle={{ color: '#ea580c', fontWeight: 600 }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={isStaff ? 8 : 6}>
-          <Card bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            <Statistic
-              title="Reserved Slots"
-              value={sum.reservedSlots}
-              prefix={<SafetyCertificateOutlined />}
+              title="Incident Reports (Unresolved)"
+              value={unresolvedIncidentsCount}
+              prefix={<AlertOutlined />}
               valueStyle={{ color: '#cf1322', fontWeight: 600 }}
             />
           </Card>
@@ -322,6 +339,36 @@ const ManagerDashboard = () => {
           </Card>
         </Col>
       </Row>
+
+      <Modal
+        title={`Slot Details: ${selectedSlot?.slotCode}`}
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsModalVisible(false)}>
+            Close
+          </Button>
+        ]}
+      >
+        {selectedSlot && (
+          <Descriptions bordered column={1} size="small">
+            <Descriptions.Item label="Slot ID">{selectedSlot.slotId}</Descriptions.Item>
+            <Descriptions.Item label="Slot Code">{selectedSlot.slotCode}</Descriptions.Item>
+            <Descriptions.Item label="Building">{selectedSlot.buildingName}</Descriptions.Item>
+            <Descriptions.Item label="Floor">{selectedSlot.floorName}</Descriptions.Item>
+            <Descriptions.Item label="Zone">{selectedSlot.zoneName}</Descriptions.Item>
+            <Descriptions.Item label="Vehicle Type">{selectedSlot.vehicleTypeName}</Descriptions.Item>
+            <Descriptions.Item label="Status">
+              <Tag color={selectedSlot.status === 'AVAILABLE' ? 'green' : selectedSlot.status === 'OCCUPIED' ? 'red' : selectedSlot.status === 'RESERVED' ? 'blue' : 'orange'}>
+                {selectedSlot.status}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="Capacity">{selectedSlot.capacity || 1}</Descriptions.Item>
+            <Descriptions.Item label="Current Occupancy">{selectedSlot.currentOccupancy || 0}</Descriptions.Item>
+            <Descriptions.Item label="Is Active">{selectedSlot.isActive !== false ? 'Yes' : 'No'}</Descriptions.Item>
+          </Descriptions>
+        )}
+      </Modal>
 
     </div>
   );

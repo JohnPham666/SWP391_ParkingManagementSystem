@@ -53,8 +53,10 @@ const MainLayout = () => {
   };
 
   const userMenuItems = [
-    { key: 'profile', icon: <UserOutlined />, label: 'My Profile' },
-    { type: 'divider' },
+    ...(userRole !== 'ParkingManager' ? [
+      { key: 'profile', icon: <UserOutlined />, label: 'My Profile' },
+      { type: 'divider' }
+    ] : []),
     { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', danger: true, onClick: handleLogout }
   ];
 
@@ -82,7 +84,6 @@ const MainLayout = () => {
     
     // Manager only
     { key: `${basePath}/buildings`, icon: <BankOutlined />, label: 'Parking Config', roles: ['ParkingManager'] },
-    { key: `${basePath}/pricing`, icon: <DollarOutlined />, label: 'Pricing Policies', roles: ['ParkingManager'] },
     { key: `${basePath}/reports`, icon: <BarChartOutlined />, label: 'Reports', roles: ['ParkingManager'] },
 
     // Other items not in screenshot but needed for others
@@ -148,9 +149,11 @@ const MainLayout = () => {
             <div onClick={toggleTheme} style={{ cursor: 'pointer', fontSize: 20, color: '#fff', display: 'flex', alignItems: 'center' }}>
               {isDarkMode ? <BulbFilled style={{ color: '#faad14' }} /> : <BulbOutlined />}
             </div>
-            <Badge count={5} size="small">
-              <BellOutlined style={{ fontSize: 20, cursor: 'pointer', color: '#fff' }} />
-            </Badge>
+            {userRole !== 'ParkingManager' && (
+              <Badge count={5} size="small">
+                <BellOutlined style={{ fontSize: 20, cursor: 'pointer', color: '#fff' }} />
+              </Badge>
+            )}
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
               <Space style={{ cursor: 'pointer', alignItems: 'center' }}>
                 <Avatar style={{ backgroundColor: '#fff', color: '#ea580c' }} icon={<UserOutlined />} />

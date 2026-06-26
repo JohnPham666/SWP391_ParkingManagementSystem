@@ -186,7 +186,7 @@ const ManagerVehicles = () => {
             <Button key="close" onClick={() => setIsModalVisible(false)} style={{ borderRadius: 6, minWidth: 80 }}>Close</Button>
           ]
         }
-        width={600}
+        width={800}
       >
         {editingVehicle && (
           <div>
@@ -229,15 +229,50 @@ const ManagerVehicles = () => {
               </Col>
             </Row>
 
-            <Divider style={{ margin: '16px 0', borderBlockColor: 'transparent' }} />
-            <Typography.Text type="secondary">Registration Document (Image):</Typography.Text>
-            <div style={{ marginTop: 16, textAlign: 'center' }}>
-              {editingVehicle.registrationPhoto || editingVehicle.vehicleImage ? (
-                <img src={editingVehicle.registrationPhoto || editingVehicle.vehicleImage} alt="Registration" style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px' }} />
-              ) : (
-                <Typography.Text type="secondary" style={{ fontSize: 16 }}>No image available</Typography.Text>
-              )}
-            </div>
+            <Divider style={{ margin: '16px 0', borderBlockColor: '#e8e8e8' }} />
+            <Typography.Title level={5} style={{ marginBottom: 16 }}>Image Documents</Typography.Title>
+            
+            <Row gutter={[16, 16]}>
+              <Col span={8}>
+                <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Owner Portrait</Typography.Text>
+                <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
+                  {editingVehicle.ownerPortrait ? <img src={editingVehicle.ownerPortrait} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                </div>
+              </Col>
+              <Col span={8}>
+                <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>ID Card (Front)</Typography.Text>
+                <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
+                  {editingVehicle.idCardFront ? <img src={editingVehicle.idCardFront} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                </div>
+              </Col>
+              <Col span={8}>
+                <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>ID Card (Back)</Typography.Text>
+                <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
+                  {editingVehicle.idCardBack ? <img src={editingVehicle.idCardBack} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                </div>
+              </Col>
+            </Row>
+
+            <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+              <Col span={8}>
+                <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Vehicle Image</Typography.Text>
+                <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
+                  {editingVehicle.vehicleImage ? <img src={editingVehicle.vehicleImage} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                </div>
+              </Col>
+              <Col span={8}>
+                <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Registration (Front)</Typography.Text>
+                <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
+                  {editingVehicle.registrationPhotoFront || editingVehicle.registrationPhoto ? <img src={editingVehicle.registrationPhotoFront || editingVehicle.registrationPhoto} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                </div>
+              </Col>
+              <Col span={8}>
+                <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Registration (Back)</Typography.Text>
+                <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
+                  {editingVehicle.registrationPhotoBack ? <img src={editingVehicle.registrationPhotoBack} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                </div>
+              </Col>
+            </Row>
           </div>
         )}
       </Modal>

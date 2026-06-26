@@ -54,6 +54,13 @@ public class ReportController {
                 reportService.getOccupancyBreakdown());
     }
 
+    @Operation(summary = "Get floor occupancy breakdown", description = "Get occupancy grouped by floors")
+    @GetMapping("/occupancy/floor-breakdown")
+    public ApiResponse<java.util.List<com.parking.management.module.report.dto.ZoneOccupancyDto>> getFloorOccupancyBreakdown() {
+        return ApiResponse.success("Fetched floor occupancy breakdown successfully",
+                reportService.getFloorOccupancyBreakdown());
+    }
+
     @Operation(summary = "Generate parking prediction", description = "Generate parking prediction using machine learning or heuristics")
     @GetMapping("/predictions/parking")
     public ApiResponse<?> generateParkingPrediction() {

@@ -59,8 +59,20 @@ public class Vehicle {
     @Column(name = "vehicleimage", length = 255)
     private String vehicleImage;
 
-    @Column(name = "registrationphoto", length = 500)
-    private String registrationPhoto;
+    @Column(name = "ownerportrait", length = 500)
+    private String ownerPortrait;
+
+    @Column(name = "registrationphotofront", length = 500)
+    private String registrationPhotoFront;
+
+    @Column(name = "registrationphotoback", length = 500)
+    private String registrationPhotoBack;
+
+    @Column(name = "idcardfront", length = 500)
+    private String idCardFront;
+
+    @Column(name = "idcardback", length = 500)
+    private String idCardBack;
 
     @Column(name = "isactive")
     private Boolean isActive = true;

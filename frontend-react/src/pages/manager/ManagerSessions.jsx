@@ -255,7 +255,8 @@ const SessionManagement = () => {
               gate: record.entryGate,
               exitGate: record.exitGate,
               slot: record.slotCode,
-              image: record.entryImage || null
+              entryImage: record.entryImage || null,
+              exitImage: record.exitImage || null
             });
             setIsSummaryVisible(true);
           }}
@@ -488,14 +489,32 @@ const SessionManagement = () => {
             </Row>
 
             <Divider style={{ margin: '16px 0', borderBlockColor: 'transparent' }} />
-            <Text type="secondary">Entry Image</Text>
-            <div style={{ marginTop: 8 }}>
-              {summaryData.image ? (
-                <img src={summaryData.image} alt="Entry" style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px' }} />
-              ) : (
-                <Text type="secondary" italic style={{ fontSize: 16 }}>No image available</Text>
-              )}
-            </div>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: '8px', fontWeight: 600 }}>Entry Image</Text>
+                <div style={{ textAlign: 'center' }}>
+                  {summaryData.entryImage ? (
+                    <img src={summaryData.entryImage} alt="Entry" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
+                  ) : (
+                    <div style={{ height: '200px', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                      <Text type="secondary" italic>No image available</Text>
+                    </div>
+                  )}
+                </div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: '8px', fontWeight: 600 }}>Exit Image</Text>
+                <div style={{ textAlign: 'center' }}>
+                  {summaryData.exitImage ? (
+                    <img src={summaryData.exitImage} alt="Exit" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
+                  ) : (
+                    <div style={{ height: '200px', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                      <Text type="secondary" italic>No image available</Text>
+                    </div>
+                  )}
+                </div>
+              </Col>
+            </Row>
           </div>
         )}
       </Modal>

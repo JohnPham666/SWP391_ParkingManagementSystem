@@ -164,6 +164,8 @@ const ManagerBuildings = () => {
     { title: 'Building Name', dataIndex: 'buildingName', key: 'name', render: text => <strong>{text}</strong> },
     { title: 'Total Floors', dataIndex: 'totalFloors', key: 'totalFloors' },
     { title: 'Location', dataIndex: 'address', key: 'address' },
+    { title: 'Open Time', dataIndex: 'operatingStartTime', key: 'operatingStartTime' },
+    { title: 'Close Time', dataIndex: 'operatingEndTime', key: 'operatingEndTime' },
     {
       title: 'Action',
       key: 'action',
@@ -180,9 +182,9 @@ const ManagerBuildings = () => {
 
   const floorColumns = [
     { title: 'ID', dataIndex: 'floorId', key: 'id', width: 80 },
+    { title: 'Building', dataIndex: 'buildingName', key: 'buildingName' },
     { title: 'Floor Name', dataIndex: 'floorName', key: 'name', render: text => <strong>{text}</strong> },
-    { title: 'Level', dataIndex: 'level', key: 'level' },
-    { title: 'Max Capacity', dataIndex: 'capacity', key: 'capacity' },
+    { title: 'Level (Floor No.)', dataIndex: 'floorNumber', key: 'floorNumber' },
     {
       title: 'Action',
       key: 'action',
@@ -199,10 +201,10 @@ const ManagerBuildings = () => {
 
   const zoneColumns = [
     { title: 'ID', dataIndex: 'zoneId', key: 'id', width: 80 },
+    { title: 'Building', dataIndex: 'buildingName', key: 'buildingName' },
+    { title: 'Floor Name', dataIndex: 'floorName', key: 'floorName' },
     { title: 'Zone Name', dataIndex: 'zoneName', key: 'name', render: text => <strong>{text}</strong> },
-    { title: 'Vehicle Type', dataIndex: 'vehicleType', key: 'vehicleType' },
-    { title: 'Capacity', dataIndex: 'capacity', key: 'capacity' },
-    { title: 'Available Slots', dataIndex: 'availableSlots', key: 'availableSlots' },
+    { title: 'Description', dataIndex: 'description', key: 'description' },
     {
       title: 'Action',
       key: 'action',
@@ -243,6 +245,14 @@ const ManagerBuildings = () => {
           <Form.Item name="address" label="Address">
             <Input />
           </Form.Item>
+          <div style={{ display: 'flex', gap: '16px' }}>
+            <Form.Item name="operatingStartTime" label="Open Time (HH:mm:ss)" style={{ flex: 1 }}>
+              <Input placeholder="06:00:00" />
+            </Form.Item>
+            <Form.Item name="operatingEndTime" label="Close Time (HH:mm:ss)" style={{ flex: 1 }}>
+              <Input placeholder="22:00:00" />
+            </Form.Item>
+          </div>
         </>
       );
     } else if (currentView === 'FLOORS') {
@@ -251,11 +261,8 @@ const ManagerBuildings = () => {
           <Form.Item name="floorName" label="Floor Name" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="level" label="Level" rules={[{ required: true }]}>
+          <Form.Item name="floorNumber" label="Level (Floor Number)" rules={[{ required: true }]}>
             <InputNumber style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="capacity" label="Capacity">
-            <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
         </>
       );
@@ -265,15 +272,8 @@ const ManagerBuildings = () => {
           <Form.Item name="zoneName" label="Zone Name" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="vehicleType" label="Vehicle Type" rules={[{ required: true }]}>
-            <Select>
-              <Option value="CAR">Car</Option>
-              <Option value="MOTORBIKE">Motorbike</Option>
-              <Option value="BICYCLE">Bicycle</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item name="capacity" label="Capacity" rules={[{ required: true }]}>
-            <InputNumber min={1} style={{ width: '100%' }} />
+          <Form.Item name="description" label="Description">
+            <Input.TextArea rows={3} />
           </Form.Item>
         </>
       );
