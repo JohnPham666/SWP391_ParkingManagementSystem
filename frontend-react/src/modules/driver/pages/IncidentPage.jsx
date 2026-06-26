@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Typography, Button, Table, Tag, Modal, Form, Input, Upload, message, Empty , theme, Skeleton } from 'antd';
+import { Card, Row, Col, Typography, Button, Table, Tag, Modal, Form, Input, Upload, message, Empty , theme, Skeleton, Select } from 'antd';
 import { AlertOutlined, UploadOutlined, CheckCircleOutlined, SyncOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 
@@ -61,6 +61,22 @@ const IncidentPage = () => {
         }
     };
 
+    const incidentTypes = [
+        { value: 'LOST_TICKET', label: 'Lost Ticket' },
+        { value: 'WRONG_LICENSE_PLATE', label: 'Wrong License Plate' },
+        { value: 'OVERTIME', label: 'Overtime' },
+        { value: 'WRONG_ZONE', label: 'Wrong Parking Zone' },
+        { value: 'UNPAID', label: 'Payment Issue' },
+        { value: 'SLOT_OCCUPIED', label: 'Slot Already Occupied' },
+        { value: 'FACILITY_DAMAGE', label: 'Facility or Vehicle Damage' },
+        { value: 'OTHER', label: 'Other Issue' }
+    ];
+
+    const getIncidentLabel = (value) => {
+        const type = incidentTypes.find(t => t.value === value);
+        return type ? type.label : value;
+    };
+
     const columns = [
         {
             title: 'Incident ID',
@@ -74,9 +90,10 @@ const IncidentPage = () => {
             key: 'date'
         },
         {
-            title: 'Title',
+            title: 'Incident Type',
             dataIndex: 'title',
-            key: 'title'
+            key: 'title',
+            render: (text) => getIncidentLabel(text)
         },
         {
             title: 'Status',
@@ -204,8 +221,12 @@ const IncidentPage = () => {
                 destroyOnClose
             >
                 <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
-                    <Form.Item name="title" label="Incident Title" rules={[{ required: true }]}>
-                        <Input placeholder="e.g., Scratch on left door" size="large" />
+                    <Form.Item name="title" label="Incident Type" rules={[{ required: true, message: 'Please select an incident type' }]}>
+                        <Select size="large" placeholder="Select the type of issue">
+                            {incidentTypes.map(t => (
+                                <Select.Option key={t.value} value={t.value}>{t.label}</Select.Option>
+                            ))}
+                        </Select>
                     </Form.Item>
                     <Form.Item name="description" label="Detailed Description" rules={[{ required: true }]}>
                         <TextArea rows={4} placeholder="Please describe exactly what happened and when..." />
