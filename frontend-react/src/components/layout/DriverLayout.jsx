@@ -53,12 +53,33 @@ const DriverLayout = () => {
         />
 
         <Space size="middle">
-          <Button type="text" style={{ fontWeight: 600 }} onClick={() => navigate('/login')}>
-            Sign In
-          </Button>
-          <Button type="primary" style={{ backgroundColor: '#ea580c', fontWeight: 600, borderRadius: 6 }} onClick={() => navigate('/register')}>
-            Sign Up
-          </Button>
+          {localStorage.getItem('parking_auth') ? (
+            <>
+              <Button type="text" style={{ fontWeight: 600 }} onClick={() => navigate('/dashboard')}>
+                Dashboard
+              </Button>
+              <Button 
+                type="primary" 
+                danger
+                style={{ fontWeight: 600, borderRadius: 6 }} 
+                onClick={() => {
+                  localStorage.removeItem('parking_auth');
+                  navigate('/login');
+                }}
+              >
+                Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button type="text" style={{ fontWeight: 600 }} onClick={() => navigate('/login')}>
+                Sign In
+              </Button>
+              <Button type="primary" style={{ backgroundColor: '#ea580c', fontWeight: 600, borderRadius: 6 }} onClick={() => navigate('/register')}>
+                Sign Up
+              </Button>
+            </>
+          )}
         </Space>
       </Header>
 

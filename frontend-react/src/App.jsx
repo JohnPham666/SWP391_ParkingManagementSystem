@@ -12,6 +12,7 @@ import DriverLayout from './components/layout/DriverLayout';
 
 // Pages
 import LandingPage from './pages/driver/LandingPage';
+import DriverDashboard from './pages/driver/DriverDashboard';
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSessions from './pages/admin/AdminSessions';
@@ -42,12 +43,32 @@ import ReservationManagement from './pages/admin/ReservationManagement';
 import PaymentManagement from './pages/admin/PaymentManagement';
 import SlotManagement from './pages/admin/SlotManagement';
 
-// Component kiểm tra đăng nhập cho Admin/Staff
-const PrivateRoute = ({ children }) => {
+// Component kiểm tra đăng nhập cho Admin/Staff/Manager
+const PrivateRoute = ({ children, allowedRoles }) => {
   const auth = localStorage.getItem('parking_auth');
   if (!auth) {
     return <Navigate to="/login" replace />;
   }
+
+  if (allowedRoles) {
+    try {
+      const user = JSON.parse(auth);
+      const role = user.role || user.roleName;
+      
+      if (!allowedRoles.includes(role)) {
+        // Chuyển hướng người dùng về đúng trang của họ
+        if (role === 'Driver') return <Navigate to="/" replace />;
+        if (role === 'ParkingStaff') return <Navigate to="/staff" replace />;
+        if (role === 'ParkingManager') return <Navigate to="/manager" replace />;
+        if (role === 'Admin') return <Navigate to="/admin" replace />;
+        return <Navigate to="/login" replace />;
+      }
+    } catch (e) {
+      localStorage.removeItem('parking_auth');
+      return <Navigate to="/login" replace />;
+    }
+  }
+
   return children;
 };
 
@@ -61,6 +82,7 @@ function App() {
           {/* Nhánh 1: Khách hàng (Driver) */}
           <Route path="/" element={<DriverLayout />}>
             <Route index element={<LandingPage />} />
+            <Route path="dashboard" element={<DriverDashboard />} />
             {/* Các trang dành cho driver (đặt chỗ, lịch sử) sẽ thêm sau */}
           </Route>
 
@@ -69,7 +91,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           
           {/* Nhánh 3: Quản trị (Admin) */}
-          <Route path="/admin" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
+          <Route path="/admin" element={<PrivateRoute allowedRoles={['Admin']}><MainLayout /></PrivateRoute>}>
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="settings" element={<SystemSettings />} />
@@ -85,7 +107,7 @@ function App() {
           </Route>
 
           {/* Nhánh 4: Quản trị (Manager) */}
-          <Route path="/manager" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
+          <Route path="/manager" element={<PrivateRoute allowedRoles={['ParkingManager', 'Admin']}><MainLayout /></PrivateRoute>}>
             <Route index element={<ManagerDashboard />} />
             <Route path="sessions" element={<ManagerSessions />} />
             <Route path="slots" element={<SlotManagement />} />
@@ -100,7 +122,7 @@ function App() {
           </Route>
 
           {/* Nhánh 5: Quản trị (Staff) */}
-          <Route path="/staff" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
+          <Route path="/staff" element={<PrivateRoute allowedRoles={['ParkingStaff', 'Admin']}><MainLayout /></PrivateRoute>}>
             <Route index element={<StaffDashboard />} />
             <Route path="slots" element={<StaffSlots />} />
             <Route path="reservations" element={<StaffReservations />} />

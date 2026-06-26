@@ -9,6 +9,20 @@ const App = {
         this.setupEventListeners();
         const auth = Api.init();
         if (auth) {
+            const role = auth.role || auth.roleName;
+            if (role === 'Driver') {
+                window.location.href = '/driver/index.html';
+                return;
+            } else if (role === 'ParkingStaff') {
+                window.location.href = '/staff/index.html';
+                return;
+            } else if (role === 'ParkingManager') {
+                window.location.href = '/manager/index.html';
+                return;
+            } else if (role === 'Admin') {
+                window.location.href = '/admin/index.html';
+                return;
+            }
             this.state.user = auth;
             this.showApp();
         } else {
@@ -37,6 +51,21 @@ const App = {
             btn.disabled = false;
 
             if (res.success && res.data) {
+                const role = res.data.role || res.data.roleName;
+                if (role === 'Driver') {
+                    window.location.href = '/driver/index.html';
+                    return;
+                } else if (role === 'ParkingStaff') {
+                    window.location.href = '/staff/index.html';
+                    return;
+                } else if (role === 'ParkingManager') {
+                    window.location.href = '/manager/index.html';
+                    return;
+                } else if (role === 'Admin') {
+                    window.location.href = '/admin/index.html';
+                    return;
+                }
+                
                 Api.saveAuth(res.data);
                 this.state.user = res.data;
                 this.showApp();
