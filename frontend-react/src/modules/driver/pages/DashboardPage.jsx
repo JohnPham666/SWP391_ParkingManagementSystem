@@ -47,13 +47,16 @@ const DashboardPage = () => {
             const reservations = Array.isArray(reservationsRes?.data || reservationsRes) ? (reservationsRes?.data || reservationsRes) : [];
             const slots = Array.isArray(slotsRes?.data || slotsRes) ? (slotsRes?.data || slotsRes) : [];
 
-            const activeReservations = reservations.filter(r => r.status === 'CONFIRMED' || r.status === 'PENDING');
-            const availableSlots = slots.filter(s => s.status === 'AVAILABLE');
+            const activeReservations = reservations.filter(r => {
+                const s = String(r.status).toUpperCase();
+                return s === 'CONFIRMED' || s === 'PENDING';
+            });
+            const availableSlots = slots.filter(s => String(s.status).toUpperCase() === 'AVAILABLE');
             
-            const occupiedSlots = slots.filter(s => s.status === 'OCCUPIED');
-            const reservedSlots = slots.filter(s => s.status === 'RESERVED');
+            const occupiedSlots = slots.filter(s => String(s.status).toUpperCase() === 'OCCUPIED');
+            const reservedSlots = slots.filter(s => String(s.status).toUpperCase() === 'RESERVED');
             const totalSlots = slots.length;
-            const occupancyRate = totalSlots > 0 ? Math.round(((occupiedSlots.length + reservedSlots.length) / totalSlots) * 100) : 0;
+            const occupancyRate = totalSlots > 0 ? Math.round((occupiedSlots.length / totalSlots) * 100) : 0;
 
             let motorbikeCount = 0;
             let carCount = 0;
@@ -70,9 +73,9 @@ const DashboardPage = () => {
             });
 
             const todayStr = new Date().toDateString();
-            const todaysReservations = reservations.filter(r => new Date(r.startTime).toDateString() === todayStr);
-            const todaysCheckins = reservations.filter(r => r.checkInTime && new Date(r.checkInTime).toDateString() === todayStr);
-            const todaysCheckouts = reservations.filter(r => r.checkOutTime && new Date(r.checkOutTime).toDateString() === todayStr);
+            const todaysReservations = reservations.filter(r => r.reservationStart && new Date(r.reservationStart).toDateString() === todayStr);
+            const todaysCheckins = 'N/A';
+            const todaysCheckouts = 'N/A';
 
             setStats({
                 vehicles: vehicles.length,
