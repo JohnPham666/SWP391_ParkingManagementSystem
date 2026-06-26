@@ -3,6 +3,7 @@ import { Card, Row, Col, Button, Modal, Form, Input, Select, Popconfirm, Tag, Sp
 import { CarOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 import { vehicleStore } from '../store/vehicleStore';
+import VehicleImageGrid from '../components/VehicleImageGrid';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -66,6 +67,14 @@ const VehiclePage = () => {
             engineNumber: record.engineNumber,
             chassisNumber: record.chassisNumber,
             manufactureYear: record.manufactureYear,
+            images: {
+                idcardfront: record.idCardFront,
+                idcardback: record.idCardBack,
+                ownerportrait: record.ownerPortrait,
+                vehicle: record.vehicleImage,
+                registrationfront: record.registrationPhotoFront,
+                registrationback: record.registrationPhotoBack
+            }
         });
         setIsModalVisible(true);
     };
@@ -87,19 +96,44 @@ const VehiclePage = () => {
 
     const handleModalOk = async () => {
         try {
-            const values = await form.validateFields();
+            const { images, ...values } = await form.validateFields();
             const payload = { ...values, vehicleColor: values.color };
+            let vehicleId;
+            
             if (editingVehicle) {
-                await driverService.updateVehicle(editingVehicle.vehicleId || editingVehicle.id, payload);
+                vehicleId = editingVehicle.vehicleId || editingVehicle.id;
+                await driverService.updateVehicle(vehicleId, payload);
                 message.success('Vehicle updated successfully');
             } else {
-                await driverService.registerVehicle(payload);
+                const res = await driverService.registerVehicle(payload);
+                vehicleId = res.data?.vehicleId || res.data?.id || res.vehicleId || res.id || res.data?.content?.vehicleId;
                 message.success('Vehicle registered successfully');
             }
+
+            // Upload new images sequentially to avoid backend DB concurrent overwrite issues
+            if (images && vehicleId) {
+                let uploadedCount = 0;
+                for (const [key, file] of Object.entries(images)) {
+                    if (file instanceof File || file instanceof Blob) {
+                        try {
+                            await driverService.uploadVehicleImage(vehicleId, file, key);
+                            uploadedCount++;
+                        } catch (e) {
+                            console.error(`Failed to upload ${key}`, e);
+                            message.error(`Failed to upload ${key}`);
+                        }
+                    }
+                }
+                if (uploadedCount > 0) {
+                    message.success('Images uploaded/updated successfully');
+                }
+            }
+
             setIsModalVisible(false);
             fetchData();
         } catch (error) {
             if (error.errorFields) return;
+            console.error(error);
             message.error('Operation failed');
         }
     };
@@ -291,28 +325,22 @@ const VehiclePage = () => {
                         </Col>
                     </Row>
                     
-                    <div style={{ marginTop: 16, background: '#f8fafc', padding: '16px', borderRadius: '8px' }}>
-                        <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 8, color: '#334155' }}>Attached Images (Max 20 images)</Text>
-                        <ul style={{ color: '#64748b', fontSize: 14, marginBottom: 16, listStyleType: 'none', paddingLeft: 0 }}>
-                            <li style={{ marginBottom: 4 }}>- Portrait photo of the registrant</li>
-                            <li style={{ marginBottom: 4 }}>- Front side of ID Card / Citizen ID / Passport / Birth Certificate (CMND/CCCD/Hộ chiếu/Giấy khai sinh)</li>
-                            <li style={{ marginBottom: 4 }}>- Back side of ID Card / Citizen ID (CMND/CCCD)</li>
-                            <li style={{ marginBottom: 4 }}>- Photo of vehicle registration certificate (Giấy đăng ký xe) for car/motorbike</li>
-                            <li style={{ marginBottom: 4 }}>- Photo of the resident with bicycle/e-bike (if registering a bicycle/e-bike)</li>
-                            <li style={{ marginBottom: 4 }}>- For cars: Proof of residence (Xác nhận cư trú) submitted within 30 days of registration (except for owner, spouse, children, siblings, parents, and shop houses)</li>
-                            <li style={{ marginBottom: 4 }}>- For motorbikes/bicycles: Exceeding limit registration requires proof of residence (Xác nhận cư trú)</li>
-                        </ul>
-                        <Upload
-                            listType="picture-card"
-                            multiple
-                            maxCount={20}
-                            customRequest={({ file, onSuccess }) => setTimeout(() => onSuccess("ok"), 500)}
+                    <div style={{ marginTop: 16 }}>
+                        <Title level={5} style={{ marginBottom: 16 }}>Required Documents</Title>
+                        <Form.Item 
+                            name="images" 
+                            rules={[{
+                                validator: async (_, value) => {
+                                    const requiredKeys = ['idcardfront', 'idcardback', 'ownerportrait', 'vehicle', 'registrationfront', 'registrationback'];
+                                    const missing = requiredKeys.filter(k => !value || !value[k]);
+                                    if (missing.length > 0) {
+                                        throw new Error('Please upload all 6 required images');
+                                    }
+                                }
+                            }]}
                         >
-                            <div>
-                                <PlusOutlined />
-                                <div style={{ marginTop: 8 }}>Upload</div>
-                            </div>
-                        </Upload>
+                            <VehicleImageGrid mode="edit" />
+                        </Form.Item>
                     </div>
                 </Form>
             </Modal>
@@ -347,6 +375,19 @@ const VehiclePage = () => {
                                                 </Tag>
                             </Descriptions.Item>
                         </Descriptions>
+                        <Divider />
+                        <Title level={5} style={{ marginBottom: 16 }}>Attached Documents</Title>
+                        <VehicleImageGrid 
+                            mode="view" 
+                            value={{
+                                idcardfront: viewingVehicle.idCardFront,
+                                idcardback: viewingVehicle.idCardBack,
+                                ownerportrait: viewingVehicle.ownerPortrait,
+                                vehicle: viewingVehicle.vehicleImage,
+                                registrationfront: viewingVehicle.registrationPhotoFront,
+                                registrationback: viewingVehicle.registrationPhotoBack
+                            }} 
+                        />
                     </div>
                 )}
             </Modal>

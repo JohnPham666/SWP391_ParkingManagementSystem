@@ -36,6 +36,13 @@ export const driverService = {
             throw error;
         }
     },
+    uploadVehicleImage: async (vehicleId, file, type) => {
+        try {
+            return await driverApi.uploadVehicleImage(vehicleId, file, type);
+        } catch (error) {
+            throw error;
+        }
+    },
     loadReservations: async () => {
         try {
             return await driverApi.getReservations();

@@ -21,6 +21,15 @@ export const driverApi = {
         const response = await api.delete(`/vehicles/me/${id}`);
         return response.data;
     },
+    uploadVehicleImage: async (vehicleId, file, type) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (type) formData.append('type', type);
+        const response = await api.post(`/vehicles/me/${vehicleId}/image`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
     getReservations: async () => {
         const response = await api.get('/reservations');
         return response.data;

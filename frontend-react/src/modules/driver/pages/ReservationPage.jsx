@@ -22,6 +22,40 @@ const canPayReservation = (reservation) => {
 };
 const getResponseData = (response) => response?.data || response;
 
+const CountdownTimer = ({ createdAt, onExpire }) => {
+    const [timeLeft, setTimeLeft] = useState('');
+    
+    useEffect(() => {
+        const calculateTimeLeft = () => {
+            if (!createdAt) return null;
+            const createdTime = new Date(createdAt).getTime();
+            const expireTime = createdTime + 15 * 60 * 1000;
+            const now = new Date().getTime();
+            const diff = expireTime - now;
+            
+            if (diff <= 0) {
+                return '00:00';
+            }
+            
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        };
+        
+        setTimeLeft(calculateTimeLeft());
+        const timer = setInterval(() => {
+            const tl = calculateTimeLeft();
+            setTimeLeft(tl);
+            if (tl === '00:00') clearInterval(timer);
+        }, 1000);
+        
+        return () => clearInterval(timer);
+    }, [createdAt]);
+    
+    if (!timeLeft || timeLeft === '00:00') return <Text type="danger" style={{ fontSize: 13, fontWeight: 'bold' }}>Expired</Text>;
+    return <Text type="danger" style={{ fontSize: 13, fontWeight: 'bold' }}>{timeLeft}</Text>;
+};
+
 const ReservationPage = () => {
     const { token } = theme.useToken();
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -244,7 +278,7 @@ const ReservationPage = () => {
 
     const columns = [
         {
-            title: 'Ref ID',
+            title: 'ReservationID',
             dataIndex: 'reservationId',
             key: 'reservationId',
             render: (text, record) => <Text strong>#{record.reservationId || record.id || text}</Text>,
@@ -261,15 +295,16 @@ const ReservationPage = () => {
         {
             title: 'Slot',
             key: 'slot',
-            render: (_, record) => <Text strong>{record.slot?.slotName || record.parkingSlot?.slotName || record.slotId || 'N/A'}</Text>,
+            render: (_, record) => <Text strong>{record.slotCode || record.slot?.slotCode || record.slot?.slotName || record.parkingSlot?.slotName || record.slotId || 'N/A'}</Text>,
         },
         {
             title: 'Duration',
             key: 'duration',
             render: (_, record) => (
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: 6, whiteSpace: 'nowrap' }}>
                     <Text>{record.reservationStart ? new Date(record.reservationStart).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}</Text>
-                    <Text type="secondary" style={{ fontSize: 12 }}>to {record.reservationEnd ? new Date(record.reservationEnd).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}</Text>
+                    <Text type="secondary">→</Text>
+                    <Text>{record.reservationEnd ? new Date(record.reservationEnd).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}</Text>
                 </div>
             )
         },
@@ -277,13 +312,18 @@ const ReservationPage = () => {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
-            render: (status) => {
+            render: (status, record) => {
                 const s = String(status).toUpperCase();
                 let color = 'default';
                 if (s === 'CONFIRMED' || s === 'COMPLETED') color = 'success';
                 else if (s === 'PENDING') color = 'warning';
                 else if (s === 'CANCELLED') color = 'error';
-                return <Tag color={color} style={{ padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>{s}</Tag>;
+                return (
+                    <Space size="small">
+                        <Tag color={color} style={{ padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>{s}</Tag>
+                        {s === 'PENDING' && <CountdownTimer createdAt={record.createdAt} />}
+                    </Space>
+                );
             }
         },
         {
@@ -512,7 +552,7 @@ const ReservationPage = () => {
                 {viewingReservation && (
                     <div style={{ marginTop: 24 }}>
                         <Descriptions column={1} bordered size="middle" styles={{ label: { width: '130px', background: token.colorFillAlter, fontWeight: 600 } }}>
-                            <Descriptions.Item label="Ref ID"><Text strong>#{viewingReservation.reservationId || viewingReservation.id}</Text></Descriptions.Item>
+                            <Descriptions.Item label="ReservationID"><Text strong>#{viewingReservation.reservationId || viewingReservation.id}</Text></Descriptions.Item>
                             <Descriptions.Item label="Vehicle">
                                 <Tag color="blue">{viewingReservation.vehicle?.licensePlate || viewingReservation.licensePlate || 'N/A'}</Tag>
                                 <Text type="secondary">({viewingReservation.vehicleType?.typeName || viewingReservation.vehicleTypeName || 'N/A'})</Text>
