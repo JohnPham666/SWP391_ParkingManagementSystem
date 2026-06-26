@@ -40,5 +40,9 @@ export const driverApi = {
     getSessions: async () => {
         const response = await api.get('/sessions');
         return response.data;
+    },
+    updateProfile: async (data) => {
+        const response = await api.put('/users/me', data);
+        return response.data;
     }
 };

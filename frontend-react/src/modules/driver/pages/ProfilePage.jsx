@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Typography, Avatar, Button, Divider, Tag, Modal, Form, Input, DatePicker, message, Upload, theme } from 'antd';
 import { UserOutlined, EditOutlined, SafetyCertificateOutlined, PhoneOutlined, MailOutlined, HomeOutlined, SafetyOutlined, CameraOutlined, CalendarOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { driverService } from '../services/driverService';
 
 const { Title, Text } = Typography;
 
@@ -35,7 +36,14 @@ const ProfilePage = () => {
     const handleSaveProfile = async () => {
         try {
             const values = await form.validateFields();
-            // TODO: Call API to update profile
+            // Call API to update profile
+            await driverService.updateProfile({
+                fullName: values.fullName,
+                phoneNumber: values.phoneNumber,
+                address: values.address,
+                // The backend does not seem to support dob, but we can pass it anyway or store locally
+            });
+
             const updatedUser = {
                 ...user,
                 fullName: values.fullName,
@@ -48,15 +56,32 @@ const ProfilePage = () => {
             message.success('Cập nhật thông tin thành công!');
             setIsEditModalVisible(false);
         } catch (error) {
-            // Validation failed
+            console.error(error);
+            if (!error.errorFields) {
+                message.error('Cập nhật thông tin thất bại!');
+            }
         }
     };
 
     const handleAvatarChange = (info) => {
-        if (info.file.status === 'done') {
-            message.success(`${info.file.name} file uploaded successfully`);
-        } else if (info.file.status === 'error') {
-            message.error(`${info.file.name} file upload failed.`);
+        // Prevent default upload behavior since we don't have a backend endpoint for user avatar
+    };
+
+    const customUpload = async ({ file, onSuccess, onError }) => {
+        try {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64Avatar = e.target.result;
+                const updatedUser = { ...user, avatar: base64Avatar };
+                setUser(updatedUser);
+                localStorage.setItem('parking_auth', JSON.stringify(updatedUser));
+                onSuccess("ok");
+                message.success(`${file.name} uploaded successfully!`);
+            };
+            reader.readAsDataURL(file);
+        } catch (error) {
+            onError(error);
+            message.error(`Failed to upload ${file.name}.`);
         }
     };
 
@@ -75,7 +100,7 @@ const ProfilePage = () => {
                     <Card className="saas-card" style={{ textAlign: 'center' }}>
                         <div style={{ position: 'relative', display: 'inline-block', marginBottom: 16 }}>
                             <Avatar size={120} src={user?.avatar} icon={!user?.avatar && <UserOutlined />} style={{ backgroundColor: '#ea580c' }} />
-                            <Upload showUploadList={false} onChange={handleAvatarChange}>
+                            <Upload showUploadList={false} onChange={handleAvatarChange} customRequest={customUpload}>
                                 <Button 
                                     shape="circle" 
                                     icon={<EditOutlined />} 

@@ -71,5 +71,14 @@ export const driverService = {
         } catch (error) {
             throw error;
         }
+    },
+
+    updateProfile: async (data) => {
+        try {
+            return await driverApi.updateProfile(data);
+        } catch (error) {
+            console.error('Failed to update profile:', error);
+            throw error;
+        }
     }
 };
