@@ -192,8 +192,8 @@ const ReservationPage = () => {
             key: 'duration',
             render: (_, record) => (
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <Text>{record.startTime ? new Date(record.startTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}</Text>
-                    <Text type="secondary" style={{ fontSize: 12 }}>to {record.endTime ? new Date(record.endTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}</Text>
+                    <Text>{record.reservationStart ? new Date(record.reservationStart).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>to {record.reservationEnd ? new Date(record.reservationEnd).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}</Text>
                 </div>
             )
         },
