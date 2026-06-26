@@ -161,4 +161,4 @@ const Api = {
     getZones(floorId) { return this.request('GET', '/zones' + (floorId ? '?floorId=' + floorId : '')); },
 };
 
-export default Api;
+window.Api = Api;
