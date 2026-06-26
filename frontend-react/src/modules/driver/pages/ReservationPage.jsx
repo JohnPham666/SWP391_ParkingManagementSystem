@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useState } from 'react';
-import { Card, Table, Modal, Form, DatePicker, Select, Button, Tag, Space, Popconfirm, Alert, message, Row, Col, Typography, Skeleton, Empty } from 'antd';
+import { Card, Table, Modal, Form, DatePicker, Select, Button, Tag, Space, Popconfirm, Alert, message, Row, Col, Typography, Skeleton, Empty , theme } from 'antd';
 import { CalendarOutlined, PlusOutlined, DeleteOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 import { reservationStore } from '../store/reservationStore';
@@ -9,6 +9,7 @@ import { parkingStore } from '../store/parkingStore';
 const { Title, Text } = Typography;
 
 const ReservationPage = () => {
+    const { token } = theme.useToken();
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [errorAlert, setErrorAlert] = useState(null);
     const [, forceRender] = useReducer(x => x + 1, 0);
@@ -184,9 +185,9 @@ const ReservationPage = () => {
             {/* Statistics Row */}
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 <Col xs={12} sm={6}>
-                    <Card className="saas-card" style={{ background: '#f8fafc' }}>
+                    <Card className="saas-card" style={{ background: token.colorFillAlter }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{ padding: 12, background: '#e2e8f0', borderRadius: '50%', color: '#64748b' }}><CalendarOutlined style={{ fontSize: 20 }} /></div>
+                            <div style={{ padding: 12, background: token.colorFillAlter, borderRadius: '50%', color: token.colorTextSecondary }}><CalendarOutlined style={{ fontSize: 20 }} /></div>
                             <div>
                                 <Text type="secondary" style={{ fontSize: 13 }}>Total</Text>
                                 <Title level={3} style={{ margin: 0 }}>{stats.total}</Title>
@@ -195,9 +196,9 @@ const ReservationPage = () => {
                     </Card>
                 </Col>
                 <Col xs={12} sm={6}>
-                    <Card className="saas-card" style={{ background: '#fffbeb' }}>
+                    <Card className="saas-card" style={{ background: token.colorWarningBg }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{ padding: 12, background: '#fef3c7', borderRadius: '50%', color: '#d97706' }}><ClockCircleOutlined style={{ fontSize: 20 }} /></div>
+                            <div style={{ padding: 12, background: token.colorWarningBg, borderRadius: '50%', color: token.colorWarning }}><ClockCircleOutlined style={{ fontSize: 20 }} /></div>
                             <div>
                                 <Text type="secondary" style={{ fontSize: 13 }}>Pending</Text>
                                 <Title level={3} style={{ margin: 0 }}>{stats.pending}</Title>
@@ -206,9 +207,9 @@ const ReservationPage = () => {
                     </Card>
                 </Col>
                 <Col xs={12} sm={6}>
-                    <Card className="saas-card" style={{ background: '#f0fdf4' }}>
+                    <Card className="saas-card" style={{ background: token.colorSuccessBg }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{ padding: 12, background: '#dcfce7', borderRadius: '50%', color: '#16a34a' }}><CheckCircleOutlined style={{ fontSize: 20 }} /></div>
+                            <div style={{ padding: 12, background: token.colorSuccessBg, borderRadius: '50%', color: token.colorSuccess }}><CheckCircleOutlined style={{ fontSize: 20 }} /></div>
                             <div>
                                 <Text type="secondary" style={{ fontSize: 13 }}>Confirmed</Text>
                                 <Title level={3} style={{ margin: 0 }}>{stats.confirmed}</Title>
@@ -217,9 +218,9 @@ const ReservationPage = () => {
                     </Card>
                 </Col>
                 <Col xs={12} sm={6}>
-                    <Card className="saas-card" style={{ background: '#fef2f2' }}>
+                    <Card className="saas-card" style={{ background: token.colorErrorBg }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{ padding: 12, background: '#fee2e2', borderRadius: '50%', color: '#dc2626' }}><CloseCircleOutlined style={{ fontSize: 20 }} /></div>
+                            <div style={{ padding: 12, background: token.colorErrorBg, borderRadius: '50%', color: token.colorError }}><CloseCircleOutlined style={{ fontSize: 20 }} /></div>
                             <div>
                                 <Text type="secondary" style={{ fontSize: 13 }}>Cancelled</Text>
                                 <Title level={3} style={{ margin: 0 }}>{stats.cancelled}</Title>

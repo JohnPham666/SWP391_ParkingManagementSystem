@@ -1,10 +1,11 @@
 import React from 'react';
-import { Card, Row, Col, Typography, Button, Divider, Tag } from 'antd';
+import { Card, Row, Col, Typography, Button, Divider, Tag , theme } from 'antd';
 import { CheckCircleFilled } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 
 const PricingPage = () => {
+    const { token } = theme.useToken();
     const plans = [
         {
             type: 'Car',
@@ -55,7 +56,7 @@ const PricingPage = () => {
                             styles={{ body: { padding: 32, display: 'flex', flexDirection: 'column', height: '100%' } }}
                         >
                             {plan.popular && (
-                                <div style={{ position: 'absolute', top: 0, right: 0, background: plan.color, color: 'white', padding: '4px 12px', borderBottomLeftRadius: 12, fontWeight: 600, fontSize: 12 }}>
+                                <div style={{ position: 'absolute', top: 0, right: 0, background: plan.color, color: token.colorText, padding: '4px 12px', borderBottomLeftRadius: 12, fontWeight: 600, fontSize: 12 }}>
                                     MOST POPULAR
                                 </div>
                             )}
@@ -63,8 +64,8 @@ const PricingPage = () => {
                                 {plan.type}
                             </Tag>
                             <div style={{ marginBottom: 24 }}>
-                                <span style={{ fontSize: 48, fontWeight: 800, color: '#0f172a' }}>{plan.price}</span>
-                                <span style={{ color: '#64748b', marginLeft: 8 }}>{plan.unit}</span>
+                                <span style={{ fontSize: 48, fontWeight: 800, color: token.colorText }}>{plan.price}</span>
+                                <span style={{ color: token.colorTextSecondary, marginLeft: 8 }}>{plan.unit}</span>
                             </div>
                             
                             <Divider style={{ margin: '0 0 24px 0' }} />

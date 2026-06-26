@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useReducer, useMemo } from 'react';
-import { Card, Row, Col, Button, Modal, Form, Input, Select, Popconfirm, Tag, Space, message, Descriptions, Typography, Divider, Empty, Skeleton } from 'antd';
+import { Card, Row, Col, Button, Modal, Form, Input, Select, Popconfirm, Tag, Space, message, Descriptions, Typography, Divider, Empty, Skeleton , theme } from 'antd';
 import { CarOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 import { vehicleStore } from '../store/vehicleStore';
@@ -8,6 +8,7 @@ const { Title, Text } = Typography;
 const { Search } = Input;
 
 const VehiclePage = () => {
+    const { token } = theme.useToken();
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isViewModalVisible, setIsViewModalVisible] = useState(false);
     const [editingVehicle, setEditingVehicle] = useState(null);
@@ -127,21 +128,21 @@ const VehiclePage = () => {
             {/* Statistics */}
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 <Col xs={24} sm={8}>
-                    <Card className="saas-card" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white' }}>
-                        <Text style={{ color: 'rgba(255,255,255,0.7)' }}>Total Vehicles</Text>
-                        <Title level={2} style={{ color: 'white', margin: 0 }}>{totalVehicles}</Title>
+                    <Card className="saas-card" style={{ background: token.colorFillSecondary, color: token.colorText }}>
+                        <Text style={{ color: token.colorTextSecondary }}>Total Vehicles</Text>
+                        <Title level={2} style={{ color: token.colorText, margin: 0 }}>{totalVehicles}</Title>
                     </Card>
                 </Col>
                 <Col xs={12} sm={8}>
-                    <Card className="saas-card" style={{ background: '#f0fdf4', borderColor: '#bbf7d0' }}>
+                    <Card className="saas-card" style={{ background: token.colorSuccessBg, borderColor: token.colorBorder }}>
                         <Text type="secondary">Cars</Text>
-                        <Title level={2} style={{ color: '#166534', margin: 0 }}>{cars}</Title>
+                        <Title level={2} style={{ color: token.colorSuccess, margin: 0 }}>{cars}</Title>
                     </Card>
                 </Col>
                 <Col xs={12} sm={8}>
-                    <Card className="saas-card" style={{ background: '#eff6ff', borderColor: '#bfdbfe' }}>
+                    <Card className="saas-card" style={{ background: token.colorInfoBg, borderColor: token.colorBorder }}>
                         <Text type="secondary">Motorbikes</Text>
-                        <Title level={2} style={{ color: '#1e40af', margin: 0 }}>{motorbikes}</Title>
+                        <Title level={2} style={{ color: token.colorInfo, margin: 0 }}>{motorbikes}</Title>
                     </Card>
                 </Col>
             </Row>
@@ -281,7 +282,7 @@ const VehiclePage = () => {
             >
                 {viewingVehicle && (
                     <div style={{ marginTop: 24 }}>
-                        <Descriptions column={1} bordered size="middle" labelStyle={{ width: '120px', background: '#f8fafc', fontWeight: 600 }}>
+                        <Descriptions column={1} bordered size="middle" labelStyle={{ width: '120px', background: token.colorFillAlter, fontWeight: 600 }}>
                             <Descriptions.Item label="License Plate"><Text strong style={{ fontSize: 16 }}>{viewingVehicle.licensePlate}</Text></Descriptions.Item>
                             <Descriptions.Item label="Vehicle Type">{viewingVehicle.vehicleType?.name || viewingVehicle.vehicleTypeName || 'N/A'}</Descriptions.Item>
                             <Descriptions.Item label="Owner Name">{viewingVehicle.ownerName}</Descriptions.Item>

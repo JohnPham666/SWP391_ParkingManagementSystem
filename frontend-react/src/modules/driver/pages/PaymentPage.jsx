@@ -1,10 +1,11 @@
 import React from 'react';
-import { Card, Row, Col, Typography, Table, Tag, Button, Empty, Skeleton } from 'antd';
+import { Card, Row, Col, Typography, Table, Tag, Button, Empty, Skeleton , theme } from 'antd';
 import { DollarOutlined, ClockCircleOutlined, FallOutlined, DownloadOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 
 const PaymentPage = () => {
+    const { token } = theme.useToken();
     // Placeholder data for aesthetic purposes (since we don't fetch payments yet)
     const loading = false;
     const payments = [];
@@ -65,29 +66,29 @@ const PaymentPage = () => {
 
             <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
                 <Col xs={24} md={8}>
-                    <Card className="saas-card" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none' }}>
+                    <Card className="saas-card" style={{ background: token.colorFillSecondary, color: token.colorText, border: 'none' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
                                 <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Total Paid</Text>
-                                <Title level={2} style={{ color: 'white', margin: 0 }}>{stats.totalPaid}</Title>
+                                <Title level={2} style={{ color: token.colorText, margin: 0 }}>{stats.totalPaid}</Title>
                             </div>
                             <DollarOutlined style={{ fontSize: 48, opacity: 0.5 }} />
                         </div>
                     </Card>
                 </Col>
                 <Col xs={24} md={8}>
-                    <Card className="saas-card" style={{ background: '#fffbeb', borderColor: '#fde68a' }}>
+                    <Card className="saas-card" style={{ background: token.colorWarningBg, borderColor: token.colorBorder }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
                                 <Text type="secondary">Pending Payments</Text>
-                                <Title level={2} style={{ color: '#d97706', margin: 0 }}>{stats.pending}</Title>
+                                <Title level={2} style={{ color: token.colorWarning, margin: 0 }}>{stats.pending}</Title>
                             </div>
                             <ClockCircleOutlined style={{ fontSize: 48, color: '#fcd34d', opacity: 0.5 }} />
                         </div>
                     </Card>
                 </Col>
                 <Col xs={24} md={8}>
-                    <Card className="saas-card" style={{ background: '#f8fafc' }}>
+                    <Card className="saas-card" style={{ background: token.colorFillAlter }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
                                 <Text type="secondary">This Month</Text>

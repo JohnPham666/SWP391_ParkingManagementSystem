@@ -1,13 +1,7 @@
-/* SaaS Design System for Driver Module */
+/* SaaS Design System for Driver Module - Cleaned up for Theme Token Support */
 :root {
   --primary-color: #ea580c;
   --primary-hover: #f97316;
-  --primary-light: #fff7ed;
-  --bg-color: #f8fafc;
-  --card-bg: #ffffff;
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
-  --border-color: #e2e8f0;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
@@ -15,18 +9,11 @@
   --radius-lg: 16px;
 }
 
-body {
-  background-color: var(--bg-color);
-}
-
 .driver-layout {
   min-height: 100vh;
-  background-color: var(--bg-color);
 }
 
 .driver-sider {
-  background: linear-gradient(180deg, var(--card-bg) 0%, var(--primary-light) 100%) !important;
-  border-right: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
   z-index: 10;
 }
@@ -38,8 +25,7 @@ body {
   justify-content: center;
   gap: 12px;
   padding: 0 16px;
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--card-bg);
+  /* border-bottom managed by theme or removed */
 }
 
 .driver-logo-text {
@@ -51,24 +37,18 @@ body {
 }
 
 .driver-menu {
-  background: transparent !important;
-  border-right: none !important;
   padding: 16px 8px;
 }
 
 .driver-menu .ant-menu-item {
   border-radius: var(--radius-md) !important;
   margin-bottom: 8px !important;
-  color: var(--text-secondary);
   font-weight: 500;
   transition: all 0.3s ease;
 }
 
-.driver-menu .ant-menu-item:hover {
-  color: var(--primary-color) !important;
-  background-color: var(--primary-light) !important;
-}
-
+/* Let Ant Design handle selected states and hovers to avoid dark mode conflicts, 
+   except maybe for the primary color highlight. */
 .driver-menu .ant-menu-item-selected {
   background-color: var(--primary-color) !important;
   color: white !important;
@@ -76,12 +56,10 @@ body {
 }
 
 .driver-header {
-  background-color: var(--card-bg) !important;
   padding: 0 24px !important;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
   position: sticky;
   top: 0;
@@ -106,7 +84,6 @@ body {
 
 .saas-card {
   border-radius: var(--radius-lg) !important;
-  border: 1px solid var(--border-color) !important;
   box-shadow: var(--shadow-sm) !important;
   transition: all 0.3s ease;
   overflow: hidden;
@@ -117,14 +94,12 @@ body {
 }
 
 .saas-card .ant-card-head {
-  border-bottom: 1px solid var(--border-color);
   padding: 16px 24px;
   min-height: auto;
 }
 
 .saas-card .ant-card-head-title {
   font-weight: 700;
-  color: var(--text-primary);
   font-size: 16px;
 }
 
@@ -136,8 +111,6 @@ body {
   text-align: center;
   padding: 24px;
   border-radius: var(--radius-lg);
-  background: white;
-  border: 1px solid var(--border-color);
   transition: all 0.3s ease;
 }
 
@@ -151,7 +124,6 @@ body {
   font-size: 32px;
   color: var(--primary-color);
   margin-bottom: 16px;
-  background: var(--primary-light);
   width: 64px;
   height: 64px;
   line-height: 64px;
@@ -162,12 +134,10 @@ body {
 .stat-value {
   font-size: 28px;
   font-weight: 800;
-  color: var(--text-primary);
   margin: 0;
 }
 
 .stat-title {
-  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
   margin: 0;
@@ -192,7 +162,6 @@ body {
 
 .recommended-slot {
   border: 2px solid var(--primary-color) !important;
-  background-color: var(--primary-light) !important;
   position: relative;
 }
 

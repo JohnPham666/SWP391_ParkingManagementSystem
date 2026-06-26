@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Row, Col, Card, Typography, Button, Tag, Space, Progress, Skeleton, Statistic, Badge, Divider } from 'antd';
+import { Row, Col, Card, Typography, Button, Tag, Space, Progress, Skeleton, Statistic, Badge, Divider, theme } from 'antd';
 import { 
     CarOutlined, 
     CalendarOutlined, 
@@ -16,6 +16,7 @@ const { Title, Text } = Typography;
 
 const DashboardPage = () => {
     const navigate = useNavigate();
+    const { token } = theme.useToken();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         vehicles: 0,
@@ -107,8 +108,8 @@ const DashboardPage = () => {
             title: 'My Vehicles',
             value: stats.vehicles,
             icon: <CarOutlined />,
-            color: '#f97316',
-            bg: '#fff7ed',
+            color: token.colorPrimary,
+            bg: token.colorPrimaryBg,
             action: 'View Vehicles',
             path: '/driver/vehicles'
         },
@@ -116,8 +117,8 @@ const DashboardPage = () => {
             title: 'Active Reservations',
             value: stats.activeReservations,
             icon: <CalendarOutlined />,
-            color: '#10b981',
-            bg: '#d1fae5',
+            color: token.colorSuccess,
+            bg: token.colorSuccessBg,
             action: 'Manage Reservations',
             path: '/driver/reservations'
         },
@@ -125,8 +126,8 @@ const DashboardPage = () => {
             title: 'Available Slots',
             value: stats.availableSlots,
             icon: <EnvironmentOutlined />,
-            color: '#3b82f6',
-            bg: '#dbeafe',
+            color: token.colorInfo,
+            bg: token.colorInfoBg,
             action: 'Find Parking',
             path: '/driver/parking'
         },
@@ -134,8 +135,8 @@ const DashboardPage = () => {
             title: 'Pricing Policies',
             value: null,
             icon: <DollarOutlined />,
-            color: '#8b5cf6',
-            bg: '#f3e8ff',
+            color: token.colorWarning,
+            bg: token.colorWarningBg,
             action: 'View Pricing',
             path: '/driver/pricing'
         },
@@ -143,8 +144,8 @@ const DashboardPage = () => {
             title: 'My Profile',
             value: null,
             icon: <UserOutlined />,
-            color: '#06b6d4',
-            bg: '#cffafe',
+            color: token.colorTextSecondary,
+            bg: token.colorFillAlter,
             action: 'View Profile',
             path: '/driver/profile'
         },
@@ -152,8 +153,8 @@ const DashboardPage = () => {
             title: 'Report Incident',
             value: null,
             icon: <AlertOutlined />,
-            color: '#ef4444',
-            bg: '#fee2e2',
+            color: token.colorError,
+            bg: token.colorErrorBg,
             action: 'Report',
             path: '/driver/incidents'
         }
@@ -171,10 +172,11 @@ const DashboardPage = () => {
                             style={{ 
                                 borderRadius: '16px', 
                                 border: 'none', 
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                                boxShadow: token.boxShadowTertiary,
                                 height: '100%',
                                 display: 'flex',
-                                flexDirection: 'column'
+                                flexDirection: 'column',
+                                background: token.colorBgContainer
                             }}
                             bodyStyle={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}
                             onClick={() => navigate(card.path)}
@@ -196,11 +198,11 @@ const DashboardPage = () => {
                                     {card.icon}
                                 </div>
                                 {card.value !== null && (
-                                    <Title level={2} style={{ margin: 0, color: '#1f2937' }}>{card.value}</Title>
+                                    <Title level={2} style={{ margin: 0 }}>{card.value}</Title>
                                 )}
                             </div>
                             <div style={{ flex: 1 }}>
-                                <Text style={{ fontSize: '16px', fontWeight: 600, color: '#4b5563' }}>{card.title}</Text>
+                                <Text style={{ fontSize: '16px', fontWeight: 600 }}>{card.title}</Text>
                             </div>
                             <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', color: card.color, fontWeight: 600 }}>
                                 <span>{card.action}</span>
@@ -214,14 +216,14 @@ const DashboardPage = () => {
             {/* Parking Occupancy Overview */}
             <Card 
                 title={<Title level={4} style={{ margin: 0 }}>Parking Occupancy Overview</Title>} 
-                style={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+                style={{ borderRadius: '16px', border: 'none', boxShadow: token.boxShadowTertiary, background: token.colorBgContainer }}
             >
                 <Row gutter={[32, 32]} align="middle">
                     <Col xs={24} md={8} style={{ textAlign: 'center' }}>
                         <Progress 
                             type="dashboard" 
                             percent={stats.occupancyRate} 
-                            strokeColor={{ '0%': '#10b981', '100%': '#ef4444' }}
+                            strokeColor={{ '0%': token.colorSuccess, '100%': token.colorError }}
                             size={180}
                         />
                         <div style={{ marginTop: '16px' }}>
@@ -233,13 +235,13 @@ const DashboardPage = () => {
                     <Col xs={24} md={16}>
                         <Row gutter={[16, 24]}>
                             <Col xs={12} sm={8}>
-                                <Statistic title="Available Slots" value={stats.availableSlots} valueStyle={{ color: '#10b981' }} />
+                                <Statistic title="Available Slots" value={stats.availableSlots} valueStyle={{ color: token.colorSuccess }} />
                             </Col>
                             <Col xs={12} sm={8}>
-                                <Statistic title="Occupied Slots" value={stats.occupiedSlots} valueStyle={{ color: '#f97316' }} />
+                                <Statistic title="Occupied Slots" value={stats.occupiedSlots} valueStyle={{ color: token.colorWarning }} />
                             </Col>
                             <Col xs={12} sm={8}>
-                                <Statistic title="Reserved Slots" value={stats.reservedSlots} valueStyle={{ color: '#3b82f6' }} />
+                                <Statistic title="Reserved Slots" value={stats.reservedSlots} valueStyle={{ color: token.colorInfo }} />
                             </Col>
                             <Col xs={12} sm={8}>
                                 <Statistic title="Car Slots" value={stats.carSlots} prefix={<CarOutlined />} />
@@ -256,23 +258,23 @@ const DashboardPage = () => {
                         
                         <Title level={5} style={{ marginBottom: '16px' }}>Today's Activity</Title>
                         <Space size="large" wrap>
-                            <Badge status="processing" text={`Reservations: ${stats.todaysReservations}`} />
-                            <Badge status="success" text={`Check-ins: ${stats.todaysCheckins}`} />
-                            <Badge status="warning" text={`Check-outs: ${stats.todaysCheckouts}`} />
+                            <Badge status="processing" text={<Text>Reservations: {stats.todaysReservations}</Text>} />
+                            <Badge status="success" text={<Text>Check-ins: {stats.todaysCheckins}</Text>} />
+                            <Badge status="warning" text={<Text>Check-outs: {stats.todaysCheckouts}</Text>} />
                         </Space>
                         
                         <div style={{ marginTop: '24px' }}>
                             <Text strong style={{ display: 'block', marginBottom: '8px' }}>Capacity Breakdown</Text>
                             <Progress 
                                 percent={100} 
-                                success={{ percent: stats.totalSlots ? (stats.availableSlots / stats.totalSlots) * 100 : 0, strokeColor: '#10b981' }} 
-                                strokeColor="#f97316"
+                                success={{ percent: stats.totalSlots ? (stats.availableSlots / stats.totalSlots) * 100 : 0, strokeColor: token.colorSuccess }} 
+                                strokeColor={token.colorWarning}
                                 format={() => `${stats.totalSlots} Total`}
                             />
                             <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
-                                <Tag color="#10b981">Available</Tag>
-                                <Tag color="#f97316">Occupied</Tag>
-                                <Tag color="#3b82f6">Reserved</Tag>
+                                <Tag color={token.colorSuccess}>Available</Tag>
+                                <Tag color={token.colorWarning}>Occupied</Tag>
+                                <Tag color={token.colorInfo}>Reserved</Tag>
                             </div>
                         </div>
                     </Col>

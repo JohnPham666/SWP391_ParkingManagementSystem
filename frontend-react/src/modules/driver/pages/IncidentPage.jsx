@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Card, Row, Col, Typography, Button, Table, Tag, Modal, Form, Input, Upload, message, Empty } from 'antd';
+import { Card, Row, Col, Typography, Button, Table, Tag, Modal, Form, Input, Upload, message, Empty , theme } from 'antd';
 import { AlertOutlined, UploadOutlined, CheckCircleOutlined, SyncOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 const IncidentPage = () => {
+    const { token } = theme.useToken();
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [form] = Form.useForm();
     const incidents = []; // Empty state for now
@@ -63,9 +64,9 @@ const IncidentPage = () => {
 
             <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
                 <Col xs={24} sm={8}>
-                    <Card className="saas-card" style={{ background: '#f8fafc' }}>
+                    <Card className="saas-card" style={{ background: token.colorFillAlter }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                            <div style={{ padding: 16, background: '#e2e8f0', borderRadius: '50%', color: '#64748b' }}>
+                            <div style={{ padding: 16, background: token.colorFillAlter, borderRadius: '50%', color: token.colorTextSecondary }}>
                                 <AlertOutlined style={{ fontSize: 24 }} />
                             </div>
                             <div>
@@ -76,27 +77,27 @@ const IncidentPage = () => {
                     </Card>
                 </Col>
                 <Col xs={24} sm={8}>
-                    <Card className="saas-card" style={{ background: '#eff6ff' }}>
+                    <Card className="saas-card" style={{ background: token.colorInfoBg }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                             <div style={{ padding: 16, background: '#dbeafe', borderRadius: '50%', color: '#3b82f6' }}>
                                 <SyncOutlined style={{ fontSize: 24 }} />
                             </div>
                             <div>
                                 <Text type="secondary">In Progress</Text>
-                                <Title level={2} style={{ margin: 0, color: '#1d4ed8' }}>0</Title>
+                                <Title level={2} style={{ margin: 0, color: token.colorInfo }}>0</Title>
                             </div>
                         </div>
                     </Card>
                 </Col>
                 <Col xs={24} sm={8}>
-                    <Card className="saas-card" style={{ background: '#f0fdf4' }}>
+                    <Card className="saas-card" style={{ background: token.colorSuccessBg }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                            <div style={{ padding: 16, background: '#dcfce7', borderRadius: '50%', color: '#16a34a' }}>
+                            <div style={{ padding: 16, background: token.colorSuccessBg, borderRadius: '50%', color: token.colorSuccess }}>
                                 <CheckCircleOutlined style={{ fontSize: 24 }} />
                             </div>
                             <div>
                                 <Text type="secondary">Resolved</Text>
-                                <Title level={2} style={{ margin: 0, color: '#15803d' }}>0</Title>
+                                <Title level={2} style={{ margin: 0, color: token.colorSuccess }}>0</Title>
                             </div>
                         </div>
                     </Card>
@@ -116,7 +117,7 @@ const IncidentPage = () => {
             </Card>
 
             <Modal
-                title={<Title level={4} style={{ margin: 0, color: '#dc2626' }}><AlertOutlined /> Report an Incident</Title>}
+                title={<Title level={4} style={{ margin: 0, color: token.colorError }}><AlertOutlined /> Report an Incident</Title>}
                 open={isModalVisible}
                 onOk={handleSubmit}
                 onCancel={() => setIsModalVisible(false)}

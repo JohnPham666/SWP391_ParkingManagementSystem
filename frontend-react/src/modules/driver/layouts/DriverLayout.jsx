@@ -104,6 +104,7 @@ const DriverLayout = () => {
             </div>
             <Menu
                 className="driver-menu"
+                theme={isDriverDarkMode ? 'dark' : 'light'}
                 selectedKeys={[location.pathname]}
                 items={menuItems}
                 onClick={handleMenuClick}
@@ -128,6 +129,7 @@ const DriverLayout = () => {
                 width={260}
                 className="driver-sider"
                 trigger={null}
+                theme={isDriverDarkMode ? 'dark' : 'light'}
             >
                 {sidebarContent}
             </Sider>
@@ -140,13 +142,13 @@ const DriverLayout = () => {
                 styles={{ body: { padding: 0 } }}
                 width={260}
             >
-                <div style={{ height: '100%', background: 'linear-gradient(180deg, #ffffff 0%, #fff7ed 100%)' }}>
+                <div style={{ height: '100%' }}>
                     {sidebarContent}
                 </div>
             </Drawer>
 
             <Layout>
-                <Header className="driver-header">
+                <Header className="driver-header" style={{ background: isDriverDarkMode ? '#141414' : '#fff' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <Button 
                             type="text" 

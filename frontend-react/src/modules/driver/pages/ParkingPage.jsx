@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useState, useMemo } from 'react';
-import { Card, Tag, Select, Row, Col, Descriptions, Drawer, Button, message, Skeleton, Empty, Typography, Input, Badge, Divider } from 'antd';
+import { Card, Tag, Select, Row, Col, Descriptions, Drawer, Button, message, Skeleton, Empty, Typography, Input, Badge, Divider , theme } from 'antd';
 import { SearchOutlined, CompassOutlined, BorderOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 import { parkingStore } from '../store/parkingStore';
@@ -8,6 +8,7 @@ const { Option } = Select;
 const { Title, Text } = Typography;
 
 const ParkingPage = () => {
+    const { token } = theme.useToken();
     const [, forceRender] = useReducer(x => x + 1, 0);
     const [drawerVisible, setDrawerVisible] = useState(false);
     const [searchText, setSearchText] = useState('');
@@ -182,7 +183,7 @@ const ParkingPage = () => {
                                             <div style={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: statusInfo.hex, boxShadow: `0 0 8px ${statusInfo.hex}66` }} />
                                         </div>
                                         
-                                        <div style={{ color: '#64748b', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        <div style={{ color: token.colorTextSecondary, fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
                                             <div><EnvironmentOutlined /> {slot.buildingName || 'N/A'} - {slot.floorName || 'N/A'}</div>
                                             <div><BorderOutlined /> Zone: <Text strong>{slot.zoneName || 'N/A'}</Text></div>
                                             <div><CompassOutlined /> {slot.vehicleTypeName || 'N/A'}</div>
@@ -207,12 +208,12 @@ const ParkingPage = () => {
                 onClose={() => setDrawerVisible(false)}
                 open={drawerVisible}
                 width={400}
-                styles={{ body: { background: '#f8fafc' } }}
+                styles={{ body: { background: token.colorFillAlter } }}
             >
                 {parkingStore.selectedSlot && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                         <Card className="saas-card" styles={{ body: { textAlign: 'center', padding: '32px 16px' } }}>
-                            <Title level={1} style={{ fontSize: 48, color: '#0f172a', margin: 0 }}>
+                            <Title level={1} style={{ fontSize: 48, color: token.colorText, margin: 0 }}>
                                 {parkingStore.selectedSlot.slotName || parkingStore.selectedSlot.slotCode || 'N/A'}
                             </Title>
                             <Tag color={getStatusInfo(parkingStore.selectedSlot.status).color} style={{ marginTop: 12, fontSize: 14, padding: '4px 12px' }}>
@@ -221,7 +222,7 @@ const ParkingPage = () => {
                         </Card>
 
                         <Card className="saas-card" title="Location Details" size="small">
-                            <Descriptions column={1} size="small" labelStyle={{ color: '#64748b' }}>
+                            <Descriptions column={1} size="small" labelStyle={{ color: token.colorTextSecondary }}>
                                 <Descriptions.Item label="Building">{parkingStore.selectedSlot.buildingName || 'N/A'}</Descriptions.Item>
                                 <Descriptions.Item label="Floor">{parkingStore.selectedSlot.floorName || 'N/A'}</Descriptions.Item>
                                 <Descriptions.Item label="Zone"><Text strong>{parkingStore.selectedSlot.zoneName || 'N/A'}</Text></Descriptions.Item>
@@ -229,7 +230,7 @@ const ParkingPage = () => {
                         </Card>
 
                         <Card className="saas-card" title="Specifications" size="small">
-                            <Descriptions column={1} size="small" labelStyle={{ color: '#64748b' }}>
+                            <Descriptions column={1} size="small" labelStyle={{ color: token.colorTextSecondary }}>
                                 <Descriptions.Item label="Vehicle Type">{parkingStore.selectedSlot.vehicleTypeName || 'N/A'}</Descriptions.Item>
                                 <Descriptions.Item label="Area">{parkingStore.selectedSlot.area != null ? `${parkingStore.selectedSlot.area} m²` : 'N/A'}</Descriptions.Item>
                                 <Descriptions.Item label="Capacity">{parkingStore.selectedSlot.capacity != null ? parkingStore.selectedSlot.capacity : 'N/A'}</Descriptions.Item>

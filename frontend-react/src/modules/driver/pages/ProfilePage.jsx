@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Typography, Avatar, Button, Divider, Tag } from 'antd';
+import { Card, Row, Col, Typography, Avatar, Button, Divider, Tag , theme } from 'antd';
 import { UserOutlined, EditOutlined, SafetyCertificateOutlined, PhoneOutlined, MailOutlined, HomeOutlined, SafetyOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 
 const ProfilePage = () => {
+    const { token } = theme.useToken();
     const [user, setUser] = useState(null);
 
     useEffect(() => {
@@ -93,7 +94,7 @@ const ProfilePage = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: '1px solid #e2e8f0' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                                 <div style={{ padding: 12, background: '#f1f5f9', borderRadius: '50%' }}>
-                                    <SafetyOutlined style={{ fontSize: 20, color: '#64748b' }} />
+                                    <SafetyOutlined style={{ fontSize: 20, color: token.colorTextSecondary }} />
                                 </div>
                                 <div>
                                     <Text strong style={{ display: 'block' }}>Password</Text>
@@ -104,8 +105,8 @@ const ProfilePage = () => {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                                <div style={{ padding: 12, background: '#f0fdf4', borderRadius: '50%' }}>
-                                    <SafetyCertificateOutlined style={{ fontSize: 20, color: '#16a34a' }} />
+                                <div style={{ padding: 12, background: token.colorSuccessBg, borderRadius: '50%' }}>
+                                    <SafetyCertificateOutlined style={{ fontSize: 20, color: token.colorSuccess }} />
                                 </div>
                                 <div>
                                     <Text strong style={{ display: 'block' }}>Two-Factor Authentication</Text>
