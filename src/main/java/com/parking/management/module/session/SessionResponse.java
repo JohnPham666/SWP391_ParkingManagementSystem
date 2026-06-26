@@ -36,6 +36,7 @@ public class SessionResponse {
     
     private String customerName;
     private String customerPhone;
+    private String createdBy;
 
     /**
      * true nếu xe có vé tháng đang còn hiệu lực.

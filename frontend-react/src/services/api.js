@@ -139,6 +139,7 @@ export const pricingApi = {
   createPricingRule: (data) => api.post('/pricings', data),
   updatePricingRule: (id, data) => api.put(`/pricings/${id}`, data),
   deletePricingRule: (id) => api.delete(`/pricings/${id}`),
+  calculateFee: (data) => api.post('/pricings/calculate-fee', data),
 };
 
 export const reportApi = {

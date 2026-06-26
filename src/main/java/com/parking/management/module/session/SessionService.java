@@ -225,6 +225,10 @@ public class SessionService {
                         "Parking session not found with id: " + sessionId
                 ));
 
+        if (SessionStatus.UNPAID.name().equals(session.getStatus())) {
+            return mapEntityToResponse(session);
+        }
+
         if (!SessionStatus.PARKING.name().equals(session.getStatus())) {
             throw new IllegalArgumentException("Session is not active, current status: " + session.getStatus());
         }
@@ -433,9 +437,9 @@ public class SessionService {
         String normalizedLicensePlate = licensePlate.trim();
 
         ParkingSession session = parkingSessionRepository
-                .findFirstByVehicle_LicensePlateIgnoreCaseAndStatusOrderBySessionIdDesc(
+                .findFirstByVehicle_LicensePlateIgnoreCaseAndStatusInOrderBySessionIdDesc(
                         normalizedLicensePlate,
-                        SessionStatus.PARKING.name()
+                        java.util.Arrays.asList(SessionStatus.PARKING.name(), SessionStatus.UNPAID.name())
                 )
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No active parking session found for license plate: " + normalizedLicensePlate
@@ -522,6 +526,10 @@ public class SessionService {
         response.setStatus(session.getStatus());
         response.setEstimatedFee(session.getEstimatedFee());
         response.setFinalFee(session.getFinalFee());
+
+        if (session.getCreatedBy() != null) {
+            response.setCreatedBy(session.getCreatedBy().getFullName());
+        }
 
         // Kiểm tra vé tháng (Monthly Subscription)
         // Giúp staff/driver biết ngay lúc check-in rằng xe có vé tháng

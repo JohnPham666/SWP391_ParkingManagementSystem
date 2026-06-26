@@ -25,6 +25,11 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
             String status
     );
 
+    Optional<ParkingSession> findFirstByVehicle_LicensePlateIgnoreCaseAndStatusInOrderBySessionIdDesc(
+            String licensePlate,
+            java.util.List<String> statuses
+    );
+
     /*
      * Lấy danh sách tất cả các session đang hoạt động của một user.
      * Dùng để tránh N+1 API calls ở Frontend.
