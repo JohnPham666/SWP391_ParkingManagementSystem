@@ -1,11 +1,11 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { Layout, Menu, Avatar, Dropdown, Space, Typography, Badge } from 'antd';
-import { 
-  MenuFoldOutlined, 
-  MenuUnfoldOutlined, 
-  UserOutlined, 
-  DashboardOutlined, 
-  CarOutlined, 
+import {
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  UserOutlined,
+  DashboardOutlined,
+  CarOutlined,
   LogoutOutlined,
   TeamOutlined,
   BellOutlined,
@@ -64,24 +64,23 @@ const MainLayout = () => {
 
   const allMenuItems = [
     { key: `${basePath}`, icon: <AppstoreOutlined />, label: 'Dashboard', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
-    
+
     // Admin only
     { key: `${basePath}/users`, icon: <TeamOutlined />, label: 'User Management', roles: ['Admin'] },
     { key: `${basePath}/settings`, icon: <SettingOutlined />, label: 'System Settings', roles: ['Admin'] },
     { key: `${basePath}/logs`, icon: <FileTextOutlined />, label: 'System Logs', roles: ['Admin'] },
-    
+
     // Shared Operational
-    // Shared Operational
-    { key: `${basePath}/sessions`, icon: <CarOutlined />, label: 'Parking Sessions', roles: ['ParkingManager'] },
-    { key: `${basePath}/slots`, icon: <DashboardOutlined />, label: 'Parking Slots', roles: ['ParkingManager', 'ParkingStaff'] },
-    { key: `${basePath}/vehicles`, icon: <CarOutlined />, label: 'Vehicles', roles: ['ParkingManager'] },
+    { key: `${basePath}/sessions`, icon: <CarOutlined />, label: 'Parking Sessions', roles: ['ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/slots`, icon: <DashboardOutlined />, label: 'Parking Slots', roles: ['ParkingStaff'] },
+    { key: `${basePath}/vehicles`, icon: <CarOutlined />, label: 'Vehicles', roles: ['ParkingManager', 'ParkingStaff'] },
     { key: `${basePath}/reservations`, icon: <CalendarOutlined />, label: 'Reservations', roles: ['ParkingManager', 'ParkingStaff'] },
     { key: `${basePath}/payments`, icon: <CreditCardOutlined />, label: 'Payments', roles: ['ParkingManager', 'ParkingStaff'] },
-    { key: `${basePath}/incidents`, icon: <WarningOutlined />, label: 'Incidents', roles: ['ParkingManager', 'ParkingStaff'] },
-    
+    { key: `${basePath}/incidents`, icon: <WarningOutlined />, label: 'Incidents', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
+
     // Manager & Admin
     { key: `${basePath}/buildings`, icon: <BankOutlined />, label: 'Parking Config (Buildings)', roles: ['Admin', 'ParkingManager'] },
-    { key: `${basePath}/pricing`, icon: <DollarOutlined />, label: 'Pricing Policies', roles: ['Admin', 'ParkingManager'] },
+    { key: `${basePath}/pricing`, icon: <DollarOutlined />, label: 'Pricing Policies', roles: ['Admin'] },
 
     // Manager only (Vé tháng)
     { key: `${basePath}/subscriptions`, icon: <ProfileOutlined />, label: 'Subscriptions', roles: ['ParkingManager'] },
@@ -89,26 +88,26 @@ const MainLayout = () => {
   ];
 
   // Lọc menu theo role hiện tại
-  const menuItems = allMenuItems.filter(item => 
+  const menuItems = allMenuItems.filter(item =>
     item.roles.includes(userRole)
   );
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider 
-        trigger={null} 
-        collapsible 
-        collapsed={collapsed} 
+      <Sider
+        trigger={null}
+        collapsible
+        collapsed={collapsed}
         theme={isDarkMode ? "dark" : "light"}
         style={{
           boxShadow: isDarkMode ? '2px 0 8px 0 rgba(0,0,0,.15)' : '2px 0 8px 0 rgba(29,35,41,.05)',
           zIndex: 10
         }}
       >
-        <div style={{ 
-          height: 64, 
-          display: 'flex', 
-          alignItems: 'center', 
+        <div style={{
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'center',
           background: '#ea580c',
           borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid #ea580c'
@@ -118,22 +117,22 @@ const MainLayout = () => {
           </Title>
           {collapsed && <Title level={4} style={{ color: '#fff', margin: 0 }}>PS</Title>}
         </div>
-        <Menu 
-          theme={isDarkMode ? "dark" : "light"} 
-          mode="inline" 
-          selectedKeys={[location.pathname]} 
+        <Menu
+          theme={isDarkMode ? "dark" : "light"}
+          mode="inline"
+          selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
           style={{ borderRight: 0, padding: '8px 0' }}
         />
       </Sider>
-      
+
       <Layout>
-        <Header style={{ 
-          padding: '0 24px', 
-          background: '#ea580c', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <Header style={{
+          padding: '0 24px',
+          background: '#ea580c',
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           boxShadow: '0 1px 4px rgba(0,21,41,.08)',
           zIndex: 9
@@ -160,7 +159,7 @@ const MainLayout = () => {
             </Dropdown>
           </Space>
         </Header>
-        
+
         <Content style={{ margin: '24px 16px', padding: 24, minHeight: 280, background: isDarkMode ? '#141414' : '#fff', borderRadius: 8 }}>
           <Outlet />
         </Content>

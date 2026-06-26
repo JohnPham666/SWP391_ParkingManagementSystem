@@ -5,7 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
   LineChart, Line, AreaChart, Area, PieChart, Pie, Cell
 } from 'recharts';
-import { reportApi } from '../../services/api';
+import { reportApi, paymentApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
@@ -52,26 +52,101 @@ const ManagerReports = () => {
     }
   };
 
-  const handleExportCSV = () => {
-    if (!revenueData || revenueData.length === 0) {
-      message.warning('No data to export');
-      return;
-    }
-    const headers = ['Date', 'Revenue (VND)'];
-    const csvContent = [
-      headers.join(','),
-      ...revenueData.map(row => `${row.date},${row.revenue}`)
-    ].join('\n');
+  const handleExportCSV = async () => {
+    try {
+      const hide = message.loading('Đang trích xuất dữ liệu...', 0);
+      const res = await paymentApi.getPayments();
+      hide();
+      
+      let payments = res.data?.data || res.data || [];
+      
+      const start = dateRange[0].startOf('day');
+      const end = dateRange[1].endOf('day');
+      
+      // Lọc các thanh toán thành công trong khoảng thời gian
+      payments = payments.filter(p => {
+        if (p.paymentStatus !== 'PAID' && p.paymentStatus !== 'COMPLETED') return false;
+        const pDate = dayjs(p.paidAt || p.createdAt || new Date());
+        return pDate.isAfter(start) && pDate.isBefore(end);
+      });
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `revenue_report_${dayjs().format('YYYY-MM-DD')}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      if (payments.length === 0) {
+        message.warning('Không có dữ liệu giao dịch trong khoảng thời gian này');
+        return;
+      }
+
+      const generatedOn = dayjs().format('DD/MM/YYYY HH:mm:ss');
+      const totalRev = payments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      const BOM = '\uFEFF';
+      
+      const metaData = [
+        ['PARKSMART - BÁO CÁO DOANH THU CHI TIẾT'],
+        ['=============================================='],
+        [],
+        ['Thời gian báo cáo:', `${start.format('DD/MM/YYYY')} - ${end.format('DD/MM/YYYY')}`],
+        ['Ngày xuất:', generatedOn],
+        ['Tổng doanh thu:', `${totalRev.toLocaleString()} VND`],
+        ['Số lượng giao dịch:', payments.length],
+        [],
+        ['----------------------------------------------']
+      ];
+
+      const headers = [
+        'Ngày giao dịch', 
+        'Tên sản phẩm/dịch vụ', 
+        'Số lượng', 
+        'Đơn giá bán', 
+        'Doanh thu', 
+        'Chi phí phát sinh', 
+        'Lợi nhuận ròng', 
+        'Ghi chú'
+      ];
+      
+      const tableData = payments.map(p => {
+        const date = dayjs(p.paidAt || p.createdAt).format('DD/MM/YYYY');
+        let productName = 'Dịch vụ đỗ xe';
+        if (p.session) productName = `Vé xe (Biển số: ${p.session.licensePlate || 'N/A'})`;
+        else if (p.reservation) productName = `Đặt chỗ trước (Mã: ${p.reservation.reservationId || 'N/A'})`;
+        else if (p.subscription) productName = 'Đăng ký vé tháng';
+
+        const qty = 1;
+        const price = Number(p.amount || 0);
+        const revenue = price * qty;
+        const cost = 0; // Chi phí phát sinh mặc định 0
+        const profit = revenue - cost;
+        const note = p.paymentMethod === 'CASH' ? 'Tiền mặt' : (p.paymentMethod || 'Khác');
+
+        return [
+          date,
+          `"${productName}"`,
+          qty,
+          price,
+          revenue,
+          cost,
+          profit,
+          `"${note}"`
+        ];
+      });
+
+      const csvContent = BOM + 
+        metaData.map(e => e.join(',')).join('\n') + '\n' +
+        headers.join(',') + '\n' +
+        tableData.map(row => row.join(',')).join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `ParkSmart_BaoCaoChiTiet_${dayjs().format('YYYYMMDD')}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      message.success('Xuất file thành công!');
+    } catch (error) {
+      message.error('Lỗi khi tải dữ liệu giao dịch');
+      console.error(error);
+    }
   };
 
   return (
