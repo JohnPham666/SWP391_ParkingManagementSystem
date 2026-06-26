@@ -162,7 +162,7 @@ export const monitoringApi = {
 
 export const slotApi = {
   getSlots: () => api.get('/slots'),
-  updateSlotStatus: (id, status) => api.patch(`/slots/${id}/status?status=${status}`),
+  updateSlotStatus: (id, status) => api.patch(`/slots/${id}/status`, { status }),
 };
 
 export default api;

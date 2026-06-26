@@ -1,28 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Statistic, Typography, Table, Select, Button, Space, Tag, Modal, Descriptions } from 'antd';
+import { Row, Col, Card, Statistic, Typography, Table, Select, Button, Space, Tag } from 'antd';
 import { 
   CarOutlined, 
   DollarOutlined, 
-  SafetyCertificateOutlined,
-  CheckCircleOutlined,
-  AlertOutlined
+  AlertOutlined,
+  AppstoreOutlined
 } from '@ant-design/icons';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { monitoringApi, incidentApi, vehicleApi } from '../../services/api';
 
 const { Title, Text } = Typography;
-const { Option } = Select;
-
-const data = [
-  { name: 'Mon', rate: 45 },
-  { name: 'Tue', rate: 52 },
-  { name: 'Wed', rate: 68 },
-  { name: 'Thu', rate: 74 },
-  { name: 'Fri', rate: 85 },
-  { name: 'Sat', rate: 92 },
-  { name: 'Sun', rate: 88 },
-];
 
 const ManagerDashboard = () => {
   const [stats, setStats] = useState({
@@ -34,13 +21,7 @@ const ManagerDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [unresolvedIncidentsCount, setUnresolvedIncidentsCount] = useState(0);
   const [pendingVehiclesCount, setPendingVehiclesCount] = useState(0);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState(null);
   const navigate = useNavigate();
-
-  // Filters for Table 2
-  const [statusFilter, setStatusFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
 
   const auth = JSON.parse(localStorage.getItem('parking_auth') || '{}');
   const isStaff = auth.user?.roleName === 'ParkingStaff' || auth.role === 'ParkingStaff' || auth.user?.role === 'ParkingStaff';
@@ -146,105 +127,13 @@ const ManagerDashboard = () => {
     },
   ];
 
-  // Prepare data for Table 2: Sơ đồ bãi đỗ xe chi tiết
-  const slotsData = [];
-  const vehicleTypesSet = new Set();
-
-  if (dashboardData.buildings) {
-    dashboardData.buildings.forEach(b => {
-      b.floors.forEach(f => {
-        f.zones.forEach(z => {
-          z.slots.forEach(s => {
-            const vType = s.vehicleTypeName || s.vehicleType?.typeName || 'Khác';
-            vehicleTypesSet.add(vType);
-            
-            slotsData.push({
-              key: s.slotId,
-              slotCode: s.slotCode,
-              location: `${b.buildingName} - ${f.floorName} - ${z.zoneName}`,
-              vehicleType: vType,
-              status: s.status,
-              fullData: {
-                ...s,
-                buildingName: b.buildingName,
-                floorName: f.floorName,
-                zoneName: z.zoneName,
-                vehicleTypeName: vType
-              }
-            });
-          });
-        });
-      });
-    });
-  }
-
-  const uniqueVehicleTypes = Array.from(vehicleTypesSet);
-
-  // Filter slots data
-  const filteredSlotsData = slotsData.filter(s => {
-    let matchStatus = true;
-    if (statusFilter === 'AVAILABLE') matchStatus = s.status === 'AVAILABLE';
-    if (statusFilter === 'OCCUPIED') matchStatus = s.status === 'OCCUPIED';
-    if (statusFilter === 'RESERVED') matchStatus = s.status === 'RESERVED';
-    
-    let matchType = true;
-    if (typeFilter) matchType = s.vehicleType === typeFilter;
-
-    return matchStatus && matchType;
-  });
-
-  const slotsColumns = [
-    {
-      title: 'SLOT CODE',
-      dataIndex: 'slotCode',
-      key: 'slotCode',
-      render: (text) => <Text strong>{text}</Text>
-    },
-    {
-      title: 'LOCATION',
-      dataIndex: 'location',
-      key: 'location',
-    },
-    {
-      title: 'VEHICLE TYPE',
-      dataIndex: 'vehicleType',
-      key: 'vehicleType',
-    },
-    {
-      title: 'STATUS',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => {
-        if (status === 'AVAILABLE') return <Text style={{ color: '#10b981', fontWeight: 500 }}>Available</Text>;
-        if (status === 'OCCUPIED') return <Text style={{ color: '#ef4444', fontWeight: 500 }}>Occupied</Text>;
-        if (status === 'RESERVED') return <Text style={{ color: '#3b82f6', fontWeight: 500 }}>Reserved</Text>;
-        return <Text style={{ color: '#f59e0b', fontWeight: 500 }}>{status}</Text>;
-      }
-    },
-    {
-      title: 'ACTION',
-      key: 'actions',
-      render: (_, record) => {
-        return (
-          <Space>
-            <Button size="small" type="primary" onClick={() => {
-              setSelectedSlot(record.fullData);
-              setIsModalVisible(true);
-            }}>View</Button>
-            {record.status === 'AVAILABLE' && <Button size="small">Lock</Button>}
-          </Space>
-        );
-      }
-    },
-  ];
-
   return (
     <div>
       <Title level={2} style={{ marginBottom: 24 }}>System Dashboard</Title>
       
       <Row gutter={[16, 16]}>
         {!isStaff && (
-          <Col xs={24} sm={12} md={8}>
+          <Col xs={24} sm={12} md={6}>
             <Card 
               bordered={false} 
               hoverable
@@ -261,7 +150,7 @@ const ManagerDashboard = () => {
             </Card>
           </Col>
         )}
-        <Col xs={24} sm={12} md={isStaff ? 12 : 8}>
+        <Col xs={24} sm={12} md={isStaff ? 8 : 6}>
           <Card 
             bordered={false} 
             hoverable
@@ -276,7 +165,7 @@ const ManagerDashboard = () => {
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={isStaff ? 12 : 8}>
+        <Col xs={24} sm={12} md={isStaff ? 8 : 6}>
           <Card 
             bordered={false} 
             hoverable
@@ -288,6 +177,21 @@ const ManagerDashboard = () => {
               value={pendingVehiclesCount}
               prefix={<CarOutlined />}
               valueStyle={{ color: '#faad14', fontWeight: 600 }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={isStaff ? 8 : 6}>
+          <Card 
+            bordered={false} 
+            hoverable
+            onClick={() => navigate('/manager/slots')}
+            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer', borderLeft: '4px solid #1677ff' }}
+          >
+            <Statistic
+              title="Parking Slots Management"
+              value="Manage"
+              prefix={<AppstoreOutlined />}
+              valueStyle={{ color: '#1677ff', fontWeight: 600 }}
             />
           </Card>
         </Col>
@@ -315,8 +219,6 @@ const ManagerDashboard = () => {
         </Col>
       </Row>
 
-
-
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col span={24}>
           <Card title="Occupancy Statistics (Area Status)" bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
@@ -330,72 +232,8 @@ const ManagerDashboard = () => {
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-        <Col span={24}>
-          <Card 
-            title="Detailed Parking Layout" 
-            bordered={false} 
-            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
-            extra={
-              <Space>
-                <Select defaultValue="" style={{ minWidth: 180 }} onChange={setStatusFilter}>
-                  <Option value="">All Statuses</Option>
-                  <Option value="AVAILABLE">Available</Option>
-                  <Option value="OCCUPIED">Occupied</Option>
-                  <Option value="RESERVED">Reserved</Option>
-                </Select>
-                <Select defaultValue="" style={{ minWidth: 160 }} onChange={setTypeFilter}>
-                  <Option value="">All Vehicle Types</Option>
-                  {uniqueVehicleTypes.map(type => (
-                    <Option key={type} value={type}>{type}</Option>
-                  ))}
-                </Select>
-              </Space>
-            }
-          >
-            <Table 
-              columns={slotsColumns} 
-              dataSource={filteredSlotsData}
-              pagination={{ pageSize: 10 }}
-              bordered={false}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      <Modal
-        title={`Slot Details: ${selectedSlot?.slotCode}`}
-        open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setIsModalVisible(false)}>
-            Close
-          </Button>
-        ]}
-      >
-        {selectedSlot && (
-          <Descriptions bordered column={1} size="small">
-            <Descriptions.Item label="Slot ID">{selectedSlot.slotId}</Descriptions.Item>
-            <Descriptions.Item label="Slot Code">{selectedSlot.slotCode}</Descriptions.Item>
-            <Descriptions.Item label="Building">{selectedSlot.buildingName}</Descriptions.Item>
-            <Descriptions.Item label="Floor">{selectedSlot.floorName}</Descriptions.Item>
-            <Descriptions.Item label="Zone">{selectedSlot.zoneName}</Descriptions.Item>
-            <Descriptions.Item label="Vehicle Type">{selectedSlot.vehicleTypeName}</Descriptions.Item>
-            <Descriptions.Item label="Status">
-              <Tag color={selectedSlot.status === 'AVAILABLE' ? 'green' : selectedSlot.status === 'OCCUPIED' ? 'red' : selectedSlot.status === 'RESERVED' ? 'blue' : 'orange'}>
-                {selectedSlot.status}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="Capacity">{selectedSlot.capacity || 1}</Descriptions.Item>
-            <Descriptions.Item label="Current Occupancy">{selectedSlot.currentOccupancy || 0}</Descriptions.Item>
-            <Descriptions.Item label="Is Active">{selectedSlot.isActive !== false ? 'Yes' : 'No'}</Descriptions.Item>
-          </Descriptions>
-        )}
-      </Modal>
-
     </div>
   );
 };
 
 export default ManagerDashboard;
-
