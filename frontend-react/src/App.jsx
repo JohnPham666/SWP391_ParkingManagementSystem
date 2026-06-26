@@ -63,19 +63,19 @@ const PrivateRoute = ({ children, allowedRoles }) => {
   if (!authStr) {
     return <Navigate to="/login" replace />;
   }
-  
+
   try {
     const auth = JSON.parse(authStr);
     if (!auth || !auth.role) {
       return <Navigate to="/login" replace />;
     }
-    
+
     // Check role and normalize it by stripping 'ROLE_' prefix if it exists
     let role = auth.role.toUpperCase();
     if (role.startsWith('ROLE_')) {
       role = role.substring(5);
     }
-    
+
     if (allowedRoles && !allowedRoles.includes(role)) {
       // Redirect to their default dashboard
       const route = getDefaultRouteByRole(auth);
@@ -84,7 +84,7 @@ const PrivateRoute = ({ children, allowedRoles }) => {
   } catch (e) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return children;
 };
 
@@ -109,7 +109,7 @@ function App() {
           {/* Nhánh 2: Auth (Login dùng chung hoặc chia ra sau) */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          
+
           {/* Nhánh 3: Quản trị (Admin) */}
           <Route path="/admin" element={<PrivateRoute allowedRoles={['ADMIN']}><MainLayout /></PrivateRoute>}>
             <Route index element={<AdminDashboard />} />
@@ -127,7 +127,7 @@ function App() {
           </Route>
 
           {/* Nhánh 4: Quản trị (Manager) */}
-          <Route path="/manager" element={<PrivateRoute allowedRoles={['PARKING_MANAGER', 'ADMIN']}><MainLayout /></PrivateRoute>}>
+          <Route path="/manager" element={<PrivateRoute allowedRoles={['PARKING_MANAGER', 'PARKINGMANAGER', 'ADMIN']}><MainLayout /></PrivateRoute>}>
             <Route index element={<ManagerDashboard />} />
             <Route path="users" element={<ManagerUsers />} />
             <Route path="sessions" element={<ManagerSessions />} />
@@ -143,7 +143,7 @@ function App() {
           </Route>
 
           {/* Nhánh 5: Quản trị (Staff) */}
-          <Route path="/staff" element={<PrivateRoute allowedRoles={['PARKING_STAFF', 'ADMIN']}><MainLayout /></PrivateRoute>}>
+          <Route path="/staff" element={<PrivateRoute allowedRoles={['PARKING_STAFF', 'PARKINGSTAFF', 'ADMIN']}><MainLayout /></PrivateRoute>}>
             <Route index element={<StaffDashboard />} />
             <Route path="slots" element={<StaffSlots />} />
             <Route path="reservations" element={<StaffReservations />} />
