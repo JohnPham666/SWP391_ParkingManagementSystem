@@ -40,6 +40,25 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
+    public java.util.List<com.parking.management.module.report.dto.DailyRevenueDto> getDailyRevenueTrend(LocalDate from, LocalDate to) {
+        if (from == null || to == null) {
+            throw new IllegalArgumentException("fromDate and toDate are required");
+        }
+        if (to.isBefore(from)) {
+            throw new IllegalArgumentException("toDate must be after or equal to fromDate");
+        }
+        var fromDateTime = from.atStartOfDay();
+        var toDateTime = to.atTime(23, 59, 59);
+
+        java.util.List<Object[]> rawResults = paymentRepository.getDailyRevenueTrendNative(fromDateTime, toDateTime);
+        return rawResults.stream().map(obj -> {
+            java.sql.Date date = (java.sql.Date) obj[0];
+            java.math.BigDecimal revenue = (java.math.BigDecimal) obj[1];
+            return new com.parking.management.module.report.dto.DailyRevenueDto(date.toLocalDate(), revenue);
+        }).toList();
+    }
+
+    @Override
     public OccupancyReportResponse getOccupancyRateByFloor(Integer floorId) {
         long totalSlots;
         long availableSlots;
@@ -70,6 +89,11 @@ public class ReportServiceImpl implements ReportService {
                 reservedSlots,
                 occupancyRate
         );
+    }
+
+    @Override
+    public java.util.List<com.parking.management.module.report.dto.ZoneOccupancyDto> getOccupancyBreakdown() {
+        return parkingSlotRepository.getOccupancyBreakdown();
     }
 
     @Override

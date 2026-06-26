@@ -45,6 +45,10 @@ public class ReservationService {
         Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + request.getVehicleId()));
 
+        if (!"APPROVED".equals(vehicle.getStatus())) {
+            throw new IllegalArgumentException("Phương tiện chưa được duyệt (APPROVED), không thể đặt chỗ.");
+        }
+
         VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle type not found with id: " + request.getVehicleTypeId()));
 
@@ -141,6 +145,10 @@ public class ReservationService {
 
         Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + request.getVehicleId()));
+
+        if (!"APPROVED".equals(vehicle.getStatus())) {
+            throw new IllegalArgumentException("Phương tiện chưa được duyệt (APPROVED), không thể đặt chỗ.");
+        }
 
         VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle type not found with id: " + request.getVehicleTypeId()));

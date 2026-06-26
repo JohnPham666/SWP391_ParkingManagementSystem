@@ -86,4 +86,18 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
             @Param("floorId") Integer floorId,
             @Param("zoneId") Integer zoneId,
             @Param("vehicleTypeId") Integer vehicleTypeId);
+
+    @Query("""
+           SELECT new com.parking.management.module.report.dto.ZoneOccupancyDto(
+               z.zoneName, 
+               COUNT(s.slotId)
+           )
+           FROM ParkingSlot s
+           JOIN s.zone z
+           WHERE s.status IN (com.parking.management.module.slot.SlotStatus.OCCUPIED, com.parking.management.module.slot.SlotStatus.RESERVED)
+             AND s.isActive = true
+           GROUP BY z.zoneName
+           ORDER BY z.zoneName
+           """)
+    List<com.parking.management.module.report.dto.ZoneOccupancyDto> getOccupancyBreakdown();
 }

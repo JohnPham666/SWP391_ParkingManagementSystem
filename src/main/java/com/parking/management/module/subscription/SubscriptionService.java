@@ -44,6 +44,10 @@ public class SubscriptionService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Vehicle not found with id: " + request.getVehicleId()));
 
+        if (!"APPROVED".equals(vehicle.getStatus())) {
+            throw new IllegalArgumentException("Phương tiện chưa được duyệt (APPROVED), không thể đăng ký vé tháng.");
+        }
+
         // Kiểm tra xem xe này đã có vé tháng ACTIVE chưa
         List<MonthlySubscription> existingSubs = repository.findByVehicle_VehicleId(request.getVehicleId());
         boolean hasActiveSub = existingSubs.stream()
@@ -159,6 +163,10 @@ public class SubscriptionService {
         Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Vehicle not found with id: " + request.getVehicleId()));
+
+        if (!"APPROVED".equals(vehicle.getStatus())) {
+            throw new IllegalArgumentException("Phương tiện chưa được duyệt (APPROVED), không thể đăng ký vé tháng.");
+        }
         subscription.setVehicle(vehicle);
 
         // Cập nhật Slot (nếu có)

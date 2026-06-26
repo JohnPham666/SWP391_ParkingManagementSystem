@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 
 // Auth
@@ -24,6 +24,16 @@ import UserManagement from './pages/admin/UserManagement';
 import ManagerDashboard from './pages/manager/ManagerDashboard';
 import ManagerSessions from './pages/manager/ManagerSessions';
 import ManagerIncidents from './pages/manager/ManagerIncidents';
+import ManagerUsers from './pages/manager/ManagerUsers';
+import ManagerBuildings from './pages/manager/ManagerBuildings';
+import ManagerPayments from './pages/manager/ManagerPayments';
+import ManagerPricing from './pages/manager/ManagerPricing';
+import ManagerReports from './pages/manager/ManagerReports';
+import ManagerReservations from './pages/manager/ManagerReservations';
+import ManagerSlots from './pages/manager/ManagerSlots';
+import ManagerSubscriptions from './pages/manager/ManagerSubscriptions';
+import ManagerVehicles from './pages/manager/ManagerVehicles';
+
 import SubscriptionManagement from './pages/admin/SubscriptionManagement';
 import BuildingManagement from './pages/admin/BuildingManagement';
 import PricingManagement from './pages/admin/PricingManagement';
@@ -87,16 +97,17 @@ function App() {
           {/* Nhánh 4: Quản trị (Manager) */}
           <Route path="/manager" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
             <Route index element={<ManagerDashboard />} />
+            <Route path="users" element={<ManagerUsers />} />
             <Route path="sessions" element={<ManagerSessions />} />
-            <Route path="slots" element={<SlotManagement />} />
-            <Route path="vehicles" element={<VehicleManagement />} />
-            <Route path="reservations" element={<ReservationManagement />} />
-            <Route path="payments" element={<PaymentManagement />} />
+            <Route path="slots" element={<ManagerSlots />} />
+            <Route path="vehicles" element={<ManagerVehicles />} />
+            <Route path="reservations" element={<ManagerReservations />} />
+            <Route path="payments" element={<ManagerPayments />} />
             <Route path="incidents" element={<ManagerIncidents />} />
-            <Route path="subscriptions" element={<SubscriptionManagement />} />
-            <Route path="buildings" element={<BuildingManagement />} />
-            <Route path="pricing" element={<PricingManagement />} />
-            <Route path="reports" element={<ReportManagement />} />
+            <Route path="subscriptions" element={<ManagerSubscriptions />} />
+            <Route path="buildings" element={<ManagerBuildings />} />
+            <Route path="pricing" element={<ManagerPricing />} />
+            <Route path="reports" element={<ManagerReports />} />
           </Route>
 
           {/* Nhánh 5: Quản trị (Staff) */}
