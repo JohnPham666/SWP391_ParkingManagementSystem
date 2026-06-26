@@ -269,32 +269,32 @@ const VehiclePage = () => {
                             </Form.Item>
                         </Col>
                         <Col span={12}>
-                            <Form.Item name="brand" label="Brand (Hãng xe)"><Input size="large" /></Form.Item>
+                            <Form.Item name="brand" label="Brand"><Input size="large" /></Form.Item>
                         </Col>
                         <Col span={12}>
-                            <Form.Item name="color" label="Color (Màu xe)"><Input size="large" /></Form.Item>
+                            <Form.Item name="color" label="Color"><Input size="large" /></Form.Item>
                         </Col>
                         <Col span={12}>
-                            <Form.Item name="engineNumber" label="Engine No. (Số máy)"><Input size="large" /></Form.Item>
+                            <Form.Item name="engineNumber" label="Engine Number"><Input size="large" /></Form.Item>
                         </Col>
                         <Col span={12}>
-                            <Form.Item name="chassisNumber" label="Chassis No. (Số khung)"><Input size="large" /></Form.Item>
+                            <Form.Item name="chassisNumber" label="Chassis Number"><Input size="large" /></Form.Item>
                         </Col>
                         <Col span={12}>
-                            <Form.Item name="manufactureYear" label="Manufacture Year (Năm sản xuất)"><Input type="number" size="large" /></Form.Item>
+                            <Form.Item name="manufactureYear" label="Manufacture Year"><Input type="number" size="large" /></Form.Item>
                         </Col>
                     </Row>
                     
                     <div style={{ marginTop: 16, background: '#f8fafc', padding: '16px', borderRadius: '8px' }}>
-                        <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 8, color: '#334155' }}>Ảnh đính kèm (Tối đa 20 ảnh)</Text>
+                        <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 8, color: '#334155' }}>Attached Images (Max 20 images)</Text>
                         <ul style={{ color: '#64748b', fontSize: 14, marginBottom: 16, listStyleType: 'none', paddingLeft: 0 }}>
-                            <li style={{ marginBottom: 4 }}>- Ảnh chân dung người đăng ký</li>
-                            <li style={{ marginBottom: 4 }}>- Ảnh mặt trước CMND/CCCD/Hộ chiếu/Giấy khai sinh</li>
-                            <li style={{ marginBottom: 4 }}>- Ảnh mặt sau CMND/CCCD</li>
-                            <li style={{ marginBottom: 4 }}>- Hình chụp giấy đăng ký xe máy/ô tô (nếu đăng ký gửi xe máy/xe ô tô)</li>
-                            <li style={{ marginBottom: 4 }}>- Hình chụp CĐ cùng xe đạp/xe đạp điện (nếu đăng ký gửi xe đạp/xe đạp điện)</li>
-                            <li style={{ marginBottom: 4 }}>- Đối với xe ô tô: xác nhận cư trú tại căn hộ (Tạm trú/thường trú) nộp trong vòng 30 ngày kể từ ngày đăng ký (trừ CSH và vợ chồng con cái, anh/chị/em ruột, tứ thân phụ mẫu và các căn shop)</li>
-                            <li style={{ marginBottom: 4 }}>- Đối với xe máy/xe đạp: Đăng ký xe ngoài hạn mức cần có xác nhận cư trú tại căn hộ (tạm trú/thường trú)</li>
+                            <li style={{ marginBottom: 4 }}>- Portrait photo of the registrant</li>
+                            <li style={{ marginBottom: 4 }}>- Front side of ID Card / Citizen ID / Passport / Birth Certificate (CMND/CCCD/Hộ chiếu/Giấy khai sinh)</li>
+                            <li style={{ marginBottom: 4 }}>- Back side of ID Card / Citizen ID (CMND/CCCD)</li>
+                            <li style={{ marginBottom: 4 }}>- Photo of vehicle registration certificate (Giấy đăng ký xe) for car/motorbike</li>
+                            <li style={{ marginBottom: 4 }}>- Photo of the resident with bicycle/e-bike (if registering a bicycle/e-bike)</li>
+                            <li style={{ marginBottom: 4 }}>- For cars: Proof of residence (Xác nhận cư trú) submitted within 30 days of registration (except for owner, spouse, children, siblings, parents, and shop houses)</li>
+                            <li style={{ marginBottom: 4 }}>- For motorbikes/bicycles: Exceeding limit registration requires proof of residence (Xác nhận cư trú)</li>
                         </ul>
                         <Upload
                             listType="picture-card"
