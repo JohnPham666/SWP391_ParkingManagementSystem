@@ -6,10 +6,11 @@ import {
   ArrowRightOutlined,
   LogoutOutlined,
   ScanOutlined,
-  UploadOutlined
+  UploadOutlined,
+  CheckCircleFilled
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { monitoringApi, reservationApi, sessionApi, paymentApi, vehicleApi } from '../../services/api';
+import { monitoringApi, reservationApi, sessionApi, paymentApi, vehicleApi, pricingApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -37,6 +38,34 @@ const StaffDashboard = () => {
   const [checkOutSearchForm] = Form.useForm();
   const [checkOutConfirmForm] = Form.useForm();
 
+  // --- Poll VNPay Status ---
+  useEffect(() => {
+    let interval = null;
+    if (checkOutStep === 3 && checkoutSessionData?.paymentId) {
+      interval = setInterval(async () => {
+        try {
+          const res = await paymentApi.getPayment(checkoutSessionData.paymentId);
+          const paymentData = res.data?.data || res.data;
+          if (paymentData.paymentStatus === 'PAID') {
+             clearInterval(interval);
+             setCheckOutStep(4);
+             fetchData();
+             setTimeout(() => {
+                setIsCheckOutVisible(false);
+                setCheckOutStep(1);
+                checkOutSearchForm.resetFields();
+                checkOutConfirmForm.resetFields();
+             }, 3000);
+          }
+        } catch (e) {
+          console.error("Error polling VNPay status", e);
+        }
+      }, 3000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [checkOutStep, checkoutSessionData]);
   useEffect(() => {
     fetchData();
     const interval = setInterval(() => {
@@ -173,16 +202,29 @@ const StaffDashboard = () => {
         exitImageUrl = URL.createObjectURL(exitImageFile);
       }
 
-      // Call checkOut API immediately to get the calculated finalFee
-      const checkOutRes = await sessionApi.checkOut(targetSession.sessionId, { exitGate: 'Gate A' });
-      const updatedSession = checkOutRes.data?.data || checkOutRes.data;
+      const exitTimeIso = new Date().toISOString();
+      let calculatedFee = 0;
+      
+      if (!targetSession.hasActiveSubscription) {
+         try {
+             const feeRes = await pricingApi.calculateFee({
+                vehicleTypeId: targetSession.vehicleTypeId,
+                entryTime: dayjs(targetSession.entryTime).format('YYYY-MM-DDTHH:mm:ss'),
+                exitTime: dayjs(exitTimeIso).format('YYYY-MM-DDTHH:mm:ss')
+             });
+             calculatedFee = feeRes.data.data.finalFee;
+         } catch (e) {
+             console.error("Fee calculation failed", e);
+             message.error("Lỗi tính phí từ Backend: " + (e.response?.data?.message || e.message));
+         }
+      }
 
       setCheckoutSessionData({
         ...targetSession,
-        ...updatedSession, // merge with updated session to get finalFee
         exitImageFile,
         exitImageUrl,
-        totalFee: updatedSession.finalFee || 0
+        exitTime: exitTimeIso,
+        totalFee: calculatedFee
       });
 
       setCheckOutStep(2);
@@ -199,11 +241,15 @@ const StaffDashboard = () => {
     try {
       const sessionId = checkoutSessionData.sessionId;
       
+      // 1. Check out to finalize the fee and change status to UNPAID or COMPLETED
+      const checkOutRes = await sessionApi.checkOut(sessionId, { exitGate: 'Gate A' });
+      const updatedSession = checkOutRes.data?.data || checkOutRes.data;
+
       if (checkoutSessionData.exitImageFile) {
         await sessionApi.uploadSessionImage(sessionId, checkoutSessionData.exitImageFile, 'exit');
       }
 
-      if (checkoutSessionData.status === 'COMPLETED') {
+      if (updatedSession.status === 'COMPLETED' || updatedSession.finalFee === 0) {
          message.success('Check-out Successful (Pre-paid / Zero Fee)');
          setIsCheckOutVisible(false);
          setCheckOutStep(1);
@@ -220,19 +266,20 @@ const StaffDashboard = () => {
       if (values.paymentMethod === 'CASH' || checkoutSessionData.totalFee === 0) {
          await paymentApi.confirmCash(paymentId);
          message.success('Check-out & Payment Successful!');
+         setIsCheckOutVisible(false);
+         setCheckOutStep(1);
+         checkOutSearchForm.resetFields();
+         checkOutConfirmForm.resetFields();
+         fetchData();
       } else {
          const vnRes = await paymentApi.createVnPayUrl(paymentId);
          if (vnRes.data?.data?.paymentUrl) {
             window.open(vnRes.data.data.paymentUrl, '_blank');
             message.info('Opened VNPay Payment Gateway');
+            setCheckoutSessionData({ ...checkoutSessionData, paymentId });
+            setCheckOutStep(3);
          }
       }
-      
-      setIsCheckOutVisible(false);
-      setCheckOutStep(1);
-      checkOutSearchForm.resetFields();
-      checkOutConfirmForm.resetFields();
-      fetchData();
     } catch (error) {
       message.error(error.response?.data?.message || 'Check-out failed');
     }
@@ -437,8 +484,11 @@ const StaffDashboard = () => {
 
         <Form form={checkInForm} layout="vertical" onFinish={handleCheckInSubmit} size="large">
           <Form.Item name="entryImage" label="Entry Image (Camera)" rules={[{ required: true, message: 'Please upload image' }]}>
-            <Upload beforeUpload={() => false} maxCount={1} listType="picture">
-              <Button icon={<UploadOutlined />} block>Upload Vehicle Image</Button>
+            <Upload beforeUpload={() => false} maxCount={1} listType="picture-card">
+              <div>
+                <UploadOutlined style={{ fontSize: '24px', color: '#8c8c8c' }} />
+                <div style={{ marginTop: 8, color: '#8c8c8c' }}>Upload</div>
+              </div>
             </Upload>
           </Form.Item>
           
@@ -546,8 +596,11 @@ const StaffDashboard = () => {
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="exitImage" label="Exit Image" rules={[{ required: true, message: 'Upload image' }]}>
-                  <Upload beforeUpload={() => false} maxCount={1} listType="picture">
-                    <Button icon={<UploadOutlined />} block>Upload Image</Button>
+                  <Upload beforeUpload={() => false} maxCount={1} listType="picture-card">
+                    <div>
+                      <UploadOutlined style={{ fontSize: '24px', color: '#8c8c8c' }} />
+                      <div style={{ marginTop: 8, color: '#8c8c8c' }}>Upload</div>
+                    </div>
                   </Upload>
                 </Form.Item>
               </Col>
@@ -569,9 +622,9 @@ const StaffDashboard = () => {
               <Col span={12} style={{ textAlign: 'center' }}>
                 <p><strong>Entry Image</strong></p>
                 {checkoutSessionData.entryImage ? (
-                  <img src={`http://localhost:8080${checkoutSessionData.entryImage}`} alt="Entry" style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px' }} />
+                  <img src={`http://localhost:8080${checkoutSessionData.entryImage}`} alt="Entry" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px' }} />
                 ) : (
-                  <div style={{ height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                  <div style={{ width: '100%', aspectRatio: '1/1', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
                     <Text type="secondary">No Image</Text>
                   </div>
                 )}
@@ -579,9 +632,9 @@ const StaffDashboard = () => {
               <Col span={12} style={{ textAlign: 'center' }}>
                 <p><strong>Exit Image</strong></p>
                 {checkoutSessionData.exitImageUrl ? (
-                   <img src={checkoutSessionData.exitImageUrl} alt="Exit" style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px' }} />
+                   <img src={checkoutSessionData.exitImageUrl} alt="Exit" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px' }} />
                 ) : (
-                   <div style={{ height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                   <div style={{ width: '100%', aspectRatio: '1/1', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
                     <Text type="secondary">No Image</Text>
                   </div>
                 )}
@@ -592,11 +645,13 @@ const StaffDashboard = () => {
               <Row>
                 <Col span={12}>
                   <p><strong>Plate:</strong> <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>{checkoutSessionData.licensePlate}</Text></p>
-                  <p><strong>Entry:</strong> {dayjs(checkoutSessionData.checkInTime).format('DD/MM/YYYY HH:mm:ss')}</p>
+                  <p><strong>Entry:</strong> {dayjs(checkoutSessionData.entryTime || checkoutSessionData.checkInTime).format('DD/MM/YYYY HH:mm:ss')}</p>
                 </Col>
                 <Col span={12}>
                   <p><strong>Exit:</strong> {dayjs(checkoutSessionData.exitTime).format('DD/MM/YYYY HH:mm:ss')}</p>
-                  <p><strong>Fee:</strong> <Text strong style={{ color: '#ea580c', fontSize: '18px' }}>{checkoutSessionData.totalFee.toLocaleString()} ₫</Text></p>
+                  <div style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold', marginTop: '10px' }}>
+                    Fee: {checkoutSessionData.totalFee.toLocaleString()} ₫
+                  </div>
                 </Col>
               </Row>
             </Card>
@@ -615,6 +670,49 @@ const StaffDashboard = () => {
               </Button>
             </div>
           </Form>
+        )}
+
+        {checkOutStep === 3 && checkoutSessionData && (
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <Spin size="large" />
+            <Title level={4} style={{ marginTop: 24, color: '#1677ff' }}>Đang chờ thanh toán VNPay...</Title>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
+              Vui lòng hoàn tất thanh toán ở tab VNPay. Hệ thống sẽ tự động đóng popup khi thanh toán thành công.
+            </Text>
+            
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+              <Button onClick={() => {
+                 setIsCheckOutVisible(false);
+                 setCheckOutStep(1);
+                 checkOutSearchForm.resetFields();
+                 checkOutConfirmForm.resetFields();
+                 fetchData();
+              }}>Đóng (Hủy thanh toán)</Button>
+              <Button type="primary" danger onClick={async () => {
+                try {
+                  await paymentApi.confirmCash(checkoutSessionData.paymentId);
+                  message.success('Đã chuyển sang tiền mặt. Check-out thành công!');
+                  setIsCheckOutVisible(false);
+                  setCheckOutStep(1);
+                  checkOutSearchForm.resetFields();
+                  checkOutConfirmForm.resetFields();
+                  fetchData();
+                } catch(e) {
+                  message.error('Failed to switch to CASH');
+                }
+              }}>
+                Chuyển sang Tiền Mặt (CASH)
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {checkOutStep === 4 && (
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <CheckCircleFilled style={{ fontSize: 72, color: '#52c41a' }} />
+            <Title level={3} style={{ marginTop: 24, color: '#52c41a' }}>Thanh Toán Thành Công!</Title>
+            <Text type="secondary">Cửa tự động mở. Vui lòng xe di chuyển ra ngoài...</Text>
+          </div>
         )}
       </Modal>
     </div>

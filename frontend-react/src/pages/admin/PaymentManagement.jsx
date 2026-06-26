@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Tag, message, Card, Space, Input, Select, Popconfirm } from 'antd';
+import { Table, Button, Tag, message, Card, Space, Input, Select, Popconfirm, DatePicker } from 'antd';
 import { SearchOutlined, DollarOutlined } from '@ant-design/icons';
 import { paymentApi } from '../../services/api';
 import dayjs from 'dayjs';
@@ -9,7 +9,7 @@ const { Option } = Select;
 const PaymentManagement = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({ search: '', status: null });
+  const [filters, setFilters] = useState({ search: '', status: null, dateRange: null });
 
   useEffect(() => {
     fetchPayments();
@@ -52,7 +52,17 @@ const PaymentManagement = () => {
       p.paymentId?.toString().includes(filters.search) ||
       p.paymentMethod?.toLowerCase().includes(filters.search.toLowerCase());
     const statusMatch = !filters.status || p.paymentStatus === filters.status;
-    return searchMatch && statusMatch;
+    
+    let dateMatch = true;
+    if (filters.dateRange && filters.dateRange.length === 2) {
+      const pDate = dayjs(p.paidAt || p.createdAt || p.paymentId); // Fallback if no dates
+      // If paidAt exists, it's safe to parse
+      if (p.paidAt || p.createdAt) {
+         dateMatch = pDate.isAfter(filters.dateRange[0].startOf('day')) && pDate.isBefore(filters.dateRange[1].endOf('day'));
+      }
+    }
+
+    return searchMatch && statusMatch && dateMatch;
   });
 
   const columns = [
@@ -97,7 +107,7 @@ const PaymentManagement = () => {
         let color = 'default';
         let text = status;
         if (status === 'PENDING') { color = 'warning'; text = 'Pending'; }
-        if (status === 'SUCCESS') { color = 'success'; text = 'Success'; }
+        if (status === 'PAID') { color = 'success'; text = 'Paid'; }
         if (status === 'FAILED') { color = 'error'; text = 'Failed'; }
         return <Tag color={color}>{text}</Tag>;
       }
@@ -139,9 +149,13 @@ const PaymentManagement = () => {
           onChange={(val) => setFilters({ ...filters, status: val })}
         >
           <Option value="PENDING">Pending</Option>
-          <Option value="SUCCESS">Success</Option>
+          <Option value="PAID">Paid</Option>
           <Option value="FAILED">Failed</Option>
         </Select>
+        <DatePicker.RangePicker 
+          onChange={(dates) => setFilters({ ...filters, dateRange: dates })}
+          style={{ width: 250 }}
+        />
       </Space>
 
       <Table 

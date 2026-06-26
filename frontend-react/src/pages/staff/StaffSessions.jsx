@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Upload, Row, Col, Typography, Divider, DatePicker } from 'antd';
-import { SearchOutlined, CarOutlined, CreditCardOutlined, UploadOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
-import { sessionApi, paymentApi, vehicleApi } from '../../services/api';
+import { SearchOutlined, CarOutlined, CreditCardOutlined, UploadOutlined, SafetyCertificateOutlined, CheckCircleFilled } from '@ant-design/icons';
+import { sessionApi, paymentApi, vehicleApi, pricingApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -28,13 +28,42 @@ const StaffSessions = () => {
   const [isCheckOutVisible, setIsCheckOutVisible] = useState(false);
   const [isSummaryVisible, setIsSummaryVisible] = useState(false);
   
-  const [checkOutStep, setCheckOutStep] = useState(1); // 1: Search, 2: Confirm
+  const [checkOutStep, setCheckOutStep] = useState(1); // 1: Search, 2: Confirm, 3: Paid, 4: Done
   const [checkoutSessionData, setCheckoutSessionData] = useState(null);
   
   const [walkInForm] = Form.useForm();
   const [resCheckInForm] = Form.useForm();
   const [checkOutSearchForm] = Form.useForm();
   const [checkOutConfirmForm] = Form.useForm();
+
+  // --- Poll VNPay Status ---
+  useEffect(() => {
+    let interval = null;
+    if (checkOutStep === 3 && checkoutSessionData?.paymentId) {
+      interval = setInterval(async () => {
+        try {
+          const res = await paymentApi.getPayment(checkoutSessionData.paymentId);
+          const paymentData = res.data?.data || res.data;
+          if (paymentData.paymentStatus === 'PAID') {
+             clearInterval(interval);
+             setCheckOutStep(4);
+             fetchSessions();
+             setTimeout(() => {
+                setIsCheckOutVisible(false);
+                setCheckOutStep(1);
+                checkOutSearchForm.resetFields();
+                checkOutConfirmForm.resetFields();
+             }, 3000);
+          }
+        } catch (e) {
+          console.error("Error polling VNPay status", e);
+        }
+      }, 3000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [checkOutStep, checkoutSessionData]);
 
   // Summary Data
   const [summaryData, setSummaryData] = useState(null);
@@ -136,12 +165,6 @@ const StaffSessions = () => {
       
       const targetSession = res.data.data;
       
-      // CREATE Payment to get final fee
-      const pRes = await paymentApi.createPayment({ sessionId: targetSession.sessionId, paymentMethod: 'CASH' });
-      let paymentId = pRes.data?.data?.paymentId;
-      let finalFee = pRes.data?.data?.amount || targetSession.estimatedFee || 0;
-
-      // Store checkout image to upload later
       let exitImageUrl = null;
       let exitImageFile = null;
       if (values.exitImage && values.exitImage.fileList.length > 0) {
@@ -149,19 +172,34 @@ const StaffSessions = () => {
         exitImageUrl = URL.createObjectURL(exitImageFile);
       }
 
+      const exitTimeIso = new Date().toISOString();
+      let calculatedFee = 0;
+      
+      if (!targetSession.hasActiveSubscription) {
+         try {
+             const feeRes = await pricingApi.calculateFee({
+                vehicleTypeId: targetSession.vehicleTypeId,
+                entryTime: dayjs(targetSession.entryTime).format('YYYY-MM-DDTHH:mm:ss'),
+                exitTime: dayjs(exitTimeIso).format('YYYY-MM-DDTHH:mm:ss')
+             });
+             calculatedFee = feeRes.data.data.finalFee;
+         } catch (e) {
+             console.error("Fee calculation failed", e);
+             message.error("Lỗi tính phí từ Backend: " + (e.response?.data?.message || e.message));
+         }
+      }
+
       setCheckoutSessionData({
         ...targetSession,
-        paymentId,
         exitImageFile,
         exitImageUrl,
-        exitTime: new Date().toISOString(),
-        totalFee: finalFee
+        exitTime: exitTimeIso,
+        totalFee: calculatedFee
       });
 
       setCheckOutStep(2);
     } catch (error) {
       if (error.response?.data?.message?.includes('already has a PENDING payment')) {
-         // handle existing payment if needed, for simplicity we skip it or show error
          message.error('Vehicle already in checkout process');
       } else {
          message.error(error.response?.data?.message || 'Error finding vehicle');
@@ -172,30 +210,46 @@ const StaffSessions = () => {
   const handleCheckOutConfirm = async (values) => {
     try {
       const sessionId = checkoutSessionData.sessionId;
-      const paymentId = checkoutSessionData.paymentId;
       
-      // Step 1: Upload Exit Image
+      // 1. Check out to finalize the fee and change status to UNPAID or COMPLETED
+      const checkOutRes = await sessionApi.checkOut(sessionId, { exitGate: 'Gate A' });
+      const updatedSession = checkOutRes.data?.data || checkOutRes.data;
+
       if (checkoutSessionData.exitImageFile) {
         await sessionApi.uploadSessionImage(sessionId, checkoutSessionData.exitImageFile, 'exit');
       }
 
-      // Step 2: Confirm Payment (CASH) or VNPay
-      if (values.paymentMethod === 'CASH') {
+      if (updatedSession.status === 'COMPLETED' || updatedSession.finalFee === 0) {
+         message.success('Check-out Successful (Pre-paid / Zero Fee)');
+         setIsCheckOutVisible(false);
+         setCheckOutStep(1);
+         checkOutSearchForm.resetFields();
+         checkOutConfirmForm.resetFields();
+         fetchSessions();
+         return;
+      }
+      
+      // 2. Create Payment
+      const pRes = await paymentApi.createPayment({ sessionId: sessionId, paymentMethod: values.paymentMethod });
+      const paymentId = pRes.data?.data?.paymentId;
+
+      if (values.paymentMethod === 'CASH' || checkoutSessionData.totalFee === 0) {
          await paymentApi.confirmCash(paymentId);
          message.success('Check-out & Payment Successful!');
+         setIsCheckOutVisible(false);
+         setCheckOutStep(1);
+         checkOutSearchForm.resetFields();
+         checkOutConfirmForm.resetFields();
+         fetchSessions();
       } else {
          const vnRes = await paymentApi.createVnPayUrl(paymentId);
          if (vnRes.data?.data?.paymentUrl) {
             window.open(vnRes.data.data.paymentUrl, '_blank');
             message.info('Opened VNPay Payment Gateway');
+            setCheckoutSessionData({ ...checkoutSessionData, paymentId });
+            setCheckOutStep(3);
          }
       }
-      
-      setIsCheckOutVisible(false);
-      setCheckOutStep(1);
-      checkOutSearchForm.resetFields();
-      checkOutConfirmForm.resetFields();
-      fetchSessions();
     } catch (error) {
       message.error(error.response?.data?.message || 'Check-out failed');
     }
@@ -220,7 +274,6 @@ const StaffSessions = () => {
     { title: 'LICENSE PLATE', dataIndex: 'licensePlate', key: 'licensePlate', render: (text) => <strong style={{ fontSize: 14 }}>{text || 'N/A'}</strong> },
     { title: 'SLOT', dataIndex: 'slotCode', key: 'slotCode', render: text => text || '-' },
     { title: 'VEHICLE TYPE', key: 'vehicleType', render: (_, record) => record.vehicleTypeName || record.vehicleType?.typeName || 'Car' },
-    { title: 'VEHICLE ID', dataIndex: 'vehicleId', key: 'vehicleId', render: text => text || '-' },
     { title: 'CARD ID', dataIndex: 'cardId', key: 'cardId', render: text => text || '-' },
     { title: 'ENTRY TIME', key: 'entryTime', render: (_, record) => {
         const time = record.checkInTime || record.checkinTime || record.entryTime;
@@ -232,11 +285,10 @@ const StaffSessions = () => {
     }},
     { title: 'ENTRY GATE', dataIndex: 'entryGate', key: 'entryGate', render: text => text || '-' },
     { title: 'EXIT GATE', dataIndex: 'exitGate', key: 'exitGate', render: text => text || '-' },
-    { title: 'EST. FEE', dataIndex: 'estimatedFee', key: 'estimatedFee', render: text => text != null ? `${text.toLocaleString()} ₫` : '-' },
     { title: 'FINAL FEE', dataIndex: 'finalFee', key: 'finalFee', render: text => text != null ? `${text.toLocaleString()} ₫` : '-' },
     { title: 'CUSTOMER', key: 'customer', render: (_, record) => record.customerName || record.userFullName || '-' },
     { title: 'PHONE', key: 'phone', render: (_, record) => record.customerPhone || record.userPhone || '-' },
-    { title: 'SUB?', dataIndex: 'hasActiveSubscription', key: 'hasActiveSubscription', render: text => text ? 'Yes' : 'No' },
+    { title: 'MONTHLY PASS?', dataIndex: 'hasActiveSubscription', key: 'hasActiveSubscription', render: text => text ? <Tag color="green">Yes</Tag> : <Tag color="default">No</Tag> },
     { title: 'CREATED BY', dataIndex: 'createdBy', key: 'createdBy', render: text => text || '-' },
     {
       title: 'STATUS',
@@ -270,7 +322,9 @@ const StaffSessions = () => {
               exitGate: record.exitGate,
               slot: record.slotCode,
               entryImage: record.entryImage || null,
-              exitImage: record.exitImage || null
+              exitImage: record.exitImage || null,
+              createdBy: record.createdBy || '-',
+              finalFee: record.finalFee != null ? record.finalFee : (record.estimatedFee != null ? record.estimatedFee : 0)
             });
             setIsSummaryVisible(true);
           }}
@@ -283,52 +337,9 @@ const StaffSessions = () => {
 
   return (
     <div>
-      {isStaff && (
-        <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <Title level={4} style={{ margin: 0 }}>Parking Sessions</Title>
-            <Text type="secondary">Staff Operations Panel</Text>
-          </div>
-          <Space>
-            <Button 
-              type="primary" 
-              size="large"
-              icon={<CarOutlined />} 
-              style={{ backgroundColor: '#10b981', minWidth: '160px', fontWeight: 'bold' }}
-              onClick={() => setIsWalkInVisible(true)}
-            >
-              Walk-in Check-in
-            </Button>
-            <Button 
-              type="default" 
-              size="large"
-              icon={<SafetyCertificateOutlined />} 
-              style={{ borderColor: '#3b82f6', color: '#3b82f6', minWidth: '160px', fontWeight: 'bold' }}
-              onClick={() => setIsResCheckInVisible(true)}
-            >
-              Reservation Check-in
-            </Button>
-            <Button 
-              type="primary" 
-              danger 
-              size="large"
-              icon={<CreditCardOutlined />} 
-              style={{ minWidth: '160px', fontWeight: 'bold' }}
-              onClick={() => setIsCheckOutVisible(true)}
-            >
-              Check-out
-            </Button>
-          </Space>
-        </div>
-      </Card>
-      )}
-
       <Card>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '16px' }}>
-          {!isStaff && (
-            <Title level={4} style={{ margin: 0 }}>Parking Sessions</Title>
-          )}
+          <Title level={4} style={{ margin: 0 }}>Parking Sessions</Title>
           <Space style={{ flexWrap: 'wrap' }}>
             <Input 
               placeholder="Search plate..." 
@@ -367,7 +378,7 @@ const StaffSessions = () => {
 
         <Table 
           columns={columns} 
-          dataSource={filteredSessions} 
+          dataSource={[...filteredSessions].sort((a, b) => b.sessionId - a.sessionId)} 
           rowKey="sessionId" 
           loading={loading}
           pagination={{ pageSize: 10 }}
@@ -498,7 +509,14 @@ const StaffSessions = () => {
               </Col>
               <Col span={12}>
                 <Text type="secondary">Staff (In/Out)</Text>
-                <div style={{ fontSize: 16 }}>- / -</div>
+                <div style={{ fontSize: 16 }}>{summaryData.createdBy} / -</div>
+              </Col>
+              
+              <Col span={24} style={{ textAlign: 'center', marginTop: 16 }}>
+                <Text type="secondary" style={{ fontSize: 16 }}>Final Fee</Text>
+                <div style={{ fontSize: 32, fontWeight: 'bold', color: '#ef4444' }}>
+                  {summaryData.finalFee.toLocaleString()} ₫
+                </div>
               </Col>
             </Row>
 
@@ -508,9 +526,9 @@ const StaffSessions = () => {
                 <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: '8px', fontWeight: 600 }}>Entry Image</Text>
                 <div style={{ textAlign: 'center' }}>
                   {summaryData.entryImage ? (
-                    <img src={summaryData.entryImage} alt="Entry" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
+                    <img src={summaryData.entryImage.startsWith('http') ? summaryData.entryImage : `http://localhost:8080${summaryData.entryImage}`} alt="Entry" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
                   ) : (
-                    <div style={{ height: '200px', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                    <div style={{ width: '100%', aspectRatio: '1/1', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
                       <Text type="secondary" italic>No image available</Text>
                     </div>
                   )}
@@ -520,9 +538,9 @@ const StaffSessions = () => {
                 <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: '8px', fontWeight: 600 }}>Exit Image</Text>
                 <div style={{ textAlign: 'center' }}>
                   {summaryData.exitImage ? (
-                    <img src={summaryData.exitImage} alt="Exit" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
+                    <img src={summaryData.exitImage.startsWith('http') ? summaryData.exitImage : `http://localhost:8080${summaryData.exitImage}`} alt="Exit" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
                   ) : (
-                    <div style={{ height: '200px', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                    <div style={{ width: '100%', aspectRatio: '1/1', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
                       <Text type="secondary" italic>No image available</Text>
                     </div>
                   )}
@@ -597,7 +615,9 @@ const StaffSessions = () => {
                 </Col>
                 <Col span={12}>
                   <p><strong>Exit:</strong> {dayjs(checkoutSessionData.exitTime).format('DD/MM/YYYY HH:mm:ss')}</p>
-                  <p><strong>Fee:</strong> <Text strong style={{ color: '#ea580c', fontSize: '18px' }}>{checkoutSessionData.totalFee.toLocaleString()} ₫</Text></p>
+                  <div style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold', marginTop: '10px' }}>
+                    Fee: {checkoutSessionData.totalFee.toLocaleString()} ₫
+                  </div>
                 </Col>
               </Row>
             </Card>
@@ -616,6 +636,49 @@ const StaffSessions = () => {
               </Button>
             </div>
           </Form>
+        )}
+
+        {checkOutStep === 3 && checkoutSessionData && (
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <Spin size="large" />
+            <Title level={4} style={{ marginTop: 24, color: '#1677ff' }}>Đang chờ thanh toán VNPay...</Title>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
+              Vui lòng hoàn tất thanh toán ở tab VNPay. Hệ thống sẽ tự động đóng popup khi thanh toán thành công.
+            </Text>
+            
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+              <Button onClick={() => {
+                 setIsCheckOutVisible(false);
+                 setCheckOutStep(1);
+                 checkOutSearchForm.resetFields();
+                 checkOutConfirmForm.resetFields();
+                 fetchSessions();
+              }}>Đóng (Hủy thanh toán)</Button>
+              <Button type="primary" danger onClick={async () => {
+                try {
+                  await paymentApi.confirmCash(checkoutSessionData.paymentId);
+                  message.success('Đã chuyển sang tiền mặt. Check-out thành công!');
+                  setIsCheckOutVisible(false);
+                  setCheckOutStep(1);
+                  checkOutSearchForm.resetFields();
+                  checkOutConfirmForm.resetFields();
+                  fetchSessions();
+                } catch(e) {
+                  message.error('Lỗi khi chuyển sang tiền mặt');
+                }
+              }}>
+                Chuyển sang Tiền Mặt (CASH)
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {checkOutStep === 4 && (
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <CheckCircleFilled style={{ fontSize: 72, color: '#52c41a' }} />
+            <Title level={3} style={{ marginTop: 24, color: '#52c41a' }}>Thanh Toán Thành Công!</Title>
+            <Text type="secondary">Cửa tự động mở. Vui lòng cho xe di chuyển ra ngoài...</Text>
+          </div>
         )}
       </Modal>
 

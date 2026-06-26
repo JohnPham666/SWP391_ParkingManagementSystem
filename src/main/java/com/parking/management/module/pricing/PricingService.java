@@ -174,8 +174,9 @@ public class PricingService {
         boolean hasOvertime = overtimeStart != null && exitTime.isAfter(overtimeStart);
         LocalDateTime normalEnd = hasOvertime ? overtimeStart : exitTime;
 
-        long totalMinutes = java.time.Duration.between(entryTime, normalEnd).toMinutes();
-        long totalHours   = (totalMinutes <= 0) ? 0 : (long) Math.ceil(totalMinutes / 60.0);
+        long totalSeconds = java.time.Duration.between(entryTime, normalEnd).getSeconds();
+        long totalHours   = (totalSeconds <= 0) ? 0 : (long) Math.ceil(totalSeconds / 3600.0);
+        long totalMinutes = totalSeconds / 60;
 
         long rushHours    = 0;
         long offPeakHours = 0;
