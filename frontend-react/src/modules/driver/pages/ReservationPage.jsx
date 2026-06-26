@@ -9,6 +9,19 @@ import { parkingStore } from '../store/parkingStore';
 
 const { Title, Text } = Typography;
 
+const getReservationId = (reservation) => reservation?.reservationId || reservation?.id;
+const getPaymentStatus = (reservation) => {
+    const reservationStatus = String(reservation?.status || '').toUpperCase();
+    if (reservationStatus === 'CANCELLED') return 'CANCELLED';
+    return String(reservation?.paymentStatus || reservation?.payment?.status || reservation?.payment?.paymentStatus || 'UNPAID').toUpperCase();
+};
+const canPayReservation = (reservation) => {
+    const reservationStatus = String(reservation?.status || '').toUpperCase();
+    const paymentStatus = getPaymentStatus(reservation);
+    return ['PENDING', 'PENDING_PAYMENT'].includes(reservationStatus) && ['UNPAID', 'PENDING', 'FAILED'].includes(paymentStatus);
+};
+const getResponseData = (response) => response?.data || response;
+
 const ReservationPage = () => {
     const { token } = theme.useToken();
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -192,24 +205,34 @@ const ReservationPage = () => {
 
     const handlePayment = async (reservation) => {
         try {
+            const reservationId = getReservationId(reservation);
+            if (!reservationId || !canPayReservation(reservation)) {
+                message.warning({ content: 'This reservation is not available for payment.', key: 'payment' });
+                return;
+            }
+
             message.loading({ content: 'Initializing payment...', key: 'payment' });
-            let paymentId = reservation.paymentId;
-            
+
+            const payRes = await driverService.createPayment({
+                reservationId,
+                paymentMethod: 'VNPAY'
+            });
+            const paymentData = getResponseData(payRes);
+            const paymentId = paymentData?.paymentId || paymentData?.id;
+
             if (!paymentId) {
-                const payRes = await driverService.createPayment({
-                    reservationId: reservation.reservationId || reservation.id,
-                    paymentMethod: 'VNPAY'
-                });
-                paymentId = payRes.data?.paymentId || payRes.paymentId || payRes.id;
+                message.error({ content: 'Failed to create payment', key: 'payment' });
+                return;
             }
             
             const urlRes = await driverService.createVnPayUrl(paymentId);
-            const paymentUrl = urlRes.data?.paymentUrl || urlRes.paymentUrl || urlRes.url;
+            const urlData = getResponseData(urlRes);
+            const paymentUrl = urlData?.paymentUrl || urlData?.url;
             
             if (paymentUrl) {
                 message.success({ content: 'Redirecting to VNPay...', key: 'payment' });
                 window.open(paymentUrl, '_blank');
-                setPayingReservationId(reservation.reservationId || reservation.id);
+                setPayingReservationId(reservationId);
                 setPaymentModalVisible(true);
             } else {
                 message.error({ content: 'Failed to get payment URL', key: 'payment' });
@@ -267,10 +290,12 @@ const ReservationPage = () => {
             title: 'Payment',
             key: 'paymentStatus',
             render: (_, record) => {
-                const pStatus = record.paymentStatus || record.payment?.status || record.payment?.paymentStatus;
-                if (!pStatus) return <Text type="secondary">Unpaid</Text>;
-                const ps = String(pStatus).toUpperCase();
-                return <Tag color={ps === 'PAID' || ps === 'COMPLETED' ? 'green' : 'gold'}>{ps}</Tag>;
+                const ps = getPaymentStatus(record);
+                if (ps === 'UNPAID') return <Text type="secondary">Unpaid</Text>;
+                let color = 'gold';
+                if (ps === 'PAID' || ps === 'COMPLETED') color = 'green';
+                if (ps === 'FAILED' || ps === 'CANCELLED') color = 'red';
+                return <Tag color={color}>{ps}</Tag>;
             }
         },
         {
@@ -280,12 +305,10 @@ const ReservationPage = () => {
             render: (_, record) => {
                 const s = String(record.status).toUpperCase();
                 const canCancel = s === 'PENDING' || s === 'CONFIRMED';
-                const pStatus = String(record.paymentStatus || '').toUpperCase();
-                const isUnpaid = !record.paymentStatus || pStatus === 'PENDING' || pStatus === 'FAILED';
                 
                 return (
                     <Space size="middle">
-                        {s !== 'CANCELLED' && isUnpaid && (
+                        {canPayReservation(record) && (
                             <Button type="primary" size="small" style={{ borderRadius: 4 }} onClick={() => handlePayment(record)}>Pay Now</Button>
                         )}
                         <Button type="default" ghost={false} size="small" style={{ borderRadius: 4 }} onClick={() => handleViewDetails(record)}>Details</Button>
@@ -475,7 +498,7 @@ const ReservationPage = () => {
                 onOk={() => setIsDetailsVisible(false)}
                 onCancel={() => setIsDetailsVisible(false)}
                 footer={[
-                    viewingReservation && String(viewingReservation.status).toUpperCase() !== 'CANCELLED' && (!viewingReservation.paymentStatus || String(viewingReservation.paymentStatus).toUpperCase() === 'PENDING') && (
+                    viewingReservation && canPayReservation(viewingReservation) && (
                         <Button key="pay" type="primary" onClick={() => handlePayment(viewingReservation)}>
                             Pay Now
                         </Button>
@@ -503,8 +526,8 @@ const ReservationPage = () => {
                                 </Tag>
                             </Descriptions.Item>
                             <Descriptions.Item label="Payment Status">
-                                <Tag color={String(viewingReservation.paymentStatus || 'UNPAID').toUpperCase() === 'PAID' ? 'green' : 'gold'}>
-                                    {String(viewingReservation.paymentStatus || 'UNPAID').toUpperCase()}
+                                <Tag color={getPaymentStatus(viewingReservation) === 'PAID' || getPaymentStatus(viewingReservation) === 'COMPLETED' ? 'green' : getPaymentStatus(viewingReservation) === 'CANCELLED' || getPaymentStatus(viewingReservation) === 'FAILED' ? 'red' : 'gold'}>
+                                    {getPaymentStatus(viewingReservation)}
                                 </Tag>
                             </Descriptions.Item>
                             <Descriptions.Item label="Estimated Fee">
