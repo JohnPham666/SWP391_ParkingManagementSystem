@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Typography, Table, Tag, Button, Empty, Skeleton, theme, message } from 'antd';
+import { Card, Row, Col, Typography, Table, Tag, Button, Empty, Skeleton, theme, message, Modal } from 'antd';
 import { DollarOutlined, ClockCircleOutlined, FallOutlined, DownloadOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 
@@ -10,6 +10,7 @@ const PaymentPage = () => {
     const [loading, setLoading] = useState(true);
     const [payments, setPayments] = useState([]);
     const [stats, setStats] = useState({ totalPaid: '0 VND', pending: '0', monthly: '0 VND' });
+    const [isPendingModalVisible, setIsPendingModalVisible] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -142,6 +143,9 @@ const PaymentPage = () => {
         }
     ];
 
+    const paidPayments = payments.filter(p => p.status === 'PAID');
+    const pendingPayments = payments.filter(p => p.status !== 'PAID' && p.reservationStatus !== 'CANCELLED');
+
     if (loading) return <Skeleton active paragraph={{ rows: 10 }} />;
 
     return (
@@ -164,7 +168,12 @@ const PaymentPage = () => {
                     </Card>
                 </Col>
                 <Col xs={24} md={8}>
-                    <Card className="saas-card" style={{ background: token.colorWarningBg, borderColor: token.colorBorder }}>
+                    <Card 
+                        className="saas-card" 
+                        style={{ background: token.colorWarningBg, borderColor: token.colorBorder, cursor: 'pointer' }}
+                        onClick={() => setIsPendingModalVisible(true)}
+                        hoverable
+                    >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
                                 <Text type="secondary">Pending Payments</Text>
@@ -188,17 +197,38 @@ const PaymentPage = () => {
             </Row>
 
             <Card className="saas-card" title={<Title level={4} style={{ margin: 0 }}>Payment History</Title>} styles={{ body: { padding: 0 } }}>
-                {payments.length === 0 ? (
+                {paidPayments.length === 0 ? (
                     <Empty 
                         image="https://gw.alipayobjects.com/zos/antfincdn/ZHrcdLPrvN/empty.svg"
                         imageStyle={{ height: 120 }}
-                        description={<Text type="secondary">No payment history found. Once you make a booking and complete payment, it will appear here.</Text>}
+                        description={<Text type="secondary">No completed payments found. Once you make a booking and complete payment, it will appear here.</Text>}
                         style={{ padding: '60px 0' }}
                     />
                 ) : (
-                    <Table columns={columns} dataSource={payments} pagination={{ pageSize: 10 }} />
+                    <Table columns={columns} dataSource={paidPayments} pagination={{ pageSize: 10 }} />
                 )}
             </Card>
+
+            <Modal
+                title={<Title level={4} style={{ margin: 0 }}>Pending Payments</Title>}
+                open={isPendingModalVisible}
+                onOk={() => setIsPendingModalVisible(false)}
+                onCancel={() => setIsPendingModalVisible(false)}
+                footer={<Button onClick={() => setIsPendingModalVisible(false)}>Close</Button>}
+                width={800}
+                destroyOnHidden
+            >
+                {pendingPayments.length === 0 ? (
+                    <Empty description={<Text type="secondary">You have no pending payments.</Text>} style={{ padding: '40px 0' }} />
+                ) : (
+                    <Table 
+                        columns={columns} 
+                        dataSource={pendingPayments} 
+                        pagination={false} 
+                        scroll={{ y: 400 }}
+                    />
+                )}
+            </Modal>
         </div>
     );
 };
