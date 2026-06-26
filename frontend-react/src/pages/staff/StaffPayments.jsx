@@ -47,7 +47,8 @@ const StaffPayments = () => {
     const searchMatch = !filters.search || 
       p.paymentId?.toString().includes(filters.search) ||
       p.sessionId?.toString().includes(filters.search) ||
-      p.reservationId?.toString().includes(filters.search);
+      p.reservationId?.toString().includes(filters.search) ||
+      p.licensePlate?.toLowerCase().includes(filters.search.toLowerCase());
     const statusMatch = !filters.status || p.paymentStatus === filters.status;
     return searchMatch && statusMatch;
   });
@@ -63,6 +64,12 @@ const StaffPayments = () => {
       title: 'Payment Type',
       key: 'type',
       render: (_, record) => record.sessionId ? 'Parking Session' : (record.reservationId ? 'Reservation' : 'Other')
+    },
+    {
+      title: 'Biển số xe',
+      dataIndex: 'licensePlate',
+      key: 'licensePlate',
+      render: (text) => text ? <Tag color="blue" style={{ fontSize: '14px', padding: '4px 8px', fontWeight: 'bold' }}>{text}</Tag> : '-'
     },
     {
       title: 'Amount',
@@ -101,7 +108,7 @@ const StaffPayments = () => {
     >
       <Space style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap' }}>
         <Input 
-          placeholder="Search ID..." 
+          placeholder="Search ID or License Plate..." 
           prefix={<SearchOutlined />} 
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           style={{ width: 280 }}

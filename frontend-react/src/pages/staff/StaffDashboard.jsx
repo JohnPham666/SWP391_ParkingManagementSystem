@@ -39,11 +39,15 @@ const StaffDashboard = () => {
 
   useEffect(() => {
     fetchData();
+    const interval = setInterval(() => {
+      fetchData(true);
+    }, 10000);
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [dashRes, resRes] = await Promise.all([
         monitoringApi.getDashboard().catch(() => ({ data: { data: null } })),
         reservationApi.getReservations().catch(() => ({ data: { data: [] } }))
