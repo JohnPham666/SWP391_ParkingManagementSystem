@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Input, Select, Modal, Form, message, Space, Card, Popconfirm, Tag, Typography, Row, Col, Divider } from 'antd';
+import { Table, Button, Input, Select, Modal, Form, message, Space, Card, Popconfirm, Tag, Typography, Row, Col, Divider, Image } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, CarOutlined } from '@ant-design/icons';
 import { vehicleApi } from '../../services/api';
 
@@ -13,6 +13,13 @@ const ManagerVehicles = () => {
   
   const [form] = Form.useForm();
   const [filters, setFilters] = useState({ plate: '', owner: '', type: '', status: '' });
+
+  const getImageUrl = (path) => {
+      if (!path) return null;
+      if (path.startsWith('http') || path.startsWith('data:')) return path;
+      const baseUrl = vehicleApi ? 'http://localhost:8080' : 'http://localhost:8080'; // fallback
+      return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+  };
 
   useEffect(() => {
     fetchVehicles();
@@ -99,6 +106,16 @@ const ManagerVehicles = () => {
     const typeMatch = !filters.type || (v.vehicleTypeName || v.vehicleType?.typeName || 'Ô tô') === filters.type;
     const statusMatch = !filters.status || v.status === filters.status;
     return plateMatch && ownerMatch && typeMatch && statusMatch;
+  }).sort((a, b) => {
+    // 1. PENDING status first
+    const aIsPending = a.status === 'PENDING';
+    const bIsPending = b.status === 'PENDING';
+    
+    if (aIsPending && !bIsPending) return -1;
+    if (!aIsPending && bIsPending) return 1;
+    
+    // 2. Sort by vehicleId ascending (theo thứ tự ID)
+    return (a.vehicleId || 0) - (b.vehicleId || 0);
   });
 
   const columns = [
@@ -236,19 +253,19 @@ const ManagerVehicles = () => {
               <Col span={8}>
                 <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Owner Portrait</Typography.Text>
                 <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
-                  {editingVehicle.ownerPortrait ? <img src={editingVehicle.ownerPortrait} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                  {editingVehicle.ownerPortrait ? <Image src={getImageUrl(editingVehicle.ownerPortrait)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://via.placeholder.com/160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
                 </div>
               </Col>
               <Col span={8}>
                 <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>ID Card (Front)</Typography.Text>
                 <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
-                  {editingVehicle.idCardFront ? <img src={editingVehicle.idCardFront} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                  {editingVehicle.idCardFront ? <Image src={getImageUrl(editingVehicle.idCardFront)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://via.placeholder.com/160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
                 </div>
               </Col>
               <Col span={8}>
                 <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>ID Card (Back)</Typography.Text>
                 <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
-                  {editingVehicle.idCardBack ? <img src={editingVehicle.idCardBack} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                  {editingVehicle.idCardBack ? <Image src={getImageUrl(editingVehicle.idCardBack)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://via.placeholder.com/160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
                 </div>
               </Col>
             </Row>
@@ -257,19 +274,19 @@ const ManagerVehicles = () => {
               <Col span={8}>
                 <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Vehicle Image</Typography.Text>
                 <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
-                  {editingVehicle.vehicleImage ? <img src={editingVehicle.vehicleImage} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                  {editingVehicle.vehicleImage ? <Image src={getImageUrl(editingVehicle.vehicleImage)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://via.placeholder.com/160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
                 </div>
               </Col>
               <Col span={8}>
                 <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Registration (Front)</Typography.Text>
                 <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
-                  {editingVehicle.registrationPhotoFront || editingVehicle.registrationPhoto ? <img src={editingVehicle.registrationPhotoFront || editingVehicle.registrationPhoto} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                  {editingVehicle.registrationPhotoFront || editingVehicle.registrationPhoto ? <Image src={getImageUrl(editingVehicle.registrationPhotoFront || editingVehicle.registrationPhoto)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://via.placeholder.com/160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
                 </div>
               </Col>
               <Col span={8}>
                 <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Registration (Back)</Typography.Text>
                 <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
-                  {editingVehicle.registrationPhotoBack ? <img src={editingVehicle.registrationPhotoBack} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                  {editingVehicle.registrationPhotoBack ? <Image src={getImageUrl(editingVehicle.registrationPhotoBack)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://via.placeholder.com/160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
                 </div>
               </Col>
             </Row>
