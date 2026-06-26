@@ -27,7 +27,7 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
            "AND s.status = com.parking.management.module.slot.SlotStatus.AVAILABLE " +
            "AND s.isActive = true " +
            "AND s.currentOccupancy < s.capacity " +
-           "ORDER BY s.slotCode ASC LIMIT 1")
+           "ORDER BY s.zone.floor.floorNumber ASC, s.slotCode ASC LIMIT 1")
     Optional<ParkingSlot> findFirstAvailableSlot(
             @Param("vehicleTypeId") Integer vehicleTypeId
     );

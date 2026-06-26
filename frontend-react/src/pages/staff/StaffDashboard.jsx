@@ -61,7 +61,7 @@ const StaffDashboard = () => {
       if (Array.isArray(resList)) {
         const todayStr = dayjs().format('YYYY-MM-DD');
         const todayRes = resList.filter(r => 
-          r.reservationStart && dayjs(r.reservationStart).format('YYYY-MM-DD') === todayStr && (r.status === 'CONFIRMED' || r.status === 'COMPLETED' || r.status === 'PENDING')
+          r.reservationStart && dayjs(r.reservationStart).format('YYYY-MM-DD') === todayStr && (r.status === 'CONFIRMED' || r.status === 'PENDING')
         );
         setTodayReservationList(todayRes);
       }
@@ -250,6 +250,33 @@ const StaffDashboard = () => {
 
   const sum = dashboardData.summary;
 
+  // Calculate vehicle type stats
+  const vTypeStats = {};
+  if (dashboardData?.buildings) {
+    dashboardData.buildings.forEach(b => {
+      b.floors?.forEach(f => {
+        f.zones?.forEach(z => {
+          z.slots?.forEach(s => {
+            const vType = s.vehicleTypeName || s.vehicleType?.typeName || 'Other';
+            if (!vTypeStats[vType]) vTypeStats[vType] = { capacity: 0, current: 0 };
+            vTypeStats[vType].capacity += (s.capacity || 1);
+            vTypeStats[vType].current += (s.currentOccupancy || 0);
+          });
+        });
+      });
+    });
+  }
+
+  // Icons mapping for vehicle types
+  const getTypeIcon = (type) => {
+    const t = type.toLowerCase();
+    if (t.includes('car') || t.includes('ô tô')) return <CarOutlined />;
+    if (t.includes('motor') || t.includes('máy')) return <span>🏍️</span>;
+    if (t.includes('bike') || t.includes('đạp')) return <span>🚲</span>;
+    if (t.includes('tải') || t.includes('truck')) return <span>🚚</span>;
+    return <CarOutlined />;
+  };
+
   return (
     <div>
       <Title level={2} style={{ marginBottom: 24 }}>Staff Dashboard</Title>
@@ -257,10 +284,13 @@ const StaffDashboard = () => {
       <Row gutter={[24, 24]}>
         <Col xs={24} lg={16}>
           <Card 
+            hoverable
+            onClick={() => navigate('/staff/slots')}
             style={{ 
               boxShadow: '0 4px 12px rgba(0,0,0,0.08)', 
               borderRadius: '12px',
-              height: '100%'
+              height: '100%',
+              cursor: 'pointer'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '32px', flexWrap: 'wrap' }}>
@@ -272,46 +302,38 @@ const StaffDashboard = () => {
                   size={160}
                   strokeWidth={8}
                 />
-                <div style={{ marginTop: '12px', fontWeight: 'bold', color: '#6b7280' }}>Tỷ lệ lấp đầy</div>
+                <div style={{ marginTop: '12px', fontWeight: 'bold', color: '#6b7280' }}>Occupancy Rate</div>
               </div>
               
-              <div style={{ flex: 1, minWidth: '250px' }}>
-                <Title level={4} style={{ marginBottom: 20 }}>Hiện trạng bãi xe</Title>
+              <div style={{ flex: 1, minWidth: '250px', textAlign: 'center' }}>
+                <Title level={4} style={{ marginBottom: 20, color: '#6b7280' }}>Parking Status</Title>
                 
-                <div style={{ background: 'rgba(14,165,233,.08)', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', border: '1px solid rgba(14,165,233,.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', background: '#0ea5e9', marginRight: '8px' }}></div>
-                    <Text strong style={{ fontSize: '16px' }}>Tổng số chỗ (Sức chứa)</Text>
+                <div style={{ 
+                  background: 'rgba(14,165,233,.08)', 
+                  borderRadius: '16px', 
+                  padding: '24px', 
+                  marginBottom: '20px', 
+                  border: '2px solid rgba(14,165,233,.2)', 
+                  display: 'inline-block',
+                  minWidth: '200px'
+                }}>
+                  <div style={{ fontSize: '16px', color: '#0ea5e9', fontWeight: 'bold', marginBottom: '8px' }}>Current / Capacity</div>
+                  <div style={{ fontSize: '48px', fontWeight: '900', color: '#0369a1', lineHeight: 1 }}>
+                    {sum.currentOccupancy} <span style={{ fontSize: '24px', color: '#94a3b8' }}>/ {sum.totalCapacity}</span>
                   </div>
-                  <Text strong style={{ fontSize: '20px', color: '#0ea5e9' }}>{sum.totalCapacity}</Text>
                 </div>
                 
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                      <Text><div style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#10b981', marginRight: '6px' }}></div> Chỗ trống</Text>
-                      <Text strong>{sum.availableCapacity}</Text>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                  {Object.entries(vTypeStats).map(([type, stats]) => (
+                    <div key={type} style={{ background: '#f8fafc', padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '20px', color: '#64748b' }}>{getTypeIcon(type)}</span>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>{type}</div>
+                        <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a' }}>{stats.current} <span style={{ color: '#94a3b8', fontSize: '14px' }}>/ {stats.capacity}</span></div>
+                      </div>
                     </div>
-                  </Col>
-                  <Col span={12}>
-                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                      <Text><div style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b', marginRight: '6px' }}></div> Đang đỗ</Text>
-                      <Text strong>{sum.currentOccupancy}</Text>
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                      <Text><div style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#eab308', marginRight: '6px' }}></div> Đã đặt trước</Text>
-                      <Text strong>{sum.reservedSlots}</Text>
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                      <Text><div style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#9ca3af', marginRight: '6px' }}></div> Chưa đặt</Text>
-                      <Text strong>{sum.totalCapacity - sum.currentOccupancy - sum.reservedSlots}</Text>
-                    </div>
-                  </Col>
-                </Row>
+                  ))}
+                </div>
               </div>
             </div>
           </Card>
@@ -339,7 +361,7 @@ const StaffDashboard = () => {
           >
             <SafetyCertificateOutlined style={{ fontSize: '48px', color: 'rgba(255,255,255,0.9)', marginBottom: '16px' }} />
             <h3 style={{ color: 'white', fontSize: '20px', margin: '0 0 8px 0' }}>Reservation</h3>
-            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginBottom: '16px' }}>Khách đã đặt chỗ nhưng chưa Check-in</p>
+            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginBottom: '16px' }}>Pending Arrivals Today</p>
             <div style={{ fontSize: '64px', fontWeight: '900', lineHeight: 1 }}>{todayReservationList.length}</div>
           </Card>
         </Col>
