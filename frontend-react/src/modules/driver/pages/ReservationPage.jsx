@@ -53,7 +53,7 @@ const ReservationPage = () => {
     const handleCreate = () => {
         setErrorAlert(null);
         form.resetFields();
-        const now = dayjs();
+        const now = dayjs().add(5, 'minute');
         form.setFieldsValue({
             startTime: now,
             endTime: now.add(1, 'day')
@@ -102,7 +102,21 @@ const ReservationPage = () => {
             fetchData();
         } catch (error) {
             if (error.errorFields) return;
-            message.error('Failed to create reservation');
+            
+            let errorMsg = 'Failed to create reservation';
+            if (error.response?.data?.message) {
+                errorMsg = error.response.data.message;
+                if (error.response.data.data && typeof error.response.data.data === 'object') {
+                    const validationErrors = Object.values(error.response.data.data).join(', ');
+                    if (validationErrors) {
+                        errorMsg += `: ${validationErrors}`;
+                    }
+                }
+            } else if (error.message) {
+                errorMsg = error.message;
+            }
+            
+            setErrorAlert(errorMsg);
         }
     };
 
