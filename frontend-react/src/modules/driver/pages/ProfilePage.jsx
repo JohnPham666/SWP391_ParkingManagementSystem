@@ -10,7 +10,9 @@ const ProfilePage = () => {
     const { token } = theme.useToken();
     const [user, setUser] = useState(null);
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+    const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
     const [form] = Form.useForm();
+    const [passwordForm] = Form.useForm();
 
     useEffect(() => {
         const authStr = localStorage.getItem('parking_auth');
@@ -59,6 +61,30 @@ const ProfilePage = () => {
             console.error(error);
             if (!error.errorFields) {
                 message.error('Cập nhật thông tin thất bại!');
+            }
+        }
+    };
+
+    const handleChangePasswordClick = () => {
+        passwordForm.resetFields();
+        setIsPasswordModalVisible(true);
+    };
+
+    const handleSavePassword = async () => {
+        try {
+            const values = await passwordForm.validateFields();
+            await driverService.changePassword({
+                oldPassword: values.oldPassword,
+                newPassword: values.newPassword
+            });
+            message.success('Đổi mật khẩu thành công!');
+            setIsPasswordModalVisible(false);
+            passwordForm.resetFields();
+        } catch (error) {
+            console.error(error);
+            if (!error.errorFields) {
+                const apiMsg = error.response?.data?.message || 'Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu hiện tại.';
+                message.error(apiMsg);
             }
         }
     };
@@ -196,7 +222,7 @@ const ProfilePage = () => {
                                     <Text type="secondary">Last changed 3 months ago</Text>
                                 </div>
                             </div>
-                            <Button>Change Password</Button>
+                            <Button onClick={handleChangePasswordClick}>Change Password</Button>
                         </div>
                     </Card>
                 </Col>
@@ -230,6 +256,56 @@ const ProfilePage = () => {
                     
                     <Form.Item name="address" label="Địa chỉ">
                         <Input.TextArea rows={3} size="large" />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            <Modal
+                title={<Title level={4} style={{ margin: 0 }}>Đổi mật khẩu</Title>}
+                open={isPasswordModalVisible}
+                onOk={handleSavePassword}
+                onCancel={() => setIsPasswordModalVisible(false)}
+                okText="Lưu thay đổi"
+                cancelText="Hủy"
+                destroyOnHidden
+            >
+                <Form form={passwordForm} layout="vertical" style={{ marginTop: 24 }}>
+                    <Form.Item 
+                        name="oldPassword" 
+                        label="Mật khẩu hiện tại" 
+                        rules={[{ required: true, message: 'Vui lòng nhập mật khẩu hiện tại' }]}
+                    >
+                        <Input.Password size="large" />
+                    </Form.Item>
+                    
+                    <Form.Item 
+                        name="newPassword" 
+                        label="Mật khẩu mới" 
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập mật khẩu mới' },
+                            { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự' }
+                        ]}
+                    >
+                        <Input.Password size="large" />
+                    </Form.Item>
+                    
+                    <Form.Item 
+                        name="confirmPassword" 
+                        label="Xác nhận mật khẩu mới" 
+                        dependencies={['newPassword']}
+                        rules={[
+                            { required: true, message: 'Vui lòng xác nhận mật khẩu mới' },
+                            ({ getFieldValue }) => ({
+                                validator(_, value) {
+                                    if (!value || getFieldValue('newPassword') === value) {
+                                        return Promise.resolve();
+                                    }
+                                    return Promise.reject(new Error('Mật khẩu xác nhận không khớp!'));
+                                },
+                            }),
+                        ]}
+                    >
+                        <Input.Password size="large" />
                     </Form.Item>
                 </Form>
             </Modal>

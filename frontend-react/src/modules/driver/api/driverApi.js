@@ -44,5 +44,9 @@ export const driverApi = {
     updateProfile: async (data) => {
         const response = await api.put('/users/me', data);
         return response.data;
+    },
+    changePassword: async (data) => {
+        const response = await api.post('/auth/change-password', data);
+        return response.data;
     }
 };

@@ -80,5 +80,14 @@ export const driverService = {
             console.error('Failed to update profile:', error);
             throw error;
         }
+    },
+
+    changePassword: async (data) => {
+        try {
+            return await driverApi.changePassword(data);
+        } catch (error) {
+            console.error('Failed to change password:', error);
+            throw error;
+        }
     }
 };
