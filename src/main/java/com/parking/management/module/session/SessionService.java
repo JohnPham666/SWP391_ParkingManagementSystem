@@ -330,8 +330,8 @@ public class SessionService {
             }
             parkingSlotRepository.save(slot);
         } else {
-            // Fee > 0 -> Needs payment. Set PENDING_PAYMENT, do not release slot yet.
-            session.setStatus(SessionStatus.PENDING_PAYMENT.name());
+            // Fee > 0 -> Needs payment. Set UNPAID, do not release slot yet.
+            session.setStatus(SessionStatus.UNPAID.name());
         }
 
         ParkingSession updatedSession = parkingSessionRepository.save(session);

@@ -166,13 +166,6 @@ const StaffDashboard = () => {
       
       const targetSession = res.data.data;
       
-      let finalFee = targetSession.estimatedFee || 0;
-      
-      const hadReservation = todayReservationList.some(r => r.licensePlate === targetSession.licensePlate && r.status === 'COMPLETED');
-      if (hadReservation) {
-        finalFee = 0;
-      }
-
       let exitImageUrl = null;
       let exitImageFile = null;
       if (values.exitImage && values.exitImage.fileList.length > 0) {
@@ -180,12 +173,16 @@ const StaffDashboard = () => {
         exitImageUrl = URL.createObjectURL(exitImageFile);
       }
 
+      // Call checkOut API immediately to get the calculated finalFee
+      const checkOutRes = await sessionApi.checkOut(targetSession.sessionId, { exitGate: 'Gate A' });
+      const updatedSession = checkOutRes.data?.data || checkOutRes.data;
+
       setCheckoutSessionData({
         ...targetSession,
+        ...updatedSession, // merge with updated session to get finalFee
         exitImageFile,
         exitImageUrl,
-        exitTime: new Date().toISOString(),
-        totalFee: finalFee
+        totalFee: updatedSession.finalFee || 0
       });
 
       setCheckOutStep(2);
@@ -202,15 +199,11 @@ const StaffDashboard = () => {
     try {
       const sessionId = checkoutSessionData.sessionId;
       
-      // 1. Call Check-out to finalize session fee, exit time, and update Reservation to COMPLETED
-      const checkOutRes = await sessionApi.checkOut(sessionId, { exitGate: 'Gate A' });
-      const updatedSession = checkOutRes.data?.data || checkOutRes.data;
-      
       if (checkoutSessionData.exitImageFile) {
         await sessionApi.uploadSessionImage(sessionId, checkoutSessionData.exitImageFile, 'exit');
       }
 
-      if (updatedSession?.status === 'COMPLETED') {
+      if (checkoutSessionData.status === 'COMPLETED') {
          message.success('Check-out Successful (Pre-paid / Zero Fee)');
          setIsCheckOutVisible(false);
          setCheckOutStep(1);
@@ -527,6 +520,7 @@ const StaffDashboard = () => {
               <img src={summaryData.image} alt="Entry" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px' }} />
             )}
             <p><strong>Plate:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1677ff' }}>{summaryData.plate}</span></p>
+            <p><strong>Assigned Slot:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#10b981' }}>{summaryData.slotCode || 'N/A'}</span></p>
             <p><strong>Type:</strong> {summaryData.type}</p>
             <p><strong>Entry:</strong> {summaryData.time}</p>
             <p><strong>Gate:</strong> {summaryData.gate}</p>
