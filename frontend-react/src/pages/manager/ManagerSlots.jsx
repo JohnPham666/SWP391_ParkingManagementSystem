@@ -1,15 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Tag, message, Select, Row, Col, Typography, Badge } from 'antd';
-import { CarOutlined } from '@ant-design/icons';
+import { Card, Input, Select, Space, Tag, Typography, message, Spin, Modal, Descriptions, Button, Table } from 'antd';
+import { SearchOutlined, CarOutlined, UnorderedListOutlined, AppstoreOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { slotApi } from '../../services/api';
 
+const { Title, Text } = Typography;
 const { Option } = Select;
-const { Title } = Typography;
 
 const ManagerSlots = () => {
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState('grid');
+  
+  const [filters, setFilters] = useState({
+    search: '',
+    status: null,
+    vehicleType: null
+  });
+
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  const handleSlotClick = (slot) => {
+    setSelectedSlot(slot);
+    setIsModalVisible(true);
+  };
 
   useEffect(() => {
     fetchSlots();
@@ -22,8 +36,11 @@ const ManagerSlots = () => {
       let data = res.data?.success ? res.data.data : res.data;
       if (Array.isArray(data)) {
         setSlots(data);
+      } else {
+        setSlots([]);
       }
     } catch (error) {
+      console.error('Error fetching slots:', error);
       message.error('Failed to load slots');
     } finally {
       setLoading(false);
@@ -34,92 +51,314 @@ const ManagerSlots = () => {
     try {
       await slotApi.updateSlotStatus(id, status);
       message.success('Slot status updated successfully');
-      fetchSlots();
+      
+      setSlots(prevSlots => 
+        prevSlots.map(s => s.slotId === id ? { ...s, status } : s)
+      );
+
+      if (selectedSlot && selectedSlot.slotId === id) {
+          setSelectedSlot({...selectedSlot, status});
+      }
     } catch (error) {
       message.error(error.response?.data?.message || 'Failed to update slot status');
     }
   };
 
+  const confirmStatusChange = (id, newStatus, slotCode, currentStatus) => {
+    const statusLabels = {
+      AVAILABLE: 'Available',
+      OCCUPIED: 'Occupied',
+      RESERVED: 'Reserved',
+      LOCKED: 'Locked',
+      MAINTENANCE: 'Maintenance',
+    };
+    Modal.confirm({
+      title: 'Confirm Status Change',
+      icon: <ExclamationCircleOutlined style={{ color: '#faad14' }} />,
+      content: (
+        <div>
+          <p>Are you sure you want to change the status of slot <strong>{slotCode}</strong>?</p>
+          <p>
+            <span style={{ color: '#6b7280' }}>{statusLabels[currentStatus] || currentStatus}</span>
+            {' → '}
+            <span style={{ fontWeight: 'bold', color: '#1677ff' }}>{statusLabels[newStatus] || newStatus}</span>
+          </p>
+        </div>
+      ),
+      okText: 'Yes, Change It',
+      cancelText: 'Cancel',
+      onOk: () => handleStatusChange(id, newStatus),
+    });
+  };
+
+  const filteredSlots = slots.filter(s => {
+    const searchMatch = !filters.search || s.slotCode?.toLowerCase().includes(filters.search.toLowerCase());
+    const statusMatch = !filters.status || s.status === filters.status;
+    const typeMatch = !filters.vehicleType || s.vehicleTypeName === filters.vehicleType;
+    return searchMatch && statusMatch && typeMatch;
+  });
+
+  const uniqueVehicleTypes = [...new Set(slots.map(s => s.vehicleTypeName).filter(Boolean))];
+
+  // Group slots by Building -> Floor -> Zone
+  const groupedData = {};
+  filteredSlots.forEach(s => {
+    const bName = s.buildingName || 'Unknown Building';
+    const fName = s.floorName || 'Unknown Floor';
+    const zName = s.zoneName || 'Unknown Zone';
+
+    if (!groupedData[bName]) groupedData[bName] = {};
+    if (!groupedData[bName][fName]) groupedData[bName][fName] = {};
+    if (!groupedData[bName][fName][zName]) groupedData[bName][fName][zName] = [];
+    
+    groupedData[bName][fName][zName].push(s);
+  });
+
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'AVAILABLE': return '#059669'; // green
-      case 'OCCUPIED': return '#dc2626'; // red
-      case 'RESERVED': return '#d97706'; // yellow
-      case 'MAINTENANCE': return '#6b7280'; // gray
-      default: return '#1677ff'; // blue
-    }
+    if (status === 'AVAILABLE') return { bg: '#f0fdf4', border: '#bbf7d0', text: '#16a34a', label: 'Available' };
+    if (status === 'OCCUPIED') return { bg: '#fef2f2', border: '#fecaca', text: '#dc2626', label: 'Occupied' };
+    if (status === 'RESERVED') return { bg: '#fffbeb', border: '#fde68a', text: '#d97706', label: 'Reserved' };
+    return { bg: '#f3f4f6', border: '#e5e7eb', text: '#4b5563', label: 'Locked' }; 
+  };
+
+  const getVehicleIcon = (type) => {
+    if (!type) return '🚗';
+    const lowerType = type.toLowerCase();
+    if (lowerType.includes('motor') || lowerType.includes('máy')) return '🏍️';
+    if (lowerType.includes('bike') || lowerType.includes('đạp')) return '🚲';
+    if (lowerType.includes('bus') || lowerType.includes('khách')) return '🚌';
+    if (lowerType.includes('truck') || lowerType.includes('tải')) return '🚚';
+    return '🚗';
   };
 
   const columns = [
-    { title: 'Code', dataIndex: 'slotCode', key: 'slotCode', render: (val) => <strong>{val}</strong> },
-    { title: 'Floor', dataIndex: 'floorId', key: 'floorId', render: (val) => `Floor ${val}` },
-    { title: 'Vehicle Type', dataIndex: 'vehicleType', key: 'vehicleType' },
+    { title: 'SLOT CODE', dataIndex: 'slotCode', key: 'slotCode', render: (text) => <Text strong>{text}</Text> },
+    { title: 'LOCATION', key: 'location', render: (_, record) => `${record.buildingName || 'Unknown'} - ${record.floorName || 'Unknown'} - ${record.zoneName || 'Unknown'}` },
+    { title: 'VEHICLE TYPE', dataIndex: 'vehicleTypeName', key: 'vehicleTypeName' },
     { 
-      title: 'Status', 
+      title: 'STATUS', 
       dataIndex: 'status', 
       key: 'status',
       render: (status, record) => (
         <Select 
           value={status} 
-          onChange={(val) => handleStatusChange(record.slotId, val)}
+          onChange={(val) => confirmStatusChange(record.slotId, val, record.slotCode, status)}
           style={{ width: 140, fontWeight: 600 }}
           bordered={false}
         >
-          <Option value="AVAILABLE" style={{ color: '#059669' }}>Available</Option>
+          <Option value="AVAILABLE" style={{ color: '#16a34a' }}>Available</Option>
           <Option value="OCCUPIED" style={{ color: '#dc2626' }}>Occupied</Option>
           <Option value="RESERVED" style={{ color: '#d97706' }}>Reserved</Option>
+          <Option value="LOCKED" style={{ color: '#4b5563' }}>Locked</Option>
           <Option value="MAINTENANCE" style={{ color: '#6b7280' }}>Maintenance</Option>
         </Select>
       )
     },
+    { 
+      title: 'ACTION', 
+      key: 'actions', 
+      render: (_, record) => (
+        <Space>
+          <Button size="small" type="primary" onClick={() => handleSlotClick(record)}>View</Button>
+          {record.status === 'AVAILABLE' && (
+            <Button size="small" danger onClick={() => confirmStatusChange(record.slotId, 'LOCKED', record.slotCode, record.status)}>Lock</Button>
+          )}
+          {record.status === 'LOCKED' && (
+            <Button size="small" onClick={() => confirmStatusChange(record.slotId, 'AVAILABLE', record.slotCode, record.status)}>Unlock</Button>
+          )}
+        </Space>
+      )
+    }
   ];
 
+  if (loading && slots.length === 0) return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
+
   return (
-    <Card 
-      title="Parking Slots"
-      extra={
-        <Select value={viewMode} onChange={setViewMode} style={{ width: 120 }}>
-          <Option value="grid">Grid View</Option>
-          <Option value="list">List View</Option>
-        </Select>
-      }
-    >
-      {viewMode === 'list' ? (
-        <Table columns={columns} dataSource={slots} rowKey="slotId" loading={loading} />
-      ) : (
-        <Row gutter={[16, 16]}>
-          {slots.map(slot => (
-            <Col xs={12} sm={8} md={6} lg={4} xl={3} key={slot.slotId}>
-              <Card 
-                hoverable
-                style={{ 
-                  textAlign: 'center', 
-                  borderTop: `4px solid ${getStatusColor(slot.status)}`,
-                  background: slot.status === 'OCCUPIED' ? '#fff1f0' : '#fff'
-                }}
-                bodyStyle={{ padding: '16px 8px' }}
-              >
-                <Title level={4} style={{ margin: 0 }}>{slot.slotCode}</Title>
-                <div style={{ margin: '8px 0', color: getStatusColor(slot.status) }}>
-                  <CarOutlined style={{ fontSize: 24 }} />
-                </div>
-                <Select 
-                  value={slot.status} 
-                  onChange={(val) => handleStatusChange(slot.slotId, val)}
-                  style={{ width: '100%', fontSize: '12px' }}
-                  size="small"
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <Title level={2} style={{ margin: 0 }}>Parking Slots Management</Title>
+      </div>
+
+      <Card style={{ marginBottom: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+            <Space style={{ display: 'flex', flexWrap: 'wrap' }} size="middle">
+            <Input 
+                placeholder="Search slot code..." 
+                prefix={<SearchOutlined />} 
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                style={{ width: 250 }}
+                size="large"
+                allowClear
+            />
+            <Select 
+                placeholder="All Statuses" 
+                style={{ width: 160 }} 
+                allowClear 
+                size="large"
+                onChange={(val) => setFilters({ ...filters, status: val })}
+            >
+                <Option value="AVAILABLE">Available</Option>
+                <Option value="OCCUPIED">Occupied</Option>
+                <Option value="RESERVED">Reserved</Option>
+                <Option value="LOCKED">Locked</Option>
+                <Option value="MAINTENANCE">Maintenance</Option>
+            </Select>
+            <Select 
+                placeholder="All Vehicle Types" 
+                style={{ width: 180 }} 
+                allowClear 
+                size="large"
+                onChange={(val) => setFilters({ ...filters, vehicleType: val })}
+            >
+                {uniqueVehicleTypes.map(type => (
+                <Option key={type} value={type}>{type}</Option>
+                ))}
+            </Select>
+            </Space>
+            
+            <Space>
+                <Button 
+                    type={viewMode === 'grid' ? 'primary' : 'default'} 
+                    icon={<AppstoreOutlined />} 
+                    onClick={() => setViewMode('grid')}
+                    size="large"
                 >
-                  <Option value="AVAILABLE">Available</Option>
-                  <Option value="OCCUPIED">Occupied</Option>
-                  <Option value="RESERVED">Reserved</Option>
-                  <Option value="MAINTENANCE">Maintenance</Option>
-                </Select>
-              </Card>
-            </Col>
-          ))}
-        </Row>
+                    Grid
+                </Button>
+                <Button 
+                    type={viewMode === 'list' ? 'primary' : 'default'} 
+                    icon={<UnorderedListOutlined />} 
+                    onClick={() => setViewMode('list')}
+                    size="large"
+                >
+                    List
+                </Button>
+            </Space>
+        </div>
+      </Card>
+
+      {viewMode === 'list' ? (
+        <Card style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+            <Table columns={columns} dataSource={filteredSlots} rowKey="slotId" loading={loading} pagination={{ pageSize: 10 }} scroll={{ x: 800 }} />
+        </Card>
+      ) : (
+        <>
+            {Object.keys(groupedData).length === 0 ? (
+                <Card><div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>No slots match your filters.</div></Card>
+            ) : (
+                Object.entries(groupedData).map(([bName, floors]) => (
+                <Card key={bName} title={<span style={{ fontSize: '18px', fontWeight: 'bold' }}>{bName}</span>} style={{ marginBottom: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+                    {Object.entries(floors).map(([fName, zones]) => (
+                    <div key={fName} style={{ marginBottom: 24 }}>
+                        <Title level={4} type="secondary" style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: 8 }}>{fName}</Title>
+                        
+                        {Object.entries(zones).map(([zName, zSlots]) => {
+                        const currentZ = zSlots.reduce((acc, s) => acc + (s.currentOccupancy || 0), 0);
+                        const capZ = zSlots.reduce((acc, s) => acc + (s.capacity || 1), 0);
+
+                        return (
+                            <div key={zName} style={{ marginBottom: 20, background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                <Text strong style={{ fontSize: '16px' }}>{zName}</Text>
+                                <Tag color="blue" style={{ fontSize: '14px', padding: '4px 10px' }}>
+                                Zone Occupancy: {currentZ} / {capZ}
+                                </Tag>
+                            </div>
+
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                                {zSlots.map(s => {
+                                const colors = getStatusColor(s.status);
+                                return (
+                                    <div 
+                                        key={s.slotId}
+                                        title={`${s.vehicleTypeName} | Capacity: ${s.currentOccupancy}/${s.capacity}`}
+                                        style={{ 
+                                        padding: '10px 16px', 
+                                        border: `2px solid ${colors.border}`, 
+                                        borderRadius: '8px',
+                                        backgroundColor: colors.bg,
+                                        textAlign: 'center',
+                                        minWidth: '90px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        cursor: 'pointer'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-4px) scale(1.05)';
+                                        e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                                        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+                                        }}
+                                        onClick={() => handleSlotClick(s)}
+                                    >
+                                        <div style={{ fontSize: '24px', transition: 'transform 0.3s ease' }} 
+                                            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                                            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                                        {getVehicleIcon(s.vehicleTypeName)}
+                                        </div>
+                                        <div style={{ fontWeight: '900', fontSize: '16px', color: '#1f2937' }}>{s.slotCode}</div>
+                                        <div style={{ fontSize: '12px', fontWeight: 'bold', color: colors.text }}>{colors.label}</div>
+                                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px', background: '#fff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e5e7eb' }}>
+                                        {s.currentOccupancy || 0}/{s.capacity || 1}
+                                        </div>
+                                    </div>
+                                );
+                                })}
+                            </div>
+                            </div>
+                        );
+                        })}
+                    </div>
+                    ))}
+                </Card>
+                ))
+            )}
+        </>
       )}
-    </Card>
+      
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px' }}>
+            <CarOutlined style={{ color: '#1677ff' }} />
+            <span>Slot Details: {selectedSlot?.slotCode}</span>
+          </div>
+        }
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        footer={null}
+        width={500}
+      >
+        {selectedSlot && (
+          <Descriptions bordered column={1} size="middle" labelStyle={{ fontWeight: 'bold', width: '150px' }}>
+            <Descriptions.Item label="Building">{selectedSlot.buildingName || 'Unknown'}</Descriptions.Item>
+            <Descriptions.Item label="Floor">{selectedSlot.floorName || 'Unknown'}</Descriptions.Item>
+            <Descriptions.Item label="Zone (Area)">{selectedSlot.zoneName || 'Unknown'}</Descriptions.Item>
+            <Descriptions.Item label="Vehicle Type">{selectedSlot.vehicleTypeName}</Descriptions.Item>
+            <Descriptions.Item label="Status">
+                <Select 
+                    value={selectedSlot.status} 
+                    onChange={(val) => confirmStatusChange(selectedSlot.slotId, val, selectedSlot.slotCode, selectedSlot.status)}
+                    style={{ width: 140, fontWeight: 600 }}
+                >
+                    <Option value="AVAILABLE">Available</Option>
+                    <Option value="OCCUPIED">Occupied</Option>
+                    <Option value="RESERVED">Reserved</Option>
+                    <Option value="LOCKED">Locked</Option>
+                    <Option value="MAINTENANCE">Maintenance</Option>
+                </Select>
+            </Descriptions.Item>
+            <Descriptions.Item label="Current Occupancy">{selectedSlot.currentOccupancy || 0}</Descriptions.Item>
+            <Descriptions.Item label="Total Capacity">{selectedSlot.capacity || 1}</Descriptions.Item>
+          </Descriptions>
+        )}
+      </Modal>
+    </div>
   );
 };
 

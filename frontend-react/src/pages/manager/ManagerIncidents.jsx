@@ -1,15 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Tag, message, Card, Space, Input, Select, Modal, Form } from 'antd';
-import { SearchOutlined, AlertOutlined } from '@ant-design/icons';
+import { Table, Button, Tag, message, Card, Space, Input, Select, Modal, Form, Descriptions, Image, Badge, Typography, Divider } from 'antd';
+import { SearchOutlined, AlertOutlined, EyeOutlined, FileImageOutlined } from '@ant-design/icons';
 import { incidentApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
+const { Text, Title } = Typography;
+
+const STATUS_CONFIG = {
+  REPORTED: { color: 'orange', label: 'Reported' },
+  OPEN: { color: 'gold', label: 'Open' },
+  IN_PROGRESS: { color: 'blue', label: 'In Progress' },
+  RESOLVED: { color: 'green', label: 'Resolved' },
+  CLOSED: { color: 'default', label: 'Closed' },
+};
 
 const IncidentManagement = () => {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [selectedIncident, setSelectedIncident] = useState(null);
   const [filters, setFilters] = useState({ search: '', status: null });
   const [form] = Form.useForm();
 
@@ -40,7 +51,11 @@ const IncidentManagement = () => {
     try {
       await incidentApi.updateIncidentStatus(id, status);
       message.success('Status updated successfully');
-      fetchIncidents();
+      // Update in-place
+      setIncidents(prev => prev.map(i => i.incidentId === id ? { ...i, status } : i));
+      if (selectedIncident?.incidentId === id) {
+        setSelectedIncident(prev => ({ ...prev, status }));
+      }
     } catch (error) {
       message.error(error.response?.data?.message || 'Failed to update status');
     }
@@ -54,7 +69,7 @@ const IncidentManagement = () => {
       };
       await incidentApi.createIncident(payload);
       message.success('Incident reported successfully');
-      setIsModalVisible(false);
+      setIsCreateModalVisible(false);
       form.resetFields();
       fetchIncidents();
     } catch (error) {
@@ -62,8 +77,13 @@ const IncidentManagement = () => {
     }
   };
 
+  const handleViewDetail = (record) => {
+    setSelectedIncident(record);
+    setIsDetailModalVisible(true);
+  };
+
   const filteredIncidents = incidents.filter(i => {
-    const searchMatch = !filters.search || 
+    const searchMatch = !filters.search ||
       i.title?.toLowerCase().includes(filters.search.toLowerCase()) ||
       i.description?.toLowerCase().includes(filters.search.toLowerCase()) ||
       i.incidentId?.toString().includes(filters.search);
@@ -76,25 +96,40 @@ const IncidentManagement = () => {
       title: 'ID',
       dataIndex: 'incidentId',
       key: 'incidentId',
+      width: 70,
       render: (text) => <strong>#{text}</strong>
-    },
-    {
-      title: 'Title / Description',
-      key: 'title',
-      render: (_, record) => <span style={{ fontWeight: 600 }}>{record.title || record.description || '-'}</span>
     },
     {
       title: 'Type',
       dataIndex: 'incidentType',
       key: 'incidentType',
+      width: 160,
+      render: (type) => <Tag color="purple">{type || '-'}</Tag>
+    },
+    {
+      title: 'Description',
+      key: 'description',
+      render: (_, record) => (
+        <Text ellipsis={{ tooltip: record.description }} style={{ maxWidth: 240, display: 'block' }}>
+          {record.description || '-'}
+        </Text>
+      )
+    },
+    {
+      title: 'Reporter',
+      dataIndex: 'reportedByName',
+      key: 'reportedByName',
+      width: 140,
+      render: (text) => text || '-'
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
+      width: 160,
       render: (status, record) => (
-        <Select 
-          value={status} 
+        <Select
+          value={status}
           onChange={(val) => handleStatusChange(record.incidentId, val)}
           style={{ width: 140, fontWeight: 600 }}
           bordered={false}
@@ -108,30 +143,46 @@ const IncidentManagement = () => {
       )
     },
     {
-      title: 'Reporter',
-      dataIndex: 'reportedByName',
-      key: 'reportedByName',
-      render: (text) => text || '-'
-    },
-    {
       title: 'Time',
       key: 'time',
+      width: 160,
       render: (_, record) => {
         const time = record.reportTime || record.createdAt;
-        return time ? dayjs(time).format('DD/MM/YYYY HH:mm:ss') : '-';
+        return time ? dayjs(time).format('DD/MM/YYYY HH:mm') : '-';
       }
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      width: 90,
+      render: (_, record) => (
+        <Button
+          type="primary"
+          size="small"
+          icon={<EyeOutlined />}
+          onClick={() => handleViewDetail(record)}
+        >
+          View
+        </Button>
+      )
     },
   ];
 
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    return `http://localhost:8080/${path.replace(/^\/+/, '')}`;
+  };
+
   return (
-    <Card 
+    <Card
       title={<span style={{ fontSize: '18px' }}>Incident Management</span>}
       extra={
-        <Button 
-          type="primary" 
+        <Button
+          type="primary"
           size="large"
-          icon={<AlertOutlined />} 
-          onClick={() => setIsModalVisible(true)} 
+          icon={<AlertOutlined />}
+          onClick={() => setIsCreateModalVisible(true)}
           style={{ backgroundColor: '#dc2626', fontWeight: 'bold' }}
         >
           Report Emergency Incident
@@ -139,17 +190,17 @@ const IncidentManagement = () => {
       }
     >
       <Space style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap' }}>
-        <Input 
-          placeholder="Search ID, title, description..." 
-          prefix={<SearchOutlined />} 
+        <Input
+          placeholder="Search ID, title, description..."
+          prefix={<SearchOutlined />}
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           style={{ width: 280 }}
           size="large"
         />
-        <Select 
+        <Select
           defaultValue=""
-          style={{ width: 160 }} 
-          allowClear 
+          style={{ width: 160 }}
+          allowClear
           size="large"
           onChange={(val) => setFilters({ ...filters, status: val || null })}
         >
@@ -162,26 +213,114 @@ const IncidentManagement = () => {
         </Select>
       </Space>
 
-      <Table 
-        columns={columns} 
-        dataSource={filteredIncidents} 
-        rowKey="incidentId" 
+      <Table
+        columns={columns}
+        dataSource={filteredIncidents}
+        rowKey="incidentId"
         loading={loading}
         pagination={{ pageSize: 10 }}
         scroll={{ x: 900 }}
       />
 
+      {/* === DETAIL MODAL === */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <AlertOutlined style={{ color: '#dc2626', fontSize: 20 }} />
+            <span style={{ fontSize: 18, fontWeight: 700 }}>
+              Incident Report #{selectedIncident?.incidentId}
+            </span>
+            {selectedIncident && (
+              <Tag color={STATUS_CONFIG[selectedIncident.status]?.color || 'default'}>
+                {STATUS_CONFIG[selectedIncident.status]?.label || selectedIncident.status}
+              </Tag>
+            )}
+          </div>
+        }
+        open={isDetailModalVisible}
+        onCancel={() => setIsDetailModalVisible(false)}
+        footer={null}
+        width={600}
+        destroyOnClose
+      >
+        {selectedIncident && (
+          <div>
+            <Descriptions bordered column={1} size="middle" labelStyle={{ fontWeight: 600, width: 150 }}>
+              <Descriptions.Item label="Reporter">
+                {selectedIncident.reportedByName || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Type">
+                <Tag color="purple">{selectedIncident.incidentType || '-'}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Description">
+                <Text>{selectedIncident.description || '-'}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Session ID">
+                {selectedIncident.sessionId ? `#${selectedIncident.sessionId}` : 'N/A'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Reported At">
+                {selectedIncident.createdAt
+                  ? dayjs(selectedIncident.createdAt).format('DD/MM/YYYY HH:mm:ss')
+                  : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Status">
+                <Select
+                  value={selectedIncident.status}
+                  onChange={(val) => handleStatusChange(selectedIncident.incidentId, val)}
+                  style={{ width: 160, fontWeight: 600 }}
+                >
+                  <Option value="REPORTED">Reported</Option>
+                  <Option value="OPEN">Open</Option>
+                  <Option value="IN_PROGRESS">In Progress</Option>
+                  <Option value="RESOLVED">Resolved</Option>
+                  <Option value="CLOSED">Closed</Option>
+                </Select>
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Divider orientation="left" style={{ marginTop: 24 }}>
+              <FileImageOutlined style={{ marginRight: 6 }} />
+              Incident Image
+            </Divider>
+
+            {getImageUrl(selectedIncident.incidentImage) ? (
+              <div style={{ textAlign: 'center', padding: '12px 0' }}>
+                <Image
+                  src={getImageUrl(selectedIncident.incidentImage)}
+                  alt="Incident"
+                  style={{ maxWidth: '100%', maxHeight: 360, borderRadius: 8, objectFit: 'contain', border: '1px solid #e5e7eb' }}
+                  fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyBoBHhohAMSaSmBkGADgIAIWCiZGUGDAEqODFCaEJmhFgKBkCYCQDSMNUoMIjJFhk4HFT8OqiAgMAAIAeYB8AVAA=="
+                />
+              </div>
+            ) : (
+              <div style={{
+                textAlign: 'center',
+                padding: '32px',
+                background: '#f9fafb',
+                borderRadius: 8,
+                border: '1px dashed #d1d5db',
+                color: '#9ca3af'
+              }}>
+                <FileImageOutlined style={{ fontSize: 36, marginBottom: 8, display: 'block' }} />
+                No image attached to this report
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* === CREATE INCIDENT MODAL === */}
       <Modal
         title="Report New Incident"
-        open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
+        open={isCreateModalVisible}
+        onCancel={() => setIsCreateModalVisible(false)}
         footer={null}
       >
         <Form form={form} layout="vertical" onFinish={handleReportIncident} size="large">
           <Form.Item name="description" label="Incident Description" rules={[{ required: true, message: 'Please enter a description' }]}>
             <Input.TextArea rows={4} placeholder="e.g. Car scratched, Barrier broken..." />
           </Form.Item>
-          
+
           <Form.Item name="incidentType" label="Incident Type" rules={[{ required: true, message: 'Please select a type' }]}>
             <Select>
               <Option value="LOST_TICKET">Lost Ticket</Option>
@@ -197,7 +336,7 @@ const IncidentManagement = () => {
           </Form.Item>
 
           <Form.Item style={{ textAlign: 'right', marginBottom: 0, marginTop: 24 }}>
-            <Button onClick={() => setIsModalVisible(false)} style={{ marginRight: 8, height: '40px' }}>Cancel</Button>
+            <Button onClick={() => setIsCreateModalVisible(false)} style={{ marginRight: 8, height: '40px' }}>Cancel</Button>
             <Button type="primary" htmlType="submit" style={{ backgroundColor: '#dc2626', height: '40px', fontWeight: 'bold' }}>
               Submit Report
             </Button>

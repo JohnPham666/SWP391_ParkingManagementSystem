@@ -1,17 +1,21 @@
 package com.parking.management.module.incident;
 
+import com.parking.management.common.EmailService;
 import com.parking.management.module.session.ParkingSession;
 import com.parking.management.module.session.ParkingSessionRepository;
 import com.parking.management.module.user.User;
 import com.parking.management.module.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @SuppressWarnings("null")
@@ -20,6 +24,7 @@ public class IncidentService {
     private final IncidentReportRepository incidentReportRepository;
     private final ParkingSessionRepository parkingSessionRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     public IncidentResponse create(IncidentRequest request) {
         User reportedBy = getCurrentAuthenticatedUser();
@@ -100,11 +105,34 @@ public class IncidentService {
         incidentReportRepository.delete(incident);
     }
 
+    @Transactional
     public IncidentResponse updateStatus(Integer id, String status) {
         IncidentReport incident = incidentReportRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Incident report not found"));
         incident.setStatus(status);
-        return IncidentResponse.fromEntity(incidentReportRepository.save(incident));
+        IncidentReport saved = incidentReportRepository.save(incident);
+
+        // Đọc email & name TRONG transaction (tránh LazyInitializationException)
+        String reporterEmail = null;
+        String reporterName  = null;
+        Integer incidentIdVal = saved.getIncidentId();
+        String  incidentType  = saved.getIncidentType() != null ? saved.getIncidentType() : "General";
+        try {
+            User reporter = saved.getReportedBy();
+            if (reporter != null) {
+                reporterEmail = reporter.getEmail();
+                reporterName  = reporter.getFullName() != null ? reporter.getFullName() : reporter.getEmail();
+            }
+        } catch (Exception e) {
+            log.warn("Could not read reporter info for incident #{}: {}", id, e.getMessage());
+        }
+
+        // Gửi email bất đồng bộ SAU khi đã lấy xong dữ liệu
+        if (reporterEmail != null) {
+            emailService.sendIncidentStatusUpdate(reporterEmail, reporterName, incidentIdVal, incidentType, status);
+        }
+
+        return IncidentResponse.fromEntity(saved);
     }
 
     private User getCurrentAuthenticatedUser() {
