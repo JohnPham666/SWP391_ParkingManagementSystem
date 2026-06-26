@@ -60,5 +60,13 @@ export const driverApi = {
     getPricings: async () => {
         const response = await api.get('/pricings');
         return response.data;
+    },
+    getIncidents: async () => {
+        const response = await api.get('/incidents');
+        return response.data;
+    },
+    createIncident: async (data) => {
+        const response = await api.post('/incidents', data);
+        return response.data;
     }
 };

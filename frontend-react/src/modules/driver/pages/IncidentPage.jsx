@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Card, Row, Col, Typography, Button, Table, Tag, Modal, Form, Input, Upload, message, Empty , theme } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Card, Row, Col, Typography, Button, Table, Tag, Modal, Form, Input, Upload, message, Empty , theme, Skeleton } from 'antd';
 import { AlertOutlined, UploadOutlined, CheckCircleOutlined, SyncOutlined } from '@ant-design/icons';
+import { driverService } from '../services/driverService';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -9,7 +10,56 @@ const IncidentPage = () => {
     const { token } = theme.useToken();
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [form] = Form.useForm();
-    const incidents = []; // Empty state for now
+    const [incidents, setIncidents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+    
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const authStr = localStorage.getItem('parking_auth');
+            let currentUserId = null;
+            if (authStr) {
+                try {
+                    const parsedUser = JSON.parse(authStr);
+                    currentUserId = parsedUser.userId || parsedUser.id;
+                } catch (e) {}
+            }
+
+            const response = await driverService.loadIncidents();
+            const rawData = response?.data || response;
+            
+            if (Array.isArray(rawData)) {
+                // Client-side filtering: driver can only see their own incidents
+                const myIncidents = rawData.filter(inc => {
+                    const reporterId = inc.reportedById || inc.userId;
+                    return reporterId === currentUserId;
+                });
+                
+                const formattedData = myIncidents.map(inc => ({
+                    id: inc.incidentId || inc.id,
+                    date: new Date(inc.createdAt || inc.date).toLocaleDateString(),
+                    title: inc.incidentType || inc.title,
+                    status: String(inc.status || 'PENDING').toUpperCase(),
+                    resolution: inc.resolution || 'Pending review',
+                    description: inc.description
+                }));
+                
+                // Sort by newest first
+                formattedData.sort((a, b) => new Date(b.date) - new Date(a.date));
+                setIncidents(formattedData);
+            }
+        } catch (error) {
+            console.error('Failed to load incidents', error);
+            message.error('Failed to load incident history');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const columns = [
         {
@@ -44,11 +94,38 @@ const IncidentPage = () => {
         }
     ];
 
-    const handleSubmit = () => {
-        message.success('Incident reported successfully. Our team will review it shortly.');
-        setIsModalVisible(false);
-        form.resetFields();
+    const handleSubmit = async () => {
+        try {
+            const values = await form.validateFields();
+            setSubmitting(true);
+            
+            const payload = {
+                incidentType: values.title,
+                description: values.description,
+                sessionId: values.reservationId ? parseInt(values.reservationId) : null,
+                status: 'PENDING'
+            };
+            
+            await driverService.createIncident(payload);
+            message.success('Incident reported successfully. Our team will review it shortly.');
+            setIsModalVisible(false);
+            form.resetFields();
+            fetchData();
+        } catch (error) {
+            if (error.errorFields) return;
+            message.error('Failed to report incident. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
     };
+
+    const stats = {
+        total: incidents.length,
+        inProgress: incidents.filter(i => i.status === 'IN PROGRESS' || i.status === 'PENDING').length,
+        resolved: incidents.filter(i => i.status === 'RESOLVED').length
+    };
+
+    if (loading) return <Skeleton active paragraph={{ rows: 10 }} />;
 
     return (
         <div>
@@ -71,7 +148,7 @@ const IncidentPage = () => {
                             </div>
                             <div>
                                 <Text type="secondary">Total Reports</Text>
-                                <Title level={2} style={{ margin: 0 }}>0</Title>
+                                <Title level={2} style={{ margin: 0 }}>{stats.total}</Title>
                             </div>
                         </div>
                     </Card>
@@ -84,7 +161,7 @@ const IncidentPage = () => {
                             </div>
                             <div>
                                 <Text type="secondary">In Progress</Text>
-                                <Title level={2} style={{ margin: 0, color: token.colorInfo }}>0</Title>
+                                <Title level={2} style={{ margin: 0, color: token.colorInfo }}>{stats.inProgress}</Title>
                             </div>
                         </div>
                     </Card>
@@ -97,7 +174,7 @@ const IncidentPage = () => {
                             </div>
                             <div>
                                 <Text type="secondary">Resolved</Text>
-                                <Title level={2} style={{ margin: 0, color: token.colorSuccess }}>0</Title>
+                                <Title level={2} style={{ margin: 0, color: token.colorSuccess }}>{stats.resolved}</Title>
                             </div>
                         </div>
                     </Card>
@@ -122,6 +199,7 @@ const IncidentPage = () => {
                 onOk={handleSubmit}
                 onCancel={() => setIsModalVisible(false)}
                 okText="Submit Report"
+                confirmLoading={submitting}
                 okButtonProps={{ danger: true }}
                 destroyOnClose
             >

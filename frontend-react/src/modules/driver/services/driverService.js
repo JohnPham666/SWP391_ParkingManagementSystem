@@ -101,5 +101,13 @@ export const driverService = {
 
     loadPricings: async () => {
         return await driverApi.getPricings();
+    },
+
+    loadIncidents: async () => {
+        return await driverApi.getIncidents();
+    },
+
+    createIncident: async (data) => {
+        return await driverApi.createIncident(data);
     }
 };
