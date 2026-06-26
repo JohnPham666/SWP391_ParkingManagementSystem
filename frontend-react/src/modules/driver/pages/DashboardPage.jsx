@@ -1,12 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Row, Col, Card, Typography, Button, Tag, Space, Progress, Skeleton, Statistic, Badge, Divider, theme } from 'antd';
+import { Row, Col, Card, Typography, Tag, Space, Progress, Skeleton, Statistic, Badge, Divider, theme } from 'antd';
 import { 
     CarOutlined, 
     CalendarOutlined, 
     EnvironmentOutlined, 
-    UserOutlined,
-    DollarOutlined,
-    AlertOutlined,
     ArrowRightOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -130,33 +127,6 @@ const DashboardPage = () => {
             bg: token.colorInfoBg,
             action: 'Find Parking',
             path: '/driver/parking'
-        },
-        {
-            title: 'Pricing Policies',
-            value: null,
-            icon: <DollarOutlined />,
-            color: token.colorWarning,
-            bg: token.colorWarningBg,
-            action: 'View Pricing',
-            path: '/driver/pricing'
-        },
-        {
-            title: 'My Profile',
-            value: null,
-            icon: <UserOutlined />,
-            color: token.colorTextSecondary,
-            bg: token.colorFillAlter,
-            action: 'View Profile',
-            path: '/driver/profile'
-        },
-        {
-            title: 'Report Incident',
-            value: null,
-            icon: <AlertOutlined />,
-            color: token.colorError,
-            bg: token.colorErrorBg,
-            action: 'Report',
-            path: '/driver/incidents'
         }
     ];
 

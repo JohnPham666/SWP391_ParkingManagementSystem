@@ -64,7 +64,6 @@ const DriverLayout = () => {
             label: 'ACCOUNT',
             children: [
                 { key: '/driver/incidents', icon: <AlertOutlined />, label: 'Incidents' },
-                { key: '/driver/profile', icon: <UserOutlined />, label: 'Profile' },
             ]
         }
     ];
