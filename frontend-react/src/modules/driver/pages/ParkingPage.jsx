@@ -145,7 +145,8 @@ const ParkingPage = () => {
         }
 
         const canReserveSlot = (slot) => {
-            return slot && slot.status === 'AVAILABLE' && !String(slot.vehicleTypeName || '').toLowerCase().includes('motor');
+            const vType = String(slot.vehicleTypeName || '').toLowerCase();
+            return slot && slot.status === 'AVAILABLE' && !vType.includes('motor') && !vType.includes('xe máy');
         };
 
         const sortAndRecommendSlots = (slotsToProcess) => {
@@ -295,32 +296,46 @@ const ParkingPage = () => {
                                 <Card 
                                     hoverable 
                                     className="saas-card"
-                                    styles={{ body: { padding: 16 } }}
+                                    styles={{ body: { padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' } }}
                                     onClick={() => handleView(slot)}
-                                    style={slot.isRecommended ? { border: `2px solid ${token.colorPrimary}`, boxShadow: `0 0 8px ${token.colorPrimary}40`, transform: 'scale(1.02)', position: 'relative' } : {}}
+                                    style={{
+                                        ... (slot.isRecommended ? { border: `2px solid ${token.colorPrimary}`, boxShadow: `0 4px 16px ${token.colorPrimary}40`, transform: 'scale(1.02)' } : { border: `1px solid ${statusInfo.hex}30` }),
+                                        borderRadius: 16,
+                                        position: 'relative',
+                                        backgroundColor: statusInfo.hex + '0A',
+                                        overflow: 'hidden',
+                                        transition: 'all 0.3s ease'
+                                    }}
                                 >
                                     {slot.isRecommended && (
-                                        <div style={{ position: 'absolute', top: -10, right: -10, background: token.colorPrimary, color: 'white', fontSize: '0.75rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: 12, boxShadow: '0 2px 6px rgba(0,0,0,0.2)', zIndex: 2 }}>
-                                            Đề xuất
+                                        <div style={{ position: 'absolute', top: 0, right: 0, background: token.colorPrimary, color: '#fff', fontSize: '0.7rem', fontWeight: 800, padding: '4px 16px', borderBottomLeftRadius: 16, zIndex: 2, letterSpacing: 0.5, boxShadow: '-2px 2px 8px rgba(0,0,0,0.1)' }}>
+                                            ĐỀ XUẤT
                                         </div>
                                     )}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                                        <Title level={3} style={{ margin: 0, fontWeight: 800 }}>{slot.slotCode || 'N/A'}</Title>
-                                        <div style={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: statusInfo.hex, boxShadow: `0 0 8px ${statusInfo.hex}66` }} />
+                                    
+                                    <div style={{ 
+                                        width: 56, height: 56, borderRadius: '50%', backgroundColor: statusInfo.hex + '1A', 
+                                        display: 'flex', justifyContent: 'center', alignItems: 'center', 
+                                        color: statusInfo.hex, marginBottom: 12 
+                                    }}>
+                                        {String(slot.vehicleTypeName || '').toLowerCase().includes('motor') || String(slot.vehicleTypeName || '').toLowerCase().includes('xe máy') ? <CompassOutlined style={{ fontSize: 28 }} /> : <CarOutlined style={{ fontSize: 28 }} />}
                                     </div>
                                     
-                                    <div style={{ color: token.colorTextSecondary, fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                        <div><EnvironmentOutlined /> {slot.buildingName || 'N/A'} - {slot.floorName || 'N/A'}</div>
-                                        <div><BorderOutlined /> Zone: <Text strong>{slot.zoneName || 'N/A'}</Text></div>
-                                        <div>
-                                            {String(slot.vehicleTypeName || '').toLowerCase().includes('motor') ? <CompassOutlined /> : String(slot.vehicleTypeName || '').toLowerCase().includes('ev') ? <ThunderboltOutlined /> : <CarOutlined />} {slot.vehicleTypeName || 'N/A'}
-                                        </div>
-                                    </div>
-
-                                    <Divider style={{ margin: '12px 0' }} />
+                                    <Title level={3} style={{ margin: 0, fontWeight: 800, color: statusInfo.hex }}>
+                                        {slot.slotCode || 'N/A'}
+                                    </Title>
                                     
-                                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                        <Tag color={statusInfo.color} style={{ margin: 0, border: 'none', fontWeight: 600 }}>{statusInfo.label}</Tag>
+                                    <Text type="secondary" style={{ fontSize: 13, marginTop: 4, fontWeight: 600 }}>
+                                        {slot.vehicleTypeName || 'N/A'} • {slot.floorName || 'N/A'}
+                                    </Text>
+                                    
+                                    <div style={{ marginTop: 16, padding: '8px 16px', width: '100%', backgroundColor: '#fff', borderRadius: 8, border: `1px solid ${token.colorBorderSecondary}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>Lấp đầy</Text>
+                                        <Text strong style={{ fontSize: 14 }}>{slot.currentOccupancy || 0} / {slot.capacity || 1}</Text>
+                                    </div>
+                                    
+                                    <div style={{ marginTop: 12, padding: '6px 16px', borderRadius: 20, backgroundColor: statusInfo.hex, color: '#fff', fontWeight: 700, fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                                        {statusInfo.label}
                                     </div>
                                 </Card>
                             </Col>
@@ -368,7 +383,7 @@ const ParkingPage = () => {
                             <div style={{ marginBottom: 12, fontSize: '0.85rem', textAlign: 'center', color: '#f59e0b', background: '#fffbeb', padding: 10, borderRadius: 6 }}>
                                 Slot này hiện không thể đặt chỗ.
                             </div>
-                        ) : String(parkingStore.selectedSlot.vehicleTypeName || '').toLowerCase().includes('motor') ? (
+                        ) : String(parkingStore.selectedSlot.vehicleTypeName || '').toLowerCase().includes('motor') || String(parkingStore.selectedSlot.vehicleTypeName || '').toLowerCase().includes('xe máy') ? (
                             <div style={{ marginBottom: 12, fontSize: '0.85rem', textAlign: 'center', color: '#f59e0b', background: '#fffbeb', padding: 10, borderRadius: 6 }}>
                                 Slot xe máy không hỗ trợ đặt trước.
                             </div>

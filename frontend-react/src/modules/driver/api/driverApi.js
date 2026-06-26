@@ -1,44 +1,44 @@
-import axios from 'axios';
+import api from '../../../services/api';
 
 export const driverApi = {
     getMyVehicles: async () => {
-        const response = await axios.get('/api/vehicles/my');
+        const response = await api.get('/vehicles/my');
         return response.data;
     },
     getVehicleTypes: async () => {
-        const response = await axios.get('/api/vehicle-types');
+        const response = await api.get('/vehicle-types');
         return response.data;
     },
     createVehicle: async (data) => {
-        const response = await axios.post('/api/vehicles', data);
+        const response = await api.post('/vehicles', data);
         return response.data;
     },
     updateVehicle: async (id, data) => {
-        const response = await axios.put(`/api/vehicles/${id}`, data);
+        const response = await api.put(`/vehicles/${id}`, data);
         return response.data;
     },
     deleteVehicle: async (id) => {
-        const response = await axios.delete(`/api/vehicles/${id}`);
+        const response = await api.delete(`/vehicles/${id}`);
         return response.data;
     },
     getReservations: async () => {
-        const response = await axios.get('/api/reservations');
+        const response = await api.get('/reservations');
         return response.data;
     },
     createReservation: async (data) => {
-        const response = await axios.post('/api/reservations', data);
+        const response = await api.post('/reservations', data);
         return response.data;
     },
     deleteReservation: async (id) => {
-        const response = await axios.delete(`/api/reservations/${id}`);
+        const response = await api.delete(`/reservations/${id}`);
         return response.data;
     },
     getSlots: async () => {
-        const response = await axios.get('/api/slots');
+        const response = await api.get('/slots');
         return response.data;
     },
     getSessions: async () => {
-        const response = await axios.get('/api/sessions');
+        const response = await api.get('/sessions');
         return response.data;
     }
 };
