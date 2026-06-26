@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Avatar, Typography, Drawer, Button, Dropdown, Space, Badge, Tag } from 'antd';
+import { Layout, Menu, Avatar, Typography, Drawer, Button, Dropdown, Space, Badge, Tag, Switch, ConfigProvider, theme as antdTheme } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     DashboardOutlined,
@@ -13,7 +13,9 @@ import {
     MenuOutlined,
     BellOutlined,
     LogoutOutlined,
-    SettingOutlined
+    SettingOutlined,
+    MoonOutlined,
+    SunOutlined
 } from '@ant-design/icons';
 import '../assets/styles/driver.css';
 
@@ -24,6 +26,9 @@ const DriverLayout = () => {
     const [collapsed, setCollapsed] = useState(false);
     const [drawerVisible, setDrawerVisible] = useState(false);
     const [user, setUser] = useState(null);
+    const [isDriverDarkMode, setIsDriverDarkMode] = useState(() => {
+        return localStorage.getItem('driver_theme') === 'dark';
+    });
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -71,6 +76,11 @@ const DriverLayout = () => {
         setDrawerVisible(false);
     };
 
+    const toggleDriverTheme = (checked) => {
+        setIsDriverDarkMode(checked);
+        localStorage.setItem('driver_theme', checked ? 'dark' : 'light');
+    };
+
     const handleLogout = () => {
         localStorage.removeItem('parking_auth');
         navigate('/login');
@@ -109,7 +119,8 @@ const DriverLayout = () => {
     });
 
     return (
-        <Layout className="driver-layout">
+        <ConfigProvider theme={{ algorithm: isDriverDarkMode ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm }}>
+            <Layout className="driver-layout">
             <Sider
                 collapsible
                 collapsed={collapsed}
@@ -162,9 +173,16 @@ const DriverLayout = () => {
                     </div>
 
                     <div className="header-right">
-                        <Badge count={2} dot offset={[-5, 5]} color="#f97316">
+                        <Badge count={2} dot offset={[-5, 5]} color="#f97316" style={{ marginRight: 16 }}>
                             <Button type="text" shape="circle" icon={<BellOutlined style={{ fontSize: '20px' }} />} />
                         </Badge>
+                        <Switch
+                            checked={isDriverDarkMode}
+                            onChange={toggleDriverTheme}
+                            checkedChildren={<MoonOutlined />}
+                            unCheckedChildren={<SunOutlined />}
+                            style={{ marginRight: 16 }}
+                        />
                         <Dropdown menu={userMenu} placement="bottomRight" trigger={['click']}>
                             <Space style={{ cursor: 'pointer' }}>
                                 <Avatar size="large" src={user?.avatar || undefined} icon={<UserOutlined />} style={{ backgroundColor: '#f97316' }} />
@@ -181,6 +199,7 @@ const DriverLayout = () => {
                 </Content>
             </Layout>
         </Layout>
+        </ConfigProvider>
     );
 };
 
