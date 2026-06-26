@@ -1069,7 +1069,7 @@ const Pages = {
             
             const categories = last7Days.map(d => d.toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'}));
             const revenueData = last7Days.map(d => {
-                const dateStr = d.toISOString().split('T')[0];
+                const dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
                 return paidPayments.filter(p => p.paidAt && p.paidAt.startsWith(dateStr))
                     .reduce((sum, p) => sum + p.amount, 0);
             });
