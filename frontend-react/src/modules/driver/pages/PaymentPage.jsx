@@ -24,7 +24,7 @@ const PaymentPage = () => {
         let interval;
         if (paymentModalVisible && payingReservationId) {
             interval = setInterval(() => {
-                fetchData();
+                fetchData(true);
             }, 3000);
         }
         return () => {
@@ -50,8 +50,8 @@ const PaymentPage = () => {
         }
     }, [payments, paymentModalVisible, payingReservationId]);
 
-    const fetchData = async () => {
-        setLoading(true);
+    const fetchData = async (isPolling = false) => {
+        if (!isPolling) setLoading(true);
         try {
             const res = await driverService.loadReservations();
             const rData = res?.data || res;
@@ -96,9 +96,9 @@ const PaymentPage = () => {
             }
         } catch (error) {
             console.error('Failed to load payments', error);
-            message.error('Failed to load payments history');
+            if (!isPolling) message.error('Failed to load payments history');
         } finally {
-            setLoading(false);
+            if (!isPolling) setLoading(false);
         }
     };
 

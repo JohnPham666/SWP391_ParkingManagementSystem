@@ -33,13 +33,26 @@ const ReservationPage = () => {
         let interval;
         if (paymentModalVisible && payingReservationId) {
             interval = setInterval(() => {
-                fetchData();
+                pollPaymentStatus();
             }, 3000);
         }
         return () => {
             if (interval) clearInterval(interval);
         };
     }, [paymentModalVisible, payingReservationId]);
+
+    const pollPaymentStatus = async () => {
+        try {
+            const reservationsRes = await driverService.loadReservations();
+            const rRes = reservationsRes?.data || reservationsRes;
+            if (Array.isArray(rRes)) {
+                reservationStore.reservations = rRes;
+                forceRender();
+            }
+        } catch (error) {
+            // Ignore polling errors
+        }
+    };
 
     useEffect(() => {
         if (paymentModalVisible && payingReservationId) {
