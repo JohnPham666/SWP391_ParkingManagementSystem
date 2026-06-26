@@ -53,6 +53,7 @@ const PricingPage = () => {
                     
                     const features = [
                         `Base Price: ${formatCurrency(p.basePrice)}/hr`,
+                        `Off-Peak Price: ${formatCurrency(p.offPeakPrice)}/hr`,
                         `Rush Hour (${p.rushHourStart || 'N/A'} - ${p.rushHourEnd || 'N/A'}): ${formatCurrency(p.rushHourPrice)}/hr`,
                         `Max Daily: ${formatCurrency(p.maxDailyRate)}`,
                         `Lost Ticket: ${formatCurrency(p.lostTicketFee)}`,
