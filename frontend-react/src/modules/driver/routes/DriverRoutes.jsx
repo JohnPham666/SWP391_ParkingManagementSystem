@@ -8,7 +8,6 @@ import VehiclePage from '../pages/VehiclePage';
 import ProfilePage from '../pages/ProfilePage';
 import PaymentPage from '../pages/PaymentPage';
 import PricingPage from '../pages/PricingPage';
-import HistoryPage from '../pages/HistoryPage';
 import IncidentPage from '../pages/IncidentPage';
 
 const DriverRoutes = () => {
@@ -23,7 +22,6 @@ const DriverRoutes = () => {
                 <Route path="/driver/vehicles" element={<VehiclePage />} />
                 <Route path="/driver/payments" element={<PaymentPage />} />
                 <Route path="/driver/pricing" element={<PricingPage />} />
-                <Route path="/driver/history" element={<HistoryPage />} />
                 <Route path="/driver/incidents" element={<IncidentPage />} />
                 <Route path="/driver/profile" element={<ProfilePage />} />
             </Route>

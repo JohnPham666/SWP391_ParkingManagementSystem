@@ -7,7 +7,6 @@ import {
     CalendarOutlined,
     CreditCardOutlined,
     UserOutlined,
-    HistoryOutlined,
     AlertOutlined,
     DollarOutlined,
     MenuOutlined,
@@ -64,7 +63,6 @@ const DriverLayout = () => {
             type: 'group',
             label: 'ACCOUNT',
             children: [
-                { key: '/driver/history', icon: <HistoryOutlined />, label: 'History' },
                 { key: '/driver/incidents', icon: <AlertOutlined />, label: 'Incidents' },
                 { key: '/driver/profile', icon: <UserOutlined />, label: 'Profile' },
             ]

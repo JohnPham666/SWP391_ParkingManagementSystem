@@ -4,7 +4,7 @@ import {
     CarOutlined, 
     CalendarOutlined, 
     EnvironmentOutlined, 
-    HistoryOutlined,
+    UserOutlined,
     DollarOutlined,
     AlertOutlined,
     ArrowRightOutlined
@@ -140,13 +140,13 @@ const DashboardPage = () => {
             path: '/driver/pricing'
         },
         {
-            title: 'History',
+            title: 'My Profile',
             value: null,
-            icon: <HistoryOutlined />,
+            icon: <UserOutlined />,
             color: '#06b6d4',
             bg: '#cffafe',
-            action: 'View History',
-            path: '/driver/history'
+            action: 'View Profile',
+            path: '/driver/profile'
         },
         {
             title: 'Report Incident',
