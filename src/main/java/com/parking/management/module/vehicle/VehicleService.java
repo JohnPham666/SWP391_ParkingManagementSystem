@@ -67,7 +67,11 @@ public class VehicleService {
             vehicle.setRegistrationExpiry(LocalDate.parse(request.getRegistrationExpiry()));
         }
         vehicle.setVehicleImage(request.getVehicleImage());
-        vehicle.setRegistrationPhoto(request.getRegistrationPhoto());
+        vehicle.setOwnerPortrait(request.getOwnerPortrait());
+        vehicle.setRegistrationPhotoFront(request.getRegistrationPhotoFront());
+        vehicle.setRegistrationPhotoBack(request.getRegistrationPhotoBack());
+        vehicle.setIdCardFront(request.getIdCardFront());
+        vehicle.setIdCardBack(request.getIdCardBack());
 
         return VehicleResponse.fromEntity(vehicleRepository.save(vehicle));
     }
@@ -140,8 +144,20 @@ public class VehicleService {
         if (request.getVehicleImage() != null) {
             vehicle.setVehicleImage(request.getVehicleImage());
         }
-        if (request.getRegistrationPhoto() != null) {
-            vehicle.setRegistrationPhoto(request.getRegistrationPhoto());
+        if (request.getOwnerPortrait() != null) {
+            vehicle.setOwnerPortrait(request.getOwnerPortrait());
+        }
+        if (request.getRegistrationPhotoFront() != null) {
+            vehicle.setRegistrationPhotoFront(request.getRegistrationPhotoFront());
+        }
+        if (request.getRegistrationPhotoBack() != null) {
+            vehicle.setRegistrationPhotoBack(request.getRegistrationPhotoBack());
+        }
+        if (request.getIdCardFront() != null) {
+            vehicle.setIdCardFront(request.getIdCardFront());
+        }
+        if (request.getIdCardBack() != null) {
+            vehicle.setIdCardBack(request.getIdCardBack());
         }
 
         return VehicleResponse.fromEntity(vehicleRepository.save(vehicle));
@@ -182,7 +198,7 @@ public class VehicleService {
             extension = originalFilename.substring(originalFilename.lastIndexOf("."));
         }
 
-        String prefix = "registration".equalsIgnoreCase(type) ? "reg_" : "vehicle_";
+        String prefix = (type != null ? type.toLowerCase() : "vehicle") + "_";
         String fileName = prefix + vehicleId + "_" + UUID.randomUUID() + extension;
 
         try {
@@ -197,9 +213,17 @@ public class VehicleService {
 
             String imageUrl = "/uploads/vehicles/" + fileName;
             
-            if ("registration".equalsIgnoreCase(type)) {
-                vehicle.setRegistrationPhoto(imageUrl);
-            } else if (!"portrait".equalsIgnoreCase(type)) {
+            if ("ownerportrait".equalsIgnoreCase(type)) {
+                vehicle.setOwnerPortrait(imageUrl);
+            } else if ("registrationfront".equalsIgnoreCase(type)) {
+                vehicle.setRegistrationPhotoFront(imageUrl);
+            } else if ("registrationback".equalsIgnoreCase(type)) {
+                vehicle.setRegistrationPhotoBack(imageUrl);
+            } else if ("idcardfront".equalsIgnoreCase(type)) {
+                vehicle.setIdCardFront(imageUrl);
+            } else if ("idcardback".equalsIgnoreCase(type)) {
+                vehicle.setIdCardBack(imageUrl);
+            } else {
                 vehicle.setVehicleImage(imageUrl);
             }
 
