@@ -262,7 +262,7 @@ const ReservationPage = () => {
                 onCancel={() => setIsModalVisible(false)}
                 okText="Confirm Booking"
                 cancelText="Cancel"
-                destroyOnClose
+                destroyOnHidden
             >
                 {errorAlert && <Alert message={errorAlert} type="error" showIcon style={{ marginBottom: 16 }} closable onClose={() => setErrorAlert(null)} />}
                 <Form form={form} layout="vertical" style={{ marginTop: 24 }}>

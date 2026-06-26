@@ -2,7 +2,7 @@ import api from '../../../services/api';
 
 export const driverApi = {
     getMyVehicles: async () => {
-        const response = await api.get('/vehicles/my');
+        const response = await api.get('/vehicles/me');
         return response.data;
     },
     getVehicleTypes: async () => {
@@ -10,15 +10,15 @@ export const driverApi = {
         return response.data;
     },
     createVehicle: async (data) => {
-        const response = await api.post('/vehicles', data);
+        const response = await api.post('/vehicles/me', data);
         return response.data;
     },
     updateVehicle: async (id, data) => {
-        const response = await api.put(`/vehicles/${id}`, data);
+        const response = await api.put(`/vehicles/me/${id}`, data);
         return response.data;
     },
     deleteVehicle: async (id) => {
-        const response = await api.delete(`/vehicles/${id}`);
+        const response = await api.delete(`/vehicles/me/${id}`);
         return response.data;
     },
     getReservations: async () => {

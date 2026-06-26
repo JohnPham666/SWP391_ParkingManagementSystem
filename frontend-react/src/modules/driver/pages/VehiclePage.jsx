@@ -238,7 +238,7 @@ const VehiclePage = () => {
                 onCancel={() => setIsModalVisible(false)}
                 okText="Save Vehicle"
                 cancelText="Cancel"
-                destroyOnClose
+                destroyOnHidden
             >
                 <Form form={form} layout="vertical" style={{ marginTop: 20 }}>
                     <Row gutter={16}>
@@ -282,7 +282,7 @@ const VehiclePage = () => {
             >
                 {viewingVehicle && (
                     <div style={{ marginTop: 24 }}>
-                        <Descriptions column={1} bordered size="middle" labelStyle={{ width: '120px', background: token.colorFillAlter, fontWeight: 600 }}>
+                        <Descriptions column={1} bordered size="middle" styles={{ label: { width: '120px', background: token.colorFillAlter, fontWeight: 600 } }}>
                             <Descriptions.Item label="License Plate"><Text strong style={{ fontSize: 16 }}>{viewingVehicle.licensePlate}</Text></Descriptions.Item>
                             <Descriptions.Item label="Vehicle Type">{viewingVehicle.vehicleType?.name || viewingVehicle.vehicleTypeName || 'N/A'}</Descriptions.Item>
                             <Descriptions.Item label="Owner Name">{viewingVehicle.ownerName}</Descriptions.Item>
