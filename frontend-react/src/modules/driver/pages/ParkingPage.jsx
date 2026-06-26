@@ -1,12 +1,22 @@
 import React, { useEffect, useReducer, useState, useMemo } from 'react';
 import { Card, Tag, Select, Row, Col, Descriptions, Drawer, Button, message, Skeleton, Empty, Typography, Input, Divider , theme } from 'antd';
 import { SearchOutlined, CompassOutlined, BorderOutlined, EnvironmentOutlined, CarOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import Icon from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { driverService } from '../services/driverService';
 import { parkingStore } from '../store/parkingStore';
 
 const { Option } = Select;
 const { Title, Text } = Typography;
+
+const MotorbikeSvg = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="1em" height="1em">
+        <circle cx="5.5" cy="16.5" r="3.5"/>
+        <circle cx="18.5" cy="16.5" r="3.5"/>
+        <path d="M15 6h5M12.5 12.5l3.5-6.5M5.5 13L9 6h3"/>
+    </svg>
+);
+const MotorbikeIcon = (props) => <Icon component={MotorbikeSvg} {...props} />;
 
 const ParkingPage = () => {
     const { token } = theme.useToken();
@@ -318,7 +328,7 @@ const ParkingPage = () => {
                                         display: 'flex', justifyContent: 'center', alignItems: 'center', 
                                         color: statusInfo.hex, marginBottom: 12 
                                     }}>
-                                        {String(slot.vehicleTypeName || '').toLowerCase().includes('motor') || String(slot.vehicleTypeName || '').toLowerCase().includes('xe máy') ? <CompassOutlined style={{ fontSize: 28 }} /> : <CarOutlined style={{ fontSize: 28 }} />}
+                                        {String(slot.vehicleTypeName || '').toLowerCase().includes('motor') || String(slot.vehicleTypeName || '').toLowerCase().includes('xe máy') ? <MotorbikeIcon style={{ fontSize: 28 }} /> : <CarOutlined style={{ fontSize: 28 }} />}
                                     </div>
                                     
                                     <Title level={3} style={{ margin: 0, fontWeight: 800, color: statusInfo.hex }}>
