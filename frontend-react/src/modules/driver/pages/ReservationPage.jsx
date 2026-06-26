@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useState } from 'react';
-import { Card, Table, Modal, Form, DatePicker, Select, Button, Tag, Space, Popconfirm, Alert, message, Row, Col, Typography, Skeleton, Empty , theme } from 'antd';
+import { Card, Table, Modal, Form, DatePicker, Select, Button, Tag, Space, Popconfirm, Alert, message, Row, Col, Typography, Skeleton, Empty, theme, Descriptions } from 'antd';
 import { CalendarOutlined, PlusOutlined, DeleteOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { driverService } from '../services/driverService';
@@ -16,6 +16,10 @@ const ReservationPage = () => {
     const [, forceRender] = useReducer(x => x + 1, 0);
     const [form] = Form.useForm();
     const [selectedVehicleType, setSelectedVehicleType] = useState(null);
+    
+    // Details Modal State
+    const [isDetailsVisible, setIsDetailsVisible] = useState(false);
+    const [viewingReservation, setViewingReservation] = useState(null);
 
     useEffect(() => {
         fetchData();
@@ -130,6 +134,38 @@ const ReservationPage = () => {
         }
     };
 
+    const handleViewDetails = (record) => {
+        setViewingReservation(record);
+        setIsDetailsVisible(true);
+    };
+
+    const handlePayment = async (reservation) => {
+        try {
+            message.loading({ content: 'Initializing payment...', key: 'payment' });
+            let paymentId = reservation.paymentId;
+            
+            if (!paymentId) {
+                const payRes = await driverService.createPayment({
+                    reservationId: reservation.reservationId || reservation.id,
+                    paymentMethod: 'VNPAY'
+                });
+                paymentId = payRes.data?.paymentId || payRes.paymentId || payRes.id;
+            }
+            
+            const urlRes = await driverService.createVnPayUrl(paymentId);
+            const paymentUrl = urlRes.data?.paymentUrl || urlRes.paymentUrl || urlRes.url;
+            
+            if (paymentUrl) {
+                message.success({ content: 'Redirecting to VNPay...', key: 'payment' });
+                window.location.href = paymentUrl;
+            } else {
+                message.error({ content: 'Failed to get payment URL', key: 'payment' });
+            }
+        } catch (error) {
+            message.error({ content: 'Payment initialization failed', key: 'payment' });
+        }
+    };
+
     const columns = [
         {
             title: 'Ref ID',
@@ -191,9 +227,15 @@ const ReservationPage = () => {
             render: (_, record) => {
                 const s = String(record.status).toUpperCase();
                 const canCancel = s === 'PENDING' || s === 'CONFIRMED';
+                const pStatus = String(record.paymentStatus || '').toUpperCase();
+                const isUnpaid = !record.paymentStatus || pStatus === 'PENDING' || pStatus === 'FAILED';
+                
                 return (
                     <Space size="middle">
-                        <Button type="primary" ghost size="small" style={{ borderRadius: 4 }}>Details</Button>
+                        {s !== 'CANCELLED' && isUnpaid && (
+                            <Button type="primary" size="small" style={{ borderRadius: 4 }} onClick={() => handlePayment(record)}>Pay Now</Button>
+                        )}
+                        <Button type="default" ghost={false} size="small" style={{ borderRadius: 4 }} onClick={() => handleViewDetails(record)}>Details</Button>
                         {canCancel && (
                             <Popconfirm title="Cancel this reservation?" onConfirm={() => handleDelete(record.reservationId || record.id)}>
                                 <Button type="text" danger icon={<DeleteOutlined />} size="small" />
@@ -372,6 +414,52 @@ const ReservationPage = () => {
                         </Col>
                     </Row>
                 </Form>
+            </Modal>
+
+            <Modal
+                title={<Title level={4} style={{ margin: 0 }}>Reservation Details</Title>}
+                open={isDetailsVisible}
+                onOk={() => setIsDetailsVisible(false)}
+                onCancel={() => setIsDetailsVisible(false)}
+                footer={[
+                    viewingReservation && String(viewingReservation.status).toUpperCase() !== 'CANCELLED' && (!viewingReservation.paymentStatus || String(viewingReservation.paymentStatus).toUpperCase() === 'PENDING') && (
+                        <Button key="pay" type="primary" onClick={() => handlePayment(viewingReservation)}>
+                            Pay Now
+                        </Button>
+                    ),
+                    <Button key="close" onClick={() => setIsDetailsVisible(false)}>
+                        Close
+                    </Button>
+                ]}
+                destroyOnHidden
+            >
+                {viewingReservation && (
+                    <div style={{ marginTop: 24 }}>
+                        <Descriptions column={1} bordered size="middle" styles={{ label: { width: '130px', background: token.colorFillAlter, fontWeight: 600 } }}>
+                            <Descriptions.Item label="Ref ID"><Text strong>#{viewingReservation.reservationId || viewingReservation.id}</Text></Descriptions.Item>
+                            <Descriptions.Item label="Vehicle">
+                                <Tag color="blue">{viewingReservation.vehicle?.licensePlate || viewingReservation.licensePlate || 'N/A'}</Tag>
+                                <Text type="secondary">({viewingReservation.vehicleType?.typeName || viewingReservation.vehicleTypeName || 'N/A'})</Text>
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Slot">{viewingReservation.slot?.slotName || viewingReservation.parkingSlot?.slotName || viewingReservation.slotId || 'N/A'}</Descriptions.Item>
+                            <Descriptions.Item label="Start Time">{viewingReservation.reservationStart || viewingReservation.startTime ? new Date(viewingReservation.reservationStart || viewingReservation.startTime).toLocaleString() : 'N/A'}</Descriptions.Item>
+                            <Descriptions.Item label="End Time">{viewingReservation.reservationEnd || viewingReservation.endTime ? new Date(viewingReservation.reservationEnd || viewingReservation.endTime).toLocaleString() : 'N/A'}</Descriptions.Item>
+                            <Descriptions.Item label="Status">
+                                <Tag color={String(viewingReservation.status).toUpperCase() === 'CONFIRMED' || String(viewingReservation.status).toUpperCase() === 'COMPLETED' ? 'success' : String(viewingReservation.status).toUpperCase() === 'CANCELLED' ? 'error' : 'warning'}>
+                                    {String(viewingReservation.status).toUpperCase()}
+                                </Tag>
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Payment Status">
+                                <Tag color={String(viewingReservation.paymentStatus || 'UNPAID').toUpperCase() === 'PAID' ? 'green' : 'gold'}>
+                                    {String(viewingReservation.paymentStatus || 'UNPAID').toUpperCase()}
+                                </Tag>
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Estimated Fee">
+                                {viewingReservation.estimatedFee ? `${viewingReservation.estimatedFee.toLocaleString()} VND` : 'N/A'}
+                            </Descriptions.Item>
+                        </Descriptions>
+                    </div>
+                )}
             </Modal>
         </div>
     );

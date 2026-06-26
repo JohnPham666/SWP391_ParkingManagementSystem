@@ -1,19 +1,97 @@
-import React from 'react';
-import { Card, Row, Col, Typography, Table, Tag, Button, Empty, Skeleton , theme } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Card, Row, Col, Typography, Table, Tag, Button, Empty, Skeleton, theme, message } from 'antd';
 import { DollarOutlined, ClockCircleOutlined, FallOutlined, DownloadOutlined } from '@ant-design/icons';
+import { driverService } from '../services/driverService';
 
 const { Title, Text } = Typography;
 
 const PaymentPage = () => {
     const { token } = theme.useToken();
-    // Placeholder data for aesthetic purposes (since we don't fetch payments yet)
-    const loading = false;
-    const payments = [];
+    const [loading, setLoading] = useState(true);
+    const [payments, setPayments] = useState([]);
+    const [stats, setStats] = useState({ totalPaid: '0 VND', pending: '0', monthly: '0 VND' });
 
-    const stats = {
-        totalPaid: '$0.00',
-        pending: '0',
-        monthly: '$0.00'
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const res = await driverService.loadReservations();
+            const rData = res?.data || res;
+            if (Array.isArray(rData)) {
+                let tPaid = 0;
+                let pendingCount = 0;
+                let tMonthly = 0;
+                const currentMonth = new Date().getMonth();
+
+                const pList = rData.map(r => {
+                    const status = String(r.paymentStatus || 'UNPAID').toUpperCase();
+                    const amount = r.amount || r.estimatedFee || 0;
+                    if (status === 'PAID') {
+                        tPaid += amount;
+                        const rDate = new Date(r.createdAt || r.reservationStart);
+                        if (rDate.getMonth() === currentMonth) tMonthly += amount;
+                    } else if (status === 'PENDING' || status === 'UNPAID' || status === 'FAILED') {
+                        if (String(r.status).toUpperCase() !== 'CANCELLED') {
+                            pendingCount++;
+                        }
+                    }
+
+                    return {
+                        id: r.paymentId || r.reservationId || r.id,
+                        reservationId: r.reservationId || r.id,
+                        date: r.createdAt || r.reservationStart,
+                        description: `Reservation for ${r.vehicle?.licensePlate || 'Vehicle'}`,
+                        amount: amount,
+                        status: status,
+                        reservationStatus: String(r.status).toUpperCase(),
+                        rawReservation: r
+                    };
+                });
+                
+                pList.sort((a, b) => new Date(b.date) - new Date(a.date));
+                setPayments(pList);
+                setStats({
+                    totalPaid: `${tPaid.toLocaleString()} VND`,
+                    pending: pendingCount.toString(),
+                    monthly: `${tMonthly.toLocaleString()} VND`
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load payments', error);
+            message.error('Failed to load payments history');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePayment = async (reservation) => {
+        try {
+            message.loading({ content: 'Initializing payment...', key: 'payment' });
+            let paymentId = reservation.paymentId;
+            
+            if (!paymentId) {
+                const payRes = await driverService.createPayment({
+                    reservationId: reservation.reservationId || reservation.id,
+                    paymentMethod: 'VNPAY'
+                });
+                paymentId = payRes.data?.paymentId || payRes.paymentId || payRes.id;
+            }
+            
+            const urlRes = await driverService.createVnPayUrl(paymentId);
+            const paymentUrl = urlRes.data?.paymentUrl || urlRes.paymentUrl || urlRes.url;
+            
+            if (paymentUrl) {
+                message.success({ content: 'Redirecting to VNPay...', key: 'payment' });
+                window.location.href = paymentUrl;
+            } else {
+                message.error({ content: 'Failed to get payment URL', key: 'payment' });
+            }
+        } catch (error) {
+            message.error({ content: 'Payment initialization failed', key: 'payment' });
+        }
     };
 
     const columns = [
@@ -26,7 +104,8 @@ const PaymentPage = () => {
         {
             title: 'Date',
             dataIndex: 'date',
-            key: 'date'
+            key: 'date',
+            render: (text) => text ? new Date(text).toLocaleDateString() : 'N/A'
         },
         {
             title: 'Description',
@@ -37,7 +116,7 @@ const PaymentPage = () => {
             title: 'Amount',
             dataIndex: 'amount',
             key: 'amount',
-            render: (text) => <Text strong>{text}</Text>
+            render: (text) => <Text strong>{text ? `${text.toLocaleString()} VND` : '0 VND'}</Text>
         },
         {
             title: 'Status',
@@ -45,13 +124,21 @@ const PaymentPage = () => {
             key: 'status',
             render: (status) => {
                 let color = status === 'PAID' ? 'green' : 'gold';
+                if (status === 'FAILED') color = 'red';
                 return <Tag color={color} style={{ borderRadius: 10 }}>{status}</Tag>
             }
         },
         {
-            title: 'Receipt',
+            title: 'Action',
             key: 'action',
-            render: () => <Button type="link" icon={<DownloadOutlined />} size="small">Download</Button>
+            render: (_, record) => {
+                const isUnpaid = record.status === 'PENDING' || record.status === 'UNPAID' || record.status === 'FAILED';
+                if (record.reservationStatus === 'CANCELLED') return <Text type="secondary">Cancelled</Text>;
+                if (isUnpaid) {
+                    return <Button type="primary" size="small" onClick={() => handlePayment(record.rawReservation)}>Pay Now</Button>;
+                }
+                return <Button type="link" icon={<DownloadOutlined />} size="small">Receipt</Button>;
+            }
         }
     ];
 

@@ -48,5 +48,13 @@ export const driverApi = {
     changePassword: async (data) => {
         const response = await api.post('/auth/change-password', data);
         return response.data;
+    },
+    createPayment: async (data) => {
+        const response = await api.post('/payments', data);
+        return response.data;
+    },
+    createVnPayUrl: async (paymentId) => {
+        const response = await api.post(`/payments/${paymentId}/vnpay-url`);
+        return response.data;
     }
 };
