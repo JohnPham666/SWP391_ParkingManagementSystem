@@ -98,7 +98,7 @@ const ManagerVehicles = () => {
     }
   };
 
-  const uniqueVehicleTypes = Array.from(new Set(vehicles.map(v => v.vehicleTypeName || v.vehicleType?.typeName || 'Ô tô')));
+  const uniqueVehicleTypes = Array.from(new Set(['Motorbike', 'Car', 'Small Truck', 'Bicycle', 'Large Truck', ...vehicles.map(v => v.vehicleTypeName || v.vehicleType?.typeName).filter(Boolean)]));
 
   const filteredVehicles = vehicles.filter(v => {
     const plateMatch = !filters.plate || v.licensePlate?.toLowerCase().includes(filters.plate.toLowerCase());

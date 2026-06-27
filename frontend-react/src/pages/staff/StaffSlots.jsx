@@ -54,7 +54,7 @@ const StaffSlots = () => {
   });
 
   // Extract unique vehicle types for the filter dropdown
-  const uniqueVehicleTypes = [...new Set(slots.map(s => s.vehicleTypeName).filter(Boolean))];
+  const uniqueVehicleTypes = Array.from(new Set(['Motorbike', 'Car', 'Small Truck', 'Bicycle', 'Large Truck', ...slots.map(s => s.vehicleTypeName).filter(Boolean)]));
 
   // Group slots by Building -> Floor -> Zone
   const groupedData = {};

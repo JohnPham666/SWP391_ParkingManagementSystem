@@ -227,7 +227,7 @@ const SessionManagement = () => {
   };
 
   // Extract unique vehicle types from sessions
-  const uniqueVehicleTypes = Array.from(new Set(sessions.map(s => s.vehicleTypeName || s.vehicleType?.typeName || 'Ô tô')));
+  const uniqueVehicleTypes = Array.from(new Set(['Motorbike', 'Car', 'Small Truck', 'Bicycle', 'Large Truck', ...sessions.map(s => s.vehicleTypeName || s.vehicleType?.typeName).filter(Boolean)]));
 
   // Filter
   const filteredSessions = sessions.filter(session => {

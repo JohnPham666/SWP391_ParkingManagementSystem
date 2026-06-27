@@ -126,6 +126,17 @@ const StaffPayments = () => {
           );
         }
 
+        if (record.paymentStatus === 'PENDING' && record.paymentMethod !== 'CASH' && record.paymentUrl) {
+          return (
+            <Space>
+              <Tag color={color}>{record.paymentStatus}</Tag>
+              <Button type="primary" size="small" onClick={() => window.open(record.paymentUrl, '_blank')}>
+                Open Payment Link
+              </Button>
+            </Space>
+          );
+        }
+
         return <Tag color={color}>{record.paymentStatus}</Tag>;
       }
     }

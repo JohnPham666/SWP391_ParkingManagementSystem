@@ -319,54 +319,57 @@ SELECT setval('users_userid_seq', (SELECT MAX(UserID) FROM Users));
 
 -- 3. BUILDINGS
 INSERT INTO Buildings (BuildingID, BuildingName, Address, TotalFloors, OperatingStartTime, OperatingEndTime) OVERRIDING SYSTEM VALUE VALUES
-(1, 'Tòa nhà gửi xe Quận 1',  '120 Lê Lợi, Quận 1, TP.HCM',          4, '06:00', '23:00'),
-(2, 'Tòa nhà gửi xe Quận 7',  '88 Nguyễn Thị Thập, Quận 7, TP.HCM',  3, '05:30', '23:30');
+(1, 'District 1 Parking Building',  '120 Le Loi, District 1, HCMC',          4, '06:00', '23:00'),
+(2, 'District 7 Parking Building',  '88 Nguyen Thi Thap, District 7, HCMC',  3, '05:30', '23:30');
 SELECT setval('buildings_buildingid_seq', (SELECT MAX(BuildingID) FROM Buildings));
 
 -- 4. FLOORS
 INSERT INTO Floors (FloorID, BuildingID, FloorNumber, FloorName) OVERRIDING SYSTEM VALUE VALUES
-(1, 1, 1, 'Tầng 1 - Trệt'),
-(2, 1, 2, 'Tầng 2'),
-(3, 1, 3, 'Tầng 3'),
-(4, 1, 4, 'Tầng 4 - Mái'),
-(5, 2, 1, 'Tầng 1 - Trệt'),
-(6, 2, 2, 'Tầng 2'),
-(7, 2, 3, 'Tầng 3 - Mái');
+(1, 1, 1, 'Floor 1 - Ground'),
+(2, 1, 2, 'Floor 2'),
+(3, 1, 3, 'Floor 3'),
+(4, 1, 4, 'Floor 4 - Roof'),
+(5, 2, 1, 'Floor 1 - Ground'),
+(6, 2, 2, 'Floor 2'),
+(7, 2, 3, 'Floor 3 - Roof');
 SELECT setval('floors_floorid_seq', (SELECT MAX(FloorID) FROM Floors));
 
 -- 5. ZONES
 INSERT INTO Zones (ZoneID, FloorID, ZoneName, Description) OVERRIDING SYSTEM VALUE VALUES
-(1,  1, 'Khu A', 'Khu xe máy tầng 1 - gần thang máy'),
-(2,  1, 'Khu B', 'Khu ô tô tầng 1 - lối vào chính'),
-(3,  2, 'Khu A', 'Khu xe máy tầng 2'),
-(4,  2, 'Khu B', 'Khu ô tô tầng 2'),
-(5,  3, 'Khu A', 'Khu xe máy tầng 3'),
-(6,  3, 'Khu B', 'Khu ô tô tầng 3 - VIP'),
-(7,  4, 'Khu A', 'Khu xe máy tầng 4'),
-(8,  4, 'Khu C', 'Khu xe tải tầng 4 - thông thoáng'),
-(9,  5, 'Khu A', 'Khu xe máy tòa nhà Q7 - tầng 1'),
-(10, 5, 'Khu B', 'Khu ô tô tòa nhà Q7 - tầng 1'),
-(11, 6, 'Khu A', 'Khu xe máy tòa nhà Q7 - tầng 2'),
-(12, 7, 'Khu A', 'Khu xe máy tòa nhà Q7 - tầng 3 - mái'),
-(13, 7, 'Khu C', 'Khu xe tải tòa nhà Q7 - tầng 3');
+(1,  1, 'Zone A', 'Floor 1 motorbike zone - near elevator'),
+(2,  1, 'Zone B', 'Floor 1 car zone - main entrance'),
+(3,  2, 'Zone A', 'Floor 2 motorbike zone'),
+(4,  2, 'Zone B', 'Floor 2 car zone'),
+(5,  3, 'Zone A', 'Floor 3 motorbike zone'),
+(6,  3, 'Zone B', 'Floor 3 car zone - VIP'),
+(7,  4, 'Zone A', 'Floor 4 motorbike zone'),
+(8,  4, 'Zone C', 'Floor 4 truck zone - airy'),
+(9,  5, 'Zone A', 'Q7 building motorbike zone - floor 1'),
+(10, 5, 'Zone B', 'Q7 building car zone - floor 1'),
+(11, 6, 'Zone A', 'Q7 building motorbike zone - floor 2'),
+(12, 7, 'Zone A', 'Q7 building motorbike zone - floor 3 - roof'),
+(13, 7, 'Zone C', 'Q7 building truck zone - floor 3');
 SELECT setval('zones_zoneid_seq', (SELECT MAX(ZoneID) FROM Zones));
 
 -- 6. VEHICLE TYPES
 INSERT INTO VehicleTypes (VehicleTypeID, TypeName, Description, IsReservable) OVERRIDING SYSTEM VALUE VALUES
-(1, 'Xe máy',     'Xe máy, xe tay ga dưới 175cc',  TRUE),
-(2, 'Ô tô',       'Xe ô tô con dưới 7 chỗ',         TRUE),
-(3, 'Xe tải nhỏ', 'Xe tải dưới 2 tấn',              FALSE);
+(1, 'Motorbike',   'Motorcycles and scooters under 175cc',  TRUE),
+(2, 'Car',         'Passenger cars under 7 seats',          TRUE),
+(3, 'Small Truck', 'Trucks under 2 tons',                   FALSE),
+(4, 'Bicycle',     'Bicycles and electric bikes',           FALSE),
+(5, 'Large Truck', 'Trucks over 2 tons',                    FALSE);
 SELECT setval('vehicletypes_vehicletypeid_seq', (SELECT MAX(VehicleTypeID) FROM VehicleTypes));
 
 -- 7. PRICING POLICIES
 INSERT INTO PricingPolicies (PricingPolicyID, VehicleTypeID, PolicyName, BasePrice, RushHourPrice, OffPeakPrice, RushHourStart, RushHourEnd, MaxDailyRate, LostTicketFee, OvertimeFeePerHour, EffectiveFrom, EffectiveTo) OVERRIDING SYSTEM VALUE VALUES
-(1, 1, 'Xe máy 2024',   4000,  5000, 3500, '07:00', '09:00',  40000,  40000,  NULL, '2024-01-01', '2024-12-31 23:59:59'),
-(2, 2, 'Ô tô 2024',     8000, 15000,10000, '07:00', '09:00', 120000, 150000, 20000, '2024-01-01', '2024-12-31 23:59:59'),
-(3, 3, 'Xe tải 2024',  12000, 20000,15000, '07:00', '09:00', 180000, 250000, 25000, '2024-01-01', '2024-12-31 23:59:59'),
-(4, 1, 'Xe máy 2025',   5000,  6000, 4000, '07:00', '09:00',  50000,  50000,  NULL, '2025-01-01', NULL),
-(5, 2, 'Ô tô 2025',    10000, 20000,15000, '07:00', '09:00', 150000, 200000, 25000, '2025-01-01', NULL),
-(6, 3, 'Xe tải 2025',  15000, 25000,20000, '07:00', '09:00', 200000, 300000, 30000, '2025-01-01', NULL),
-(7, 3, 'Xe dap 2025', 3000, 4000, 2000, '07:00', '09:00', 30000, 30000, NULL, '2025-01-01', NULL);
+(1, 1, 'Motorbike 2024',   4000,  5000, 3500, '07:00', '09:00',  40000,  40000,  NULL, '2024-01-01', '2024-12-31 23:59:59'),
+(2, 2, 'Car 2024',         8000, 15000,10000, '07:00', '09:00', 120000, 150000, 20000, '2024-01-01', '2024-12-31 23:59:59'),
+(3, 3, 'Small Truck 2024',12000, 20000,15000, '07:00', '09:00', 180000, 250000, 25000, '2024-01-01', '2024-12-31 23:59:59'),
+(4, 1, 'Motorbike 2025',   5000,  6000, 4000, '07:00', '09:00',  50000,  50000,  NULL, '2025-01-01', NULL),
+(5, 2, 'Car 2025',        10000, 20000,15000, '07:00', '09:00', 150000, 200000, 25000, '2025-01-01', NULL),
+(6, 3, 'Small Truck 2025',15000, 25000,20000, '07:00', '09:00', 200000, 300000, 30000, '2025-01-01', NULL),
+(7, 4, 'Bicycle 2025',     3000,  4000, 2000, '07:00', '09:00',  30000,  30000,  NULL, '2025-01-01', NULL),
+(8, 5, 'Large Truck 2025',25000, 35000,30000, '07:00', '09:00', 300000, 400000, 50000, '2025-01-01', NULL);
 SELECT setval('pricingpolicies_pricingpolicyid_seq', (SELECT MAX(PricingPolicyID) FROM PricingPolicies));
 
 -- 8. PARKING SLOTS
@@ -699,31 +702,31 @@ SELECT setval('payments_paymentid_seq', (SELECT MAX(PaymentID) FROM Payments));
 
 -- 14. PAYMENT TRANSACTIONS
 INSERT INTO PaymentTransactions (TransactionID, PaymentID, Gateway, TransactionRef, Amount, TransactionStatus, PaymentUrl, ResponseCode, ResponseMessage, CreatedAt, PaidAt) OVERRIDING SYSTEM VALUE VALUES
-(1,  1,  'BANK_TRANSFER', 'VNPAY-S08-001',  20000, 'PAID',    NULL,'00','Thành toán thành công qua VNPAY',          NOW()-INTERVAL '4 hours',   NOW()-INTERVAL '4 hours'),
-(2,  2,  'MOMO',           'MOMO-S09-002',   20000, 'PAID',    NULL,'00','Thành toán qua MoMo thành công',           NOW()-INTERVAL '2 hours',   NOW()-INTERVAL '2 hours'),
-(3,  3,  'BANK_TRANSFER', 'BTF-S10-003',    20000, 'PAID',    NULL,'00','Chuyển khoản bưu điện thành công',         NOW()-INTERVAL '1 hour',    NOW()-INTERVAL '1 hour'),
-(4,  4,  'ZALOPAY',        'ZALO-S11-004',   20000, 'PAID',    NULL,'00','Thành toán ví ZaloPay thành công',         NOW()-INTERVAL '1 hour',    NOW()-INTERVAL '1 hour'),
-(5,  5,  'CASH',           'CASH-S12-005',   40000, 'PAID',    NULL,'00','Đã thu tiền mặt trực tiếp',                NOW()-INTERVAL '6 hours',   NOW()-INTERVAL '6 hours'),
-(6,  6,  'MOMO',           'MOMO-S13-006',   10000, 'PAID',    NULL,'00','Thành toán MoMo thành công',               NOW()-INTERVAL '5 hours',   NOW()-INTERVAL '5 hours'),
-(7,  7,  'CASH',           'CASH-S14-007',    5000, 'PAID',    NULL,'00','Đã thu tiền mặt tại bốt trực',             NOW()-INTERVAL '2 hours',   NOW()-INTERVAL '2 hours'),
-(8,  8,  'BANK_TRANSFER', 'BTF-S15-008',    60000, 'PAID',    NULL,'00','Chuyển khoản thành công',                  NOW()-INTERVAL '2 hours',   NOW()-INTERVAL '2 hours'),
-(9,  9,  'BANK_TRANSFER', 'BTF-S16-009',   150000, 'PAID',    NULL,'00','Chuyển khoản ngân hàng thành công',        NOW()-INTERVAL '1 day'+INTERVAL '18 hours', NOW()-INTERVAL '1 day'+INTERVAL '18 hours'),
-(10, 10, 'BANK_TRANSFER', 'VNPAY-S17-010',  75000, 'PAID',    NULL,'00','Cổng thanh toán VNPAY duyệt thành công',   NOW()-INTERVAL '1 day'+INTERVAL '12 hours', NOW()-INTERVAL '1 day'+INTERVAL '12 hours'),
-(11, 11, 'ZALOPAY',        'ZALO-S18-011',  200000, 'PAID',    NULL,'00','Thành toán qua bốt quét mã QR ZaloPay',    NOW()-INTERVAL '1 day'+INTERVAL '20 hours', NOW()-INTERVAL '1 day'+INTERVAL '20 hours'),
-(12, 12, 'CASH',           'CASH-S19-012',   20000, 'PAID',    NULL,'00','Đã thu tiền mặt hoàn thành',               NOW()-INTERVAL '1 day'+INTERVAL '10 hours', NOW()-INTERVAL '1 day'+INTERVAL '10 hours'),
-(13, 13, 'MOMO',           'MOMO-S20-013',   25000, 'PAID',    NULL,'00','Khách hàng thanh toán qua MoMo',          NOW()-INTERVAL '1 day'+INTERVAL '15 hours', NOW()-INTERVAL '1 day'+INTERVAL '15 hours'),
-(14, 14, 'BANK_TRANSFER', 'BTF-S21-014',   150000, 'PAID',    NULL,'00','Nhận chuyển khoản ngân hàng',              NOW()-INTERVAL '2 days'+INTERVAL '19 hours',NOW()-INTERVAL '2 days'+INTERVAL '19 hours'),
-(15, 15, 'CASH',           'CASH-S22-015',   15000, 'PAID',    NULL,'00','Thu tiền mặt kiểm vé',                     NOW()-INTERVAL '2 days'+INTERVAL '11 hours',NOW()-INTERVAL '2 days'+INTERVAL '11 hours'),
-(16, 16, 'CASH',           'CASH-S23-016',   15000, 'PAID',    NULL,'00','Thu tiền mặt trực tiếp bốt cổng',          NOW()-INTERVAL '2 days'+INTERVAL '9 hours', NOW()-INTERVAL '2 days'+INTERVAL '9 hours'),
-(17, 19, 'CASH',           'CASH-VIO-017',   20000, 'PAID',    NULL,'00','Thu phí phạt vi phạm bãi đỗ',              NOW()-INTERVAL '1 day'+INTERVAL '14 hours', NOW()-INTERVAL '1 day'+INTERVAL '14 hours'),
-(18, 20, 'CASH',           'CASH-VIO-018',   60000, 'PAID',    NULL,'00','Thu phí vi phạm đỗ sai vị trí quy định',   NOW()-INTERVAL '3 days'+INTERVAL '11 hours',NOW()-INTERVAL '3 days'+INTERVAL '11 hours'),
-(19, 21, 'MOMO',           'MOMO-RES-019',   50000, 'PAID',    NULL,'00','Đặt chỗ trực tuyến thành công qua app',    NOW()-INTERVAL '1 day'+INTERVAL '7 hours',  NOW()-INTERVAL '1 day'+INTERVAL '7 hours'),
-(20, 22, 'BANK_TRANSFER', 'VNPAY-RES-020',  50000, 'PAID',    NULL,'00','Đặt chỗ bãi xe thành công',                NOW()-INTERVAL '2 days'+INTERVAL '9 hours', NOW()-INTERVAL '2 days'+INTERVAL '9 hours'),
-(21, 23, 'BANK_TRANSFER', 'VNPAY-RES-021',  50000, 'PENDING', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?ref=VNPAY-RES-021', NULL,'Cho thanh toan VNPAY', NOW(), NULL),
-(22, 24, 'MOMO',           'MOMO-RES-022',   50000, 'PENDING', 'https://test-payment.momo.vn/pay/MOMO-RES-022',                        NULL,'Cho thanh toan MoMo',  NOW(), NULL),
-(23, 25, 'ZALOPAY',        'ZALO-RES-023',   50000, 'PENDING', 'https://sbgateway.zalopay.vn/openinapp?ZALO-RES-023',                  NULL,'Cho thanh toan ZaloPay',NOW(), NULL),
-(24, 26, 'MOMO',           'MOMO-FAIL-024',  50000, 'FAILED',  NULL,'99','Giao dịch thất bại, tài khoản không đủ số dư',NOW()-INTERVAL '1 hour',   NULL),
-(25, 17, 'BANK_TRANSFER', 'VNPAY-UNP-025',  10000, 'CANCELLED',NULL,'24','Khách chủ động hủy giao dịch thanh toán',  NOW()-INTERVAL '2 days',   NULL);
+(1,  1,  'BANK_TRANSFER', 'VNPAY-S08-001',  20000, 'PAID',    NULL,'00','Successful payment via VNPay',          NOW()-INTERVAL '4 hours',   NOW()-INTERVAL '4 hours'),
+(2,  2,  'MOMO',           'MOMO-S09-002',   20000, 'PAID',    NULL,'00','Successful payment via MoMo',           NOW()-INTERVAL '2 hours',   NOW()-INTERVAL '2 hours'),
+(3,  3,  'BANK_TRANSFER', 'BTF-S10-003',    20000, 'PAID',    NULL,'00','Successful postal transfer',         NOW()-INTERVAL '1 hour',    NOW()-INTERVAL '1 hour'),
+(4,  4,  'ZALOPAY',        'ZALO-S11-004',   20000, 'PAID',    NULL,'00','Successful payment via ZaloPay',         NOW()-INTERVAL '1 hour',    NOW()-INTERVAL '1 hour'),
+(5,  5,  'CASH',           'CASH-S12-005',   40000, 'PAID',    NULL,'00','Direct cash collected',                NOW()-INTERVAL '6 hours',   NOW()-INTERVAL '6 hours'),
+(6,  6,  'MOMO',           'MOMO-S13-006',   10000, 'PAID',    NULL,'00','Successful MoMo payment',               NOW()-INTERVAL '5 hours',   NOW()-INTERVAL '5 hours'),
+(7,  7,  'CASH',           'CASH-S14-007',    5000, 'PAID',    NULL,'00','Cash collected at checkpoint',             NOW()-INTERVAL '2 hours',   NOW()-INTERVAL '2 hours'),
+(8,  8,  'BANK_TRANSFER', 'BTF-S15-008',    60000, 'PAID',    NULL,'00','Successful bank transfer',                  NOW()-INTERVAL '2 hours',   NOW()-INTERVAL '2 hours'),
+(9,  9,  'BANK_TRANSFER', 'BTF-S16-009',   150000, 'PAID',    NULL,'00','Successful bank transfer',        NOW()-INTERVAL '1 day'+INTERVAL '18 hours', NOW()-INTERVAL '1 day'+INTERVAL '18 hours'),
+(10, 10, 'BANK_TRANSFER', 'VNPAY-S17-010',  75000, 'PAID',    NULL,'00','VNPay gateway approved successfully',   NOW()-INTERVAL '1 day'+INTERVAL '12 hours', NOW()-INTERVAL '1 day'+INTERVAL '12 hours'),
+(11, 11, 'ZALOPAY',        'ZALO-S18-011',  200000, 'PAID',    NULL,'00','Payment via ZaloPay QR code',    NOW()-INTERVAL '1 day'+INTERVAL '20 hours', NOW()-INTERVAL '1 day'+INTERVAL '20 hours'),
+(12, 12, 'CASH',           'CASH-S19-012',   20000, 'PAID',    NULL,'00','Cash collection completed',               NOW()-INTERVAL '1 day'+INTERVAL '10 hours', NOW()-INTERVAL '1 day'+INTERVAL '10 hours'),
+(13, 13, 'MOMO',           'MOMO-S20-013',   25000, 'PAID',    NULL,'00','Customer paid via MoMo',          NOW()-INTERVAL '1 day'+INTERVAL '15 hours', NOW()-INTERVAL '1 day'+INTERVAL '15 hours'),
+(14, 14, 'BANK_TRANSFER', 'BTF-S21-014',   150000, 'PAID',    NULL,'00','Received bank transfer',              NOW()-INTERVAL '2 days'+INTERVAL '19 hours',NOW()-INTERVAL '2 days'+INTERVAL '19 hours'),
+(15, 15, 'CASH',           'CASH-S22-015',   15000, 'PAID',    NULL,'00','Ticket verification cash collection',                     NOW()-INTERVAL '2 days'+INTERVAL '11 hours',NOW()-INTERVAL '2 days'+INTERVAL '11 hours'),
+(16, 16, 'CASH',           'CASH-S23-016',   15000, 'PAID',    NULL,'00','Direct cash collected at gate',          NOW()-INTERVAL '2 days'+INTERVAL '9 hours', NOW()-INTERVAL '2 days'+INTERVAL '9 hours'),
+(17, 19, 'CASH',           'CASH-VIO-017',   20000, 'PAID',    NULL,'00','Parking violation fee collected',              NOW()-INTERVAL '1 day'+INTERVAL '14 hours', NOW()-INTERVAL '1 day'+INTERVAL '14 hours'),
+(18, 20, 'CASH',           'CASH-VIO-018',   60000, 'PAID',    NULL,'00','Wrong zone violation fee collected',   NOW()-INTERVAL '3 days'+INTERVAL '11 hours',NOW()-INTERVAL '3 days'+INTERVAL '11 hours'),
+(19, 21, 'MOMO',           'MOMO-RES-019',   50000, 'PAID',    NULL,'00','Successful online reservation via app',    NOW()-INTERVAL '1 day'+INTERVAL '7 hours',  NOW()-INTERVAL '1 day'+INTERVAL '7 hours'),
+(20, 22, 'BANK_TRANSFER', 'VNPAY-RES-020',  50000, 'PAID',    NULL,'00','Successful parking reservation',                NOW()-INTERVAL '2 days'+INTERVAL '9 hours', NOW()-INTERVAL '2 days'+INTERVAL '9 hours'),
+(21, 23, 'BANK_TRANSFER', 'VNPAY-RES-021',  50000, 'PENDING', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?ref=VNPAY-RES-021', NULL,'Awaiting VNPay payment', NOW(), NULL),
+(22, 24, 'MOMO',           'MOMO-RES-022',   50000, 'PENDING', 'https://test-payment.momo.vn/pay?id=MOMO-RES-022',                        NULL,'Awaiting MoMo payment',  NOW(), NULL),
+(23, 25, 'ZALOPAY',        'ZALO-RES-023',   50000, 'PENDING', 'https://sbgateway.zalopay.vn/openinapp?ZALO-RES-023',                  NULL,'Awaiting ZaloPay payment',NOW(), NULL),
+(24, 26, 'MOMO',           'MOMO-FAIL-024',  50000, 'FAILED',  NULL,'99','Transaction failed, insufficient balance',NOW()-INTERVAL '1 hour',   NULL),
+(25, 17, 'BANK_TRANSFER', 'VNPAY-UNP-025',  10000, 'CANCELLED',NULL,'24','Customer cancelled payment transaction',  NOW()-INTERVAL '2 days',   NULL);
 SELECT setval('paymenttransactions_transactionid_seq', (SELECT MAX(TransactionID) FROM PaymentTransactions));
 
 -- 15. INCIDENT REPORTS
