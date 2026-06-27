@@ -56,20 +56,22 @@ const DashboardPage = () => {
             const reservedSlots = slots.filter(s => String(s.status).toUpperCase() === 'RESERVED');
             const totalSlots = slots.length;
 
-            let motorbikeCount = 0;
-            let carCount = 0;
+            let motorbikeAvailable = 0;
+            let carAvailable = 0;
             let totalCapacity = 0;
             let currentOccupancy = 0;
             
             slots.forEach(s => {
-                totalCapacity += (s.capacity || 1);
-                currentOccupancy += (s.currentOccupancy || 0);
+                const cap = s.capacity || 1;
+                const occ = s.currentOccupancy || 0;
+                totalCapacity += cap;
+                currentOccupancy += occ;
                 
                 const typeName = (s.vehicleType?.name || s.vehicleTypeName || '').toLowerCase();
                 if (typeName.includes('motor') || typeName.includes('xe máy')) {
-                    motorbikeCount++;
+                    motorbikeAvailable += Math.max(0, cap - occ);
                 } else if (typeName.includes('car') || typeName.includes('ô tô') || typeName.includes('xe hơi')) {
-                    carCount++;
+                    carAvailable += Math.max(0, cap - occ);
                 }
             });
 
@@ -87,8 +89,8 @@ const DashboardPage = () => {
                 currentOccupancy,
                 occupiedSlots: occupiedSlots.length,
                 reservedSlots: reservedSlots.length,
-                motorbikeSlots: motorbikeCount,
-                carSlots: carCount,
+                motorbikeSlots: motorbikeAvailable,
+                carSlots: carAvailable,
                 occupancyRate,
                 todaysReservations: todaysReservations.length
             });
@@ -217,10 +219,10 @@ const DashboardPage = () => {
                                 <Statistic title="Reserved Slots" value={stats.reservedSlots} valueStyle={{ color: token.colorInfo }} />
                             </Col>
                             <Col xs={12} sm={8}>
-                                <Statistic title="Car Slots" value={stats.carSlots} prefix={<CarOutlined />} />
+                                <Statistic title="Available Car Slots" value={stats.carSlots} prefix={<CarOutlined />} />
                             </Col>
                             <Col xs={12} sm={8}>
-                                <Statistic title="Motorbike Slots" value={stats.motorbikeSlots} />
+                                <Statistic title="Available Motorbike Slots" value={stats.motorbikeSlots} />
                             </Col>
                         </Row>
                         

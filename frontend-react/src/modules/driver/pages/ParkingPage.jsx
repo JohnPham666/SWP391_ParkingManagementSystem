@@ -160,7 +160,7 @@ const ParkingPage = () => {
                     return !isResOverlap && !isSesOverlap;
                 });
             } else {
-                message.warning('Thời gian kết thúc phải sau thời gian bắt đầu.');
+                message.warning('End time must be after start time.');
             }
         }
 
@@ -291,7 +291,7 @@ const ParkingPage = () => {
                         />
                     </Col>
                     <Col xs={12} sm={8} md={6}>
-                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Thời gian kết thúc</div>
+                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>End Time</div>
                         <Input
                             type="datetime-local"
                             size="large"
@@ -305,7 +305,7 @@ const ParkingPage = () => {
                             onClick={handleResetFilter}
                             icon={<ReloadOutlined />}
                         >
-                            Đặt lại
+                            Reset
                         </Button>
                     </Col>
                 </Row>
@@ -347,7 +347,7 @@ const ParkingPage = () => {
                                             >
                                                 {slot.isRecommended && (
                                                     <div style={{ position: 'absolute', top: 0, right: 0, background: token.colorPrimary, color: '#fff', fontSize: '0.7rem', fontWeight: 800, padding: '4px 16px', borderBottomLeftRadius: 16, zIndex: 2, letterSpacing: 0.5, boxShadow: '-2px 2px 8px rgba(0,0,0,0.1)' }}>
-                                                        ĐỀ XUẤT
+                                                        RECOMMENDED
                                                     </div>
                                                 )}
 
@@ -368,7 +368,7 @@ const ParkingPage = () => {
                                                 </Text>
 
                                                 <div style={{ marginTop: 16, padding: '8px 16px', width: '100%', backgroundColor: '#fff', borderRadius: 8, border: `1px solid ${token.colorBorderSecondary}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>Lấp đầy</Text>
+                                                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>Occupancy</Text>
                                                     <Text strong style={{ fontSize: 14 }}>{slot.currentOccupancy || 0} / {slot.capacity || 1}</Text>
                                                 </div>
 

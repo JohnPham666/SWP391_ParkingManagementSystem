@@ -20,9 +20,6 @@ const isReservationExpired = (reservation) => {
 };
 
 const getPaymentStatus = (reservation) => {
-    const reservationStatus = String(reservation?.status || '').toUpperCase();
-    if (reservationStatus === 'CANCELLED') return 'CANCELLED';
-    if (reservationStatus === 'EXPIRED' || isReservationExpired(reservation)) return 'UNPAID';
     return String(reservation?.paymentStatus || reservation?.payment?.status || reservation?.payment?.paymentStatus || 'UNPAID').toUpperCase();
 };
 
@@ -100,6 +97,7 @@ const ReservationPage = () => {
     // Payment State
     const [payingReservationId, setPayingReservationId] = useState(null);
     const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+    const [paymentSuccess, setPaymentSuccess] = useState(false);
 
     // Cancellation and Refund State
     const [cancelPaidModalVisible, setCancelPaidModalVisible] = useState(false);
@@ -143,7 +141,7 @@ const ReservationPage = () => {
             if (currentRes) {
                 const pStatus = String(currentRes.paymentStatus || '').toUpperCase();
                 if (pStatus === 'PAID' || pStatus === 'COMPLETED') {
-                    setPaymentModalVisible(false);
+                    setPaymentSuccess(true);
                     setPayingReservationId(null);
                     message.success({ content: 'Payment completed successfully! Your reservation is confirmed.', key: 'payment_success', duration: 4 });
                     if (viewingReservation && (viewingReservation.reservationId || viewingReservation.id) === payingReservationId) {
@@ -239,6 +237,10 @@ const ReservationPage = () => {
             }
 
             const vehicle = safeVehicles.find(v => (v.vehicleId || v.id) === values.vehicleId);
+            if (vehicle && vehicle.status !== 'APPROVED') {
+                setErrorAlert('Vehicle is not approved yet. Cannot book a slot.');
+                return;
+            }
             const vTypeId = vehicle ? (vehicle.vehicleType?.vehicleTypeId || vehicle.vehicleTypeId || vehicle.vehicleType?.id) : null;
 
             const authStr = localStorage.getItem('parking_auth');
@@ -351,6 +353,7 @@ const ReservationPage = () => {
                 message.success({ content: 'Redirecting to VNPay...', key: 'payment' });
                 window.open(paymentUrl, '_blank');
                 setPayingReservationId(reservationId);
+                setPaymentSuccess(false);
                 setPaymentModalVisible(true);
             } else {
                 message.error({ content: 'Failed to get payment URL', key: 'payment' });
@@ -673,28 +676,43 @@ const ReservationPage = () => {
             </Modal>
 
             <Modal
-                title={<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><ClockCircleOutlined style={{ color: token.colorPrimary, fontSize: 24 }} /><Title level={4} style={{ margin: 0 }}>Waiting for Payment</Title></div>}
+                title={paymentSuccess ? <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><CheckCircleOutlined style={{ color: token.colorSuccess, fontSize: 24 }} /><Title level={4} style={{ margin: 0 }}>Payment Successful</Title></div> : <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><ClockCircleOutlined style={{ color: token.colorPrimary, fontSize: 24 }} /><Title level={4} style={{ margin: 0 }}>Waiting for Payment</Title></div>}
                 open={paymentModalVisible}
-                closable={false}
+                closable={paymentSuccess}
                 footer={[
-                    <Button key="cancel" onClick={() => {
+                    <Button key="close" onClick={() => {
                         setPaymentModalVisible(false);
                         setPayingReservationId(null);
+                        setPaymentSuccess(false);
                     }}>
                         Close
                     </Button>
                 ]}
                 centered
             >
-                <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                    <div className="spinner" style={{ border: `4px solid ${token.colorFillSecondary}`, borderTop: `4px solid ${token.colorPrimary}`, borderRadius: '50%', width: 48, height: 48, margin: '0 auto 24px', animation: 'spin 1s linear infinite' }} />
-                    <Title level={5}>A new tab was opened for VNPay</Title>
-                    <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
-                        Please complete your transaction securely in the newly opened tab.<br />
-                        This window will automatically close and update your reservation once the payment is successful.
-                    </Text>
-                    <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-                </div>
+                {paymentSuccess ? (
+                    <div style={{ textAlign: 'center', padding: '24px 0', animation: 'fadeIn 0.5s ease-out' }}>
+                        <div style={{ width: 64, height: 64, borderRadius: '50%', background: token.colorSuccessBg, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                            <CheckCircleOutlined style={{ fontSize: 40, color: token.colorSuccess }} />
+                        </div>
+                        <Title level={4} style={{ color: token.colorSuccess }}>Payment Successful!</Title>
+                        <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
+                            Your transaction has been securely completed.<br />
+                            Your reservation is now confirmed.
+                        </Text>
+                        <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+                    </div>
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '24px 0', animation: 'fadeIn 0.5s ease-out' }}>
+                        <div className="spinner" style={{ border: `4px solid ${token.colorFillSecondary}`, borderTop: `4px solid ${token.colorPrimary}`, borderRadius: '50%', width: 48, height: 48, margin: '0 auto 24px', animation: 'spin 1s linear infinite' }} />
+                        <Title level={5}>A new tab was opened for VNPay</Title>
+                        <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
+                            Please complete your transaction securely in the newly opened tab.<br />
+                            This window will automatically update your reservation once the payment is successful.
+                        </Text>
+                        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+                    </div>
+                )}
             </Modal>
 
             <Modal
