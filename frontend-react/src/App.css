@@ -182,3 +182,20 @@
     border-right-color: var(--border);
   }
 }
+
+.main-sidebar-menu {
+  padding: 16px 8px;
+}
+
+.main-sidebar-menu .ant-menu-item {
+  border-radius: 8px !important;
+  margin-bottom: 8px !important;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.main-sidebar-menu .ant-menu-item-selected {
+  background-color: #ea580c !important;
+  color: white !important;
+  box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.4);
+}

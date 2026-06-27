@@ -148,6 +148,20 @@ public class SessionService {
      */
     @Transactional
     public SessionResponse checkInWalkIn(WalkInRequest request) {
+        // 0. Xử lý logic Biển số & Thẻ từ
+        if (request.getVehicleTypeId() == 4) { // Bicycle
+            if (request.getLicensePlate() == null || request.getLicensePlate().trim().isEmpty()) {
+                request.setLicensePlate("BICYCLE-" + request.getCardId());
+            }
+        } else {
+            if (request.getLicensePlate() == null || request.getLicensePlate().trim().isEmpty()) {
+                throw new IllegalArgumentException("License plate is required for this vehicle type");
+            }
+        }
+
+        ParkingCard card = parkingCardRepository.findByCardIdAndStatus(request.getCardId(), "ACTIVE")
+                .orElseThrow(() -> new IllegalArgumentException("Parking card is invalid or already in use"));
+
         // 1. Tìm hoặc tạo Vehicle ẩn danh
         Vehicle vehicle = vehicleRepository.findByLicensePlate(request.getLicensePlate())
                 .orElseGet(() -> {
@@ -186,22 +200,18 @@ public class SessionService {
         }
         parkingSlotRepository.save(slot);
 
-        // 6. Tạo ParkingSession
+        // 6. Tạo ParkingSession & Đổi trạng thái Thẻ
+        card.setStatus("IN_USE");
+        parkingCardRepository.save(card);
+
         ParkingSession session = new ParkingSession();
         session.setVehicle(vehicle);
         session.setSlot(slot);
+        session.setCard(card);
         session.setEntryTime(LocalDateTime.now());
         session.setEntryGate(request.getEntryGate());
         session.setStatus(SessionStatus.PARKING.name());
         session.setEstimatedFee(BigDecimal.ZERO);
-
-        if (request.getCardId() != null && !request.getCardId().trim().isEmpty()) {
-            ParkingCard card = parkingCardRepository.findByCardIdAndStatus(request.getCardId(), "ACTIVE")
-                    .orElseThrow(() -> new IllegalArgumentException("Parking card is invalid or already in use"));
-            card.setStatus("IN_USE");
-            parkingCardRepository.save(card);
-            session.setCard(card);
-        }
 
         ParkingSession savedSession = parkingSessionRepository.save(session);
 
@@ -437,13 +447,20 @@ public class SessionService {
 
         String normalizedLicensePlate = licensePlate.trim();
 
-        ParkingSession session = parkingSessionRepository
+        java.util.List<String> activeStatuses = java.util.Arrays.asList(SessionStatus.PARKING.name(), SessionStatus.UNPAID.name());
+        
+        java.util.Optional<ParkingSession> sessionOpt = parkingSessionRepository
                 .findFirstByVehicle_LicensePlateIgnoreCaseAndStatusInOrderBySessionIdDesc(
-                        normalizedLicensePlate,
-                        java.util.Arrays.asList(SessionStatus.PARKING.name(), SessionStatus.UNPAID.name())
-                )
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "No active parking session found for license plate: " + normalizedLicensePlate
+                        normalizedLicensePlate, activeStatuses);
+
+        if (!sessionOpt.isPresent()) {
+            sessionOpt = parkingSessionRepository
+                    .findFirstByCard_CardIdIgnoreCaseAndStatusInOrderBySessionIdDesc(
+                            normalizedLicensePlate, activeStatuses);
+        }
+
+        ParkingSession session = sessionOpt.orElseThrow(() -> new ResourceNotFoundException(
+                        "No active parking session found for search key: " + normalizedLicensePlate
                 ));
 
         return mapEntityToResponse(session);
@@ -530,6 +547,10 @@ public class SessionService {
 
         if (session.getCreatedBy() != null) {
             response.setCreatedBy(session.getCreatedBy().getFullName());
+        }
+        
+        if (session.getCard() != null) {
+            response.setCardId(session.getCard().getCardId());
         }
 
         // Kiểm tra vé tháng (Monthly Subscription)

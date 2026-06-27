@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Upload, Row, Col, Typography, Divider } from 'antd';
 import { SearchOutlined, CarOutlined, CreditCardOutlined, UploadOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
-import { sessionApi, paymentApi, vehicleApi, pricingApi } from '../../services/api';
+import { sessionApi, paymentApi, vehicleApi, pricingApi, cardApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -10,6 +10,7 @@ const { Title, Text } = Typography;
 const SessionManagement = () => {
   const [sessions, setSessions] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
+  const [activeCards, setActiveCards] = useState([]);
   const [loading, setLoading] = useState(false);
   
   const [filters, setFilters] = useState({
@@ -42,7 +43,20 @@ const SessionManagement = () => {
   useEffect(() => {
     fetchSessions();
     fetchVehicleTypes();
+    fetchActiveCards();
   }, []);
+
+  const fetchActiveCards = async () => {
+    try {
+      const res = await cardApi.getAllCards();
+      const allCards = res.data?.success ? res.data.data : res.data;
+      if (Array.isArray(allCards)) {
+        setActiveCards(allCards.filter(c => c.status === 'ACTIVE'));
+      }
+    } catch (error) {
+      console.error('Failed to fetch cards:', error);
+    }
+  };
 
   const fetchVehicleTypes = async () => {
     try {
@@ -78,6 +92,7 @@ const SessionManagement = () => {
         licensePlate: values.licensePlate,
         vehicleTypeId: parseInt(values.vehicleType, 10),
         entryGate: values.entryGate,
+        cardId: values.cardId,
       };
       const res = await sessionApi.walkIn(payload);
       const sessionData = res.data.data;
@@ -95,6 +110,7 @@ const SessionManagement = () => {
       // Show Summary
       setSummaryData({
         ...sessionData,
+        cardId: values.cardId,
         plate: values.licensePlate,
         type: values.vehicleType,
         gate: values.entryGate,
@@ -239,6 +255,7 @@ const SessionManagement = () => {
     { title: 'ID', dataIndex: 'sessionId', key: 'sessionId', render: (text) => <strong>#{text}</strong> },
     { title: 'License Plate', dataIndex: 'licensePlate', key: 'licensePlate', render: (text) => <Tag color="blue" style={{ fontSize: 14, fontWeight: 'bold' }}>{text || 'N/A'}</Tag> },
     { title: 'Slot', dataIndex: 'slotCode', key: 'slotCode', render: text => text || '-' },
+    { title: 'Card ID', dataIndex: 'cardId', key: 'cardId', render: text => text || '-' },
     { title: 'Entry Time', dataIndex: 'checkInTime', key: 'checkInTime', render: (time) => time ? dayjs(time).format('DD/MM/YYYY HH:mm:ss') : '-' },
     { title: 'Gate', dataIndex: 'entryGate', key: 'entryGate', render: text => text || '-' },
     {
@@ -278,6 +295,7 @@ const SessionManagement = () => {
           )}
           <Button type="default" size="small" onClick={() => {
             setSummaryData({
+              cardId: record.cardId,
               plate: record.licensePlate,
               type: record.vehicleTypeName || 'N/A',
               time: dayjs(record.checkInTime).format('DD/MM/YYYY HH:mm:ss'),
@@ -391,7 +409,18 @@ const SessionManagement = () => {
               <Button icon={<UploadOutlined />}>Upload Image</Button>
             </Upload>
           </Form.Item>
-          <Form.Item name="licensePlate" label="License Plate" rules={[{ required: true, message: 'Please enter license plate' }]}>
+          <Form.Item name="cardId" label="Card ID" rules={[{ required: true, message: 'Please select Card ID' }]}>
+            <Select
+              showSearch
+              placeholder="Select an available Card ID"
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={activeCards.map(c => ({ value: c.cardId, label: c.cardId }))}
+            />
+          </Form.Item>
+          <Form.Item name="licensePlate" label="License Plate (Optional for Bicycle)">
             <Input placeholder="e.g. 29A-12345" style={{ textTransform: 'uppercase' }} />
           </Form.Item>
           <Form.Item name="vehicleType" label="Vehicle Type" rules={[{ required: true }]}>
@@ -451,6 +480,7 @@ const SessionManagement = () => {
             {summaryData.image && (
               <img src={summaryData.image} alt="Entry" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px' }} />
             )}
+            <p><strong>Card ID:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1677ff' }}>{summaryData.cardId || '-'}</span></p>
             <p><strong>Plate:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1677ff' }}>{summaryData.plate}</span></p>
             <p><strong>Type:</strong> {summaryData.type}</p>
             <p><strong>Entry:</strong> {summaryData.time}</p>

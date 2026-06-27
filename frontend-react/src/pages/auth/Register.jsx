@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Form, Input, Button, Typography, Checkbox, message } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { ThemeContext } from '../../contexts/ThemeContext';
 
 const { Title, Text } = Typography;
 
@@ -10,6 +11,7 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [form] = Form.useForm();
+  const { isDarkMode } = useContext(ThemeContext) || { isDarkMode: false };
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -36,12 +38,12 @@ const Register = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#fff' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: isDarkMode ? '#141414' : '#fff' }}>
       
       {/* Left Column: Branding */}
       <div style={{
         flex: 1,
-        background: 'linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%)',
+        background: isDarkMode ? 'linear-gradient(135deg, #1f1f1f 0%, #141414 100%)' : 'linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
@@ -50,18 +52,19 @@ const Register = () => {
         position: 'relative',
         overflow: 'hidden'
       }}>
+        {/* Decorative circles */}
         <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '400px', height: '400px', borderRadius: '50%', background: 'rgba(234, 88, 12, 0.1)', filter: 'blur(40px)' }} />
         <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '300px', height: '300px', borderRadius: '50%', background: 'rgba(234, 88, 12, 0.2)', filter: 'blur(40px)' }} />
 
         <div style={{ zIndex: 1, textAlign: 'center' }}>
           <img 
-            src="/images/signinImg.svg" 
-            alt="ParkSmart Register" 
+            src="/images/signupImg.svg" 
+            alt="ParkSmart Join" 
             style={{ maxWidth: '80%', maxHeight: '60vh', marginBottom: '2rem', filter: 'drop-shadow(0px 20px 30px rgba(234,88,12,0.15))' }}
             onError={(e) => { e.target.style.display = 'none'; }}
           />
           <Title level={1} style={{ color: '#ea580c', fontWeight: 800, margin: 0 }}>ParkSmart</Title>
-          <Text style={{ fontSize: '18px', color: '#666' }}>Smart & Modern Parking Management System</Text>
+          <Text style={{ fontSize: '18px', color: isDarkMode ? '#aaa' : '#666' }}>Smart & Modern Parking Management System</Text>
         </div>
       </div>
 
@@ -72,14 +75,14 @@ const Register = () => {
         flexDirection: 'column',
         justifyContent: 'center',
         padding: '4rem 10%',
-        boxShadow: '-20px 0 50px rgba(0,0,0,0.03)',
+        boxShadow: isDarkMode ? '-20px 0 50px rgba(0,0,0,0.5)' : '-20px 0 50px rgba(0,0,0,0.03)',
         zIndex: 2,
-        backgroundColor: '#fff',
+        backgroundColor: isDarkMode ? '#141414' : '#fff',
         overflowY: 'auto'
       }}>
         <div style={{ maxWidth: 420, margin: '0 auto', width: '100%' }}>
-          <Title level={2} style={{ fontWeight: 700, marginBottom: '8px' }}>Create an Account 🚀</Title>
-          <Text type="secondary" style={{ fontSize: '16px', display: 'block', marginBottom: '40px' }}>
+          <Title level={2} style={{ fontWeight: 700, marginBottom: '8px', color: isDarkMode ? '#fff' : '#000' }}>Create an Account 🚀</Title>
+          <Text type="secondary" style={{ fontSize: '16px', display: 'block', marginBottom: '40px', color: isDarkMode ? '#aaa' : undefined }}>
             Register to use our smart parking services
           </Text>
 

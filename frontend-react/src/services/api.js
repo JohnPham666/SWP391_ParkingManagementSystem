@@ -166,4 +166,8 @@ export const slotApi = {
   updateSlotStatus: (id, status) => api.patch(`/slots/${id}/status`, { status }),
 };
 
+export const cardApi = {
+  getAllCards: () => api.get('/cards'),
+};
+
 export default api;

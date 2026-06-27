@@ -43,5 +43,7 @@ public class SessionResponse {
      * Khi có vé tháng, phí gửi xe sẽ = 0 đồng lúc check-out.
      */
     private Boolean hasActiveSubscription;
+    
+    private String cardId;
     //====
 }
