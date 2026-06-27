@@ -10,7 +10,7 @@ import {
   CheckCircleFilled
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { monitoringApi, reservationApi, sessionApi, paymentApi, vehicleApi, cardApi } from '../../services/api';
+import { monitoringApi, reservationApi, sessionApi, paymentApi, vehicleApi, pricingApi, cardApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -302,6 +302,24 @@ const StaffDashboard = () => {
       }
     } catch (error) {
       message.error(error.response?.data?.message || 'Check-out failed');
+    }
+  };
+
+  const handleSwitchToCash = async () => {
+    try {
+      if (!checkoutSessionData?.paymentId) return;
+      setLoading(true);
+      await paymentApi.confirmCash(checkoutSessionData.paymentId);
+      message.success('Check-out & Payment Successful (Switched to Cash)!');
+      setIsCheckOutVisible(false);
+      setCheckOutStep(1);
+      checkOutSearchForm.resetFields();
+      checkOutConfirmForm.resetFields();
+      fetchData();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Failed to switch to cash');
+    } finally {
+      setLoading(false);
     }
   };
 
