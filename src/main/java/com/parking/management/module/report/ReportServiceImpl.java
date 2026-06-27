@@ -17,6 +17,7 @@ public class ReportServiceImpl implements ReportService {
 
     private final PaymentRepository paymentRepository;
     private final ParkingSlotRepository parkingSlotRepository;
+    private final com.parking.management.security.SecurityUtils securityUtils;
 
     @Override
     public RevenueReportResponse getTotalRevenueByDateRange(LocalDate from, LocalDate to) {
@@ -30,12 +31,13 @@ public class ReportServiceImpl implements ReportService {
 
         var fromDateTime = from.atStartOfDay();
         var toDateTime = to.atTime(23, 59, 59);
+        Integer buildingId = securityUtils.getBuildingId();
 
         return new RevenueReportResponse(
                 from,
                 to,
-                paymentRepository.getTotalRevenue(fromDateTime, toDateTime),
-                paymentRepository.countPaidPayments(fromDateTime, toDateTime)
+                paymentRepository.getTotalRevenue(fromDateTime, toDateTime, buildingId),
+                paymentRepository.countPaidPayments(fromDateTime, toDateTime, buildingId)
         );
     }
 
@@ -49,8 +51,9 @@ public class ReportServiceImpl implements ReportService {
         }
         var fromDateTime = from.atStartOfDay();
         var toDateTime = to.atTime(23, 59, 59);
+        Integer buildingId = securityUtils.getBuildingId();
 
-        java.util.List<Object[]> rawResults = paymentRepository.getDailyRevenueTrendNative(fromDateTime, toDateTime);
+        java.util.List<Object[]> rawResults = paymentRepository.getDailyRevenueTrend(fromDateTime, toDateTime, buildingId);
         return rawResults.stream().map(obj -> {
             java.sql.Date date = (java.sql.Date) obj[0];
             java.math.BigDecimal revenue = (java.math.BigDecimal) obj[1];
@@ -66,11 +69,13 @@ public class ReportServiceImpl implements ReportService {
         long reservedSlots;
 
         if (floorId == null) {
-            totalSlots = parkingSlotRepository.countByIsActiveTrue();
-            availableSlots = parkingSlotRepository.countByStatusAndIsActiveTrue(SlotStatus.AVAILABLE);
-            occupiedSlots = parkingSlotRepository.countByStatusAndIsActiveTrue(SlotStatus.OCCUPIED);
-            reservedSlots = parkingSlotRepository.countByStatusAndIsActiveTrue(SlotStatus.RESERVED);
+            Integer buildingId = securityUtils.getBuildingId();
+            totalSlots = parkingSlotRepository.countSlotsWithBuildingFilter(buildingId);
+            availableSlots = parkingSlotRepository.countSlotsByStatusWithBuildingFilter(SlotStatus.AVAILABLE, buildingId);
+            occupiedSlots = parkingSlotRepository.countSlotsByStatusWithBuildingFilter(SlotStatus.OCCUPIED, buildingId);
+            reservedSlots = parkingSlotRepository.countSlotsByStatusWithBuildingFilter(SlotStatus.RESERVED, buildingId);
         } else {
+            // Check building ownership for this floor? Ideally yes, but keeping the original logic structure for floor queries
             totalSlots = parkingSlotRepository.countByZone_Floor_FloorIdAndIsActiveTrue(floorId);
             availableSlots = parkingSlotRepository.countByZone_Floor_FloorIdAndStatusAndIsActiveTrue(floorId, SlotStatus.AVAILABLE);
             occupiedSlots = parkingSlotRepository.countByZone_Floor_FloorIdAndStatusAndIsActiveTrue(floorId, SlotStatus.OCCUPIED);
@@ -93,12 +98,12 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public java.util.List<com.parking.management.module.report.dto.ZoneOccupancyDto> getOccupancyBreakdown() {
-        return parkingSlotRepository.getOccupancyBreakdown();
+        return parkingSlotRepository.getOccupancyBreakdown(securityUtils.getBuildingId());
     }
 
     @Override
     public java.util.List<com.parking.management.module.report.dto.ZoneOccupancyDto> getFloorOccupancyBreakdown() {
-        return parkingSlotRepository.getFloorOccupancyBreakdown();
+        return parkingSlotRepository.getFloorOccupancyBreakdown(securityUtils.getBuildingId());
     }
 
     @Override
@@ -107,9 +112,10 @@ public class ReportServiceImpl implements ReportService {
     }
     @Override
     public ParkingPredictionResponse generateParkingPrediction() {
-        long totalSlots = parkingSlotRepository.count();
-        long occupiedSlots = parkingSlotRepository.countByStatus(SlotStatus.OCCUPIED);
-        long reservedSlots = parkingSlotRepository.countByStatus(SlotStatus.RESERVED);
+        Integer buildingId = securityUtils.getBuildingId();
+        long totalSlots = parkingSlotRepository.countSlotsWithBuildingFilter(buildingId);
+        long occupiedSlots = parkingSlotRepository.countSlotsByStatusWithBuildingFilter(SlotStatus.OCCUPIED, buildingId);
+        long reservedSlots = parkingSlotRepository.countSlotsByStatusWithBuildingFilter(SlotStatus.RESERVED, buildingId);
 
         double currentOccupancyRate = totalSlots == 0
                 ? 0

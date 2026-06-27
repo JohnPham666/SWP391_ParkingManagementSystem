@@ -54,7 +54,7 @@ const ManagerReports = () => {
 
   const handleExportCSV = async () => {
     try {
-      const hide = message.loading('Đang trích xuất dữ liệu...', 0);
+      const hide = message.loading('Extracting data...', 0);
       const res = await paymentApi.getPayments();
       hide();
       
@@ -71,7 +71,7 @@ const ManagerReports = () => {
       });
 
       if (payments.length === 0) {
-        message.warning('Không có dữ liệu giao dịch trong khoảng thời gian này');
+        message.warning('No transaction data in this period');
         return;
       }
 
@@ -80,41 +80,41 @@ const ManagerReports = () => {
       const BOM = '\uFEFF';
       
       const metaData = [
-        ['PARKSMART - BÁO CÁO DOANH THU CHI TIẾT'],
+        ['PARKSMART - DETAILED REVENUE REPORT'],
         ['=============================================='],
         [],
-        ['Thời gian báo cáo:', `${start.format('DD/MM/YYYY')} - ${end.format('DD/MM/YYYY')}`],
-        ['Ngày xuất:', generatedOn],
-        ['Tổng doanh thu:', `${totalRev.toLocaleString()} VND`],
-        ['Số lượng giao dịch:', payments.length],
+        ['Report Period:', `${start.format('DD/MM/YYYY')} - ${end.format('DD/MM/YYYY')}`],
+        ['Generated Date:', generatedOn],
+        ['Total Revenue:', `${totalRev.toLocaleString()} VND`],
+        ['Number of Transactions:', payments.length],
         [],
         ['----------------------------------------------']
       ];
 
       const headers = [
-        'Ngày giao dịch', 
-        'Tên sản phẩm/dịch vụ', 
-        'Số lượng', 
-        'Đơn giá bán', 
-        'Doanh thu', 
-        'Chi phí phát sinh', 
-        'Lợi nhuận ròng', 
-        'Ghi chú'
+        'Transaction Date', 
+        'Product/Service Name', 
+        'Quantity', 
+        'Unit Price', 
+        'Revenue', 
+        'Incurred Cost', 
+        'Net Profit', 
+        'Note'
       ];
       
       const tableData = payments.map(p => {
         const date = dayjs(p.paidAt || p.createdAt).format('DD/MM/YYYY');
-        let productName = 'Dịch vụ đỗ xe';
-        if (p.session) productName = `Vé xe (Biển số: ${p.session.licensePlate || 'N/A'})`;
-        else if (p.reservation) productName = `Đặt chỗ trước (Mã: ${p.reservation.reservationId || 'N/A'})`;
-        else if (p.subscription) productName = 'Đăng ký vé tháng';
+        let productName = 'Parking Service';
+        if (p.session) productName = `Parking Ticket (Plate: ${p.session.licensePlate || 'N/A'})`;
+        else if (p.reservation) productName = `Reservation (ID: ${p.reservation.reservationId || 'N/A'})`;
+        else if (p.subscription) productName = 'Monthly Subscription';
 
         const qty = 1;
         const price = Number(p.amount || 0);
         const revenue = price * qty;
-        const cost = 0; // Chi phí phát sinh mặc định 0
+        const cost = 0; 
         const profit = revenue - cost;
-        const note = p.paymentMethod === 'CASH' ? 'Tiền mặt' : (p.paymentMethod || 'Khác');
+        const note = p.paymentMethod === 'CASH' ? 'Cash' : (p.paymentMethod || 'Other');
 
         return [
           date,
@@ -142,9 +142,9 @@ const ManagerReports = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      message.success('Xuất file thành công!');
+      message.success('File exported successfully!');
     } catch (error) {
-      message.error('Lỗi khi tải dữ liệu giao dịch');
+      message.error('Error loading transaction data');
       console.error(error);
     }
   };

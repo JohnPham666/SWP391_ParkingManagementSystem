@@ -22,7 +22,7 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div style={{ padding: '40px', fontFamily: 'sans-serif', color: 'red' }}>
-          <h2>Đã xảy ra lỗi (Crash)!</h2>
+          <h2>An error occurred (Crash)!</h2>
           <details style={{ whiteSpace: 'pre-wrap', backgroundColor: '#f5f5f5', padding: '20px', border: '1px solid #ccc' }}>
             {this.state.error && this.state.error.toString()}
             <br />
@@ -35,7 +35,7 @@ class ErrorBoundary extends React.Component {
             }} 
             style={{ marginTop: 20, padding: '10px 20px', fontSize: 16 }}
           >
-            Xóa dữ liệu (Clear Cache) và Tải lại
+            Clear Cache and Reload
           </button>
         </div>
       );

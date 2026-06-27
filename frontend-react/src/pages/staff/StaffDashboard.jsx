@@ -285,6 +285,24 @@ const StaffDashboard = () => {
     }
   };
 
+  const handleSwitchToCash = async () => {
+    try {
+      if (!checkoutSessionData?.paymentId) return;
+      setLoading(true);
+      await paymentApi.confirmCash(checkoutSessionData.paymentId);
+      message.success('Check-out & Payment Successful (Switched to Cash)!');
+      setIsCheckOutVisible(false);
+      setCheckOutStep(1);
+      checkOutSearchForm.resetFields();
+      checkOutConfirmForm.resetFields();
+      fetchData();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Failed to switch to cash');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
   if (!dashboardData) return <div style={{ textAlign: 'center', padding: '50px' }}>Error loading data</div>;
 
@@ -675,33 +693,22 @@ const StaffDashboard = () => {
         {checkOutStep === 3 && checkoutSessionData && (
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <Spin size="large" />
-            <Title level={4} style={{ marginTop: 24, color: '#1677ff' }}>Đang chờ thanh toán VNPay...</Title>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
-              Vui lòng hoàn tất thanh toán ở tab VNPay. Hệ thống sẽ tự động đóng popup khi thanh toán thành công.
+            <Title level={4} style={{ marginTop: 24, color: '#1677ff' }}>Waiting for VNPay payment...</Title>
+            <Spin size="large" style={{ margin: '20px 0' }} />
+            <Text type="secondary" style={{ display: 'block' }}>
+              Please complete the payment in the VNPay tab. The system will automatically close this popup upon successful payment.
             </Text>
             
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
-              <Button onClick={() => {
-                 setIsCheckOutVisible(false);
-                 setCheckOutStep(1);
-                 checkOutSearchForm.resetFields();
-                 checkOutConfirmForm.resetFields();
-                 fetchData();
-              }}>Đóng (Hủy thanh toán)</Button>
-              <Button type="primary" danger onClick={async () => {
-                try {
-                  await paymentApi.confirmCash(checkoutSessionData.paymentId);
-                  message.success('Đã chuyển sang tiền mặt. Check-out thành công!');
-                  setIsCheckOutVisible(false);
-                  setCheckOutStep(1);
-                  checkOutSearchForm.resetFields();
-                  checkOutConfirmForm.resetFields();
-                  fetchData();
-                } catch(e) {
-                  message.error('Failed to switch to CASH');
-                }
-              }}>
-                Chuyển sang Tiền Mặt (CASH)
+              <Button type="default" danger onClick={() => {
+                setIsCheckOutVisible(false);
+                setCheckOutStep(1);
+                checkOutSearchForm.resetFields();
+                checkOutConfirmForm.resetFields();
+                fetchData();
+              }}>Close (Cancel Payment)</Button>
+              <Button type="primary" onClick={handleSwitchToCash} loading={loading}>
+                Switch to Cash (CASH)
               </Button>
             </div>
           </div>
@@ -710,8 +717,8 @@ const StaffDashboard = () => {
         {checkOutStep === 4 && (
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <CheckCircleFilled style={{ fontSize: 72, color: '#52c41a' }} />
-            <Title level={3} style={{ marginTop: 24, color: '#52c41a' }}>Thanh Toán Thành Công!</Title>
-            <Text type="secondary">Cửa tự động mở. Vui lòng xe di chuyển ra ngoài...</Text>
+            <Title level={3} style={{ marginTop: 24, color: '#52c41a' }}>Payment Successful!</Title>
+            <Text type="secondary">The gate is open. Please proceed to exit...</Text>
           </div>
         )}
       </Modal>

@@ -242,47 +242,47 @@ const ParkingPage = () => {
             <Card className="saas-card" style={{ marginBottom: 24 }} styles={{ body: { padding: '16px 24px' } }}>
                 <Row gutter={[16, 16]}>
                     <Col xs={12} sm={8} md={4}>
-                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Tòa nhà</div>
+                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Building</div>
                         <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.buildingName || 'all'} onChange={(v) => handleFilterChange('buildingName', v)}>
-                            <Option value="all">Tất cả</Option>
+                            <Option value="all">All</Option>
                             {filterOptions.buildings.map(b => <Option key={b} value={b}>{b}</Option>)}
                         </Select>
                     </Col>
                     <Col xs={12} sm={8} md={4}>
-                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Tầng</div>
+                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Floor</div>
                         <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.floorName || 'all'} onChange={(v) => handleFilterChange('floorName', v)}>
-                            <Option value="all">Tất cả</Option>
+                            <Option value="all">All</Option>
                             {filterOptions.floors.map(f => <Option key={f} value={f}>{f}</Option>)}
                         </Select>
                     </Col>
                     <Col xs={12} sm={8} md={4}>
-                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Khu vực</div>
+                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Zone</div>
                         <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.zoneName || 'all'} onChange={(v) => handleFilterChange('zoneName', v)}>
-                            <Option value="all">Tất cả</Option>
+                            <Option value="all">All</Option>
                             {filterOptions.zones.map(z => <Option key={z} value={z}>{z}</Option>)}
                         </Select>
                     </Col>
                     <Col xs={12} sm={8} md={4}>
-                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Loại xe</div>
+                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Vehicle Type</div>
                         <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.vehicleTypeName || 'all'} onChange={(v) => handleFilterChange('vehicleTypeName', v)}>
-                            <Option value="all">Tất cả</Option>
+                            <Option value="all">All</Option>
                             {filterOptions.vehicleTypes.map(v => <Option key={v} value={v}>{v}</Option>)}
                         </Select>
                     </Col>
                     <Col xs={12} sm={8} md={8}>
-                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Trạng thái</div>
+                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Status</div>
                         <Select style={{ width: '100%' }} size="large" value={parkingStore.filters.status || 'all'} onChange={(v) => handleFilterChange('status', v)}>
-                            <Option value="all">Tất cả</Option>
-                            <Option value="AVAILABLE">Trống</Option>
-                            <Option value="OCCUPIED">Đang sử dụng</Option>
-                            <Option value="RESERVED">Đã đặt</Option>
-                            <Option value="LOCKED">Khóa</Option>
+                            <Option value="all">All</Option>
+                            <Option value="AVAILABLE">Available</Option>
+                            <Option value="OCCUPIED">Occupied</Option>
+                            <Option value="RESERVED">Reserved</Option>
+                            <Option value="LOCKED">Locked</Option>
                         </Select>
                     </Col>
                 </Row>
                 <Row gutter={[16, 16]} style={{ marginTop: 16, alignItems: 'flex-end' }}>
                     <Col xs={12} sm={8} md={6}>
-                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Thời gian bắt đầu</div>
+                        <div style={{ marginBottom: 6, fontSize: 13, fontWeight: 600, color: token.colorTextSecondary }}>Start Time</div>
                         <Input
                             type="datetime-local"
                             size="large"
@@ -422,11 +422,11 @@ const ParkingPage = () => {
 
                         {parkingStore.selectedSlot.status !== 'AVAILABLE' ? (
                             <div style={{ marginBottom: 12, fontSize: '0.85rem', textAlign: 'center', color: '#f59e0b', background: '#fffbeb', padding: 10, borderRadius: 6 }}>
-                                Slot này hiện không thể đặt chỗ.
+                                This slot is currently unavailable for booking.
                             </div>
                         ) : String(parkingStore.selectedSlot.vehicleTypeName || '').toLowerCase().includes('motor') || String(parkingStore.selectedSlot.vehicleTypeName || '').toLowerCase().includes('xe máy') ? (
                             <div style={{ marginBottom: 12, fontSize: '0.85rem', textAlign: 'center', color: '#f59e0b', background: '#fffbeb', padding: 10, borderRadius: 6 }}>
-                                Slot xe máy không hỗ trợ đặt trước.
+                                Motorbike slots do not support advance booking. Please book a car slot or just drive in.
                             </div>
                         ) : (
                             <Button type="primary" size="large" onClick={() => navigate('/driver/reservations', { state: { prefilledSlot: parkingStore.selectedSlot } })} style={{ marginTop: 16, height: 48, borderRadius: 8, fontSize: 16, fontWeight: 600 }}>

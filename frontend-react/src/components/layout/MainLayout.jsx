@@ -42,7 +42,17 @@ const MainLayout = () => {
     if (auth) {
       const parsed = JSON.parse(auth);
       const user = parsed.user || parsed;
-      setUserRole(user.role || 'Staff');
+      let role = user.role || 'Staff';
+      if (typeof role === 'string') {
+        let upperRole = role.toUpperCase();
+        if (upperRole.startsWith('ROLE_')) {
+          upperRole = upperRole.substring(5);
+        }
+        if (upperRole === 'ADMIN') role = 'Admin';
+        else if (upperRole === 'PARKINGMANAGER' || upperRole === 'PARKING_MANAGER') role = 'ParkingManager';
+        else if (upperRole === 'PARKINGSTAFF' || upperRole === 'PARKING_STAFF') role = 'ParkingStaff';
+      }
+      setUserRole(role);
       setUserName(user.fullName || 'User');
     }
   }, []);

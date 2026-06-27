@@ -55,12 +55,12 @@ const ProfilePage = () => {
             };
             setUser(updatedUser);
             localStorage.setItem('parking_auth', JSON.stringify(updatedUser));
-            message.success('Cập nhật thông tin thành công!');
+            message.success('Profile updated successfully!');
             setIsEditModalVisible(false);
         } catch (error) {
             console.error(error);
             if (!error.errorFields) {
-                message.error('Cập nhật thông tin thất bại!');
+                message.error('Failed to update profile!');
             }
         }
     };
@@ -77,13 +77,13 @@ const ProfilePage = () => {
                 oldPassword: values.oldPassword,
                 newPassword: values.newPassword
             });
-            message.success('Đổi mật khẩu thành công!');
+            message.success('Password changed successfully!');
             setIsPasswordModalVisible(false);
             passwordForm.resetFields();
         } catch (error) {
             console.error(error);
             if (!error.errorFields) {
-                const apiMsg = error.response?.data?.message || 'Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu hiện tại.';
+                const apiMsg = error.response?.data?.message || 'Failed to change password. Please check your current password.';
                 message.error(apiMsg);
             }
         }
@@ -229,61 +229,61 @@ const ProfilePage = () => {
             </Row>
 
             <Modal
-                title={<Title level={4} style={{ margin: 0 }}>Chỉnh sửa thông tin</Title>}
+                title={<Title level={4} style={{ margin: 0 }}>Edit Profile</Title>}
                 open={isEditModalVisible}
                 onOk={handleSaveProfile}
                 onCancel={() => setIsEditModalVisible(false)}
-                okText="Lưu thay đổi"
-                cancelText="Hủy"
+                okText="Save Changes"
+                cancelText="Cancel"
                 destroyOnHidden
             >
                 <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
-                    <Form.Item name="fullName" label="Họ tên" rules={[{ required: true, message: 'Vui lòng nhập họ tên' }]}>
+                    <Form.Item name="fullName" label="Full Name" rules={[{ required: true, message: 'Please enter your full name' }]}>
                         <Input size="large" />
                     </Form.Item>
                     
-                    <Form.Item name="email" label="Email (Không được sửa)">
+                    <Form.Item name="email" label="Email (Cannot be changed)">
                         <Input size="large" disabled />
                     </Form.Item>
                     
-                    <Form.Item name="phoneNumber" label="Số điện thoại" rules={[{ required: true, message: 'Vui lòng nhập số điện thoại' }]}>
+                    <Form.Item name="phoneNumber" label="Phone Number" rules={[{ required: true, message: 'Please enter your phone number' }]}>
                         <Input size="large" />
                     </Form.Item>
                     
-                    <Form.Item name="dob" label="Ngày sinh">
+                    <Form.Item name="dob" label="Date of Birth">
                         <DatePicker size="large" style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="dd/mm/yyyy" />
                     </Form.Item>
                     
-                    <Form.Item name="address" label="Địa chỉ">
+                    <Form.Item name="address" label="Address">
                         <Input.TextArea rows={3} size="large" />
                     </Form.Item>
                 </Form>
             </Modal>
 
             <Modal
-                title={<Title level={4} style={{ margin: 0 }}>Đổi mật khẩu</Title>}
+                title={<Title level={4} style={{ margin: 0 }}>Change Password</Title>}
                 open={isPasswordModalVisible}
                 onOk={handleSavePassword}
                 onCancel={() => setIsPasswordModalVisible(false)}
-                okText="Lưu thay đổi"
-                cancelText="Hủy"
+                okText="Save Changes"
+                cancelText="Cancel"
                 destroyOnHidden
             >
                 <Form form={passwordForm} layout="vertical" style={{ marginTop: 24 }}>
                     <Form.Item 
                         name="oldPassword" 
-                        label="Mật khẩu hiện tại" 
-                        rules={[{ required: true, message: 'Vui lòng nhập mật khẩu hiện tại' }]}
+                        label="Current Password" 
+                        rules={[{ required: true, message: 'Please enter your current password' }]}
                     >
                         <Input.Password size="large" />
                     </Form.Item>
                     
                     <Form.Item 
                         name="newPassword" 
-                        label="Mật khẩu mới" 
+                        label="New Password" 
                         rules={[
-                            { required: true, message: 'Vui lòng nhập mật khẩu mới' },
-                            { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự' }
+                            { required: true, message: 'Please enter your new password' },
+                            { min: 6, message: 'Password must be at least 6 characters' }
                         ]}
                     >
                         <Input.Password size="large" />
@@ -291,16 +291,16 @@ const ProfilePage = () => {
                     
                     <Form.Item 
                         name="confirmPassword" 
-                        label="Xác nhận mật khẩu mới" 
+                        label="Confirm New Password" 
                         dependencies={['newPassword']}
                         rules={[
-                            { required: true, message: 'Vui lòng xác nhận mật khẩu mới' },
+                            { required: true, message: 'Please confirm your new password' },
                             ({ getFieldValue }) => ({
                                 validator(_, value) {
                                     if (!value || getFieldValue('newPassword') === value) {
                                         return Promise.resolve();
                                     }
-                                    return Promise.reject(new Error('Mật khẩu xác nhận không khớp!'));
+                                    return Promise.reject(new Error('Passwords do not match!'));
                                 },
                             }),
                         ]}

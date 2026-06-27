@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.parking.management.security.SecurityUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,6 +26,7 @@ public class IncidentService {
     private final ParkingSessionRepository parkingSessionRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final SecurityUtils securityUtils;
 
     public IncidentResponse create(IncidentRequest request) {
         User reportedBy = getCurrentAuthenticatedUser();
@@ -60,7 +62,9 @@ public class IncidentService {
                     .map(IncidentResponse::fromEntity)
                     .toList();
         }
-        return incidentReportRepository.findAllByOrderByCreatedAtDesc()
+        
+        Integer buildingId = securityUtils.getBuildingId();
+        return incidentReportRepository.findAllWithBuildingFilter(buildingId)
                 .stream()
                 .map(IncidentResponse::fromEntity)
                 .toList();

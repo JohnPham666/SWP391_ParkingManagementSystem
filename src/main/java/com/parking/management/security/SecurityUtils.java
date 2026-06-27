@@ -57,6 +57,19 @@ public class SecurityUtils {
         }
 
         String email = authentication.getName();
-        return userRepository.findByEmail(email).map(User::getUserId).orElse(null);
+        return userRepository.findByEmail(email).map(user -> user.getUserId()).orElse(null);
+    }
+
+    public Integer getBuildingId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
+            return null;
+        }
+
+        String email = authentication.getName();
+        return userRepository.findByEmail(email)
+                .filter(user -> user.getBuilding() != null)
+                .map(user -> user.getBuilding().getBuildingId())
+                .orElse(null);
     }
 }

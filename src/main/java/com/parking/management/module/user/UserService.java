@@ -5,6 +5,8 @@ import com.parking.management.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.parking.management.module.building.Building;
+import com.parking.management.module.building.BuildingRepository;
 
 import java.util.List;
 
@@ -17,6 +19,7 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final SecurityUtils securityUtils;
+    private final BuildingRepository buildingRepository;
 
     public UserResponse create(UserRequest request) {
         // Kiểm tra email trùng
@@ -36,6 +39,12 @@ public class UserService {
         user.setDateOfBirth(request.getDateOfBirth());
         user.setAddress(request.getAddress());
         user.setRole(role);
+
+        if (request.getBuildingId() != null) {
+            Building building = buildingRepository.findById(request.getBuildingId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Building not found with id: " + request.getBuildingId()));
+            user.setBuilding(building);
+        }
 
         // Hash password nếu có
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
@@ -103,6 +112,14 @@ public class UserService {
                 user.setEmail(request.getEmail());
             }
             user.setDateOfBirth(request.getDateOfBirth());
+            
+            if (request.getBuildingId() != null) {
+                Building building = buildingRepository.findById(request.getBuildingId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Building not found with id: " + request.getBuildingId()));
+                user.setBuilding(building);
+            } else {
+                user.setBuilding(null); // Clear building if null passed
+            }
         }
 
         if (request.getFullName() != null && !request.getFullName().isBlank()) {
@@ -148,8 +165,15 @@ public class UserService {
         res.setDateOfBirth(user.getDateOfBirth());
         res.setAddress(user.getAddress());
         res.setRoleName(user.getRole().getRoleName());
+        res.setRoleName(user.getRole().getRoleName());
         res.setIsActive(user.getIsActive());
         res.setCreatedAt(user.getCreatedAt());
+        
+        if (user.getBuilding() != null) {
+            res.setBuildingId(user.getBuilding().getBuildingId());
+            res.setBuildingName(user.getBuilding().getBuildingName());
+        }
+        
         return res;
     }
 }

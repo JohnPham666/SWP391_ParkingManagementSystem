@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Tag, message, Card, Space, Input, Select, DatePicker } from 'antd';
+import { Table, Button, Tag, message, Card, Space, Input, Select, DatePicker, Popconfirm } from 'antd';
 import { SearchOutlined, DollarOutlined } from '@ant-design/icons';
 import { paymentApi } from '../../services/api';
 import dayjs from 'dayjs';
@@ -31,6 +31,17 @@ const StaffPayments = () => {
       message.error('Failed to load payments: ' + (error.response?.data?.message || error.message || String(error)));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConfirmCash = async (paymentId) => {
+    try {
+      await paymentApi.confirmCash(paymentId);
+      message.success('Cash payment confirmed successfully');
+      fetchPayments();
+    } catch (error) {
+      console.error('Error confirming cash:', error);
+      message.error(error.response?.data?.message || 'Failed to confirm cash payment');
     }
   };
 
@@ -66,7 +77,7 @@ const StaffPayments = () => {
       render: (_, record) => record.sessionId ? 'Parking Session' : (record.reservationId ? 'Reservation' : 'Other')
     },
     {
-      title: 'Biển số xe',
+      title: 'License Plate',
       dataIndex: 'licensePlate',
       key: 'licensePlate',
       render: (text) => text ? <Tag color="blue" style={{ fontSize: '14px', padding: '4px 8px', fontWeight: 'bold' }}>{text}</Tag> : '-'
@@ -96,6 +107,24 @@ const StaffPayments = () => {
         if (record.paymentStatus === 'PENDING') color = 'warning';
         if (record.paymentStatus === 'PAID') color = 'success';
         if (record.paymentStatus === 'FAILED') color = 'error';
+
+        if (record.paymentStatus === 'PENDING' && record.paymentMethod === 'CASH') {
+          return (
+            <Space>
+              <Tag color={color}>{record.paymentStatus}</Tag>
+              <Popconfirm
+                title="Confirm you received cash?"
+                onConfirm={() => handleConfirmCash(record.paymentId)}
+                okText="Yes"
+                cancelText="No"
+              >
+                <Button type="primary" size="small" style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}>
+                  Receive Cash
+                </Button>
+              </Popconfirm>
+            </Space>
+          );
+        }
 
         return <Tag color={color}>{record.paymentStatus}</Tag>;
       }

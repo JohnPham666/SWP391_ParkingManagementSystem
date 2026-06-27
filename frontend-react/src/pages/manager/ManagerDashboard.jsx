@@ -7,15 +7,15 @@ import {
   AppstoreOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { monitoringApi, incidentApi, vehicleApi } from '../../services/api';
+import { monitoringApi, incidentApi, vehicleApi, paymentApi, sessionApi } from '../../services/api';
 
 const { Title, Text } = Typography;
 
 const ManagerDashboard = () => {
   const [stats, setStats] = useState({
-    totalRevenue: 1250000,
-    activeSessions: 42,
-    availableSlots: 156,
+    totalRevenue: 0,
+    activeSessions: 0,
+    availableSlots: 0,
   });
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
@@ -29,10 +29,12 @@ const ManagerDashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [res, incidentRes, vehicleRes] = await Promise.all([
-          monitoringApi.getDashboard(),
-          incidentApi.getIncidents(),
-          vehicleApi.getVehicles()
+        const [res, incidentRes, vehicleRes, paymentRes, sessionRes] = await Promise.all([
+          monitoringApi.getDashboard().catch(() => ({ data: { data: null } })),
+          incidentApi.getIncidents().catch(() => ({ data: { data: [] } })),
+          vehicleApi.getVehicles().catch(() => ({ data: { data: [] } })),
+          paymentApi.getPayments().catch(() => ({ data: { data: [] } })),
+          sessionApi.getSessions().catch(() => ({ data: { data: [] } }))
         ]);
         
         if (res.data?.success) {
@@ -50,6 +52,24 @@ const ManagerDashboard = () => {
           const pending = vehicleList.filter(v => v.status === 'PENDING');
           setPendingVehiclesCount(pending.length);
         }
+
+        let paymentList = paymentRes.data?.success ? paymentRes.data.data : paymentRes.data;
+        let revenue = 0;
+        if (Array.isArray(paymentList)) {
+          revenue = paymentList.filter(p => p.paymentStatus === 'PAID').reduce((sum, p) => sum + (p.amount || 0), 0);
+        }
+
+        let sessionList = sessionRes.data?.success ? sessionRes.data.data : sessionRes.data;
+        let active = 0;
+        if (Array.isArray(sessionList)) {
+          active = sessionList.filter(s => s.status === 'PARKING').length;
+        }
+
+        setStats({
+          totalRevenue: revenue,
+          activeSessions: active,
+          availableSlots: res.data?.data?.summary?.availableCapacity || 0
+        });
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -141,8 +161,8 @@ const ManagerDashboard = () => {
               style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer', borderLeft: '4px solid #3f8600' }}
             >
               <Statistic
-                title="Total Revenue (This Week)"
-                value={1250000}
+                title="Total Revenue"
+                value={stats.totalRevenue}
                 prefix={<DollarOutlined />}
                 suffix="₫"
                 valueStyle={{ color: '#3f8600', fontWeight: 600 }}

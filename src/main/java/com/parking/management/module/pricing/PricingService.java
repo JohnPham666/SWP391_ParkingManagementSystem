@@ -176,7 +176,6 @@ public class PricingService {
 
         long totalSeconds = java.time.Duration.between(entryTime, normalEnd).getSeconds();
         long totalHours   = (totalSeconds <= 0) ? 0 : (long) Math.ceil(totalSeconds / 3600.0);
-        long totalMinutes = totalSeconds / 60;
 
         long rushHours    = 0;
         long offPeakHours = 0;
