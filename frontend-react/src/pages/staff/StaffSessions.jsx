@@ -256,7 +256,7 @@ const StaffSessions = () => {
   };
 
   // Extract unique vehicle types from sessions
-  const uniqueVehicleTypes = Array.from(new Set(sessions.map(s => s.vehicleTypeName || s.vehicleType?.typeName || 'Ô tô')));
+  const uniqueVehicleTypes = Array.from(new Set(['Motorbike', 'Car', 'Small Truck', 'Bicycle', 'Large Truck', ...sessions.map(s => s.vehicleTypeName || s.vehicleType?.typeName).filter(Boolean)]));
 
   // Filter
   const filteredSessions = sessions.filter(session => {
@@ -513,7 +513,9 @@ const StaffSessions = () => {
               </Col>
               
               <Col span={24} style={{ textAlign: 'center', marginTop: 16 }}>
-                <Text type="secondary" style={{ fontSize: 16 }}>Final Fee</Text>
+                <Text type="secondary" style={{ fontSize: 16 }}>
+                  {summaryData.status === 'PARKING' ? 'Estimated Fee' : 'Final Fee'}
+                </Text>
                 <div style={{ fontSize: 32, fontWeight: 'bold', color: '#ef4444' }}>
                   {summaryData.finalFee.toLocaleString()} ₫
                 </div>

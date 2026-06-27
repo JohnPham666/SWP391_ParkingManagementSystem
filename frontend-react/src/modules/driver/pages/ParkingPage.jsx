@@ -317,7 +317,7 @@ const ParkingPage = () => {
                 <>
                     {Object.entries(
                         filteredSlots.reduce((acc, slot) => {
-                            const b = slot.buildingName || 'Khu vực chung';
+                            const b = slot.buildingName || 'General Area';
                             if (!acc[b]) acc[b] = [];
                             acc[b].push(slot);
                             return acc;

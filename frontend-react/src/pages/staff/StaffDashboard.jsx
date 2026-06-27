@@ -309,7 +309,13 @@ const StaffDashboard = () => {
   const sum = dashboardData.summary;
 
   // Calculate vehicle type stats
-  const vTypeStats = {};
+  const vTypeStats = {
+    'Motorbike': { capacity: 0, current: 0 },
+    'Car': { capacity: 0, current: 0 },
+    'Small Truck': { capacity: 0, current: 0 },
+    'Bicycle': { capacity: 0, current: 0 },
+    'Large Truck': { capacity: 0, current: 0 }
+  };
   if (dashboardData?.buildings) {
     dashboardData.buildings.forEach(b => {
       b.floors?.forEach(f => {
@@ -330,7 +336,7 @@ const StaffDashboard = () => {
     const t = type.toLowerCase();
     if (t.includes('car') || t.includes('ô tô')) return <CarOutlined />;
     if (t.includes('motor') || t.includes('máy')) return <span>🏍️</span>;
-    if (t.includes('bike') || t.includes('đạp')) return <span>🚲</span>;
+    if (t.includes('bicycle') || t.includes('bike') || t.includes('đạp')) return <span>🚲</span>;
     if (t.includes('tải') || t.includes('truck')) return <span>🚚</span>;
     return <CarOutlined />;
   };
@@ -541,9 +547,11 @@ const StaffDashboard = () => {
           {!matchedReservation && (
             <Form.Item name="vehicleType" label="Vehicle Type" rules={[{ required: true }]}>
               <Select>
-                <Option value="1">Car</Option>
-                <Option value="2">Motorbike</Option>
-                <Option value="3">Bicycle</Option>
+                <Option value="1">Motorbike</Option>
+                <Option value="2">Car</Option>
+                <Option value="3">Small Truck</Option>
+                <Option value="4">Bicycle</Option>
+                <Option value="5">Large Truck</Option>
               </Select>
             </Form.Item>
           )}
