@@ -7,7 +7,6 @@ import lombok.Data;
 @Data
 public class WalkInRequest {
 
-    @NotBlank(message = "License plate is required")
     private String licensePlate;
 
     @NotNull(message = "Vehicle type id is required")
@@ -17,5 +16,6 @@ public class WalkInRequest {
     
     private String guestName;
 
+    @NotBlank(message = "Card ID is required")
     private String cardId;
 }

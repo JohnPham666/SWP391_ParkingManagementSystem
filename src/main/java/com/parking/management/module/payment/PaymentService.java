@@ -199,6 +199,27 @@ public class PaymentService {
 
         if (request.getPaymentStatus() == PaymentStatus.PAID) {
             payment.setPaidAt(LocalDateTime.now());
+            
+            // Dùng helper method từ SessionService để đồng bộ trạng thái Session và nhả Card/Slot
+            if (payment.getSession() != null) {
+                ParkingSession session = payment.getSession();
+                if ("PARKING".equals(session.getStatus()) || SessionStatus.UNPAID.name().equals(session.getStatus())) {
+                    sessionService.completeSession(session.getSessionId());
+                }
+            }
+            
+            // Cập nhật trạng thái Reservation nếu có
+            if (payment.getReservation() != null) {
+                Reservation reservation = payment.getReservation();
+                reservation.setStatus("CONFIRMED");
+                reservationRepository.save(reservation);
+                
+                ParkingSlot slot = reservation.getSlot();
+                if (slot.getStatus() == SlotStatus.AVAILABLE) {
+                    slot.setStatus(SlotStatus.RESERVED);
+                    parkingSlotRepository.save(slot);
+                }
+            }
         }
 
         if (request.getPaymentStatus() == PaymentStatus.FAILED) {

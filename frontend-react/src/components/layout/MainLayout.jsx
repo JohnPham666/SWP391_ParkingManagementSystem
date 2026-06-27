@@ -173,39 +173,36 @@ const MainLayout = () => {
         trigger={null}
         collapsible
         collapsed={collapsed}
+        width={260}
+        collapsedWidth={80}
         theme={isDarkMode ? "dark" : "light"}
         style={{
           boxShadow: isDarkMode ? '2px 0 8px 0 rgba(0,0,0,.15)' : '2px 0 8px 0 rgba(29,35,41,.05)',
           zIndex: 10
         }}
       >
-        <div style={{
-          height: 64,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#ea580c',
-          borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid #ea580c'
-        }}>
-          <Title level={4} style={{ color: '#fff', margin: 0, display: collapsed ? 'none' : 'block' }}>
-            ParkSmart
-          </Title>
-          {collapsed && <Title level={4} style={{ color: '#fff', margin: 0 }}>PS</Title>}
+        <div style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '24px 16px', cursor: 'pointer', borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid #f0f0f0' }} onClick={() => navigate(basePath)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: collapsed ? 'center' : 'flex-start' }}>
+            <CarOutlined style={{ fontSize: '28px', color: '#f97316' }} />
+            {!collapsed && <Title level={3} style={{ margin: 0, color: '#f97316' }}>ParkSmart</Title>}
+          </div>
+          {!collapsed && <Text type="secondary" style={{ fontSize: '12px', marginTop: '8px', fontWeight: 600 }}>Smart Parking Solution</Text>}
         </div>
         <Menu
+          className="main-sidebar-menu"
           theme={isDarkMode ? "dark" : "light"}
           mode="inline"
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
-          style={{ borderRight: 0, padding: '8px 0' }}
+          style={{ borderRight: 0 }}
         />
       </Sider>
 
       <Layout>
         <Header style={{
           padding: '0 24px',
-          background: '#ea580c',
+          background: isDarkMode ? '#141414' : '#fff',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -215,7 +212,7 @@ const MainLayout = () => {
           {React.createElement(collapsed ? MenuUnfoldOutlined : MenuFoldOutlined, {
             className: 'trigger',
             onClick: () => setCollapsed(!collapsed),
-            style: { fontSize: '20px', cursor: 'pointer', transition: 'color 0.3s', color: '#fff' }
+            style: { fontSize: '20px', cursor: 'pointer', transition: 'color 0.3s', color: isDarkMode ? '#fff' : '#000' }
           })}
           <Space size="large">
             <Switch
@@ -240,8 +237,11 @@ const MainLayout = () => {
             )}
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
               <Space style={{ cursor: 'pointer', alignItems: 'center' }}>
-                <Avatar style={{ backgroundColor: '#fff', color: '#ea580c' }} icon={<UserOutlined />} />
-                <Text strong style={{ color: '#fff' }}>{userName}</Text>
+                <Avatar style={{ backgroundColor: '#f97316', color: '#fff' }} icon={<UserOutlined />} />
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
+                  <Text strong style={{ color: isDarkMode ? '#fff' : '#000' }}>{userName}</Text>
+                  <Tag color="orange" style={{ margin: 0, fontSize: '11px', border: 'none' }}>{userRole.toUpperCase()}</Tag>
+                </div>
               </Space>
             </Dropdown>
           </Space>
