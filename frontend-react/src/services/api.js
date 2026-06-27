@@ -188,4 +188,14 @@ export const cardApi = {
   getAllCards: () => api.get('/cards'),
 };
 
+export const alprApi = {
+  scanPlate: (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return api.post('/alpr/scan', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  }
+};
+
 export default api;

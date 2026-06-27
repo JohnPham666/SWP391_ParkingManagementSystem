@@ -10,7 +10,7 @@ import {
   CheckCircleFilled
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { monitoringApi, reservationApi, sessionApi, paymentApi, vehicleApi, pricingApi, cardApi } from '../../services/api';
+import { monitoringApi, reservationApi, sessionApi, paymentApi, vehicleApi, pricingApi, cardApi, alprApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -30,6 +30,60 @@ const StaffDashboard = () => {
   
   const [activeCards, setActiveCards] = useState([]);
   
+  // --- ALPR States ---
+  const [isScanningEntry, setIsScanningEntry] = useState(false);
+  const [isScanningExit, setIsScanningExit] = useState(false);
+
+  const handleEntryImageUpload = async (info) => {
+    if (info.fileList && info.fileList.length > 0 && info.file.status !== 'removed') {
+      const file = info.fileList[0].originFileObj;
+      if (!file) return;
+
+      setIsScanningEntry(true);
+      message.loading({ content: 'Đang dùng AI quét biển số...', key: 'scanningEntry' });
+
+      try {
+        const response = await alprApi.scanPlate(file);
+        const plateStr = response.data?.data || response.data;
+        
+        if (plateStr) {
+          checkInForm.setFieldsValue({ licensePlate: plateStr });
+          message.success({ content: `Nhận diện thành công: ${plateStr}`, key: 'scanningEntry', duration: 3 });
+          handleLicensePlateChange({ target: { value: plateStr } });
+        }
+      } catch (error) {
+        message.error({ content: 'Không tìm thấy biển số trong ảnh!', key: 'scanningEntry', duration: 3 });
+      } finally {
+        setIsScanningEntry(false);
+      }
+    }
+  };
+
+  const handleExitImageUpload = async (info) => {
+    if (info.fileList && info.fileList.length > 0 && info.file.status !== 'removed') {
+      const file = info.fileList[0].originFileObj;
+      if (!file) return;
+
+      setIsScanningExit(true);
+      message.loading({ content: 'Đang dùng AI quét biển số...', key: 'scanningExit' });
+
+      try {
+        const response = await alprApi.scanPlate(file);
+        const plateStr = response.data?.data || response.data;
+        
+        if (plateStr) {
+          checkOutSearchForm.setFieldsValue({ licensePlate: plateStr });
+          message.success({ content: `Nhận diện thành công: ${plateStr}`, key: 'scanningExit', duration: 3 });
+        }
+      } catch (error) {
+        message.error({ content: 'Không tìm thấy biển số trong ảnh!', key: 'scanningExit', duration: 3 });
+      } finally {
+        setIsScanningExit(false);
+      }
+    }
+  };
+
+  // --- Handlers ---
   const [checkOutStep, setCheckOutStep] = useState(1);
   const [checkoutSessionData, setCheckoutSessionData] = useState(null);
   const [summaryData, setSummaryData] = useState(null);
@@ -566,10 +620,10 @@ const StaffDashboard = () => {
 
         <Form form={checkInForm} layout="vertical" onFinish={handleCheckInSubmit} size="large">
           <Form.Item name="entryImage" label="Entry Image (Camera)" rules={[{ required: true, message: 'Please upload image' }]}>
-            <Upload beforeUpload={() => false} maxCount={1} listType="picture-card">
+            <Upload beforeUpload={() => false} maxCount={1} listType="picture-card" onChange={handleEntryImageUpload}>
               <div>
-                <UploadOutlined style={{ fontSize: '24px', color: '#8c8c8c' }} />
-                <div style={{ marginTop: 8, color: '#8c8c8c' }}>Upload</div>
+                {isScanningEntry ? <Spin /> : <UploadOutlined style={{ fontSize: '24px', color: '#8c8c8c' }} />}
+                <div style={{ marginTop: 8, color: '#8c8c8c' }}>{isScanningEntry ? 'Scanning...' : 'Upload'}</div>
               </div>
             </Upload>
           </Form.Item>
@@ -708,10 +762,10 @@ const StaffDashboard = () => {
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="exitImage" label="Exit Image" rules={[{ required: true, message: 'Upload image' }]}>
-                  <Upload beforeUpload={() => false} maxCount={1} listType="picture-card">
+                  <Upload beforeUpload={() => false} maxCount={1} listType="picture-card" onChange={handleExitImageUpload}>
                     <div>
-                      <UploadOutlined style={{ fontSize: '24px', color: '#8c8c8c' }} />
-                      <div style={{ marginTop: 8, color: '#8c8c8c' }}>Upload</div>
+                      {isScanningExit ? <Spin /> : <UploadOutlined style={{ fontSize: '24px', color: '#8c8c8c' }} />}
+                      <div style={{ marginTop: 8, color: '#8c8c8c' }}>{isScanningExit ? 'Scanning...' : 'Upload'}</div>
                     </div>
                   </Upload>
                 </Form.Item>

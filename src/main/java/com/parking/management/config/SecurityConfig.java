@@ -62,6 +62,10 @@ public class SecurityConfig {
                         // Reports chỉ Admin và Manager xem
                         .requestMatchers("/api/reports/**")
                         .hasAnyRole("Admin", "ParkingManager")
+                        
+                        // ALPR
+                        .requestMatchers("/api/alpr/**")
+                        .hasAnyRole("Admin", "ParkingManager", "ParkingStaff")
 
                         .anyRequest().authenticated())
                 .exceptionHandling(exc -> exc
