@@ -25,7 +25,7 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    private final JavaMailSender mailSender;
+    private final com.parking.management.common.EmailService emailService;
 
     /**
      * Xử lý đăng nhập:
@@ -142,30 +142,10 @@ public class AuthService {
                 .compact();
 
         // Cấu hình link reset (Frontend URL)
-        String resetLink = "http://localhost:8080/driver/index.html?resetToken=" + token;
+        String resetLink = "http://localhost:5173/#/reset-password?token=" + token;
 
-        // Gửi email bằng HTML để đảm bảo link không bị cắt chữ
-        try {
-            jakarta.mail.internet.MimeMessage mimeMessage = mailSender.createMimeMessage();
-            org.springframework.mail.javamail.MimeMessageHelper helper = new org.springframework.mail.javamail.MimeMessageHelper(mimeMessage, "utf-8");
-            
-            helper.setTo(user.getEmail());
-            helper.setSubject("Đặt lại mật khẩu - ParkSmart");
-            
-            String htmlMsg = "<h3>Yêu cầu đặt lại mật khẩu</h3>"
-                    + "<p>Bạn đã yêu cầu đặt lại mật khẩu. Vui lòng click vào nút bên dưới để khôi phục (Link có hiệu lực trong 15 phút):</p>"
-                    + "<a href=\"" + resetLink + "\" style=\"display:inline-block;padding:10px 20px;color:white;background-color:#ea580c;text-decoration:none;border-radius:5px;\">Đặt lại mật khẩu</a>"
-                    + "<p>Hoặc copy đường link sau và dán vào trình duyệt của bạn:</p>"
-                    + "<p><a href=\"" + resetLink + "\">" + resetLink + "</a></p>"
-                    + "<br><p>Nếu bạn không yêu cầu, vui lòng bỏ qua email này.</p>";
-            
-            helper.setText(htmlMsg, true);
-            mailSender.send(mimeMessage);
-        } catch (Exception e) {
-            System.err.println("Lỗi gửi mail (có thể chưa cấu hình SMTP): " + e.getMessage());
-            // Log link ra console để dev dễ test khi chưa có mail server thực tế
-            System.out.println("RESET LINK (TESTING): " + resetLink);
-        }
+        // Gọi EmailService để gửi mail chuyên nghiệp
+        emailService.sendResetPasswordEmail(user.getEmail(), resetLink);
     }
 
     /**

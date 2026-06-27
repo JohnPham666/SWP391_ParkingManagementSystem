@@ -1,8 +1,8 @@
 import React, { useState, useContext } from 'react';
-import { Form, Input, Button, Typography, Checkbox, message } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Typography, Checkbox, message, Modal } from 'antd';
+import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import api, { authApi } from '../../services/api';
 import { getDefaultRouteByRole } from '../../utils/authUtils';
 import { ThemeContext } from '../../contexts/ThemeContext';
 
@@ -10,8 +10,27 @@ const { Title, Text } = Typography;
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
+  const [isForgotModalVisible, setIsForgotModalVisible] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotForm] = Form.useForm();
+  
   const navigate = useNavigate();
   const { isDarkMode } = useContext(ThemeContext) || { isDarkMode: false };
+
+  const handleForgotPassword = async (values) => {
+    setForgotLoading(true);
+    try {
+      await authApi.forgotPassword({ email: values.email });
+      message.success('A password reset link has been sent to your email!');
+      setIsForgotModalVisible(false);
+      forgotForm.resetFields();
+    } catch (error) {
+      console.error(error);
+      message.error(error.response?.data?.message || 'Failed to send reset link');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -132,7 +151,12 @@ const Login = () => {
                 <Form.Item name="remember" valuePropName="checked" noStyle>
                   <Checkbox>Remember me</Checkbox>
                 </Form.Item>
-                <a style={{ color: '#ea580c', fontWeight: 600, cursor: 'pointer' }}>Forgot password?</a>
+                <a 
+                  style={{ color: '#ea580c', fontWeight: 600, cursor: 'pointer' }}
+                  onClick={() => setIsForgotModalVisible(true)}
+                >
+                  Forgot password?
+                </a>
               </div>
             </Form.Item>
 
@@ -173,6 +197,46 @@ const Login = () => {
           </Form>
         </div>
       </div>
+      {/* Modal Quên mật khẩu */}
+      <Modal
+        title="Reset Password"
+        open={isForgotModalVisible}
+        onCancel={() => {
+          setIsForgotModalVisible(false);
+          forgotForm.resetFields();
+        }}
+        footer={null}
+      >
+        <Typography.Paragraph type="secondary">
+          Enter your email address and we will send you a link to reset your password.
+        </Typography.Paragraph>
+        <Form form={forgotForm} layout="vertical" onFinish={handleForgotPassword}>
+          <Form.Item
+            name="email"
+            label={<span style={{ fontWeight: 600 }}>Email Address</span>}
+            rules={[
+              { required: true, message: 'Please enter your email!' },
+              { type: 'email', message: 'Invalid email format!' }
+            ]}
+          >
+            <Input 
+              prefix={<MailOutlined style={{ color: '#bfbfbf', marginRight: 8 }} />} 
+              placeholder="Ex: admin@parksmart.com" 
+              style={{ borderRadius: '8px', padding: '12px' }}
+            />
+          </Form.Item>
+          <Form.Item style={{ marginBottom: 0, marginTop: 24 }}>
+            <Button 
+              type="primary" 
+              htmlType="submit" 
+              loading={forgotLoading} 
+              style={{ width: '100%', height: '48px', borderRadius: '8px', backgroundColor: '#ea580c', fontWeight: 600 }}
+            >
+              Send Reset Link
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
