@@ -172,9 +172,7 @@ const DriverLayout = () => {
                     </div>
 
                     <div className="header-right">
-                        <Badge count={2} dot offset={[-5, 5]} color="#f97316" style={{ marginRight: 16 }}>
-                            <Button type="text" shape="circle" icon={<BellOutlined style={{ fontSize: '20px' }} />} />
-                        </Badge>
+
                         <Switch
                             checked={isDriverDarkMode}
                             onChange={toggleDriverTheme}
