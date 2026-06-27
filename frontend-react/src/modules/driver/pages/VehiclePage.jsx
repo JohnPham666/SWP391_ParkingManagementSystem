@@ -247,8 +247,8 @@ const VehiclePage = () => {
                                                     vehicle.status === 'APPROVED' ? 'green' : 
                                                     vehicle.status === 'PENDING' ? 'orange' : 
                                                     vehicle.status === 'REJECTED' ? 'red' : 'default'
-                                                } style={{ borderRadius: '10px' }}>
-                                                   <Text strong>{vehicle.status === 'PENDING' ? 'Pending' :
+                                                } style={{ borderRadius: '10px', border: '1px solid', padding: '2px 10px' }}>
+                                                   <Text strong style={{ color: '#000' }}>{vehicle.status === 'PENDING' ? 'Pending' :
                             vehicle.status === 'APPROVED' ? 'Approved' :
                             vehicle.status === 'REJECTED' ? 'Rejected' : vehicle.status || 'UNKNOWN'}</Text>
                                                 </Tag>
@@ -279,7 +279,7 @@ const VehiclePage = () => {
                 open={isModalVisible}
                 onOk={handleModalOk}
                 onCancel={() => setIsModalVisible(false)}
-                okText="Save Vehicle"
+                okText="Register vehicle"
                 cancelText="Cancel"
                 destroyOnHidden
             >
