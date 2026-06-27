@@ -110,11 +110,10 @@ const PricingPage = () => {
                             }}
                             styles={{ body: { padding: 32, display: 'flex', flexDirection: 'column', height: '100%' } }}
                         >
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
-                                <Tag color={plan.bg} style={{ color: plan.color, padding: '4px 12px', borderRadius: 16, border: 'none', fontWeight: 600, alignSelf: 'flex-start' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                                <Text strong style={{ fontSize: 24, color: plan.color, textTransform: 'capitalize' }}>
                                     {plan.type}
-                                </Tag>
-                                <Text strong style={{ fontSize: 16 }}>{plan.name}</Text>
+                                </Text>
                             </div>
                             <div style={{ marginBottom: 24, display: 'flex', alignItems: 'baseline' }}>
                                 <span style={{ fontSize: 40, fontWeight: 800, color: token.colorText }}>{plan.price}</span>
