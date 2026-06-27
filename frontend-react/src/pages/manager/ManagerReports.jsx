@@ -31,13 +31,37 @@ const ManagerReports = () => {
       const start = dateRange[0].format('YYYY-MM-DD');
       const end = dateRange[1].format('YYYY-MM-DD');
       
-      const revRes = await reportApi.getRevenueTrend(start, end);
+      const paymentsRes = await paymentApi.getPayments();
       const occRes = await reportApi.getOccupancyBreakdown();
       const floorOccRes = await reportApi.getFloorOccupancyBreakdown();
       
-      if (revRes.data?.success) {
-        setRevenueData(revRes.data.data);
+      let allPayments = paymentsRes.data?.success ? paymentsRes.data.data : (paymentsRes.data || []);
+      if (!Array.isArray(allPayments)) allPayments = [];
+      
+      // Aggregate revenue by date
+      const revenueMap = {};
+      allPayments.forEach(p => {
+        if (p.paymentStatus === 'PAID' || p.paymentStatus === 'COMPLETED') {
+          const pDate = dayjs(p.paidAt || p.createdAt || new Date());
+          const dateStr = pDate.format('YYYY-MM-DD');
+          revenueMap[dateStr] = (revenueMap[dateStr] || 0) + Number(p.amount || 0);
+        }
+      });
+
+      const filledData = [];
+      let curr = dateRange[0].clone().startOf('day');
+      const endDay = dateRange[1].clone().endOf('day');
+      
+      while (curr.isBefore(endDay) || curr.isSame(endDay, 'day')) {
+        const dateStr = curr.format('YYYY-MM-DD');
+        filledData.push({
+          date: dateStr,
+          revenue: revenueMap[dateStr] || 0
+        });
+        curr = curr.add(1, 'day');
       }
+      setRevenueData(filledData);
+
       if (occRes.data?.success) {
         setOccupancyData(occRes.data.data);
       }

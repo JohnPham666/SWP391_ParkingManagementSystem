@@ -6,6 +6,7 @@ import { getDefaultRouteByRole } from './utils/authUtils';
 // Auth
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import ResetPassword from './pages/auth/ResetPassword';
 
 // Layouts
 import MainLayout from './components/layout/MainLayout';
@@ -110,6 +111,7 @@ function App() {
           {/* Nhánh 2: Auth (Login dùng chung hoặc chia ra sau) */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Nhánh 3: Quản trị (Admin) */}
           <Route path="/admin" element={<PrivateRoute allowedRoles={['ADMIN']}><MainLayout /></PrivateRoute>}>
