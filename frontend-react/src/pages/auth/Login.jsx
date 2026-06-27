@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Form, Input, Button, Typography, Checkbox, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { getDefaultRouteByRole } from '../../utils/authUtils';
+import { ThemeContext } from '../../contexts/ThemeContext';
 
 const { Title, Text } = Typography;
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { isDarkMode } = useContext(ThemeContext) || { isDarkMode: false };
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -43,12 +45,12 @@ const Login = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#fff' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: isDarkMode ? '#141414' : '#fff' }}>
       
       {/* Cột trái: Hình ảnh Branding */}
       <div style={{
         flex: 1,
-        background: 'linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%)',
+        background: isDarkMode ? 'linear-gradient(135deg, #1f1f1f 0%, #141414 100%)' : 'linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
@@ -69,7 +71,7 @@ const Login = () => {
             onError={(e) => { e.target.style.display = 'none'; }}
           />
           <Title level={1} style={{ color: '#ea580c', fontWeight: 800, margin: 0 }}>ParkSmart</Title>
-          <Text style={{ fontSize: '18px', color: '#666' }}>Smart & Modern Parking Management System</Text>
+          <Text style={{ fontSize: '18px', color: isDarkMode ? '#aaa' : '#666' }}>Smart & Modern Parking Management System</Text>
         </div>
       </div>
 
@@ -80,13 +82,13 @@ const Login = () => {
         flexDirection: 'column',
         justifyContent: 'center',
         padding: '4rem 10%',
-        boxShadow: '-20px 0 50px rgba(0,0,0,0.03)',
+        boxShadow: isDarkMode ? '-20px 0 50px rgba(0,0,0,0.5)' : '-20px 0 50px rgba(0,0,0,0.03)',
         zIndex: 2,
-        backgroundColor: '#fff'
+        backgroundColor: isDarkMode ? '#141414' : '#fff'
       }}>
         <div style={{ maxWidth: 420, margin: '0 auto', width: '100%' }}>
-          <Title level={2} style={{ fontWeight: 700, marginBottom: '8px' }}>Welcome Back 👋</Title>
-          <Text type="secondary" style={{ fontSize: '16px', display: 'block', marginBottom: '40px' }}>
+          <Title level={2} style={{ fontWeight: 700, marginBottom: '8px', color: isDarkMode ? '#fff' : '#000' }}>Welcome Back 👋</Title>
+          <Text type="secondary" style={{ fontSize: '16px', display: 'block', marginBottom: '40px', color: isDarkMode ? '#aaa' : undefined }}>
             Please login to your account to continue
           </Text>
 

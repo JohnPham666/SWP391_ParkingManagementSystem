@@ -14,12 +14,13 @@ import java.util.List;
 @RequestMapping("/api/cards")
 @RequiredArgsConstructor
 @Tag(name = "Parking Card", description = "APIs for managing physical parking cards")
-@PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
+@PreAuthorize("hasAnyRole('Admin', 'ParkingManager', 'ParkingStaff')")
 public class ParkingCardController {
 
     private final ParkingCardService service;
 
     @Operation(summary = "Create a new parking card", description = "Register a new physical parking card into the system")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
     @PostMapping
     public ApiResponse<ParkingCardResponse> createCard(@Valid @RequestBody ParkingCardRequest request) {
         ParkingCardResponse response = service.createCard(request);
@@ -40,7 +41,8 @@ public class ParkingCardController {
         return ApiResponse.success("Fetched parking card successfully", response);
     }
 
-    @Operation(summary = "Update parking card status", description = "Update the status of a parking card (e.g., ACTIVE, IN_USE, LOST, DISABLED)")
+    @Operation(summary = "Update parking card status", description = "Change the status of an existing parking card")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
     @PutMapping("/{cardId}/status")
     public ApiResponse<ParkingCardResponse> updateCardStatus(
             @PathVariable String cardId,
@@ -50,6 +52,7 @@ public class ParkingCardController {
     }
 
     @Operation(summary = "Delete a parking card", description = "Remove a parking card from the system")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
     @DeleteMapping("/{cardId}")
     public ApiResponse<Void> deleteCard(@PathVariable String cardId) {
         service.deleteCard(cardId);

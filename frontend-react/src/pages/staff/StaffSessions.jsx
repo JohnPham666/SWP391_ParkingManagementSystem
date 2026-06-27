@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Upload, Row, Col, Typography, Divider, DatePicker } from 'antd';
 import { SearchOutlined, CarOutlined, CreditCardOutlined, UploadOutlined, SafetyCertificateOutlined, CheckCircleFilled } from '@ant-design/icons';
-import { sessionApi, paymentApi, vehicleApi, pricingApi } from '../../services/api';
+import { sessionApi, paymentApi, vehicleApi, pricingApi, cardApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -10,6 +10,7 @@ const { Title, Text } = Typography;
 const StaffSessions = () => {
   const [sessions, setSessions] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
+  const [activeCards, setActiveCards] = useState([]);
   const [loading, setLoading] = useState(false);
   
   const [filters, setFilters] = useState({
@@ -71,7 +72,21 @@ const StaffSessions = () => {
   useEffect(() => {
     fetchSessions();
     fetchVehicleTypes();
+    fetchActiveCards();
+    // eslint-disable-next-line
   }, []);
+
+  const fetchActiveCards = async () => {
+    try {
+      const res = await cardApi.getAllCards();
+      const allCards = res.data?.success ? res.data.data : res.data;
+      if (Array.isArray(allCards)) {
+        setActiveCards(allCards.filter(c => c.status === 'ACTIVE'));
+      }
+    } catch (error) {
+      console.error('Failed to fetch cards:', error);
+    }
+  };
 
   const fetchVehicleTypes = async () => {
     try {
@@ -107,6 +122,7 @@ const StaffSessions = () => {
         licensePlate: values.licensePlate,
         vehicleTypeId: parseInt(values.vehicleType, 10),
         entryGate: values.entryGate,
+        cardId: values.cardId,
       };
       const res = await sessionApi.walkIn(payload);
       const sessionData = res.data.data;
@@ -124,6 +140,7 @@ const StaffSessions = () => {
       // Show Summary
       setSummaryData({
         ...sessionData,
+        cardId: values.cardId,
         plate: values.licensePlate,
         type: values.vehicleType,
         gate: values.entryGate,
@@ -314,6 +331,7 @@ const StaffSessions = () => {
             setSummaryData({
               sessionId: record.sessionId,
               status: record.status,
+              cardId: record.cardId,
               plate: record.licensePlate,
               type: record.vehicleTypeName || record.vehicleType?.typeName || 'N/A',
               time: record.checkInTime || record.checkinTime || record.entryTime ? dayjs(record.checkInTime || record.checkinTime || record.entryTime).format('HH:mm:ss DD/MM/YYYY') : '-',
@@ -400,7 +418,18 @@ const StaffSessions = () => {
               <Button icon={<UploadOutlined />}>Upload Image</Button>
             </Upload>
           </Form.Item>
-          <Form.Item name="licensePlate" label="License Plate" rules={[{ required: true, message: 'Please enter license plate' }]}>
+          <Form.Item name="cardId" label="Card ID" rules={[{ required: true, message: 'Please select Card ID' }]}>
+            <Select
+              showSearch
+              placeholder="Select an available Card ID"
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={activeCards.map(c => ({ value: c.cardId, label: c.cardId }))}
+            />
+          </Form.Item>
+          <Form.Item name="licensePlate" label="License Plate (Optional for Bicycle)">
             <Input placeholder="e.g. 29A-12345" style={{ textTransform: 'uppercase' }} />
           </Form.Item>
           <Form.Item name="vehicleType" label="Vehicle Type" rules={[{ required: true }]}>
@@ -474,6 +503,11 @@ const StaffSessions = () => {
                       return <Tag color={sColor} style={{ borderRadius: 12 }}>{sText}</Tag>;
                    })()}
                 </div>
+              </Col>
+              
+              <Col span={12}>
+                <Text type="secondary">Card ID</Text>
+                <div style={{ fontWeight: 'bold', fontSize: 16 }}>{summaryData.cardId || '-'}</div>
               </Col>
               
               <Col span={12}>

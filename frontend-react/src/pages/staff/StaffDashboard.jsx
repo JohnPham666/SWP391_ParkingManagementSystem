@@ -10,7 +10,7 @@ import {
   CheckCircleFilled
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { monitoringApi, reservationApi, sessionApi, paymentApi, vehicleApi, pricingApi } from '../../services/api';
+import { monitoringApi, reservationApi, sessionApi, paymentApi, vehicleApi, cardApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -26,6 +26,8 @@ const StaffDashboard = () => {
   const [isCheckInVisible, setIsCheckInVisible] = useState(false);
   const [isCheckOutVisible, setIsCheckOutVisible] = useState(false);
   const [isSummaryVisible, setIsSummaryVisible] = useState(false);
+  
+  const [activeCards, setActiveCards] = useState([]);
   
   const [checkOutStep, setCheckOutStep] = useState(1);
   const [checkoutSessionData, setCheckoutSessionData] = useState(null);
@@ -66,8 +68,10 @@ const StaffDashboard = () => {
       if (interval) clearInterval(interval);
     };
   }, [checkOutStep, checkoutSessionData]);
+  
   useEffect(() => {
     fetchData();
+    fetchActiveCards();
     const interval = setInterval(() => {
       fetchData(true);
     }, 10000);
@@ -99,6 +103,18 @@ const StaffDashboard = () => {
       message.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchActiveCards = async () => {
+    try {
+      const res = await cardApi.getAllCards();
+      const allCards = res.data?.success ? res.data.data : res.data;
+      if (Array.isArray(allCards)) {
+        setActiveCards(allCards.filter(c => c.status === 'ACTIVE'));
+      }
+    } catch (error) {
+      console.error('Failed to fetch cards:', error);
     }
   };
 
@@ -154,6 +170,7 @@ const StaffDashboard = () => {
           licensePlate: values.licensePlate,
           vehicleTypeId: parseInt(values.vehicleType, 10),
           entryGate: values.entryGate,
+          cardId: values.cardId,
         };
         const res = await sessionApi.walkIn(payload);
         sessionData = res.data?.data;
@@ -180,6 +197,7 @@ const StaffDashboard = () => {
       });
       setIsSummaryVisible(true);
       fetchData(); // Refresh dashboard stats
+      fetchActiveCards();
     } catch (error) {
       message.error(error.response?.data?.message || 'Check-in failed');
     }
@@ -256,6 +274,7 @@ const StaffDashboard = () => {
          checkOutSearchForm.resetFields();
          checkOutConfirmForm.resetFields();
          fetchData();
+         fetchActiveCards();
          return;
       }
       
@@ -271,6 +290,7 @@ const StaffDashboard = () => {
          checkOutSearchForm.resetFields();
          checkOutConfirmForm.resetFields();
          fetchData();
+         fetchActiveCards();
       } else {
          const vnRes = await paymentApi.createVnPayUrl(paymentId);
          if (vnRes.data?.data?.paymentUrl) {
@@ -282,24 +302,6 @@ const StaffDashboard = () => {
       }
     } catch (error) {
       message.error(error.response?.data?.message || 'Check-out failed');
-    }
-  };
-
-  const handleSwitchToCash = async () => {
-    try {
-      if (!checkoutSessionData?.paymentId) return;
-      setLoading(true);
-      await paymentApi.confirmCash(checkoutSessionData.paymentId);
-      message.success('Check-out & Payment Successful (Switched to Cash)!');
-      setIsCheckOutVisible(false);
-      setCheckOutStep(1);
-      checkOutSearchForm.resetFields();
-      checkOutConfirmForm.resetFields();
-      fetchData();
-    } catch (error) {
-      message.error(error.response?.data?.message || 'Failed to switch to cash');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -515,8 +517,19 @@ const StaffDashboard = () => {
               </div>
             </Upload>
           </Form.Item>
-          
-          <Form.Item name="licensePlate" label="License Plate" rules={[{ required: true, message: 'Please enter license plate' }]}>
+          <Form.Item name="cardId" label="Card ID" rules={[{ required: true, message: 'Please select Card ID' }]}>
+            <Select
+              showSearch
+              placeholder="Select an available Card ID"
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={activeCards.map(c => ({ value: c.cardId, label: c.cardId }))}
+            />
+          </Form.Item>
+
+          <Form.Item name="licensePlate" label="License Plate (Optional for Bicycle)">
             <Input 
               placeholder="e.g. 29A-12345" 
               style={{ textTransform: 'uppercase', fontSize: '18px', fontWeight: 'bold' }} 
@@ -595,6 +608,7 @@ const StaffDashboard = () => {
             {summaryData.image && (
               <img src={summaryData.image} alt="Entry" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px' }} />
             )}
+            <p><strong>Card ID:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1677ff' }}>{summaryData.cardId || 'N/A'}</span></p>
             <p><strong>Plate:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1677ff' }}>{summaryData.plate}</span></p>
             <p><strong>Assigned Slot:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#10b981' }}>{summaryData.slotCode || 'N/A'}</span></p>
             <p><strong>Type:</strong> {summaryData.type}</p>
@@ -631,8 +645,8 @@ const StaffDashboard = () => {
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="licensePlate" label="License Plate" rules={[{ required: true, message: 'Enter plate' }]}>
-                  <Input placeholder="e.g. 29A-12345" style={{ textTransform: 'uppercase' }} />
+                <Form.Item name="licensePlate" label="License Plate / Card ID" rules={[{ required: true, message: 'Enter plate or card' }]}>
+                  <Input placeholder="e.g. 29A-12345 or 001" style={{ textTransform: 'uppercase' }} />
                 </Form.Item>
               </Col>
             </Row>
@@ -670,6 +684,7 @@ const StaffDashboard = () => {
             <Card style={{ backgroundColor: '#f8fafc', marginBottom: '20px' }} bodyStyle={{ padding: '16px' }}>
               <Row>
                 <Col span={12}>
+                  <p><strong>Card ID:</strong> <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>{checkoutSessionData.cardId || 'N/A'}</Text></p>
                   <p><strong>Plate:</strong> <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>{checkoutSessionData.licensePlate}</Text></p>
                   <p><strong>Entry:</strong> {dayjs(checkoutSessionData.entryTime || checkoutSessionData.checkInTime).format('DD/MM/YYYY HH:mm:ss')}</p>
                 </Col>
