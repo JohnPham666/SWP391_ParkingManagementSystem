@@ -279,10 +279,7 @@ const IncidentManagement = () => {
                   onChange={(val) => handleStatusChange(selectedIncident.incidentId, val)}
                   style={{ width: 160, fontWeight: 600 }}
                 >
-<<<<<<< Updated upstream
 
-=======
->>>>>>> Stashed changes
                   <Option value="OPEN">Open</Option>
                   <Option value="IN_PROGRESS">In Progress</Option>
                   <Option value="RESOLVED">Resolved</Option>

@@ -1,9 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-<<<<<<< Updated upstream
-import { Layout, Menu, Avatar, Dropdown, Space, Typography, Badge, Popover, List, Button } from 'antd';
-=======
 import { Layout, Menu, Avatar, Dropdown, Space, Typography, Badge, Switch, Tag, Popover, List, Button } from 'antd';
->>>>>>> Stashed changes
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -64,14 +60,8 @@ const MainLayout = () => {
       }
       setUserRole(role);
       setUserName(user.fullName || 'User');
-<<<<<<< Updated upstream
-      
       // Fetch open incidents for manager notification bell
-      if (user.role === 'ParkingManager') {
-=======
-
       if (role === 'ParkingManager') {
->>>>>>> Stashed changes
         const fetchNewIncidents = async () => {
           try {
             const { incidentApi } = await import('../../services/api');
@@ -86,10 +76,7 @@ const MainLayout = () => {
               setNewIncidentsList(openIncidents.slice(0, 5));
             }
           } catch (error) {
-<<<<<<< Updated upstream
             // ignore silently for layout
-=======
->>>>>>> Stashed changes
           }
         };
         fetchNewIncidents();
@@ -231,11 +218,6 @@ const MainLayout = () => {
             style: { fontSize: '20px', cursor: 'pointer', transition: 'color 0.3s', color: '#fff' }
           })}
           <Space size="large">
-<<<<<<< Updated upstream
-            <div onClick={toggleTheme} style={{ cursor: 'pointer', fontSize: 20, color: '#fff', display: 'flex', alignItems: 'center' }}>
-              {isDarkMode ? <BulbFilled style={{ color: '#faad14' }} /> : <BulbOutlined />}
-            </div>
-=======
             <Switch
                 checked={isDarkMode}
                 onChange={toggleTheme}
@@ -243,7 +225,6 @@ const MainLayout = () => {
                 unCheckedChildren={<span>☀️</span>}
                 style={{ marginRight: 16 }}
             />
->>>>>>> Stashed changes
             {userRole === 'ParkingManager' && (
               <Popover
                 content={notificationContent}
@@ -253,11 +234,7 @@ const MainLayout = () => {
                 onOpenChange={handlePopoverChange}
               >
                 <Badge count={newIncidentCount} size="small" offset={[-2, 2]}>
-<<<<<<< Updated upstream
-                  <BellOutlined style={{ fontSize: 20, cursor: 'pointer', color: '#fff', padding: '4px' }} />
-=======
                   <BellOutlined style={{ fontSize: 20, cursor: 'pointer', color: isDarkMode ? '#fff' : '#000', padding: '4px' }} />
->>>>>>> Stashed changes
                 </Badge>
               </Popover>
             )}

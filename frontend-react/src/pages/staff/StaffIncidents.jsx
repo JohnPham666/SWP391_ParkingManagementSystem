@@ -87,14 +87,11 @@ const IncidentManagement = () => {
       render: (_, record) => <span style={{ fontWeight: 600 }}>{record.title || record.description || '-'}</span>
     },
     {
-<<<<<<< Updated upstream
       title: 'Type',
       dataIndex: 'incidentType',
       key: 'incidentType',
     },
     {
-=======
->>>>>>> Stashed changes
       title: 'Status',
       dataIndex: 'status',
       key: 'status',

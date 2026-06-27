@@ -56,11 +56,7 @@ const Register = () => {
         <div style={{ zIndex: 1, textAlign: 'center' }}>
           <img 
             src="/images/signinImg.svg" 
-<<<<<<< Updated upstream
             alt="ParkSmart Register" 
-=======
-            alt="ParkSmart Join" 
->>>>>>> Stashed changes
             style={{ maxWidth: '80%', maxHeight: '60vh', marginBottom: '2rem', filter: 'drop-shadow(0px 20px 30px rgba(234,88,12,0.15))' }}
             onError={(e) => { e.target.style.display = 'none'; }}
           />
