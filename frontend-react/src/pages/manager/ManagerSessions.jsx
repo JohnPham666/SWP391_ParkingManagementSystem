@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Upload, Row, Col, Typography, Divider } from 'antd';
+import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Upload, Row, Col, Typography, Divider, DatePicker } from 'antd';
 import { SearchOutlined, CarOutlined, CreditCardOutlined, UploadOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
-import { sessionApi, paymentApi, vehicleApi } from '../../services/api';
+import { sessionApi, paymentApi, vehicleApi, pricingApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -136,12 +136,6 @@ const SessionManagement = () => {
       
       const targetSession = res.data.data;
       
-      // CREATE Payment to get final fee
-      const pRes = await paymentApi.createPayment({ sessionId: targetSession.sessionId, paymentMethod: 'CASH' });
-      let paymentId = pRes.data?.data?.paymentId;
-      let finalFee = pRes.data?.data?.amount || targetSession.estimatedFee || 0;
-
-      // Store checkout image to upload later
       let exitImageUrl = null;
       let exitImageFile = null;
       if (values.exitImage && values.exitImage.fileList.length > 0) {
@@ -149,19 +143,34 @@ const SessionManagement = () => {
         exitImageUrl = URL.createObjectURL(exitImageFile);
       }
 
+      const exitTimeIso = new Date().toISOString();
+      let calculatedFee = 0;
+      
+      if (!targetSession.hasActiveSubscription) {
+         try {
+             const feeRes = await pricingApi.calculateFee({
+                vehicleTypeId: targetSession.vehicleTypeId,
+                entryTime: dayjs(targetSession.entryTime).format('YYYY-MM-DDTHH:mm:ss'),
+                exitTime: dayjs(exitTimeIso).format('YYYY-MM-DDTHH:mm:ss')
+             });
+             calculatedFee = feeRes.data.data.finalFee;
+         } catch (e) {
+             console.error("Fee calculation failed", e);
+             message.error("Lỗi tính phí từ Backend: " + (e.response?.data?.message || e.message));
+         }
+      }
+
       setCheckoutSessionData({
         ...targetSession,
-        paymentId,
         exitImageFile,
         exitImageUrl,
-        exitTime: new Date().toISOString(),
-        totalFee: finalFee
+        exitTime: exitTimeIso,
+        totalFee: calculatedFee
       });
 
       setCheckOutStep(2);
     } catch (error) {
       if (error.response?.data?.message?.includes('already has a PENDING payment')) {
-         // handle existing payment if needed, for simplicity we skip it or show error
          message.error('Vehicle already in checkout process');
       } else {
          message.error(error.response?.data?.message || 'Error finding vehicle');
@@ -172,101 +181,116 @@ const SessionManagement = () => {
   const handleCheckOutConfirm = async (values) => {
     try {
       const sessionId = checkoutSessionData.sessionId;
-      const paymentId = checkoutSessionData.paymentId;
       
-      // Step 1: Upload Exit Image
+      // 1. Check out to finalize the fee and change status to UNPAID or COMPLETED
+      const checkOutRes = await sessionApi.checkOut(sessionId, { exitGate: 'Gate A' });
+      const updatedSession = checkOutRes.data?.data || checkOutRes.data;
+
       if (checkoutSessionData.exitImageFile) {
         await sessionApi.uploadSessionImage(sessionId, checkoutSessionData.exitImageFile, 'exit');
       }
 
-      // Step 2: Confirm Payment (CASH) or VNPay
-      if (values.paymentMethod === 'CASH') {
+      if (updatedSession.status === 'COMPLETED' || updatedSession.finalFee === 0) {
+         message.success('Check-out Successful (Pre-paid / Zero Fee)');
+         setIsCheckOutVisible(false);
+         setCheckOutStep(1);
+         checkOutSearchForm.resetFields();
+         checkOutConfirmForm.resetFields();
+         fetchSessions();
+         return;
+      }
+      
+      // 2. Create Payment
+      const pRes = await paymentApi.createPayment({ sessionId: sessionId, paymentMethod: values.paymentMethod });
+      const paymentId = pRes.data?.data?.paymentId;
+
+      if (values.paymentMethod === 'CASH' || checkoutSessionData.totalFee === 0) {
          await paymentApi.confirmCash(paymentId);
          message.success('Check-out & Payment Successful!');
+         setIsCheckOutVisible(false);
+         setCheckOutStep(1);
+         checkOutSearchForm.resetFields();
+         checkOutConfirmForm.resetFields();
+         fetchSessions();
       } else {
          const vnRes = await paymentApi.createVnPayUrl(paymentId);
          if (vnRes.data?.data?.paymentUrl) {
             window.open(vnRes.data.data.paymentUrl, '_blank');
             message.info('Opened VNPay Payment Gateway');
+            setCheckoutSessionData({ ...checkoutSessionData, paymentId });
+            setCheckOutStep(3);
          }
       }
-      
-      setIsCheckOutVisible(false);
-      setCheckOutStep(1);
-      checkOutSearchForm.resetFields();
-      checkOutConfirmForm.resetFields();
-      fetchSessions();
     } catch (error) {
       message.error(error.response?.data?.message || 'Check-out failed');
     }
   };
+
+  // Extract unique vehicle types from sessions
+  const uniqueVehicleTypes = Array.from(new Set(['Motorbike', 'Car', 'Small Truck', 'Bicycle', 'Large Truck', ...sessions.map(s => s.vehicleTypeName || s.vehicleType?.typeName).filter(Boolean)]));
 
   // Filter
   const filteredSessions = sessions.filter(session => {
     const searchMatch = !filters.search || 
       session.licensePlate?.toLowerCase().includes(filters.search.toLowerCase()) ||
       session.sessionId?.toString().includes(filters.search);
-    const statusMatch = !filters.status || session.status === filters.status;
-    return searchMatch && statusMatch;
+    const statusMatch = !filters.status || session.status === filters.status || (filters.status === 'ACTIVE' && session.status === 'PARKING');
+    const typeMatch = !filters.vehicleType || (session.vehicleTypeName || session.vehicleType?.typeName || 'Ô tô') === filters.vehicleType;
+    const dateMatch = !filters.date || dayjs(session.checkInTime || session.checkinTime || session.entryTime).format('MM/DD/YYYY') === filters.date;
+    return searchMatch && statusMatch && typeMatch && dateMatch;
   });
 
   const columns = [
     { title: 'ID', dataIndex: 'sessionId', key: 'sessionId', render: (text) => <strong>#{text}</strong> },
-    { title: 'License Plate', dataIndex: 'licensePlate', key: 'licensePlate', render: (text) => <Tag color="blue" style={{ fontSize: 14, fontWeight: 'bold' }}>{text || 'N/A'}</Tag> },
-    { title: 'Slot', dataIndex: 'slotCode', key: 'slotCode', render: text => text || '-' },
-    { title: 'Entry Time', dataIndex: 'checkInTime', key: 'checkInTime', render: (time) => time ? dayjs(time).format('DD/MM/YYYY HH:mm:ss') : '-' },
-    { title: 'Gate', dataIndex: 'entryGate', key: 'entryGate', render: text => text || '-' },
+    { title: 'LICENSE PLATE', dataIndex: 'licensePlate', key: 'licensePlate', render: (text) => <strong style={{ fontSize: 14 }}>{text || 'N/A'}</strong> },
+    { title: 'SLOT', dataIndex: 'slotCode', key: 'slotCode', render: text => text || '-' },
+    { title: 'VEHICLE TYPE', key: 'vehicleType', render: (_, record) => record.vehicleTypeName || record.vehicleType?.typeName || 'Car' },
+    { title: 'ENTRY TIME', key: 'checkInTime', render: (_, record) => {
+        const time = record.checkInTime || record.checkinTime || record.entryTime;
+        return time ? dayjs(time).format('HH:mm:ss DD/MM/YYYY') : '-';
+    }},
     {
-      title: 'Status',
+      title: 'STATUS',
       dataIndex: 'status',
       key: 'status',
-      render: (status) => (
-        <Tag color={status === 'ACTIVE' ? 'green' : status === 'COMPLETED' ? 'default' : 'red'}>
-          {status === 'ACTIVE' ? 'Active' : status === 'COMPLETED' ? 'Completed' : status}
-        </Tag>
-      )
+      render: (status) => {
+        let color = 'default';
+        let text = status;
+        if (status === 'ACTIVE' || status === 'PARKING') { color = 'error'; text = 'Parking'; }
+        else if (status === 'COMPLETED') { color = 'success'; text = 'Completed'; }
+        else if (status === 'UNPAID') { color = 'warning'; text = 'Unpaid'; }
+        else if (status === 'LOST_TICKET') { color = 'purple'; text = 'Lost Ticket'; }
+        return <Tag color={color}>{text}</Tag>;
+      }
     },
-  ];
-
-  if (!isStaff) {
-    columns.push({
-      title: 'Total Fee',
-      dataIndex: 'totalFee',
-      key: 'totalFee',
-      render: (fee) => fee ? <strong style={{ color: '#ea580c' }}>{fee.toLocaleString()} ₫</strong> : '-'
-    });
-    columns.push({
-      title: 'Actions',
+    {
+      title: 'ACTION',
       key: 'action',
       render: (_, record) => (
-        <Space size="middle">
-          {record.status === 'ACTIVE' && (
-            <Button type="primary" danger size="small" onClick={() => {
-              // Quick check-out trigger for Manager
-              setCheckoutSessionData({ ...record, exitTime: new Date().toISOString() });
-              setCheckOutStep(1);
-              setIsCheckOutVisible(true);
-              checkOutSearchForm.setFieldsValue({ licensePlate: record.licensePlate });
-            }} icon={<CreditCardOutlined />}>
-              Check-out
-            </Button>
-          )}
-          <Button type="default" size="small" onClick={() => {
+        <Button 
+          style={{ borderRadius: 6, padding: '4px 16px', height: 'auto', borderColor: '#d9d9d9' }} 
+          onClick={() => {
             setSummaryData({
+              sessionId: record.sessionId,
+              status: record.status,
               plate: record.licensePlate,
-              type: record.vehicleTypeName || 'N/A',
-              time: dayjs(record.checkInTime).format('DD/MM/YYYY HH:mm:ss'),
+              type: record.vehicleTypeName || record.vehicleType?.typeName || 'N/A',
+              time: record.checkInTime || record.checkinTime || record.entryTime ? dayjs(record.checkInTime || record.checkinTime || record.entryTime).format('HH:mm:ss DD/MM/YYYY') : '-',
+              exitTime: record.checkOutTime ? dayjs(record.checkOutTime).format('HH:mm:ss DD/MM/YYYY') : '-',
               gate: record.entryGate,
-              image: record.entryImage || null
+              exitGate: record.exitGate,
+              slot: record.slotCode,
+              entryImage: record.entryImage || null,
+              exitImage: record.exitImage || null
             });
             setIsSummaryVisible(true);
-          }}>
-            Details
-          </Button>
-        </Space>
+          }}
+        >
+          View
+        </Button>
       ),
-    });
-  }
+    }
+  ];
 
   return (
     <div>
@@ -314,32 +338,42 @@ const SessionManagement = () => {
       <Card>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '16px' }}>
           {!isStaff && (
-            <Title level={4} style={{ margin: 0 }}>Session Management</Title>
+            <Title level={4} style={{ margin: 0 }}>Parking Sessions</Title>
           )}
           <Space style={{ flexWrap: 'wrap' }}>
             <Input 
-            placeholder="Search plate..." 
-            prefix={<SearchOutlined />} 
-            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-            style={{ width: 250 }}
-            size="large"
-          />
-          <Select 
-            placeholder="All Statuses" 
-            style={{ width: 160 }} 
-            allowClear 
-            size="large"
-            onChange={(val) => setFilters({ ...filters, status: val })}
-          >
-            <Option value="ACTIVE">Active</Option>
-            <Option value="COMPLETED">Completed</Option>
-          </Select>
-          {!isStaff && (
-             <Button type="primary" icon={<CarOutlined />} onClick={() => setIsWalkInVisible(true)} style={{ backgroundColor: '#10b981' }}>
-                Add Walk-in
-             </Button>
-          )}
-        </Space>
+              placeholder="Search plate..." 
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              style={{ width: 180 }}
+            />
+            <Select 
+              defaultValue=""
+              style={{ width: 160 }} 
+              onChange={(val) => setFilters({ ...filters, status: val })}
+            >
+              <Option value="">All Statuses</Option>
+              <Option value="ACTIVE">Parking</Option>
+              <Option value="COMPLETED">Completed</Option>
+              <Option value="UNPAID">Unpaid</Option>
+              <Option value="LOST_TICKET">Lost Ticket</Option>
+            </Select>
+            <Select 
+              defaultValue=""
+              style={{ width: 150 }} 
+              onChange={(val) => setFilters({ ...filters, vehicleType: val })}
+            >
+              <Option value="">All Vehicle Types</Option>
+              {uniqueVehicleTypes.map(type => (
+                <Option key={type} value={type}>{type}</Option>
+              ))}
+            </Select>
+            <DatePicker 
+              format="MM/DD/YYYY" 
+              placeholder="mm/dd/yyyy" 
+              onChange={(date, dateString) => setFilters({ ...filters, date: dateString })}
+              style={{ width: 130 }}
+            />
+          </Space>
         </div>
 
         <Table 
@@ -416,20 +450,96 @@ const SessionManagement = () => {
         title="Session Summary"
         open={isSummaryVisible}
         onCancel={() => setIsSummaryVisible(false)}
-        footer={[
-          <Button key="close" type="primary" onClick={() => setIsSummaryVisible(false)}>Close</Button>
-        ]}
-        width={400}
+        footer={null}
+        width={600}
       >
         {summaryData && (
-          <div style={{ textAlign: 'center' }}>
-            {summaryData.image && (
-              <img src={summaryData.image} alt="Entry" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px' }} />
-            )}
-            <p><strong>Plate:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1677ff' }}>{summaryData.plate}</span></p>
-            <p><strong>Type:</strong> {summaryData.type}</p>
-            <p><strong>Entry:</strong> {summaryData.time}</p>
-            <p><strong>Gate:</strong> {summaryData.gate}</p>
+          <div>
+            <Divider style={{ margin: '12px 0' }} />
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Text type="secondary">Session ID</Text>
+                <div style={{ fontWeight: 'bold', fontSize: 16 }}>#{summaryData.sessionId || '-'}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary">Status</Text>
+                <div>
+                   {(() => {
+                      let sColor = 'default';
+                      let sText = summaryData.status;
+                      if (sText === 'ACTIVE' || sText === 'PARKING') { sColor = 'error'; sText = 'Parking'; }
+                      else if (sText === 'COMPLETED') { sColor = 'success'; sText = 'Completed'; }
+                      else if (sText === 'UNPAID') { sColor = 'warning'; sText = 'Unpaid'; }
+                      else if (sText === 'LOST_TICKET') { sColor = 'purple'; sText = 'Lost Ticket'; }
+                      return <Tag color={sColor} style={{ borderRadius: 12 }}>{sText}</Tag>;
+                   })()}
+                </div>
+              </Col>
+              
+              <Col span={12}>
+                <Text type="secondary">License Plate</Text>
+                <div style={{ fontWeight: 'bold', fontSize: 16 }}>{summaryData.plate || '-'}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary">Vehicle Type</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.type || '-'}</div>
+              </Col>
+              
+              <Col span={12}>
+                <Text type="secondary">Entry Time</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.time || '-'}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary">Entry Gate</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.gate || '-'}</div>
+              </Col>
+              
+              <Col span={12}>
+                <Text type="secondary">Exit Time</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.exitTime || '-'}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary">Exit Gate</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.exitGate || '-'}</div>
+              </Col>
+
+              <Col span={12}>
+                <Text type="secondary">Parking Slot</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.slot || '-'}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary">Staff (In/Out)</Text>
+                <div style={{ fontSize: 16 }}>- / -</div>
+              </Col>
+            </Row>
+
+            <Divider style={{ margin: '16px 0', borderBlockColor: 'transparent' }} />
+            <Row gutter={16}>
+              <Col span={12}>
+                <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: '8px', fontWeight: 600 }}>Entry Image</Text>
+                <div style={{ textAlign: 'center' }}>
+                  {summaryData.entryImage ? (
+                    <img src={summaryData.entryImage} alt="Entry" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
+                  ) : (
+                    <div style={{ height: '200px', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                      <Text type="secondary" italic>No image available</Text>
+                    </div>
+                  )}
+                </div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: '8px', fontWeight: 600 }}>Exit Image</Text>
+                <div style={{ textAlign: 'center' }}>
+                  {summaryData.exitImage ? (
+                    <img src={summaryData.exitImage} alt="Exit" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
+                  ) : (
+                    <div style={{ height: '200px', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                      <Text type="secondary" italic>No image available</Text>
+                    </div>
+                  )}
+                </div>
+              </Col>
+            </Row>
           </div>
         )}
       </Modal>
@@ -498,7 +608,9 @@ const SessionManagement = () => {
                 </Col>
                 <Col span={12}>
                   <p><strong>Exit:</strong> {dayjs(checkoutSessionData.exitTime).format('DD/MM/YYYY HH:mm:ss')}</p>
-                  <p><strong>Fee:</strong> <Text strong style={{ color: '#ea580c', fontSize: '18px' }}>{checkoutSessionData.totalFee.toLocaleString()} ₫</Text></p>
+                  <div style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold', marginTop: '10px' }}>
+                    Fee: {checkoutSessionData.totalFee.toLocaleString()} ₫
+                  </div>
                 </Col>
               </Row>
             </Card>

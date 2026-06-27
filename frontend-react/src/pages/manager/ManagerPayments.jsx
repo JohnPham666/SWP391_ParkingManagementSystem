@@ -1,0 +1,146 @@
+import React, { useState, useEffect } from 'react';
+import { Table, Button, Tag, message, Card, Space, Input, Select, Popconfirm } from 'antd';
+import { SearchOutlined, DollarOutlined } from '@ant-design/icons';
+import { paymentApi } from '../../services/api';
+import dayjs from 'dayjs';
+
+const { Option } = Select;
+
+const ManagerPayments = () => {
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({ search: '', status: null });
+
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  const fetchPayments = async () => {
+    setLoading(true);
+    try {
+      const res = await paymentApi.getPayments();
+      let data = res.data?.success ? res.data.data : res.data;
+      if (Array.isArray(data)) {
+        // Sort descending by created/paid time if any, else ID
+        data.sort((a, b) => b.paymentId - a.paymentId);
+        setPayments(data);
+      } else if (data && Array.isArray(data.content)) { // pagination case
+        setPayments(data.content);
+      } else {
+        setPayments([]);
+      }
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      message.error('Failed to load payments history');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
+  const filteredPayments = payments.filter(p => {
+    const searchMatch = !filters.search || 
+      p.paymentId?.toString().includes(filters.search) ||
+      p.paymentMethod?.toLowerCase().includes(filters.search.toLowerCase());
+    const statusMatch = !filters.status || p.paymentStatus === filters.status;
+    return searchMatch && statusMatch;
+  });
+
+  const columns = [
+    {
+      title: 'Payment ID',
+      dataIndex: 'paymentId',
+      key: 'paymentId',
+      render: (text) => <strong>#{text}</strong>
+    },
+    {
+      title: 'Customer Name',
+      dataIndex: 'customerName',
+      key: 'customerName',
+      render: (text) => text || 'Unknown'
+    },
+    {
+      title: 'License Plate',
+      dataIndex: 'licensePlate',
+      key: 'licensePlate',
+      render: (text) => text || 'Unknown'
+    },
+    {
+      title: 'Type',
+      key: 'type',
+      render: (_, record) => {
+        if (record.sessionId) return 'Parking Session';
+        if (record.reservationId) return 'Reservation';
+        return 'Other';
+      }
+    },
+    {
+      title: 'Amount',
+      dataIndex: 'amount',
+      key: 'amount',
+      render: (amount) => <strong style={{ color: '#059669', whiteSpace: 'nowrap' }}>{amount?.toLocaleString()} ₫</strong>
+    },
+    {
+      title: 'Method',
+      dataIndex: 'paymentMethod',
+      key: 'paymentMethod',
+      render: (text) => text || '-'
+    },
+    {
+      title: 'Time',
+      dataIndex: 'paidAt',
+      key: 'paidAt',
+      render: (time) => time ? dayjs(time).format('DD/MM/YYYY HH:mm:ss') : '-'
+    },
+    {
+      title: 'Status',
+      dataIndex: 'paymentStatus',
+      key: 'paymentStatus',
+      render: (status) => {
+        let color = 'default';
+        let text = status;
+        if (status === 'PENDING') { color = 'warning'; text = 'Pending'; }
+        if (status === 'PAID') { color = 'success'; text = 'Success'; }
+        if (status === 'FAILED') { color = 'error'; text = 'Failed'; }
+        return <Tag color={color}>{text}</Tag>;
+      }
+    },
+
+  ];
+
+  return (
+    <Card title="Payment History">
+      <Space style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap' }}>
+        <Input 
+          placeholder="Search ID, method..." 
+          prefix={<SearchOutlined />} 
+          onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+          style={{ width: 250 }}
+        />
+        <Select 
+          defaultValue=""
+          style={{ width: 160 }} 
+          allowClear 
+          onChange={(val) => setFilters({ ...filters, status: val || null })}
+        >
+          <Option value="">All statuses</Option>
+          <Option value="PENDING">Pending</Option>
+          <Option value="PAID">Success</Option>
+          <Option value="FAILED">Failed</Option>
+        </Select>
+      </Space>
+
+      <Table 
+        columns={columns} 
+        dataSource={filteredPayments} 
+        rowKey="paymentId" 
+        loading={loading}
+        pagination={{ pageSize: 10 }}
+        scroll={{ x: 1200 }}
+      />
+    </Card>
+  );
+};
+
+export default ManagerPayments;

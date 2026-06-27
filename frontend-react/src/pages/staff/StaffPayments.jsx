@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Tag, message, Card, Space, Input, Select } from 'antd';
+import { Table, Button, Tag, message, Card, Space, Input, Select, DatePicker, Popconfirm } from 'antd';
 import { SearchOutlined, DollarOutlined } from '@ant-design/icons';
 import { paymentApi } from '../../services/api';
 import dayjs from 'dayjs';
@@ -9,7 +9,7 @@ const { Option } = Select;
 const StaffPayments = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({ search: '', status: null });
+  const [filters, setFilters] = useState({ search: '', status: null, dateRange: null });
 
   useEffect(() => {
     fetchPayments();
@@ -21,17 +21,8 @@ const StaffPayments = () => {
       const res = await paymentApi.getPayments();
       let data = res.data?.success ? res.data.data : res.data;
       if (Array.isArray(data)) {
-        // Filter only today's payments
-        const todayStr = dayjs().format('YYYY-MM-DD');
-        const todayPayments = data.filter(p => {
-          if (!p.paidAt && !p.createdAt) return false;
-          // safely format to string, dayjs handles arrays and timestamps too
-          const dateStr = dayjs(p.paidAt || p.createdAt).format('YYYY-MM-DD');
-          return dateStr === todayStr;
-        });
-        
-        todayPayments.sort((a, b) => new Date(b.paidAt || b.createdAt || 0) - new Date(a.paidAt || a.createdAt || 0));
-        setPayments(todayPayments);
+        data.sort((a, b) => new Date(b.paidAt || b.createdAt || 0) - new Date(a.paidAt || a.createdAt || 0));
+        setPayments(data);
       } else {
         setPayments([]);
       }
@@ -43,6 +34,17 @@ const StaffPayments = () => {
     }
   };
 
+  const handleConfirmCash = async (paymentId) => {
+    try {
+      await paymentApi.confirmCash(paymentId);
+      message.success('Cash payment confirmed successfully');
+      fetchPayments();
+    } catch (error) {
+      console.error('Error confirming cash:', error);
+      message.error(error.response?.data?.message || 'Failed to confirm cash payment');
+    }
+  };
+
   const filteredPayments = payments.filter(p => {
     const searchMatch = !filters.search || 
       p.paymentId?.toString().includes(filters.search) ||
@@ -50,7 +52,16 @@ const StaffPayments = () => {
       p.reservationId?.toString().includes(filters.search) ||
       p.licensePlate?.toLowerCase().includes(filters.search.toLowerCase());
     const statusMatch = !filters.status || p.paymentStatus === filters.status;
-    return searchMatch && statusMatch;
+    
+    let dateMatch = true;
+    if (filters.dateRange && filters.dateRange.length === 2) {
+      const pDate = dayjs(p.paidAt || p.createdAt || p.paymentId);
+      if (p.paidAt || p.createdAt) {
+         dateMatch = pDate.isAfter(filters.dateRange[0].startOf('day')) && pDate.isBefore(filters.dateRange[1].endOf('day'));
+      }
+    }
+
+    return searchMatch && statusMatch && dateMatch;
   });
 
   const columns = [
@@ -66,7 +77,7 @@ const StaffPayments = () => {
       render: (_, record) => record.sessionId ? 'Parking Session' : (record.reservationId ? 'Reservation' : 'Other')
     },
     {
-      title: 'Biển số xe',
+      title: 'License Plate',
       dataIndex: 'licensePlate',
       key: 'licensePlate',
       render: (text) => text ? <Tag color="blue" style={{ fontSize: '14px', padding: '4px 8px', fontWeight: 'bold' }}>{text}</Tag> : '-'
@@ -94,8 +105,37 @@ const StaffPayments = () => {
       render: (_, record) => {
         let color = 'default';
         if (record.paymentStatus === 'PENDING') color = 'warning';
-        if (record.paymentStatus === 'SUCCESS' || record.paymentStatus === 'PAID') color = 'success';
+        if (record.paymentStatus === 'PAID') color = 'success';
         if (record.paymentStatus === 'FAILED') color = 'error';
+
+        if (record.paymentStatus === 'PENDING' && record.paymentMethod === 'CASH') {
+          return (
+            <Space>
+              <Tag color={color}>{record.paymentStatus}</Tag>
+              <Popconfirm
+                title="Confirm you received cash?"
+                onConfirm={() => handleConfirmCash(record.paymentId)}
+                okText="Yes"
+                cancelText="No"
+              >
+                <Button type="primary" size="small" style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}>
+                  Receive Cash
+                </Button>
+              </Popconfirm>
+            </Space>
+          );
+        }
+
+        if (record.paymentStatus === 'PENDING' && record.paymentMethod !== 'CASH' && record.paymentUrl) {
+          return (
+            <Space>
+              <Tag color={color}>{record.paymentStatus}</Tag>
+              <Button type="primary" size="small" onClick={() => window.open(record.paymentUrl, '_blank')}>
+                Open Payment Link
+              </Button>
+            </Space>
+          );
+        }
 
         return <Tag color={color}>{record.paymentStatus}</Tag>;
       }
@@ -104,7 +144,7 @@ const StaffPayments = () => {
 
   return (
     <Card 
-      title={<span style={{ fontSize: '18px' }}>Today's Transactions (Read-only)</span>}
+      title={<span style={{ fontSize: '18px' }}>Transactions History (Read-only)</span>}
     >
       <Space style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap' }}>
         <Input 
@@ -122,9 +162,14 @@ const StaffPayments = () => {
           onChange={(val) => setFilters({ ...filters, status: val })}
         >
           <Option value="PENDING">Pending</Option>
-          <Option value="SUCCESS">Success / Paid</Option>
+          <Option value="PAID">Paid</Option>
           <Option value="FAILED">Failed</Option>
         </Select>
+        <DatePicker.RangePicker 
+          onChange={(dates) => setFilters({ ...filters, dateRange: dates })}
+          style={{ width: 250 }}
+          size="large"
+        />
       </Space>
 
       <Table 

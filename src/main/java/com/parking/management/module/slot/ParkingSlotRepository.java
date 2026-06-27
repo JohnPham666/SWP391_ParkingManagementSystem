@@ -27,7 +27,7 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
            "AND s.status = com.parking.management.module.slot.SlotStatus.AVAILABLE " +
            "AND s.isActive = true " +
            "AND s.currentOccupancy < s.capacity " +
-           "ORDER BY s.slotCode ASC LIMIT 1")
+           "ORDER BY s.zone.floor.floorNumber ASC, LENGTH(s.slotCode) ASC, s.slotCode ASC LIMIT 1")
     Optional<ParkingSlot> findFirstAvailableSlot(
             @Param("vehicleTypeId") Integer vehicleTypeId
     );
@@ -45,6 +45,12 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
     long countByIsActiveTrue();
 
     long countByStatusAndIsActiveTrue(SlotStatus status);
+
+    @Query("SELECT COUNT(s) FROM ParkingSlot s WHERE (:buildingId IS NULL OR s.zone.floor.building.buildingId = :buildingId)")
+    long countSlotsWithBuildingFilter(@Param("buildingId") Integer buildingId);
+
+    @Query("SELECT COUNT(s) FROM ParkingSlot s WHERE s.status = :status AND (:buildingId IS NULL OR s.zone.floor.building.buildingId = :buildingId)")
+    long countSlotsByStatusWithBuildingFilter(@Param("status") SlotStatus status, @Param("buildingId") Integer buildingId);
 
     long countByZone_Floor_FloorIdAndIsActiveTrue(Integer floorId);
 
@@ -86,4 +92,34 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
             @Param("floorId") Integer floorId,
             @Param("zoneId") Integer zoneId,
             @Param("vehicleTypeId") Integer vehicleTypeId);
+
+    @Query("""
+           SELECT new com.parking.management.module.report.dto.ZoneOccupancyDto(
+               z.zoneName, 
+               COUNT(s.slotId)
+           )
+           FROM ParkingSlot s
+           JOIN s.zone z
+           WHERE s.status IN (com.parking.management.module.slot.SlotStatus.OCCUPIED, com.parking.management.module.slot.SlotStatus.RESERVED)
+             AND s.isActive = true
+             AND (:buildingId IS NULL OR z.floor.building.buildingId = :buildingId)
+           GROUP BY z.zoneName
+           ORDER BY z.zoneName
+           """)
+    List<com.parking.management.module.report.dto.ZoneOccupancyDto> getOccupancyBreakdown(@Param("buildingId") Integer buildingId);
+    @Query("""
+           SELECT new com.parking.management.module.report.dto.ZoneOccupancyDto(
+               f.floorName, 
+               COUNT(s.slotId)
+           )
+           FROM ParkingSlot s
+           JOIN s.zone z
+           JOIN z.floor f
+           WHERE s.status IN (com.parking.management.module.slot.SlotStatus.OCCUPIED, com.parking.management.module.slot.SlotStatus.RESERVED)
+             AND s.isActive = true
+             AND (:buildingId IS NULL OR f.building.buildingId = :buildingId)
+           GROUP BY f.floorName
+           ORDER BY f.floorName
+           """)
+    List<com.parking.management.module.report.dto.ZoneOccupancyDto> getFloorOccupancyBreakdown(@Param("buildingId") Integer buildingId);
 }

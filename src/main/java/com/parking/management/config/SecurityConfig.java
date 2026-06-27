@@ -41,18 +41,8 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/api/payments/vnpay-return", // return to swagger page after payment
                                 // Static frontend files
-                                "/",
-                                "/index.html",
-                                "/*.html",
-                                "/staff/**",
-                                "/manager/**",
-                                "/admin/**",
-                                "/driver/**",
-                                "/css/**",
-                                "/js/**",
-                                "/images/**",
-                                "/assets/**",
-                                "/uploads/**"
+                                "/uploads/**",
+                                "/mock-payment/**"
                         ).permitAll()
 
                         // Driver, Staff, Manager, Admin đều được tạo/báo incident

@@ -5,6 +5,7 @@ import com.parking.management.module.vehicle.VehicleType;
 import com.parking.management.module.vehicle.VehicleTypeRepository;
 import com.parking.management.module.zone.Zone;
 import com.parking.management.module.zone.ZoneService;
+import com.parking.management.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ public class SlotService {
     private final ParkingSlotRepository repository;
     private final ZoneService zoneService;
     private final VehicleTypeRepository vehicleTypeRepository;
+    private final SecurityUtils securityUtils;
 
     @Transactional
     public SlotResponse create(SlotRequest request) {
@@ -35,20 +37,19 @@ public class SlotService {
 
     @Transactional(readOnly = true)
     public List<SlotResponse> getAll(Integer zoneId, Integer vehicleTypeId) {
-        List<ParkingSlot> slots;
-        if (zoneId != null) {
-            slots = repository.findByZone_ZoneId(zoneId);
-        } else if (vehicleTypeId != null) {
-            slots = repository.findByVehicleType_VehicleTypeId(vehicleTypeId);
-        } else {
-            slots = repository.findAll();
-        }
+        Integer buildingId = securityUtils.getBuildingId();
+        
+        List<ParkingSlot> slots = repository.findSlotsForMonitoring(buildingId, null, zoneId, vehicleTypeId);
+        
         return slots.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<SlotResponse> getAvailableSlots(Integer buildingId, Integer floorId, Integer zoneId, Integer vehicleTypeId) {
-        return repository.findAvailableSlots(buildingId, floorId, zoneId, vehicleTypeId)
+    public List<SlotResponse> getAvailableSlots(Integer buildingIdParam, Integer floorId, Integer zoneId, Integer vehicleTypeId) {
+        Integer userBuildingId = securityUtils.getBuildingId();
+        Integer finalBuildingId = userBuildingId != null ? userBuildingId : buildingIdParam;
+
+        return repository.findAvailableSlots(finalBuildingId, floorId, zoneId, vehicleTypeId)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());

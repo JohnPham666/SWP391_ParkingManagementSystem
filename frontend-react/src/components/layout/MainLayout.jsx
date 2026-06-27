@@ -1,13 +1,4 @@
 import React, { useState, useContext, useEffect } from 'react';
-<<<<<<< Updated upstream
-import { Layout, Menu, Avatar, Dropdown, Space, Typography, Badge } from 'antd';
-import { 
-  MenuFoldOutlined, 
-  MenuUnfoldOutlined, 
-  UserOutlined, 
-  DashboardOutlined, 
-  CarOutlined, 
-=======
 import { Layout, Menu, Avatar, Dropdown, Space, Typography, Badge, Popover, List, Button } from 'antd';
 import {
   MenuFoldOutlined,
@@ -15,16 +6,20 @@ import {
   UserOutlined,
   DashboardOutlined,
   CarOutlined,
->>>>>>> Stashed changes
   LogoutOutlined,
   TeamOutlined,
   BellOutlined,
   SettingOutlined,
   ProfileOutlined,
   FileTextOutlined,
-  BuildOutlined,
+  AppstoreOutlined,
+  PlusCircleOutlined,
+  CalendarOutlined,
+  CreditCardOutlined,
+  WarningOutlined,
+  BankOutlined,
+  DollarOutlined,
   BarChartOutlined,
-  AlertOutlined,
   BulbOutlined,
   BulbFilled
 } from '@ant-design/icons';
@@ -53,7 +48,17 @@ const MainLayout = () => {
     if (auth) {
       const parsed = JSON.parse(auth);
       const user = parsed.user || parsed;
-      setUserRole(user.role || 'Staff');
+      let role = user.role || 'Staff';
+      if (typeof role === 'string') {
+        let upperRole = role.toUpperCase();
+        if (upperRole.startsWith('ROLE_')) {
+          upperRole = upperRole.substring(5);
+        }
+        if (upperRole === 'ADMIN') role = 'Admin';
+        else if (upperRole === 'PARKINGMANAGER' || upperRole === 'PARKING_MANAGER') role = 'ParkingManager';
+        else if (upperRole === 'PARKINGSTAFF' || upperRole === 'PARKING_STAFF') role = 'ParkingStaff';
+      }
+      setUserRole(role);
       setUserName(user.fullName || 'User');
       
       // Fetch open incidents for manager notification bell
@@ -88,41 +93,42 @@ const MainLayout = () => {
   };
 
   const userMenuItems = [
-    { key: 'profile', icon: <UserOutlined />, label: 'My Profile' },
-    { type: 'divider' },
+    ...(userRole !== 'ParkingManager' ? [
+      { key: 'profile', icon: <UserOutlined />, label: 'My Profile' },
+      { type: 'divider' }
+    ] : []),
     { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', danger: true, onClick: handleLogout }
   ];
 
   const basePath = userRole === 'Admin' ? '/admin' : userRole === 'ParkingManager' ? '/manager' : '/staff';
 
   const allMenuItems = [
-    { key: `${basePath}`, icon: <DashboardOutlined />, label: 'Dashboard', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
-    
+    { key: `${basePath}`, icon: <AppstoreOutlined />, label: 'Dashboard', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
+
     // Admin only
     { key: `${basePath}/users`, icon: <TeamOutlined />, label: 'User Management', roles: ['Admin'] },
-    { key: `${basePath}/settings`, icon: <SettingOutlined />, label: 'Settings', roles: ['Admin'] },
+    { key: `${basePath}/settings`, icon: <SettingOutlined />, label: 'System Settings', roles: ['Admin'] },
     { key: `${basePath}/logs`, icon: <FileTextOutlined />, label: 'System Logs', roles: ['Admin'] },
-    
+
     // Shared Operational
     { key: `${basePath}/sessions`, icon: <CarOutlined />, label: 'Parking Sessions', roles: ['ParkingManager', 'ParkingStaff'] },
     { key: `${basePath}/slots`, icon: <DashboardOutlined />, label: 'Parking Slots', roles: ['ParkingManager', 'ParkingStaff'] },
     { key: `${basePath}/vehicles`, icon: <CarOutlined />, label: 'Vehicles', roles: ['ParkingManager'] },
-    { key: `${basePath}/reservations`, icon: <ProfileOutlined />, label: 'Reservations', roles: ['ParkingManager', 'ParkingStaff'] },
-    { key: `${basePath}/payments`, icon: <ProfileOutlined />, label: 'Payments', roles: ['ParkingManager', 'ParkingStaff'] },
-    { key: `${basePath}/incidents`, icon: <AlertOutlined />, label: 'Incidents', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
-    { key: `${basePath}/users`, icon: <TeamOutlined />, label: 'System Users', roles: ['Admin'] },
-    
-    // Manager & Admin
-    { key: `${basePath}/buildings`, icon: <BuildOutlined />, label: 'Buildings', roles: ['Admin', 'ParkingManager'] },
-    { key: `${basePath}/pricing`, icon: <SettingOutlined />, label: 'Pricing Policies', roles: ['Admin', 'ParkingManager'] },
+    { key: `${basePath}/reservations`, icon: <CalendarOutlined />, label: 'Reservations', roles: ['ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/payments`, icon: <CreditCardOutlined />, label: 'Payments', roles: ['ParkingManager', 'ParkingStaff'] },
+    { key: `${basePath}/incidents`, icon: <WarningOutlined />, label: 'Incidents', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
 
-    // Subscriptions & Reports
+    // Manager & Admin
+    { key: `${basePath}/buildings`, icon: <BankOutlined />, label: 'Parking Config (Buildings)', roles: ['Admin', 'ParkingManager'] },
+    { key: `${basePath}/pricing`, icon: <DollarOutlined />, label: 'Pricing Policies', roles: ['Admin'] },
+
+    // Manager only (Vé tháng)
     { key: `${basePath}/subscriptions`, icon: <ProfileOutlined />, label: 'Subscriptions', roles: ['ParkingManager'] },
     { key: `${basePath}/reports`, icon: <BarChartOutlined />, label: 'Reports', roles: ['ParkingManager'] },
   ];
 
   // Lọc menu theo role hiện tại
-  const menuItems = allMenuItems.filter(item => 
+  const menuItems = allMenuItems.filter(item =>
     item.roles.includes(userRole)
   );
 
@@ -164,44 +170,45 @@ const MainLayout = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider 
-        trigger={null} 
-        collapsible 
-        collapsed={collapsed} 
+      <Sider
+        trigger={null}
+        collapsible
+        collapsed={collapsed}
         theme={isDarkMode ? "dark" : "light"}
         style={{
           boxShadow: isDarkMode ? '2px 0 8px 0 rgba(0,0,0,.15)' : '2px 0 8px 0 rgba(29,35,41,.05)',
           zIndex: 10
         }}
       >
-        <div style={{ 
-          height: 64, 
-          display: 'flex', 
-          alignItems: 'center', 
+        <div style={{
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'center',
-          borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid #f0f0f0'
+          background: '#ea580c',
+          borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid #ea580c'
         }}>
-          <Title level={4} style={{ color: '#ea580c', margin: 0, display: collapsed ? 'none' : 'block' }}>
+          <Title level={4} style={{ color: '#fff', margin: 0, display: collapsed ? 'none' : 'block' }}>
             ParkSmart
           </Title>
-          {collapsed && <Title level={4} style={{ color: '#ea580c', margin: 0 }}>PS</Title>}
+          {collapsed && <Title level={4} style={{ color: '#fff', margin: 0 }}>PS</Title>}
         </div>
-        <Menu 
-          theme={isDarkMode ? "dark" : "light"} 
-          mode="inline" 
-          selectedKeys={[location.pathname]} 
+        <Menu
+          theme={isDarkMode ? "dark" : "light"}
+          mode="inline"
+          selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
           style={{ borderRight: 0, padding: '8px 0' }}
         />
       </Sider>
-      
+
       <Layout>
-        <Header style={{ 
-          padding: '0 24px', 
-          background: isDarkMode ? '#141414' : '#fff', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <Header style={{
+          padding: '0 24px',
+          background: '#ea580c',
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           boxShadow: '0 1px 4px rgba(0,21,41,.08)',
           zIndex: 9
@@ -209,17 +216,12 @@ const MainLayout = () => {
           {React.createElement(collapsed ? MenuUnfoldOutlined : MenuFoldOutlined, {
             className: 'trigger',
             onClick: () => setCollapsed(!collapsed),
-            style: { fontSize: '20px', cursor: 'pointer', transition: 'color 0.3s', color: isDarkMode ? '#fff' : '#000' }
+            style: { fontSize: '20px', cursor: 'pointer', transition: 'color 0.3s', color: '#fff' }
           })}
           <Space size="large">
-            <div onClick={toggleTheme} style={{ cursor: 'pointer', fontSize: 20, color: isDarkMode ? '#fff' : '#666', display: 'flex', alignItems: 'center' }}>
+            <div onClick={toggleTheme} style={{ cursor: 'pointer', fontSize: 20, color: '#fff', display: 'flex', alignItems: 'center' }}>
               {isDarkMode ? <BulbFilled style={{ color: '#faad14' }} /> : <BulbOutlined />}
             </div>
-<<<<<<< Updated upstream
-            <Badge count={5} size="small">
-              <BellOutlined style={{ fontSize: 20, cursor: 'pointer', color: isDarkMode ? '#fff' : '#666' }} />
-            </Badge>
-=======
             {userRole === 'ParkingManager' && (
               <Popover
                 content={notificationContent}
@@ -233,16 +235,15 @@ const MainLayout = () => {
                 </Badge>
               </Popover>
             )}
->>>>>>> Stashed changes
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
               <Space style={{ cursor: 'pointer', alignItems: 'center' }}>
-                <Avatar style={{ backgroundColor: '#ea580c' }} icon={<UserOutlined />} />
-                <Text strong style={{ color: isDarkMode ? '#fff' : '#000' }}>{userName}</Text>
+                <Avatar style={{ backgroundColor: '#fff', color: '#ea580c' }} icon={<UserOutlined />} />
+                <Text strong style={{ color: '#fff' }}>{userName}</Text>
               </Space>
             </Dropdown>
           </Space>
         </Header>
-        
+
         <Content style={{ margin: '24px 16px', padding: 24, minHeight: 280, background: isDarkMode ? '#141414' : '#fff', borderRadius: 8 }}>
           <Outlet />
         </Content>

@@ -141,7 +141,6 @@ const IncidentPage = () => {
                 const file = values.incidentImage.fileList[0].originFileObj;
                 await driverService.uploadIncidentImage(createdIncident.incidentId || createdIncident.id, file);
             }
-            
             message.success('Incident reported successfully. Our team will review it shortly.');
             setIsModalVisible(false);
             form.resetFields();

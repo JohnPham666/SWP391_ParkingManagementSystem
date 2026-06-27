@@ -7,7 +7,9 @@ import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
@@ -20,7 +22,12 @@ public class VnPayService {
     }
 
     public String buildPaymentUrl(Payment payment, String transactionRef, jakarta.servlet.http.HttpServletRequest request) {
-        String createDate = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+        ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
+        LocalDateTime now = LocalDateTime.now(zone);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+
+        String createDate = now.format(formatter);
+        String expireDate = now.plusMinutes(15).format(formatter);
 
         String vnpAmount = payment.getAmount()
                 .multiply(BigDecimal.valueOf(100))
@@ -40,6 +47,7 @@ public class VnPayService {
         params.put("vnp_ReturnUrl", config.getReturnUrl().trim());
         params.put("vnp_IpAddr", "127.0.0.1");
         params.put("vnp_CreateDate", createDate);
+        params.put("vnp_ExpireDate", expireDate);
 
         List<String> fieldNames = new ArrayList<>(params.keySet());
         Collections.sort(fieldNames);
@@ -71,6 +79,10 @@ public class VnPayService {
 
         System.out.println("===== VNPAY DEBUG =====");
         System.out.println("TMN CODE: " + config.getTmnCode().trim());
+        System.out.println("TIMEZONE: Asia/Ho_Chi_Minh");
+        System.out.println("CREATE DATE: " + createDate);
+        System.out.println("EXPIRE DATE: " + expireDate);
+        System.out.println("TRANSACTION REF: " + transactionRef);
         System.out.println("HASH SECRET LENGTH: " + config.getHashSecret().trim().length());
         System.out.println("RETURN URL: " + config.getReturnUrl().trim());
         System.out.println("HASH DATA: " + hashData);

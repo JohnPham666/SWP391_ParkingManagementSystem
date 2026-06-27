@@ -96,6 +96,15 @@ public class SessionService {
             throw new IllegalArgumentException("Reservation is not CONFIRMED (maybe not paid yet). Current status: " + reservation.getStatus());
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(reservation.getReservationStart().minusMinutes(30))) {
+            throw new IllegalArgumentException("Quá sớm để check-in cho lịch đặt chỗ này (chỉ hỗ trợ check-in trước 30 phút). Vui lòng check-in theo diện khách vãng lai (Walk-in).");
+        }
+        
+        if (now.isAfter(reservation.getReservationEnd())) {
+            throw new IllegalArgumentException("Lịch đặt chỗ này đã quá hạn sử dụng.");
+        }
+
         if (slot.getCurrentOccupancy() >= slot.getCapacity()) {
             throw new IllegalArgumentException("Rất tiếc, ô đỗ đã bị xe vãng lai lấn chiếm (vượt sức chứa)!");
         }
@@ -216,6 +225,10 @@ public class SessionService {
                         "Parking session not found with id: " + sessionId
                 ));
 
+        if (SessionStatus.UNPAID.name().equals(session.getStatus())) {
+            return mapEntityToResponse(session);
+        }
+
         if (!SessionStatus.PARKING.name().equals(session.getStatus())) {
             throw new IllegalArgumentException("Session is not active, current status: " + session.getStatus());
         }
@@ -321,8 +334,8 @@ public class SessionService {
             }
             parkingSlotRepository.save(slot);
         } else {
-            // Fee > 0 -> Needs payment. Set PENDING_PAYMENT, do not release slot yet.
-            session.setStatus(SessionStatus.PENDING_PAYMENT.name());
+            // Fee > 0 -> Needs payment. Set UNPAID, do not release slot yet.
+            session.setStatus(SessionStatus.UNPAID.name());
         }
 
         ParkingSession updatedSession = parkingSessionRepository.save(session);
@@ -392,7 +405,8 @@ public class SessionService {
     }
 
     public List<SessionResponse> getAll() {
-        return parkingSessionRepository.findAll()
+        Integer buildingId = securityUtils.getBuildingId();
+        return parkingSessionRepository.findAllWithBuildingFilter(buildingId)
                 .stream()
                 .map(this::mapEntityToResponse)
                 .toList();
@@ -424,9 +438,9 @@ public class SessionService {
         String normalizedLicensePlate = licensePlate.trim();
 
         ParkingSession session = parkingSessionRepository
-                .findFirstByVehicle_LicensePlateIgnoreCaseAndStatusOrderBySessionIdDesc(
+                .findFirstByVehicle_LicensePlateIgnoreCaseAndStatusInOrderBySessionIdDesc(
                         normalizedLicensePlate,
-                        SessionStatus.PARKING.name()
+                        java.util.Arrays.asList(SessionStatus.PARKING.name(), SessionStatus.UNPAID.name())
                 )
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No active parking session found for license plate: " + normalizedLicensePlate
@@ -513,6 +527,10 @@ public class SessionService {
         response.setStatus(session.getStatus());
         response.setEstimatedFee(session.getEstimatedFee());
         response.setFinalFee(session.getFinalFee());
+
+        if (session.getCreatedBy() != null) {
+            response.setCreatedBy(session.getCreatedBy().getFullName());
+        }
 
         // Kiểm tra vé tháng (Monthly Subscription)
         // Giúp staff/driver biết ngay lúc check-in rằng xe có vé tháng

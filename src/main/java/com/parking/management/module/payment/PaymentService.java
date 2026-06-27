@@ -26,6 +26,7 @@ import com.parking.management.security.SecurityUtils;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 @Slf4j
 public class PaymentService {
 
@@ -83,7 +84,7 @@ public class PaymentService {
         }
 
         BigDecimal amountToPay;
-        if (SessionStatus.PENDING_PAYMENT.name().equals(session.getStatus()) && session.getFinalFee() != null) {
+        if (SessionStatus.UNPAID.name().equals(session.getStatus()) && session.getFinalFee() != null) {
             amountToPay = session.getFinalFee();
         } else {
             LocalDateTime exitTime = session.getExitTime() == null ? LocalDateTime.now() : session.getExitTime();
@@ -114,7 +115,7 @@ public class PaymentService {
             securityUtils.checkDataOwnership(reservation.getUser().getUserId());
         }
 
-        if (!"PENDING".equals(reservation.getStatus()) && !"PENDING_PAYMENT".equals(reservation.getStatus())) {
+        if (!"PENDING".equals(reservation.getStatus()) && !"UNPAID".equals(reservation.getStatus())) {
             throw new IllegalArgumentException("Reservation is not in a valid pending state");
         }
 
@@ -243,7 +244,7 @@ public class PaymentService {
         // Dùng helper method từ SessionService (tránh duplicate code)
         if (payment.getSession() != null) {
             ParkingSession session = payment.getSession();
-            if ("PARKING".equals(session.getStatus()) || SessionStatus.PENDING_PAYMENT.name().equals(session.getStatus())) {
+            if ("PARKING".equals(session.getStatus()) || SessionStatus.UNPAID.name().equals(session.getStatus())) {
                 sessionService.completeSession(session.getSessionId());
             }
         }
@@ -459,7 +460,7 @@ public class PaymentService {
             // Dùng helper method từ SessionService (tránh duplicate code)
             if (payment.getSession() != null) {
                 ParkingSession session = payment.getSession();
-                if ("PARKING".equals(session.getStatus()) || SessionStatus.PENDING_PAYMENT.name().equals(session.getStatus())) {
+                if ("PARKING".equals(session.getStatus()) || SessionStatus.UNPAID.name().equals(session.getStatus())) {
                     sessionService.completeSession(session.getSessionId());
                 }
             }

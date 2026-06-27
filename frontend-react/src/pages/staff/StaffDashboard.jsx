@@ -6,10 +6,11 @@ import {
   ArrowRightOutlined,
   LogoutOutlined,
   ScanOutlined,
-  UploadOutlined
+  UploadOutlined,
+  CheckCircleFilled
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { monitoringApi, reservationApi, sessionApi, paymentApi, vehicleApi } from '../../services/api';
+import { monitoringApi, reservationApi, sessionApi, paymentApi, vehicleApi, pricingApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -39,6 +40,34 @@ const StaffDashboard = () => {
   const [checkOutSearchForm] = Form.useForm();
   const [checkOutConfirmForm] = Form.useForm();
 
+  // --- Poll VNPay Status ---
+  useEffect(() => {
+    let interval = null;
+    if (checkOutStep === 3 && checkoutSessionData?.paymentId) {
+      interval = setInterval(async () => {
+        try {
+          const res = await paymentApi.getPayment(checkoutSessionData.paymentId);
+          const paymentData = res.data?.data || res.data;
+          if (paymentData.paymentStatus === 'PAID') {
+             clearInterval(interval);
+             setCheckOutStep(4);
+             fetchData();
+             setTimeout(() => {
+                setIsCheckOutVisible(false);
+                setCheckOutStep(1);
+                checkOutSearchForm.resetFields();
+                checkOutConfirmForm.resetFields();
+             }, 3000);
+          }
+        } catch (e) {
+          console.error("Error polling VNPay status", e);
+        }
+      }, 3000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [checkOutStep, checkoutSessionData]);
   useEffect(() => {
     fetchData();
     const interval = setInterval(() => {
@@ -63,7 +92,7 @@ const StaffDashboard = () => {
       if (Array.isArray(resList)) {
         const todayStr = dayjs().format('YYYY-MM-DD');
         const todayRes = resList.filter(r => 
-          r.startTime && dayjs(r.startTime).format('YYYY-MM-DD') === todayStr && r.status === 'CONFIRMED'
+          r.reservationStart && dayjs(r.reservationStart).format('YYYY-MM-DD') === todayStr && (r.status === 'CONFIRMED' || r.status === 'PENDING')
         );
         setTodayReservationList(todayRes);
       }
@@ -79,7 +108,12 @@ const StaffDashboard = () => {
   const handleLicensePlateChange = (e) => {
     const plate = e.target.value.toUpperCase();
     if (plate.length >= 4) {
-      const match = todayReservationList.find(r => r.licensePlate && r.licensePlate.toUpperCase() === plate);
+      const now = dayjs();
+      const match = todayReservationList.find(r => 
+        r.licensePlate && r.licensePlate.toUpperCase() === plate && r.status === 'CONFIRMED' && 
+        now.isAfter(dayjs(r.reservationStart).subtract(30, 'minute')) && 
+        now.isBefore(dayjs(r.reservationEnd))
+      );
       setMatchedReservation(match || null);
     } else {
       setMatchedReservation(null);
@@ -88,9 +122,13 @@ const StaffDashboard = () => {
 
   const handleFallbackSearch = () => {
     if (!searchFallback) return;
+    const now = dayjs();
     const match = todayReservationList.find(r => 
-      r.reservationId.toString() === searchFallback || 
-      (r.userPhone && r.userPhone.includes(searchFallback))
+      (r.reservationId.toString() === searchFallback || 
+      (r.userFullName && r.userFullName.toLowerCase().includes(searchFallback.toLowerCase()))) && 
+      r.status === 'CONFIRMED' &&
+      now.isAfter(dayjs(r.reservationStart).subtract(30, 'minute')) && 
+      now.isBefore(dayjs(r.reservationEnd))
     );
     if (match) {
       setMatchedReservation(match);
@@ -176,10 +214,6 @@ const StaffDashboard = () => {
       
       const targetSession = res.data.data;
       
-      const pRes = await paymentApi.createPayment({ sessionId: targetSession.sessionId, paymentMethod: 'CASH' });
-      let paymentId = pRes.data?.data?.paymentId;
-      let finalFee = pRes.data?.data?.amount || targetSession.estimatedFee || 0;
-
       let exitImageUrl = null;
       let exitImageFile = null;
       if (values.exitImage && values.exitImage.fileList.length > 0) {
@@ -187,13 +221,29 @@ const StaffDashboard = () => {
         exitImageUrl = URL.createObjectURL(exitImageFile);
       }
 
+      const exitTimeIso = new Date().toISOString();
+      let calculatedFee = 0;
+      
+      if (!targetSession.hasActiveSubscription) {
+         try {
+             const feeRes = await pricingApi.calculateFee({
+                vehicleTypeId: targetSession.vehicleTypeId,
+                entryTime: dayjs(targetSession.entryTime).format('YYYY-MM-DDTHH:mm:ss'),
+                exitTime: dayjs(exitTimeIso).format('YYYY-MM-DDTHH:mm:ss')
+             });
+             calculatedFee = feeRes.data.data.finalFee;
+         } catch (e) {
+             console.error("Fee calculation failed", e);
+             message.error("Lỗi tính phí từ Backend: " + (e.response?.data?.message || e.message));
+         }
+      }
+
       setCheckoutSessionData({
         ...targetSession,
-        paymentId,
         exitImageFile,
         exitImageUrl,
-        exitTime: new Date().toISOString(),
-        totalFee: finalFee
+        exitTime: exitTimeIso,
+        totalFee: calculatedFee
       });
 
       setCheckOutStep(2);
@@ -209,30 +259,66 @@ const StaffDashboard = () => {
   const handleCheckOutConfirm = async (values) => {
     try {
       const sessionId = checkoutSessionData.sessionId;
-      const paymentId = checkoutSessionData.paymentId;
       
+      // 1. Check out to finalize the fee and change status to UNPAID or COMPLETED
+      const checkOutRes = await sessionApi.checkOut(sessionId, { exitGate: 'Gate A' });
+      const updatedSession = checkOutRes.data?.data || checkOutRes.data;
+
       if (checkoutSessionData.exitImageFile) {
         await sessionApi.uploadSessionImage(sessionId, checkoutSessionData.exitImageFile, 'exit');
       }
 
-      if (values.paymentMethod === 'CASH') {
+      if (updatedSession.status === 'COMPLETED' || updatedSession.finalFee === 0) {
+         message.success('Check-out Successful (Pre-paid / Zero Fee)');
+         setIsCheckOutVisible(false);
+         setCheckOutStep(1);
+         checkOutSearchForm.resetFields();
+         checkOutConfirmForm.resetFields();
+         fetchData();
+         return;
+      }
+      
+      // 2. Create Payment
+      const pRes = await paymentApi.createPayment({ sessionId: sessionId, paymentMethod: values.paymentMethod });
+      const paymentId = pRes.data?.data?.paymentId;
+
+      if (values.paymentMethod === 'CASH' || checkoutSessionData.totalFee === 0) {
          await paymentApi.confirmCash(paymentId);
          message.success('Check-out & Payment Successful!');
+         setIsCheckOutVisible(false);
+         setCheckOutStep(1);
+         checkOutSearchForm.resetFields();
+         checkOutConfirmForm.resetFields();
+         fetchData();
       } else {
          const vnRes = await paymentApi.createVnPayUrl(paymentId);
          if (vnRes.data?.data?.paymentUrl) {
             window.open(vnRes.data.data.paymentUrl, '_blank');
             message.info('Opened VNPay Payment Gateway');
+            setCheckoutSessionData({ ...checkoutSessionData, paymentId });
+            setCheckOutStep(3);
          }
       }
-      
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Check-out failed');
+    }
+  };
+
+  const handleSwitchToCash = async () => {
+    try {
+      if (!checkoutSessionData?.paymentId) return;
+      setLoading(true);
+      await paymentApi.confirmCash(checkoutSessionData.paymentId);
+      message.success('Check-out & Payment Successful (Switched to Cash)!');
       setIsCheckOutVisible(false);
       setCheckOutStep(1);
       checkOutSearchForm.resetFields();
       checkOutConfirmForm.resetFields();
       fetchData();
     } catch (error) {
-      message.error(error.response?.data?.message || 'Check-out failed');
+      message.error(error.response?.data?.message || 'Failed to switch to cash');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -241,6 +327,39 @@ const StaffDashboard = () => {
 
   const sum = dashboardData.summary;
 
+  // Calculate vehicle type stats
+  const vTypeStats = {
+    'Motorbike': { capacity: 0, current: 0 },
+    'Car': { capacity: 0, current: 0 },
+    'Small Truck': { capacity: 0, current: 0 },
+    'Bicycle': { capacity: 0, current: 0 },
+    'Large Truck': { capacity: 0, current: 0 }
+  };
+  if (dashboardData?.buildings) {
+    dashboardData.buildings.forEach(b => {
+      b.floors?.forEach(f => {
+        f.zones?.forEach(z => {
+          z.slots?.forEach(s => {
+            const vType = s.vehicleTypeName || s.vehicleType?.typeName || 'Other';
+            if (!vTypeStats[vType]) vTypeStats[vType] = { capacity: 0, current: 0 };
+            vTypeStats[vType].capacity += (s.capacity || 1);
+            vTypeStats[vType].current += (s.currentOccupancy || 0);
+          });
+        });
+      });
+    });
+  }
+
+  // Icons mapping for vehicle types
+  const getTypeIcon = (type) => {
+    const t = type.toLowerCase();
+    if (t.includes('car') || t.includes('ô tô')) return <CarOutlined />;
+    if (t.includes('motor') || t.includes('máy')) return <span>🏍️</span>;
+    if (t.includes('bicycle') || t.includes('bike') || t.includes('đạp')) return <span>🚲</span>;
+    if (t.includes('tải') || t.includes('truck')) return <span>🚚</span>;
+    return <CarOutlined />;
+  };
+
   return (
     <div>
       <Title level={2} style={{ marginBottom: 24 }}>Staff Dashboard</Title>
@@ -248,10 +367,13 @@ const StaffDashboard = () => {
       <Row gutter={[24, 24]}>
         <Col xs={24} lg={16}>
           <Card 
+            hoverable
+            onClick={() => navigate('/staff/slots')}
             style={{ 
               boxShadow: '0 4px 12px rgba(0,0,0,0.08)', 
               borderRadius: '12px',
-              height: '100%'
+              height: '100%',
+              cursor: 'pointer'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '32px', flexWrap: 'wrap' }}>
@@ -263,46 +385,38 @@ const StaffDashboard = () => {
                   size={160}
                   strokeWidth={8}
                 />
-                <div style={{ marginTop: '12px', fontWeight: 'bold', color: '#6b7280' }}>Tỷ lệ lấp đầy</div>
+                <div style={{ marginTop: '12px', fontWeight: 'bold', color: '#6b7280' }}>Occupancy Rate</div>
               </div>
               
-              <div style={{ flex: 1, minWidth: '250px' }}>
-                <Title level={4} style={{ marginBottom: 20 }}>Hiện trạng bãi xe</Title>
+              <div style={{ flex: 1, minWidth: '250px', textAlign: 'center' }}>
+                <Title level={4} style={{ marginBottom: 20, color: '#6b7280' }}>Parking Status</Title>
                 
-                <div style={{ background: 'rgba(14,165,233,.08)', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', border: '1px solid rgba(14,165,233,.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', background: '#0ea5e9', marginRight: '8px' }}></div>
-                    <Text strong style={{ fontSize: '16px' }}>Tổng số chỗ (Sức chứa)</Text>
+                <div style={{ 
+                  background: 'rgba(14,165,233,.08)', 
+                  borderRadius: '16px', 
+                  padding: '24px', 
+                  marginBottom: '20px', 
+                  border: '2px solid rgba(14,165,233,.2)', 
+                  display: 'inline-block',
+                  minWidth: '200px'
+                }}>
+                  <div style={{ fontSize: '16px', color: '#0ea5e9', fontWeight: 'bold', marginBottom: '8px' }}>Current / Capacity</div>
+                  <div style={{ fontSize: '48px', fontWeight: '900', color: '#0369a1', lineHeight: 1 }}>
+                    {sum.currentOccupancy} <span style={{ fontSize: '24px', color: '#94a3b8' }}>/ {sum.totalCapacity}</span>
                   </div>
-                  <Text strong style={{ fontSize: '20px', color: '#0ea5e9' }}>{sum.totalCapacity}</Text>
                 </div>
                 
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                      <Text><div style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#10b981', marginRight: '6px' }}></div> Chỗ trống</Text>
-                      <Text strong>{sum.availableCapacity}</Text>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                  {Object.entries(vTypeStats).map(([type, stats]) => (
+                    <div key={type} style={{ background: '#f8fafc', padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '20px', color: '#64748b' }}>{getTypeIcon(type)}</span>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>{type}</div>
+                        <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a' }}>{stats.current} <span style={{ color: '#94a3b8', fontSize: '14px' }}>/ {stats.capacity}</span></div>
+                      </div>
                     </div>
-                  </Col>
-                  <Col span={12}>
-                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                      <Text><div style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b', marginRight: '6px' }}></div> Đang đỗ</Text>
-                      <Text strong>{sum.currentOccupancy}</Text>
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                      <Text><div style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#eab308', marginRight: '6px' }}></div> Đã đặt trước</Text>
-                      <Text strong>{sum.reservedSlots}</Text>
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                      <Text><div style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#9ca3af', marginRight: '6px' }}></div> Chưa đặt</Text>
-                      <Text strong>{sum.totalCapacity - sum.currentOccupancy - sum.reservedSlots}</Text>
-                    </div>
-                  </Col>
-                </Row>
+                  ))}
+                </div>
               </div>
             </div>
           </Card>
@@ -329,8 +443,8 @@ const StaffDashboard = () => {
             bodyStyle={{ width: '100%' }}
           >
             <SafetyCertificateOutlined style={{ fontSize: '48px', color: 'rgba(255,255,255,0.9)', marginBottom: '16px' }} />
-            <h3 style={{ color: 'white', fontSize: '20px', margin: '0 0 8px 0' }}>Reservation hôm nay</h3>
-            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginBottom: '16px' }}>Đặt chỗ hôm nay chưa đến</p>
+            <h3 style={{ color: 'white', fontSize: '20px', margin: '0 0 8px 0' }}>Reservation</h3>
+            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginBottom: '16px' }}>Pending Arrivals Today</p>
             <div style={{ fontSize: '64px', fontWeight: '900', lineHeight: 1 }}>{todayReservationList.length}</div>
           </Card>
         </Col>
@@ -432,8 +546,11 @@ const StaffDashboard = () => {
 
         <Form form={checkInForm} layout="vertical" onFinish={handleCheckInSubmit} size="large">
           <Form.Item name="entryImage" label="Entry Image (Camera)" rules={[{ required: true, message: 'Please upload image' }]}>
-            <Upload beforeUpload={() => false} maxCount={1} listType="picture">
-              <Button icon={<UploadOutlined />} block>Upload Vehicle Image</Button>
+            <Upload beforeUpload={() => false} maxCount={1} listType="picture-card">
+              <div>
+                <UploadOutlined style={{ fontSize: '24px', color: '#8c8c8c' }} />
+                <div style={{ marginTop: 8, color: '#8c8c8c' }}>Upload</div>
+              </div>
             </Upload>
           </Form.Item>
           
@@ -442,6 +559,7 @@ const StaffDashboard = () => {
               placeholder="e.g. 29A-12345" 
               style={{ textTransform: 'uppercase', fontSize: '18px', fontWeight: 'bold' }} 
               onChange={handleLicensePlateChange}
+              onPressEnter={(e) => e.preventDefault()}
             />
           </Form.Item>
 
@@ -452,7 +570,10 @@ const StaffDashboard = () => {
                 <Text strong style={{ color: '#065f46', fontSize: '16px' }}>Reservation Found!</Text>
               </div>
               <p style={{ margin: 0 }}><strong>ID:</strong> #{matchedReservation.reservationId}</p>
-              <p style={{ margin: 0 }}><strong>Customer:</strong> {matchedReservation.userName || 'Guest'}</p>
+              <p style={{ margin: 0 }}><strong>Customer:</strong> {matchedReservation.userFullName || 'Guest'}</p>
+              <p style={{ margin: 0 }}><strong>License Plate:</strong> {matchedReservation.licensePlate}</p>
+              <p style={{ margin: 0 }}><strong>Vehicle Type:</strong> {matchedReservation.vehicleTypeName || 'N/A'}</p>
+              <p style={{ margin: 0 }}><strong>Time:</strong> {dayjs(matchedReservation.reservationStart).format('HH:mm')} - {dayjs(matchedReservation.reservationEnd).format('HH:mm')}</p>
               <p style={{ margin: 0 }}><strong>Slot:</strong> {matchedReservation.slotCode || 'Any'}</p>
             </div>
           ) : (
@@ -464,9 +585,11 @@ const StaffDashboard = () => {
           {!matchedReservation && (
             <Form.Item name="vehicleType" label="Vehicle Type" rules={[{ required: true }]}>
               <Select>
-                <Option value="1">Car</Option>
-                <Option value="2">Motorbike</Option>
-                <Option value="3">Bicycle</Option>
+                <Option value="1">Motorbike</Option>
+                <Option value="2">Car</Option>
+                <Option value="3">Small Truck</Option>
+                <Option value="4">Bicycle</Option>
+                <Option value="5">Large Truck</Option>
               </Select>
             </Form.Item>
           )}
@@ -511,6 +634,7 @@ const StaffDashboard = () => {
               <img src={summaryData.image} alt="Entry" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px' }} />
             )}
             <p><strong>Plate:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1677ff' }}>{summaryData.plate}</span></p>
+            <p><strong>Assigned Slot:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#10b981' }}>{summaryData.slotCode || 'N/A'}</span></p>
             <p><strong>Type:</strong> {summaryData.type}</p>
             <p><strong>Entry:</strong> {summaryData.time}</p>
             <p><strong>Gate:</strong> {summaryData.gate}</p>
@@ -552,8 +676,11 @@ const StaffDashboard = () => {
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="exitImage" label="Exit Image" rules={[{ required: true, message: 'Upload image' }]}>
-                  <Upload beforeUpload={() => false} maxCount={1} listType="picture">
-                    <Button icon={<UploadOutlined />} block>Upload Image</Button>
+                  <Upload beforeUpload={() => false} maxCount={1} listType="picture-card">
+                    <div>
+                      <UploadOutlined style={{ fontSize: '24px', color: '#8c8c8c' }} />
+                      <div style={{ marginTop: 8, color: '#8c8c8c' }}>Upload</div>
+                    </div>
                   </Upload>
                 </Form.Item>
               </Col>
@@ -574,16 +701,20 @@ const StaffDashboard = () => {
             <Row gutter={16} style={{ marginBottom: '20px' }}>
               <Col span={12} style={{ textAlign: 'center' }}>
                 <p><strong>Entry Image</strong></p>
-                <div style={{ height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
-                  <Text type="secondary">No Image</Text>
-                </div>
+                {checkoutSessionData.entryImage ? (
+                  <img src={`http://localhost:8080${checkoutSessionData.entryImage}`} alt="Entry" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px' }} />
+                ) : (
+                  <div style={{ width: '100%', aspectRatio: '1/1', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                    <Text type="secondary">No Image</Text>
+                  </div>
+                )}
               </Col>
               <Col span={12} style={{ textAlign: 'center' }}>
                 <p><strong>Exit Image</strong></p>
                 {checkoutSessionData.exitImageUrl ? (
-                   <img src={checkoutSessionData.exitImageUrl} alt="Exit" style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px' }} />
+                   <img src={checkoutSessionData.exitImageUrl} alt="Exit" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px' }} />
                 ) : (
-                   <div style={{ height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                   <div style={{ width: '100%', aspectRatio: '1/1', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
                     <Text type="secondary">No Image</Text>
                   </div>
                 )}
@@ -594,11 +725,13 @@ const StaffDashboard = () => {
               <Row>
                 <Col span={12}>
                   <p><strong>Plate:</strong> <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>{checkoutSessionData.licensePlate}</Text></p>
-                  <p><strong>Entry:</strong> {dayjs(checkoutSessionData.entryTime).format('DD/MM/YYYY HH:mm:ss')}</p>
+                  <p><strong>Entry:</strong> {dayjs(checkoutSessionData.entryTime || checkoutSessionData.checkInTime).format('DD/MM/YYYY HH:mm:ss')}</p>
                 </Col>
                 <Col span={12}>
                   <p><strong>Exit:</strong> {dayjs(checkoutSessionData.exitTime).format('DD/MM/YYYY HH:mm:ss')}</p>
-                  <p><strong>Fee:</strong> <Text strong style={{ color: '#ea580c', fontSize: '18px' }}>{checkoutSessionData.totalFee.toLocaleString()} ₫</Text></p>
+                  <div style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold', marginTop: '10px' }}>
+                    Fee: {checkoutSessionData.totalFee.toLocaleString()} ₫
+                  </div>
                 </Col>
               </Row>
             </Card>
@@ -617,6 +750,38 @@ const StaffDashboard = () => {
               </Button>
             </div>
           </Form>
+        )}
+
+        {checkOutStep === 3 && checkoutSessionData && (
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <Spin size="large" />
+            <Title level={4} style={{ marginTop: 24, color: '#1677ff' }}>Waiting for VNPay payment...</Title>
+            <Spin size="large" style={{ margin: '20px 0' }} />
+            <Text type="secondary" style={{ display: 'block' }}>
+              Please complete the payment in the VNPay tab. The system will automatically close this popup upon successful payment.
+            </Text>
+            
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+              <Button type="default" danger onClick={() => {
+                setIsCheckOutVisible(false);
+                setCheckOutStep(1);
+                checkOutSearchForm.resetFields();
+                checkOutConfirmForm.resetFields();
+                fetchData();
+              }}>Close (Cancel Payment)</Button>
+              <Button type="primary" onClick={handleSwitchToCash} loading={loading}>
+                Switch to Cash (CASH)
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {checkOutStep === 4 && (
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <CheckCircleFilled style={{ fontSize: 72, color: '#52c41a' }} />
+            <Title level={3} style={{ marginTop: 24, color: '#52c41a' }}>Payment Successful!</Title>
+            <Text type="secondary">The gate is open. Please proceed to exit...</Text>
+          </div>
         )}
       </Modal>
     </div>

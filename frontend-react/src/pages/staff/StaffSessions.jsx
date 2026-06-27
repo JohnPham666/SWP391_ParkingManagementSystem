@@ -1,180 +1,689 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Input, Select, Tag, Modal, Button, message, Space, Card, Typography } from 'antd';
-import { SearchOutlined, EyeOutlined } from '@ant-design/icons';
-import { sessionApi } from '../../services/api';
+import React, { useState, useEffect } from 'react';
+import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Upload, Row, Col, Typography, Divider, DatePicker } from 'antd';
+import { SearchOutlined, CarOutlined, CreditCardOutlined, UploadOutlined, SafetyCertificateOutlined, CheckCircleFilled } from '@ant-design/icons';
+import { sessionApi, paymentApi, vehicleApi, pricingApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
 const { Title, Text } = Typography;
 
-/**
- * StaffSessions - Trang quản lý phiên gửi xe dành cho Staff
- * 
- * Tính năng:
- * - Danh sách phiên gửi xe với tìm kiếm biển số, lọc trạng thái, loại xe, cổng vào
- * - Modal chi tiết phiên (biển số, chỗ đỗ, loại xe, giờ vào/ra, phí)
- * - Auto-refresh mỗi 10 giây (silent polling)
- */
 const StaffSessions = () => {
   const [sessions, setSessions] = useState([]);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({ search: '', status: null, vehicleType: null, entryGate: null });
+  
+  const [filters, setFilters] = useState({
+    search: '',
+    status: null,
+  });
+
+  // Role Detection
+  const auth = JSON.parse(localStorage.getItem('parking_auth') || '{}');
+  const userRole = auth.user?.roleName || auth.role || auth.user?.role || 'ParkingStaff';
+  const isStaff = userRole === 'ParkingStaff';
 
   // Modal States
-  const [isDetailVisible, setIsDetailVisible] = useState(false);
-  const [detailData, setDetailData] = useState(null);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [isWalkInVisible, setIsWalkInVisible] = useState(false);
+  const [isResCheckInVisible, setIsResCheckInVisible] = useState(false);
+  const [isCheckOutVisible, setIsCheckOutVisible] = useState(false);
+  const [isSummaryVisible, setIsSummaryVisible] = useState(false);
+  
+  const [checkOutStep, setCheckOutStep] = useState(1); // 1: Search, 2: Confirm, 3: Paid, 4: Done
+  const [checkoutSessionData, setCheckoutSessionData] = useState(null);
+  
+  const [walkInForm] = Form.useForm();
+  const [resCheckInForm] = Form.useForm();
+  const [checkOutSearchForm] = Form.useForm();
+  const [checkOutConfirmForm] = Form.useForm();
 
-  // === Fetch Sessions ===
-  const fetchSessions = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
+  // --- Poll VNPay Status ---
+  useEffect(() => {
+    let interval = null;
+    if (checkOutStep === 3 && checkoutSessionData?.paymentId) {
+      interval = setInterval(async () => {
+        try {
+          const res = await paymentApi.getPayment(checkoutSessionData.paymentId);
+          const paymentData = res.data?.data || res.data;
+          if (paymentData.paymentStatus === 'PAID') {
+             clearInterval(interval);
+             setCheckOutStep(4);
+             fetchSessions();
+             setTimeout(() => {
+                setIsCheckOutVisible(false);
+                setCheckOutStep(1);
+                checkOutSearchForm.resetFields();
+                checkOutConfirmForm.resetFields();
+             }, 3000);
+          }
+        } catch (e) {
+          console.error("Error polling VNPay status", e);
+        }
+      }, 3000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [checkOutStep, checkoutSessionData]);
+
+  // Summary Data
+  const [summaryData, setSummaryData] = useState(null);
+
+  useEffect(() => {
+    fetchSessions();
+    fetchVehicleTypes();
+  }, []);
+
+  const fetchVehicleTypes = async () => {
+    try {
+      const res = await vehicleApi.getVehicles(); 
+      // Note: we should actually call getVehicleTypes but the existing backend might serve it under /vehicle-types. 
+      // If we don't have vehicleTypes api mapped, we can hardcode for now or map it.
+    } catch (e) {}
+  };
+
+  const fetchSessions = async () => {
+    setLoading(true);
     try {
       const res = await sessionApi.getSessions();
       let data = res.data?.success ? res.data.data : res.data;
       if (Array.isArray(data)) {
-        data.sort((a, b) => new Date(b.entryTime || 0) - new Date(a.entryTime || 0));
+        data.sort((a, b) => new Date(b.checkInTime || 0) - new Date(a.checkInTime || 0));
         setSessions(data);
       } else {
         setSessions([]);
       }
     } catch (error) {
-      if (!silent) message.error('Failed to load parking sessions');
+      console.error('Error fetching sessions:', error);
+      message.error('Failed to load parking sessions');
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
     }
-  }, []);
+  };
 
-  // Auto-refresh polling mỗi 10 giây
-  useEffect(() => {
-    fetchSessions();
-    const interval = setInterval(() => fetchSessions(true), 10000);
-    return () => clearInterval(interval);
-  }, [fetchSessions]);
-
-  // === Show Session Detail Modal ===
-  const showSessionDetail = async (id) => {
-    setIsDetailVisible(true);
-    setDetailLoading(true);
-    setDetailData(null);
+  const handleWalkInSubmit = async (values) => {
     try {
-      const res = await sessionApi.getSession(id);
-      const s = res.data?.success ? res.data.data : res.data;
-      setDetailData(s);
-    } catch {
-      message.error('Lỗi tải chi tiết phiên');
-    } finally {
-      setDetailLoading(false);
+      // Step 1: WalkIn api
+      const payload = {
+        licensePlate: values.licensePlate,
+        vehicleTypeId: parseInt(values.vehicleType, 10),
+        entryGate: values.entryGate,
+      };
+      const res = await sessionApi.walkIn(payload);
+      const sessionData = res.data.data;
+      
+      // Step 2: Upload Image if provided
+      if (values.entryImage && values.entryImage.fileList.length > 0) {
+        const file = values.entryImage.fileList[0].originFileObj;
+        await sessionApi.uploadSessionImage(sessionData.sessionId, file, 'entry');
+      }
+
+      message.success('Walk-in Check-in Successful!');
+      setIsWalkInVisible(false);
+      walkInForm.resetFields();
+      
+      // Show Summary
+      setSummaryData({
+        ...sessionData,
+        plate: values.licensePlate,
+        type: values.vehicleType,
+        gate: values.entryGate,
+        time: new Date().toLocaleString(),
+        image: values.entryImage ? URL.createObjectURL(values.entryImage.fileList[0].originFileObj) : null
+      });
+      setIsSummaryVisible(true);
+      fetchSessions();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Check-in failed');
     }
   };
 
-  // === Status Badge Helper ===
-  const getStatusTag = (status) => {
-    const map = {
-      'ACTIVE': { color: 'blue', label: 'Đang đỗ' },
-      'PARKING': { color: 'blue', label: 'Đang đỗ' },
-      'COMPLETED': { color: 'green', label: 'Hoàn thành' },
-      'UNPAID': { color: 'orange', label: 'Chưa thanh toán' },
-      'LOST_TICKET': { color: 'red', label: 'Mất vé' },
-    };
-    const s = map[status] || { color: 'default', label: status };
-    return <Tag color={s.color} style={{ fontWeight: 600 }}>{s.label}</Tag>;
+  const handleResCheckInSubmit = async (values) => {
+    try {
+      const payload = {
+        reservationId: parseInt(values.reservationId, 10),
+        entryGate: values.entryGate,
+      };
+      const res = await sessionApi.walkIn(payload); // Usually walkIn maps to check-in
+      const sessionData = res.data.data;
+
+      message.success('Reservation Check-in Successful!');
+      setIsResCheckInVisible(false);
+      resCheckInForm.resetFields();
+      fetchSessions();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Check-in failed');
+    }
   };
 
-  // === Extract unique vehicle types & entry gates for filter options ===
-  const vehicleTypes = [...new Set(sessions.map(s => s.vehicleTypeName).filter(Boolean))];
-  const entryGates = [...new Set(sessions.map(s => s.entryGate).filter(Boolean))];
+  const handleCheckOutSearch = async (values) => {
+    try {
+      const res = await sessionApi.getActiveByPlate(values.licensePlate);
+      if (!res.data || !res.data.data) {
+        message.error('No active session found for this license plate');
+        return;
+      }
+      
+      const targetSession = res.data.data;
+      
+      let exitImageUrl = null;
+      let exitImageFile = null;
+      if (values.exitImage && values.exitImage.fileList.length > 0) {
+        exitImageFile = values.exitImage.fileList[0].originFileObj;
+        exitImageUrl = URL.createObjectURL(exitImageFile);
+      }
 
-  // === Filtered Data ===
-  const filteredSessions = sessions.filter(s => {
-    const searchMatch = !filters.search ||
-      s.licensePlate?.toLowerCase().includes(filters.search.toLowerCase()) ||
-      s.sessionId?.toString().includes(filters.search);
-    const statusMatch = !filters.status || s.status === filters.status;
-    const vehicleTypeMatch = !filters.vehicleType || s.vehicleTypeName === filters.vehicleType;
-    const entryGateMatch = !filters.entryGate || s.entryGate === filters.entryGate;
-    return searchMatch && statusMatch && vehicleTypeMatch && entryGateMatch;
+      const exitTimeIso = new Date().toISOString();
+      let calculatedFee = 0;
+      
+      if (!targetSession.hasActiveSubscription) {
+         try {
+             const feeRes = await pricingApi.calculateFee({
+                vehicleTypeId: targetSession.vehicleTypeId,
+                entryTime: dayjs(targetSession.entryTime).format('YYYY-MM-DDTHH:mm:ss'),
+                exitTime: dayjs(exitTimeIso).format('YYYY-MM-DDTHH:mm:ss')
+             });
+             calculatedFee = feeRes.data.data.finalFee;
+         } catch (e) {
+             console.error("Fee calculation failed", e);
+             message.error("Lỗi tính phí từ Backend: " + (e.response?.data?.message || e.message));
+         }
+      }
+
+      setCheckoutSessionData({
+        ...targetSession,
+        exitImageFile,
+        exitImageUrl,
+        exitTime: exitTimeIso,
+        totalFee: calculatedFee
+      });
+
+      setCheckOutStep(2);
+    } catch (error) {
+      if (error.response?.data?.message?.includes('already has a PENDING payment')) {
+         message.error('Vehicle already in checkout process');
+      } else {
+         message.error(error.response?.data?.message || 'Error finding vehicle');
+      }
+    }
+  };
+
+  const handleCheckOutConfirm = async (values) => {
+    try {
+      const sessionId = checkoutSessionData.sessionId;
+      
+      // 1. Check out to finalize the fee and change status to UNPAID or COMPLETED
+      const checkOutRes = await sessionApi.checkOut(sessionId, { exitGate: 'Gate A' });
+      const updatedSession = checkOutRes.data?.data || checkOutRes.data;
+
+      if (checkoutSessionData.exitImageFile) {
+        await sessionApi.uploadSessionImage(sessionId, checkoutSessionData.exitImageFile, 'exit');
+      }
+
+      if (updatedSession.status === 'COMPLETED' || updatedSession.finalFee === 0) {
+         message.success('Check-out Successful (Pre-paid / Zero Fee)');
+         setIsCheckOutVisible(false);
+         setCheckOutStep(1);
+         checkOutSearchForm.resetFields();
+         checkOutConfirmForm.resetFields();
+         fetchSessions();
+         return;
+      }
+      
+      // 2. Create Payment
+      const pRes = await paymentApi.createPayment({ sessionId: sessionId, paymentMethod: values.paymentMethod });
+      const paymentId = pRes.data?.data?.paymentId;
+
+      if (values.paymentMethod === 'CASH' || checkoutSessionData.totalFee === 0) {
+         await paymentApi.confirmCash(paymentId);
+         message.success('Check-out & Payment Successful!');
+         setIsCheckOutVisible(false);
+         setCheckOutStep(1);
+         checkOutSearchForm.resetFields();
+         checkOutConfirmForm.resetFields();
+         fetchSessions();
+      } else {
+         const vnRes = await paymentApi.createVnPayUrl(paymentId);
+         if (vnRes.data?.data?.paymentUrl) {
+            window.open(vnRes.data.data.paymentUrl, '_blank');
+            message.info('Opened VNPay Payment Gateway');
+            setCheckoutSessionData({ ...checkoutSessionData, paymentId });
+            setCheckOutStep(3);
+         }
+      }
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Check-out failed');
+    }
+  };
+
+  // Extract unique vehicle types from sessions
+  const uniqueVehicleTypes = Array.from(new Set(['Motorbike', 'Car', 'Small Truck', 'Bicycle', 'Large Truck', ...sessions.map(s => s.vehicleTypeName || s.vehicleType?.typeName).filter(Boolean)]));
+
+  // Filter
+  const filteredSessions = sessions.filter(session => {
+    const searchMatch = !filters.search || 
+      session.licensePlate?.toLowerCase().includes(filters.search.toLowerCase()) ||
+      session.sessionId?.toString().includes(filters.search);
+    const statusMatch = !filters.status || session.status === filters.status || (filters.status === 'ACTIVE' && session.status === 'PARKING');
+    const typeMatch = !filters.vehicleType || (session.vehicleTypeName || session.vehicleType?.typeName || 'Ô tô') === filters.vehicleType;
+    const dateMatch = !filters.date || dayjs(session.checkInTime || session.checkinTime || session.entryTime).format('MM/DD/YYYY') === filters.date;
+    return searchMatch && statusMatch && typeMatch && dateMatch;
   });
 
-  // === Table Columns ===
   const columns = [
-    { title: 'ID', dataIndex: 'sessionId', key: 'sessionId', width: 80, render: (t) => <strong style={{ color: '#1677ff' }}>#{t}</strong> },
-    { title: 'Biển số', dataIndex: 'licensePlate', key: 'licensePlate', render: (t) => <Tag color="blue" style={{ fontSize: 14, fontWeight: 'bold', padding: '4px 8px' }}>{t || '-'}</Tag> },
-    { title: 'Chỗ đỗ', dataIndex: 'slotCode', key: 'slotCode', render: t => t || '-' },
-    { title: 'Loại xe', dataIndex: 'vehicleTypeName', key: 'vehicleTypeName', render: t => t || '-' },
-    { title: 'Giờ vào', dataIndex: 'entryTime', key: 'entryTime', render: (t) => t ? dayjs(t).format('DD/MM/YYYY HH:mm:ss') : '-' },
-    { title: 'Cổng vào', dataIndex: 'entryGate', key: 'entryGate', render: t => t || '-' },
-    { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (status) => getStatusTag(status) },
+    { title: 'ID', dataIndex: 'sessionId', key: 'sessionId', render: (text) => <strong>#{text}</strong> },
+    { title: 'LICENSE PLATE', dataIndex: 'licensePlate', key: 'licensePlate', render: (text) => <strong style={{ fontSize: 14 }}>{text || 'N/A'}</strong> },
+    { title: 'SLOT', dataIndex: 'slotCode', key: 'slotCode', render: text => text || '-' },
+    { title: 'VEHICLE TYPE', key: 'vehicleType', render: (_, record) => record.vehicleTypeName || record.vehicleType?.typeName || 'Car' },
+    { title: 'CARD ID', dataIndex: 'cardId', key: 'cardId', render: text => text || '-' },
+    { title: 'ENTRY TIME', key: 'entryTime', render: (_, record) => {
+        const time = record.checkInTime || record.checkinTime || record.entryTime;
+        return time ? dayjs(time).format('HH:mm:ss DD/MM/YYYY') : '-';
+    }},
+    { title: 'EXIT TIME', key: 'exitTime', render: (_, record) => {
+        const time = record.checkOutTime || record.checkoutTime || record.exitTime;
+        return time ? dayjs(time).format('HH:mm:ss DD/MM/YYYY') : '-';
+    }},
+    { title: 'ENTRY GATE', dataIndex: 'entryGate', key: 'entryGate', render: text => text || '-' },
+    { title: 'EXIT GATE', dataIndex: 'exitGate', key: 'exitGate', render: text => text || '-' },
+    { title: 'FINAL FEE', dataIndex: 'finalFee', key: 'finalFee', render: text => text != null ? `${text.toLocaleString()} ₫` : '-' },
+    { title: 'CUSTOMER', key: 'customer', render: (_, record) => record.customerName || record.userFullName || '-' },
+    { title: 'PHONE', key: 'phone', render: (_, record) => record.customerPhone || record.userPhone || '-' },
+    { title: 'MONTHLY PASS?', dataIndex: 'hasActiveSubscription', key: 'hasActiveSubscription', render: text => text ? <Tag color="green">Yes</Tag> : <Tag color="default">No</Tag> },
+    { title: 'CREATED BY', dataIndex: 'createdBy', key: 'createdBy', render: text => text || '-' },
     {
-      title: 'Chi tiết', key: 'action', width: 90,
-      render: (_, record) => (
-        <Button type="link" icon={<EyeOutlined />} onClick={() => showSessionDetail(record.sessionId)}>Xem</Button>
-      )
+      title: 'STATUS',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => {
+        let color = 'default';
+        let text = status;
+        if (status === 'ACTIVE' || status === 'PARKING') { color = 'error'; text = 'Parking'; }
+        else if (status === 'COMPLETED') { color = 'success'; text = 'Completed'; }
+        else if (status === 'UNPAID') { color = 'warning'; text = 'Unpaid'; }
+        else if (status === 'LOST_TICKET') { color = 'purple'; text = 'Lost Ticket'; }
+        return <Tag color={color}>{text}</Tag>;
+      }
     },
+    {
+      title: 'ACTION',
+      key: 'action',
+      render: (_, record) => (
+        <Button 
+          style={{ borderRadius: 6, padding: '4px 16px', height: 'auto', borderColor: '#d9d9d9' }} 
+          onClick={() => {
+            setSummaryData({
+              sessionId: record.sessionId,
+              status: record.status,
+              plate: record.licensePlate,
+              type: record.vehicleTypeName || record.vehicleType?.typeName || 'N/A',
+              time: record.checkInTime || record.checkinTime || record.entryTime ? dayjs(record.checkInTime || record.checkinTime || record.entryTime).format('HH:mm:ss DD/MM/YYYY') : '-',
+              exitTime: record.checkOutTime ? dayjs(record.checkOutTime).format('HH:mm:ss DD/MM/YYYY') : '-',
+              gate: record.entryGate,
+              exitGate: record.exitGate,
+              slot: record.slotCode,
+              entryImage: record.entryImage || null,
+              exitImage: record.exitImage || null,
+              createdBy: record.createdBy || '-',
+              finalFee: record.finalFee != null ? record.finalFee : (record.estimatedFee != null ? record.estimatedFee : 0)
+            });
+            setIsSummaryVisible(true);
+          }}
+        >
+          View
+        </Button>
+      ),
+    }
   ];
 
   return (
     <div>
-      {/* === Header === */}
-      <Card style={{ marginBottom: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-        <div>
-          <Title level={4} style={{ margin: 0 }}>Danh sách phiên gửi xe</Title>
-          <Text type="secondary">Quản lý các xe đang đỗ trong bãi và lịch sử ra vào</Text>
+      <Card>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '16px' }}>
+          <Title level={4} style={{ margin: 0 }}>Parking Sessions</Title>
+          <Space style={{ flexWrap: 'wrap' }}>
+            <Input 
+              placeholder="Search plate..." 
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              style={{ width: 180 }}
+            />
+            <Select 
+              defaultValue=""
+              style={{ width: 160 }} 
+              onChange={(val) => setFilters({ ...filters, status: val })}
+            >
+              <Option value="">All Statuses</Option>
+              <Option value="ACTIVE">Parking</Option>
+              <Option value="COMPLETED">Completed</Option>
+              <Option value="UNPAID">Unpaid</Option>
+              <Option value="LOST_TICKET">Lost Ticket</Option>
+            </Select>
+            <Select 
+              defaultValue=""
+              style={{ width: 150 }} 
+              onChange={(val) => setFilters({ ...filters, vehicleType: val })}
+            >
+              <Option value="">All Vehicle Types</Option>
+              {uniqueVehicleTypes.map(type => (
+                <Option key={type} value={type}>{type}</Option>
+              ))}
+            </Select>
+            <DatePicker 
+              format="MM/DD/YYYY" 
+              placeholder="mm/dd/yyyy" 
+              onChange={(date, dateString) => setFilters({ ...filters, date: dateString })}
+              style={{ width: 130 }}
+            />
+          </Space>
         </div>
+
+        <Table 
+          columns={columns} 
+          dataSource={[...filteredSessions].sort((a, b) => b.sessionId - a.sessionId)} 
+          rowKey="sessionId" 
+          loading={loading}
+          pagination={{ pageSize: 10 }}
+          scroll={{ x: 800 }}
+          size="middle"
+        />
       </Card>
 
-      {/* === Table === */}
-      <Card style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-        <Space style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap' }} size="middle">
-          <Input placeholder="Tìm biển số xe..." prefix={<SearchOutlined />}
-            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-            style={{ width: 250 }} size="large" allowClear />
-          <Select placeholder="Tất cả trạng thái" style={{ width: 180 }} allowClear size="large"
-            onChange={(val) => setFilters({ ...filters, status: val })}>
-            <Option value="ACTIVE">Đang đỗ</Option>
-            <Option value="PARKING">Đang đỗ (PARKING)</Option>
-            <Option value="COMPLETED">Hoàn thành</Option>
-            <Option value="UNPAID">Chưa thanh toán</Option>
-            <Option value="LOST_TICKET">Mất vé</Option>
-          </Select>
-          <Select placeholder="Tất cả loại xe" style={{ width: 160 }} allowClear size="large"
-            onChange={(val) => setFilters({ ...filters, vehicleType: val })}>
-            {vehicleTypes.map(vt => (
-              <Option key={vt} value={vt}>{vt}</Option>
-            ))}
-          </Select>
-          <Select placeholder="Tất cả cổng vào" style={{ width: 160 }} allowClear size="large"
-            onChange={(val) => setFilters({ ...filters, entryGate: val })}>
-            {entryGates.map(g => (
-              <Option key={g} value={g}>{g}</Option>
-            ))}
-          </Select>
-        </Space>
-        <Table columns={columns} dataSource={filteredSessions} rowKey="sessionId"
-          loading={loading} pagination={{ pageSize: 15 }} scroll={{ x: 900 }} size="middle" />
-      </Card>
+      {/* WALK-IN MODAL */}
+      <Modal
+        title="Walk-in Check-in"
+        open={isWalkInVisible}
+        onCancel={() => { setIsWalkInVisible(false); walkInForm.resetFields(); }}
+        footer={null}
+      >
+        <Form form={walkInForm} layout="vertical" onFinish={handleWalkInSubmit} size="large">
+          <Form.Item name="entryImage" label="Entry Image (Camera)" rules={[{ required: true, message: 'Please upload image' }]}>
+            <Upload beforeUpload={() => false} maxCount={1} listType="picture">
+              <Button icon={<UploadOutlined />}>Upload Image</Button>
+            </Upload>
+          </Form.Item>
+          <Form.Item name="licensePlate" label="License Plate" rules={[{ required: true, message: 'Please enter license plate' }]}>
+            <Input placeholder="e.g. 29A-12345" style={{ textTransform: 'uppercase' }} />
+          </Form.Item>
+          <Form.Item name="vehicleType" label="Vehicle Type" rules={[{ required: true }]}>
+            <Select>
+              <Option value="1">Car</Option>
+              <Option value="2">Motorbike</Option>
+              <Option value="3">Bicycle</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="entryGate" label="Entry Gate" initialValue="Gate A">
+            <Select>
+              <Option value="Gate A">Gate A</Option>
+              <Option value="Gate B">Gate B</Option>
+            </Select>
+          </Form.Item>
+          <Button type="primary" htmlType="submit" block style={{ height: '50px', fontSize: '16px', fontWeight: 'bold' }}>
+            Confirm Check-in
+          </Button>
+        </Form>
+      </Modal>
 
-      {/* === SESSION DETAIL MODAL === */}
-      <Modal title={<span style={{ fontSize: 18 }}>Chi tiết phiên gửi xe {detailData ? `#${detailData.sessionId}` : ''}</span>}
-        open={isDetailVisible} onCancel={() => setIsDetailVisible(false)}
-        footer={[<Button key="close" type="primary" onClick={() => setIsDetailVisible(false)}>Đóng</Button>]}
-        width={550}>
-        {detailLoading ? <div style={{ textAlign: 'center', padding: 40 }}>Đang tải...</div> : detailData && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', lineHeight: 2 }}>
-            <div><strong>Biển số xe:</strong> <Tag color="blue" style={{ fontWeight: 'bold' }}>{detailData.licensePlate || '-'}</Tag></div>
-            <div><strong>Trạng thái:</strong> {getStatusTag(detailData.status)}</div>
-            <div><strong>Chỗ đỗ:</strong> {detailData.slotCode || '-'}</div>
-            <div><strong>Loại xe:</strong> {detailData.vehicleTypeName || '-'}</div>
-            <div><strong>Khách hàng:</strong> {detailData.customerName || '-'}</div>
-            <div><strong>Số điện thoại:</strong> {detailData.customerPhone || '-'}</div>
-            <div><strong>Giờ vào:</strong> {detailData.entryTime ? dayjs(detailData.entryTime).format('DD/MM/YYYY HH:mm:ss') : '-'}</div>
-            <div><strong>Cổng vào:</strong> {detailData.entryGate || '-'}</div>
-            <div><strong>Giờ ra:</strong> {detailData.exitTime ? dayjs(detailData.exitTime).format('DD/MM/YYYY HH:mm:ss') : '-'}</div>
-            <div><strong>Cổng ra:</strong> {detailData.exitGate || '-'}</div>
-            <div><strong>Phí dự kiến:</strong> <span style={{ color: '#ea580c', fontWeight: 600 }}>{detailData.estimatedFee != null ? detailData.estimatedFee.toLocaleString('vi-VN') + ' đ' : '-'}</span></div>
-            <div><strong>Phí thực tế:</strong> <span style={{ color: '#16a34a', fontWeight: 700 }}>{detailData.finalFee != null ? detailData.finalFee.toLocaleString('vi-VN') + ' đ' : '-'}</span></div>
+      {/* RESERVATION CHECK-IN MODAL */}
+      <Modal
+        title="Reservation Check-in"
+        open={isResCheckInVisible}
+        onCancel={() => { setIsResCheckInVisible(false); resCheckInForm.resetFields(); }}
+        footer={null}
+      >
+        <Form form={resCheckInForm} layout="vertical" onFinish={handleResCheckInSubmit} size="large">
+          <Form.Item name="reservationId" label="Reservation ID" rules={[{ required: true, message: 'Please enter reservation ID' }]}>
+            <Input type="number" placeholder="e.g. 12345" />
+          </Form.Item>
+          <Form.Item name="entryGate" label="Entry Gate" initialValue="Gate A">
+            <Select>
+              <Option value="Gate A">Gate A</Option>
+              <Option value="Gate B">Gate B</Option>
+            </Select>
+          </Form.Item>
+          <Button type="primary" htmlType="submit" block style={{ height: '50px', fontSize: '16px', fontWeight: 'bold' }}>
+            Confirm Check-in
+          </Button>
+        </Form>
+      </Modal>
+
+      {/* SUMMARY MODAL */}
+      <Modal
+        title="Session Summary"
+        open={isSummaryVisible}
+        onCancel={() => setIsSummaryVisible(false)}
+        footer={null}
+        width={600}
+      >
+        {summaryData && (
+          <div>
+            <Divider style={{ margin: '12px 0' }} />
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Text type="secondary">Session ID</Text>
+                <div style={{ fontWeight: 'bold', fontSize: 16 }}>#{summaryData.sessionId || '-'}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary">Status</Text>
+                <div>
+                   {(() => {
+                      let sColor = 'default';
+                      let sText = summaryData.status;
+                      if (sText === 'ACTIVE' || sText === 'PARKING') { sColor = 'error'; sText = 'Parking'; }
+                      else if (sText === 'COMPLETED') { sColor = 'success'; sText = 'Completed'; }
+                      else if (sText === 'UNPAID') { sColor = 'warning'; sText = 'Unpaid'; }
+                      else if (sText === 'LOST_TICKET') { sColor = 'purple'; sText = 'Lost Ticket'; }
+                      return <Tag color={sColor} style={{ borderRadius: 12 }}>{sText}</Tag>;
+                   })()}
+                </div>
+              </Col>
+              
+              <Col span={12}>
+                <Text type="secondary">License Plate</Text>
+                <div style={{ fontWeight: 'bold', fontSize: 16 }}>{summaryData.plate || '-'}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary">Vehicle Type</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.type || '-'}</div>
+              </Col>
+              
+              <Col span={12}>
+                <Text type="secondary">Entry Time</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.time || '-'}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary">Entry Gate</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.gate || '-'}</div>
+              </Col>
+              
+              <Col span={12}>
+                <Text type="secondary">Exit Time</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.exitTime || '-'}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary">Exit Gate</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.exitGate || '-'}</div>
+              </Col>
+
+              <Col span={12}>
+                <Text type="secondary">Parking Slot</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.slot || '-'}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary">Staff (In/Out)</Text>
+                <div style={{ fontSize: 16 }}>{summaryData.createdBy} / -</div>
+              </Col>
+              
+              <Col span={24} style={{ textAlign: 'center', marginTop: 16 }}>
+                <Text type="secondary" style={{ fontSize: 16 }}>
+                  {summaryData.status === 'PARKING' ? 'Estimated Fee' : 'Final Fee'}
+                </Text>
+                <div style={{ fontSize: 32, fontWeight: 'bold', color: '#ef4444' }}>
+                  {summaryData.finalFee.toLocaleString()} ₫
+                </div>
+              </Col>
+            </Row>
+
+            <Divider style={{ margin: '16px 0', borderBlockColor: 'transparent' }} />
+            <Row gutter={16}>
+              <Col span={12}>
+                <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: '8px', fontWeight: 600 }}>Entry Image</Text>
+                <div style={{ textAlign: 'center' }}>
+                  {summaryData.entryImage ? (
+                    <img src={summaryData.entryImage.startsWith('http') ? summaryData.entryImage : `http://localhost:8080${summaryData.entryImage}`} alt="Entry" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
+                  ) : (
+                    <div style={{ width: '100%', aspectRatio: '1/1', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                      <Text type="secondary" italic>No image available</Text>
+                    </div>
+                  )}
+                </div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: '8px', fontWeight: 600 }}>Exit Image</Text>
+                <div style={{ textAlign: 'center' }}>
+                  {summaryData.exitImage ? (
+                    <img src={summaryData.exitImage.startsWith('http') ? summaryData.exitImage : `http://localhost:8080${summaryData.exitImage}`} alt="Exit" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
+                  ) : (
+                    <div style={{ width: '100%', aspectRatio: '1/1', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                      <Text type="secondary" italic>No image available</Text>
+                    </div>
+                  )}
+                </div>
+              </Col>
+            </Row>
           </div>
         )}
       </Modal>
+
+      {/* CHECK-OUT MODAL */}
+      <Modal
+        title="Check-out & Payment"
+        open={isCheckOutVisible}
+        onCancel={() => { 
+          setIsCheckOutVisible(false); 
+          setCheckOutStep(1); 
+          checkOutSearchForm.resetFields(); 
+          checkOutConfirmForm.resetFields(); 
+        }}
+        footer={null}
+        width={700}
+      >
+        {checkOutStep === 1 && (
+          <Form form={checkOutSearchForm} layout="vertical" onFinish={handleCheckOutSearch} size="large">
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="exitImage" label="Exit Image" rules={[{ required: true, message: 'Upload image' }]}>
+                  <Upload beforeUpload={() => false} maxCount={1} listType="picture">
+                    <Button icon={<UploadOutlined />} block>Upload Image</Button>
+                  </Upload>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="licensePlate" label="License Plate" rules={[{ required: true, message: 'Enter plate' }]}>
+                  <Input placeholder="e.g. 29A-12345" style={{ textTransform: 'uppercase' }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Button type="primary" htmlType="submit" block style={{ height: '50px', fontSize: '16px', fontWeight: 'bold' }}>
+              Search Vehicle
+            </Button>
+          </Form>
+        )}
+
+        {checkOutStep === 2 && checkoutSessionData && (
+          <Form form={checkOutConfirmForm} layout="vertical" onFinish={handleCheckOutConfirm} size="large">
+            <Row gutter={16} style={{ marginBottom: '20px' }}>
+              <Col span={12} style={{ textAlign: 'center' }}>
+                <p><strong>Entry Image</strong></p>
+                <div style={{ height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                  <Text type="secondary">No Image</Text>
+                </div>
+              </Col>
+              <Col span={12} style={{ textAlign: 'center' }}>
+                <p><strong>Exit Image</strong></p>
+                {checkoutSessionData.exitImageUrl ? (
+                   <img src={checkoutSessionData.exitImageUrl} alt="Exit" style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px' }} />
+                ) : (
+                   <div style={{ height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                    <Text type="secondary">No Image</Text>
+                  </div>
+                )}
+              </Col>
+            </Row>
+
+            <Card style={{ backgroundColor: '#f8fafc', marginBottom: '20px' }} bodyStyle={{ padding: '16px' }}>
+              <Row>
+                <Col span={12}>
+                  <p><strong>Plate:</strong> <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>{checkoutSessionData.licensePlate}</Text></p>
+                  <p><strong>Entry:</strong> {dayjs(checkoutSessionData.checkInTime).format('DD/MM/YYYY HH:mm:ss')}</p>
+                </Col>
+                <Col span={12}>
+                  <p><strong>Exit:</strong> {dayjs(checkoutSessionData.exitTime).format('DD/MM/YYYY HH:mm:ss')}</p>
+                  <div style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold', marginTop: '10px' }}>
+                    Fee: {checkoutSessionData.totalFee.toLocaleString()} ₫
+                  </div>
+                </Col>
+              </Row>
+            </Card>
+
+            <Form.Item name="paymentMethod" label="Payment Method" initialValue="CASH" rules={[{ required: true }]}>
+              <Select>
+                <Option value="CASH">Cash</Option>
+                <Option value="BANK_TRANSFER">Bank Transfer</Option>
+                <Option value="E_WALLET">E-Wallet</Option>
+              </Select>
+            </Form.Item>
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <Button block onClick={() => setCheckOutStep(1)} style={{ height: '50px' }}>Cancel</Button>
+              <Button type="primary" htmlType="submit" block style={{ height: '50px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#10b981', borderColor: '#10b981' }}>
+                Confirm Payment
+              </Button>
+            </div>
+          </Form>
+        )}
+
+        {checkOutStep === 3 && checkoutSessionData && (
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <Spin size="large" />
+            <Title level={4} style={{ marginTop: 24, color: '#1677ff' }}>Waiting for VNPay payment...</Title>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
+              Please complete the payment in the VNPay tab. The system will automatically close this popup upon successful payment.
+            </Text>
+            
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+              <Button onClick={() => {
+                 setIsCheckOutVisible(false);
+                 setCheckOutStep(1);
+                 checkOutSearchForm.resetFields();
+                 checkOutConfirmForm.resetFields();
+                 fetchSessions();
+              }}>Close (Cancel Payment)</Button>
+              <Button type="primary" danger onClick={async () => {
+                try {
+                  await paymentApi.confirmCash(checkoutSessionData.paymentId);
+                  message.success('Switched to cash payment. Check-out successful!');
+                  setIsCheckOutVisible(false);
+                  setCheckOutStep(1);
+                  checkOutSearchForm.resetFields();
+                  checkOutConfirmForm.resetFields();
+                  fetchSessions();
+                } catch(e) {
+                  message.error('Failed to switch to cash');
+                }
+              }}>
+                Switch to Cash (CASH)
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {checkOutStep === 4 && (
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <CheckCircleFilled style={{ fontSize: 72, color: '#52c41a' }} />
+            <Title level={3} style={{ marginTop: 24, color: '#52c41a' }}>Payment Successful!</Title>
+            <Text type="secondary">The gate is open. Please proceed to exit...</Text>
+          </div>
+        )}
+      </Modal>
+
     </div>
   );
 };

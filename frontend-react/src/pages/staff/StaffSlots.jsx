@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Input, Select, Space, Tag, Typography, message, Spin, Row, Col } from 'antd';
+import { Card, Input, Select, Space, Tag, Typography, message, Spin, Row, Col, Modal, Descriptions } from 'antd';
 import { SearchOutlined, CarOutlined } from '@ant-design/icons';
 import { slotApi } from '../../services/api';
 
@@ -15,6 +15,14 @@ const StaffSlots = () => {
     status: null,
     vehicleType: null
   });
+
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  const handleSlotClick = (slot) => {
+    setSelectedSlot(slot);
+    setIsModalVisible(true);
+  };
 
   useEffect(() => {
     fetchSlots();
@@ -46,7 +54,7 @@ const StaffSlots = () => {
   });
 
   // Extract unique vehicle types for the filter dropdown
-  const uniqueVehicleTypes = [...new Set(slots.map(s => s.vehicleTypeName).filter(Boolean))];
+  const uniqueVehicleTypes = Array.from(new Set(['Motorbike', 'Car', 'Small Truck', 'Bicycle', 'Large Truck', ...slots.map(s => s.vehicleTypeName).filter(Boolean)]));
 
   // Group slots by Building -> Floor -> Zone
   const groupedData = {};
@@ -63,10 +71,10 @@ const StaffSlots = () => {
   });
 
   const getStatusColor = (status) => {
-    if (status === 'AVAILABLE') return { bg: '#f0fdf4', border: '#bbf7d0', text: '#16a34a', label: 'Trống' };
-    if (status === 'OCCUPIED') return { bg: '#fef2f2', border: '#fecaca', text: '#dc2626', label: 'Đang đỗ' };
-    if (status === 'RESERVED') return { bg: '#fffbeb', border: '#fde68a', text: '#d97706', label: 'Đã đặt' };
-    return { bg: '#f3f4f6', border: '#e5e7eb', text: '#4b5563', label: 'Khóa' }; // LOCKED or others
+    if (status === 'AVAILABLE') return { bg: '#f0fdf4', border: '#bbf7d0', text: '#16a34a', label: 'Available' };
+    if (status === 'OCCUPIED') return { bg: '#fef2f2', border: '#fecaca', text: '#dc2626', label: 'Occupied' };
+    if (status === 'RESERVED') return { bg: '#fffbeb', border: '#fde68a', text: '#d97706', label: 'Reserved' };
+    return { bg: '#f3f4f6', border: '#e5e7eb', text: '#4b5563', label: 'Locked' }; // LOCKED or others
   };
 
   const getVehicleIcon = (type) => {
@@ -78,7 +86,7 @@ const StaffSlots = () => {
     if (lowerType.includes('bus') || lowerType.includes('khách')) return '🚌';
     if (lowerType.includes('truck') || lowerType.includes('tải')) return '🚚';
     
-    return '🚗'; // Default to car (Ô tô)
+    return '🚗'; // Default to car
   };
 
   if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
@@ -175,6 +183,7 @@ const StaffSlots = () => {
                                   e.currentTarget.style.transform = 'translateY(0) scale(1)';
                                   e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
                                 }}
+                                onClick={() => handleSlotClick(s)}
                               >
                                 <div style={{ fontSize: '24px', transition: 'transform 0.3s ease' }} 
                                      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
@@ -184,7 +193,7 @@ const StaffSlots = () => {
                                 <div style={{ fontWeight: '900', fontSize: '16px', color: '#1f2937' }}>{s.slotCode}</div>
                                 <div style={{ fontSize: '12px', fontWeight: 'bold', color: colors.text }}>{colors.label}</div>
                                 <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px', background: '#fff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e5e7eb' }}>
-                                  {s.currentOccupancy || 0}/{s.capacity || 1} xe
+                                  {s.currentOccupancy || 0}/{s.capacity || 1}
                                 </div>
                               </div>
                           );
@@ -198,6 +207,35 @@ const StaffSlots = () => {
           </Card>
         ))
       )}
+      
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px' }}>
+            <CarOutlined style={{ color: '#1677ff' }} />
+            <span>Slot Details: {selectedSlot?.slotCode}</span>
+          </div>
+        }
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        footer={null}
+        width={500}
+      >
+        {selectedSlot && (
+          <Descriptions bordered column={1} size="middle" labelStyle={{ fontWeight: 'bold', width: '150px' }}>
+            <Descriptions.Item label="Building">{selectedSlot.buildingName}</Descriptions.Item>
+            <Descriptions.Item label="Floor">{selectedSlot.floorName}</Descriptions.Item>
+            <Descriptions.Item label="Zone (Area)">{selectedSlot.zoneName}</Descriptions.Item>
+            <Descriptions.Item label="Vehicle Type">{selectedSlot.vehicleTypeName}</Descriptions.Item>
+            <Descriptions.Item label="Status">
+              <Tag color={selectedSlot.status === 'AVAILABLE' ? 'success' : selectedSlot.status === 'OCCUPIED' ? 'error' : 'warning'}>
+                {selectedSlot.status}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="Current Occupancy">{selectedSlot.currentOccupancy || 0}</Descriptions.Item>
+            <Descriptions.Item label="Total Capacity">{selectedSlot.capacity || 1}</Descriptions.Item>
+          </Descriptions>
+        )}
+      </Modal>
     </div>
   );
 };

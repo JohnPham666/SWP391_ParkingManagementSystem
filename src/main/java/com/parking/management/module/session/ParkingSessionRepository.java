@@ -25,9 +25,17 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
             String status
     );
 
+    Optional<ParkingSession> findFirstByVehicle_LicensePlateIgnoreCaseAndStatusInOrderBySessionIdDesc(
+            String licensePlate,
+            java.util.List<String> statuses
+    );
+
     /*
      * Lấy danh sách tất cả các session đang hoạt động của một user.
      * Dùng để tránh N+1 API calls ở Frontend.
      */
     java.util.List<ParkingSession> findByVehicle_User_UserIdAndStatus(Integer userId, String status);
+
+    @org.springframework.data.jpa.repository.Query("SELECT s FROM ParkingSession s WHERE :buildingId IS NULL OR s.slot.zone.floor.building.buildingId = :buildingId ORDER BY s.sessionId DESC")
+    java.util.List<ParkingSession> findAllWithBuildingFilter(@org.springframework.data.repository.query.Param("buildingId") Integer buildingId);
 }

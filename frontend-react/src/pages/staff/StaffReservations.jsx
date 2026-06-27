@@ -34,7 +34,7 @@ const StaffReservations = () => {
         // Filter by selected date
         if (selectedDate) {
           const dateStr = selectedDate.format('YYYY-MM-DD');
-          data = data.filter(r => r.startTime && dayjs(r.startTime).format('YYYY-MM-DD') === dateStr);
+          data = data.filter(r => r.reservationStart && dayjs(r.reservationStart).format('YYYY-MM-DD') === dateStr);
         }
 
         data.sort((a, b) => b.reservationId - a.reservationId);
@@ -52,9 +52,8 @@ const StaffReservations = () => {
 
   const filteredReservations = reservations.filter(r => {
     const searchMatch = !filters.search || 
-      r.userName?.toLowerCase().includes(filters.search.toLowerCase()) ||
+      r.userFullName?.toLowerCase().includes(filters.search.toLowerCase()) ||
       r.licensePlate?.toLowerCase().includes(filters.search.toLowerCase()) ||
-      r.userPhone?.includes(filters.search) ||
       r.reservationId?.toString().includes(filters.search);
     const statusMatch = !filters.status || r.status === filters.status;
     return searchMatch && statusMatch;
@@ -72,8 +71,7 @@ const StaffReservations = () => {
       key: 'customer',
       render: (_, record) => (
         <div>
-          <div>{record.userName || 'Guest'}</div>
-          <div style={{ fontSize: '12px', color: '#666' }}>{record.userPhone || 'No Phone'}</div>
+          <div>{record.userFullName || 'Guest'}</div>
         </div>
       )
     },
@@ -90,9 +88,9 @@ const StaffReservations = () => {
       render: (text) => text || 'Bất kỳ'
     },
     {
-      title: 'Dự kiến đến',
-      dataIndex: 'startTime',
-      key: 'startTime',
+      title: 'Expected Arrival',
+      dataIndex: 'reservationStart',
+      key: 'reservationStart',
       render: (date) => date ? dayjs(date).format('DD/MM/YYYY HH:mm') : '-'
     },
     {

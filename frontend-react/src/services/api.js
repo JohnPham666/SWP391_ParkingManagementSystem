@@ -76,6 +76,7 @@ export const vehicleApi = {
   createVehicle: (data) => api.post('/vehicles', data),
   updateVehicle: (id, data) => api.put(`/vehicles/${id}`, data),
   deleteVehicle: (id) => api.delete(`/vehicles/${id}`),
+  approveVehicle: (id, isApproved) => api.put(`/vehicles/${id}/approve?isApproved=${isApproved}`),
 };
 
 export const reservationApi = {
@@ -145,9 +146,16 @@ export const pricingApi = {
   createPricingRule: (data) => api.post('/pricings', data),
   updatePricingRule: (id, data) => api.put(`/pricings/${id}`, data),
   deletePricingRule: (id) => api.delete(`/pricings/${id}`),
+  calculateFee: (data) => api.post('/pricings/calculate-fee', data),
 };
 
 export const reportApi = {
+  getRevenueReport: (fromDate, toDate) => api.get('/reports/revenue', { params: { fromDate, toDate } }),
+  getOccupancyReport: (floorId) => api.get('/reports/occupancy', { params: { floorId } }),
+  getRevenueTrend: (fromDate, toDate) => api.get('/reports/revenue/trend', { params: { fromDate, toDate } }),
+  getOccupancyBreakdown: () => api.get('/reports/occupancy/breakdown'),
+  getFloorOccupancyBreakdown: () => api.get('/reports/occupancy/floor-breakdown'),
+  getParkingPrediction: () => api.get('/reports/predictions/parking'),
   getRevenueSummary: (startDate, endDate) => api.get(`/reports/revenue-summary?startDate=${startDate}&endDate=${endDate}`),
   getOccupancyRate: () => api.get('/reports/occupancy-rate'),
   getPredictions: () => api.get('/reports/predictions'),
@@ -162,7 +170,7 @@ export const monitoringApi = {
 
 export const slotApi = {
   getSlots: () => api.get('/slots'),
-  updateSlotStatus: (id, status) => api.patch(`/slots/${id}/status?status=${status}`),
+  updateSlotStatus: (id, status) => api.patch(`/slots/${id}/status`, { status }),
 };
 
 export default api;
