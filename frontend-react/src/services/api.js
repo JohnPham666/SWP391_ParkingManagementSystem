@@ -102,6 +102,13 @@ export const incidentApi = {
   updateIncident: (id, data) => api.put(`/incidents/${id}`, data),
   updateIncidentStatus: (id, status) => api.patch(`/incidents/${id}/status?status=${status}`),
   deleteIncident: (id) => api.delete(`/incidents/${id}`),
+  uploadIncidentImage: (incidentId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/incidents/${incidentId}/image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
 };
 
 export const subscriptionApi = {

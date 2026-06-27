@@ -1,5 +1,17 @@
 package com.parking.management.module.incident;
 
+<<<<<<< Updated upstream
+=======
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.multipart.MultipartFile;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
+
+import com.parking.management.common.EmailService;
+>>>>>>> Stashed changes
 import com.parking.management.module.session.ParkingSession;
 import com.parking.management.module.session.ParkingSessionRepository;
 import com.parking.management.module.user.User;
@@ -20,6 +32,9 @@ public class IncidentService {
     private final IncidentReportRepository incidentReportRepository;
     private final ParkingSessionRepository parkingSessionRepository;
     private final UserRepository userRepository;
+
+    @Value("${file.upload-dir.incidents:uploads/incidents}")
+    private String uploadDir;
 
     public IncidentResponse create(IncidentRequest request) {
         User reportedBy = getCurrentAuthenticatedUser();
@@ -120,5 +135,38 @@ public class IncidentService {
 
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Reporter user not found"));
+    }
+
+    public IncidentResponse uploadIncidentImage(Integer incidentId, MultipartFile file) {
+        IncidentReport incident = incidentReportRepository.findById(incidentId)
+                .orElseThrow(() -> new RuntimeException("Incident report not found with id: " + incidentId));
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Image file is required");
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+
+        String fileName = "incident_" + incidentId + "_" + UUID.randomUUID() + extension;
+
+        try {
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+            Path filePath = uploadPath.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            String imageUrl = "/uploads/incidents/" + fileName;
+            incident.setIncidentImage(imageUrl);
+
+            return IncidentResponse.fromEntity(incidentReportRepository.save(incident));
+        } catch (Exception e) {
+            throw new RuntimeException("Could not upload image: " + e.getMessage());
+        }
     }
 }

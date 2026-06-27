@@ -54,4 +54,13 @@ public class IncidentController {
     public ApiResponse<IncidentResponse> updateStatus(@PathVariable Integer id, @RequestParam String status) {
         return ApiResponse.success("Status updated successfully", incidentService.updateStatus(id, status));
     }
+
+    @Operation(summary = "Upload incident image")
+    @PostMapping("/{id}/image")
+    public ApiResponse<IncidentResponse> uploadIncidentImage(
+            @PathVariable Integer id,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file
+    ) {
+        return ApiResponse.success("Image uploaded successfully", incidentService.uploadIncidentImage(id, file));
+    }
 }

@@ -13,5 +13,7 @@ public class UploadWebConfig implements WebMvcConfigurer {
                 .addResourceLocations("file:uploads/vehicles/");
         registry.addResourceHandler("/uploads/sessions/**")
                 .addResourceLocations("file:uploads/sessions/");
+        registry.addResourceHandler("/uploads/incidents/**")
+                .addResourceLocations("file:uploads/incidents/");
     }
 }

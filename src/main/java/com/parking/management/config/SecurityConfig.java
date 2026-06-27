@@ -74,6 +74,9 @@ public class SecurityConfig {
                         .hasAnyRole("Admin", "ParkingManager")
 
                         .anyRequest().authenticated())
+                .exceptionHandling(exc -> exc
+                        .authenticationEntryPoint((request, response, authException) -> 
+                                response.sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED, authException.getMessage())))
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

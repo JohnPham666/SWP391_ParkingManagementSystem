@@ -1,4 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
+<<<<<<< Updated upstream
 import { Layout, Menu, Avatar, Dropdown, Space, Typography, Badge } from 'antd';
 import { 
   MenuFoldOutlined, 
@@ -6,6 +7,15 @@ import {
   UserOutlined, 
   DashboardOutlined, 
   CarOutlined, 
+=======
+import { Layout, Menu, Avatar, Dropdown, Space, Typography, Badge, Popover, List, Button } from 'antd';
+import {
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  UserOutlined,
+  DashboardOutlined,
+  CarOutlined,
+>>>>>>> Stashed changes
   LogoutOutlined,
   TeamOutlined,
   BellOutlined,
@@ -32,6 +42,12 @@ const MainLayout = () => {
   const location = useLocation();
   const { isDarkMode, toggleTheme } = useContext(ThemeContext);
 
+  const [newIncidentCount, setNewIncidentCount] = useState(0);
+  const [newIncidentsList, setNewIncidentsList] = useState([]);
+  const [lastCheckedTime, setLastCheckedTime] = useState(() => {
+    return parseInt(localStorage.getItem('lastCheckedIncidentTime') || '0', 10);
+  });
+
   useEffect(() => {
     const auth = localStorage.getItem('parking_auth');
     if (auth) {
@@ -39,6 +55,30 @@ const MainLayout = () => {
       const user = parsed.user || parsed;
       setUserRole(user.role || 'Staff');
       setUserName(user.fullName || 'User');
+      
+      // Fetch open incidents for manager notification bell
+      if (user.role === 'ParkingManager') {
+        const fetchNewIncidents = async () => {
+          try {
+            const { incidentApi } = await import('../../services/api');
+            const res = await incidentApi.getIncidents();
+            let data = res.data?.success ? res.data.data : res.data;
+            if (Array.isArray(data)) {
+              const openIncidents = data.filter(i => i.status === 'OPEN');
+              openIncidents.sort((a, b) => new Date(b.createdAt || b.reportTime || 0) - new Date(a.createdAt || a.reportTime || 0));
+              
+              const newItems = openIncidents.filter(i => new Date(i.createdAt || i.reportTime || 0).getTime() > lastCheckedTime);
+              setNewIncidentCount(newItems.length);
+              setNewIncidentsList(openIncidents.slice(0, 5));
+            }
+          } catch (error) {
+            // ignore silently for layout
+          }
+        };
+        fetchNewIncidents();
+        const interval = setInterval(fetchNewIncidents, 10000);
+        return () => clearInterval(interval);
+      }
     }
   }, []);
 
@@ -84,6 +124,42 @@ const MainLayout = () => {
   // Lọc menu theo role hiện tại
   const menuItems = allMenuItems.filter(item => 
     item.roles.includes(userRole)
+  );
+
+  const handlePopoverChange = (visible) => {
+    if (visible && newIncidentCount > 0) {
+      const now = Date.now();
+      setLastCheckedTime(now);
+      localStorage.setItem('lastCheckedIncidentTime', now.toString());
+      setNewIncidentCount(0);
+    }
+  };
+
+  const notificationContent = (
+    <div style={{ width: 320 }}>
+      <List
+        size="small"
+        dataSource={newIncidentsList}
+        renderItem={item => (
+          <List.Item 
+            style={{ cursor: 'pointer', transition: 'background 0.3s' }}
+            onClick={() => navigate('/manager/incidents')}
+            className="notification-item"
+          >
+            <List.Item.Meta
+              title={<span style={{ fontWeight: 600 }}>#{item.incidentId} - {item.incidentType}</span>}
+              description={item.description?.length > 45 ? item.description.substring(0, 45) + '...' : item.description}
+            />
+          </List.Item>
+        )}
+        locale={{ emptyText: 'No open incidents' }}
+      />
+      <div style={{ textAlign: 'center', marginTop: 12, borderTop: '1px solid #f0f0f0', paddingTop: 8 }}>
+        <Button type="link" onClick={() => navigate('/manager/incidents')} style={{ fontWeight: 'bold' }}>
+          View all incidents
+        </Button>
+      </div>
+    </div>
   );
 
   return (
@@ -139,9 +215,25 @@ const MainLayout = () => {
             <div onClick={toggleTheme} style={{ cursor: 'pointer', fontSize: 20, color: isDarkMode ? '#fff' : '#666', display: 'flex', alignItems: 'center' }}>
               {isDarkMode ? <BulbFilled style={{ color: '#faad14' }} /> : <BulbOutlined />}
             </div>
+<<<<<<< Updated upstream
             <Badge count={5} size="small">
               <BellOutlined style={{ fontSize: 20, cursor: 'pointer', color: isDarkMode ? '#fff' : '#666' }} />
             </Badge>
+=======
+            {userRole === 'ParkingManager' && (
+              <Popover
+                content={notificationContent}
+                title="Recent Open Incidents"
+                trigger="click"
+                placement="bottomRight"
+                onOpenChange={handlePopoverChange}
+              >
+                <Badge count={newIncidentCount} size="small" offset={[-2, 2]}>
+                  <BellOutlined style={{ fontSize: 20, cursor: 'pointer', color: '#fff', padding: '4px' }} />
+                </Badge>
+              </Popover>
+            )}
+>>>>>>> Stashed changes
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
               <Space style={{ cursor: 'pointer', alignItems: 'center' }}>
                 <Avatar style={{ backgroundColor: '#ea580c' }} icon={<UserOutlined />} />
