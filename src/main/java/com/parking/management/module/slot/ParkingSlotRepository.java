@@ -46,6 +46,12 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
 
     long countByStatusAndIsActiveTrue(SlotStatus status);
 
+    @Query("SELECT COUNT(s) FROM ParkingSlot s WHERE (:buildingId IS NULL OR s.zone.floor.building.buildingId = :buildingId)")
+    long countSlotsWithBuildingFilter(@Param("buildingId") Integer buildingId);
+
+    @Query("SELECT COUNT(s) FROM ParkingSlot s WHERE s.status = :status AND (:buildingId IS NULL OR s.zone.floor.building.buildingId = :buildingId)")
+    long countSlotsByStatusWithBuildingFilter(@Param("status") SlotStatus status, @Param("buildingId") Integer buildingId);
+
     long countByZone_Floor_FloorIdAndIsActiveTrue(Integer floorId);
 
     long countByZone_Floor_FloorIdAndStatusAndIsActiveTrue(Integer floorId, SlotStatus status);
@@ -96,10 +102,11 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
            JOIN s.zone z
            WHERE s.status IN (com.parking.management.module.slot.SlotStatus.OCCUPIED, com.parking.management.module.slot.SlotStatus.RESERVED)
              AND s.isActive = true
+             AND (:buildingId IS NULL OR z.floor.building.buildingId = :buildingId)
            GROUP BY z.zoneName
            ORDER BY z.zoneName
            """)
-    List<com.parking.management.module.report.dto.ZoneOccupancyDto> getOccupancyBreakdown();
+    List<com.parking.management.module.report.dto.ZoneOccupancyDto> getOccupancyBreakdown(@Param("buildingId") Integer buildingId);
     @Query("""
            SELECT new com.parking.management.module.report.dto.ZoneOccupancyDto(
                f.floorName, 
@@ -110,8 +117,9 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
            JOIN z.floor f
            WHERE s.status IN (com.parking.management.module.slot.SlotStatus.OCCUPIED, com.parking.management.module.slot.SlotStatus.RESERVED)
              AND s.isActive = true
+             AND (:buildingId IS NULL OR f.building.buildingId = :buildingId)
            GROUP BY f.floorName
            ORDER BY f.floorName
            """)
-    List<com.parking.management.module.report.dto.ZoneOccupancyDto> getFloorOccupancyBreakdown();
+    List<com.parking.management.module.report.dto.ZoneOccupancyDto> getFloorOccupancyBreakdown(@Param("buildingId") Integer buildingId);
 }

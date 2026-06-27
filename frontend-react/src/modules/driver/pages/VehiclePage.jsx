@@ -248,9 +248,9 @@ const VehiclePage = () => {
                                                     vehicle.status === 'PENDING' ? 'orange' : 
                                                     vehicle.status === 'REJECTED' ? 'red' : 'default'
                                                 } style={{ borderRadius: '10px' }}>
-                                                    {vehicle.status === 'PENDING' ? 'Đang chờ xét duyệt' :
-                                                     vehicle.status === 'APPROVED' ? 'Đã duyệt' :
-                                                     vehicle.status === 'REJECTED' ? 'Bị từ chối' : vehicle.status || 'UNKNOWN'}
+                                                   <Text strong>{vehicle.status === 'PENDING' ? 'Pending' :
+                            vehicle.status === 'APPROVED' ? 'Approved' :
+                            vehicle.status === 'REJECTED' ? 'Rejected' : vehicle.status || 'UNKNOWN'}</Text>
                                                 </Tag>
                                             </div>
                                             
@@ -368,9 +368,9 @@ const VehiclePage = () => {
                                                     viewingVehicle.status === 'PENDING' ? 'orange' : 
                                                     viewingVehicle.status === 'REJECTED' ? 'red' : 'default'
                                                 }>
-                                                    {viewingVehicle.status === 'PENDING' ? 'Đang chờ xét duyệt' :
-                                                     viewingVehicle.status === 'APPROVED' ? 'Đã duyệt' :
-                                                     viewingVehicle.status === 'REJECTED' ? 'Bị từ chối' : viewingVehicle.status || 'UNKNOWN'}
+                                                   <Text strong>{viewingVehicle.status === 'PENDING' ? 'Pending' :
+                                        viewingVehicle.status === 'APPROVED' ? 'Approved' :
+                                        viewingVehicle.status === 'REJECTED' ? 'Rejected' : viewingVehicle.status || 'UNKNOWN'}</Text>
                                                 </Tag>
                             </Descriptions.Item>
                         </Descriptions>

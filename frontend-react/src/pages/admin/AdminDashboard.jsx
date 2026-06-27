@@ -10,7 +10,7 @@ import {
   DollarCircleOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { buildingApi, userApi, incidentApi } from '../../services/api';
+import { buildingApi, userApi, incidentApi, sessionApi } from '../../services/api';
 
 const { Title, Text } = Typography;
 
@@ -21,8 +21,8 @@ const AdminDashboard = () => {
     buildingsCount: 0,
     usersCount: 0,
     pendingIncidentsCount: 0,
-    activeSessions: 42, // Mock for Security
-    failedLogins: 3    // Mock for Security
+    activeSessions: 0, 
+    failedLogins: 0    
   });
 
   const mockLogs = [
@@ -52,22 +52,27 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchAdminStats = async () => {
       try {
-        const [buildingsRes, usersRes, incidentsRes] = await Promise.all([
+        const [buildingsRes, usersRes, incidentsRes, sessionRes] = await Promise.all([
           buildingApi.getBuildings().catch(() => ({ data: { data: [] } })),
           userApi.getUsers().catch(() => ({ data: { data: [] } })),
-          incidentApi.getIncidents().catch(() => ({ data: { data: [] } }))
+          incidentApi.getIncidents().catch(() => ({ data: { data: [] } })),
+          sessionApi.getSessions().catch(() => ({ data: { data: [] } }))
         ]);
 
         const buildings = buildingsRes.data?.data || [];
         const users = usersRes.data?.data || [];
         const incidents = incidentsRes.data?.data || [];
+        const sessions = sessionRes.data?.data || [];
+        
         const pendingIncidents = incidents.filter(i => i.status !== 'RESOLVED');
+        const activeSessionsList = sessions.filter(s => s.status === 'PARKING');
 
         setStats(prev => ({
           ...prev,
           buildingsCount: buildings.length,
           usersCount: users.length,
-          pendingIncidentsCount: pendingIncidents.length
+          pendingIncidentsCount: pendingIncidents.length,
+          activeSessions: activeSessionsList.length
         }));
       } catch (error) {
         console.error('Failed to fetch admin stats', error);

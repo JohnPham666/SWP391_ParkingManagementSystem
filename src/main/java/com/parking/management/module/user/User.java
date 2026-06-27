@@ -40,6 +40,10 @@ public class User {
     @JoinColumn(name = "RoleID", nullable = false)
     private Role role;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "BuildingID")
+    private com.parking.management.module.building.Building building;
+
     @Column(name = "IsActive")
     private Boolean isActive = true;
 

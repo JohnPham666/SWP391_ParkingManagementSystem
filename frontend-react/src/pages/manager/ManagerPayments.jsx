@@ -37,15 +37,7 @@ const ManagerPayments = () => {
     }
   };
 
-  const handleConfirmCash = async (id) => {
-    try {
-      await paymentApi.confirmCash(id);
-      message.success('Payment confirmed successfully');
-      fetchPayments();
-    } catch (error) {
-      message.error(error.response?.data?.message || 'Failed to confirm payment');
-    }
-  };
+
 
   const filteredPayments = payments.filter(p => {
     const searchMatch = !filters.search || 
@@ -114,25 +106,7 @@ const ManagerPayments = () => {
         return <Tag color={color}>{text}</Tag>;
       }
     },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_, record) => (
-        record.paymentStatus === 'PENDING' ? (
-          <Popconfirm
-            title="Confirm Cash Payment"
-            description="Are you sure you have received cash for this transaction?"
-            onConfirm={() => handleConfirmCash(record.paymentId)}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Button size="small" type="default" icon={<DollarOutlined />}>
-              Receive Cash
-            </Button>
-          </Popconfirm>
-        ) : null
-      )
-    },
+
   ];
 
   return (

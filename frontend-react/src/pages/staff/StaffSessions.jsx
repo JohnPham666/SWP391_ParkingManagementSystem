@@ -641,9 +641,9 @@ const StaffSessions = () => {
         {checkOutStep === 3 && checkoutSessionData && (
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <Spin size="large" />
-            <Title level={4} style={{ marginTop: 24, color: '#1677ff' }}>Đang chờ thanh toán VNPay...</Title>
+            <Title level={4} style={{ marginTop: 24, color: '#1677ff' }}>Waiting for VNPay payment...</Title>
             <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
-              Vui lòng hoàn tất thanh toán ở tab VNPay. Hệ thống sẽ tự động đóng popup khi thanh toán thành công.
+              Please complete the payment in the VNPay tab. The system will automatically close this popup upon successful payment.
             </Text>
             
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
@@ -653,21 +653,21 @@ const StaffSessions = () => {
                  checkOutSearchForm.resetFields();
                  checkOutConfirmForm.resetFields();
                  fetchSessions();
-              }}>Đóng (Hủy thanh toán)</Button>
+              }}>Close (Cancel Payment)</Button>
               <Button type="primary" danger onClick={async () => {
                 try {
                   await paymentApi.confirmCash(checkoutSessionData.paymentId);
-                  message.success('Đã chuyển sang tiền mặt. Check-out thành công!');
+                  message.success('Switched to cash payment. Check-out successful!');
                   setIsCheckOutVisible(false);
                   setCheckOutStep(1);
                   checkOutSearchForm.resetFields();
                   checkOutConfirmForm.resetFields();
                   fetchSessions();
                 } catch(e) {
-                  message.error('Lỗi khi chuyển sang tiền mặt');
+                  message.error('Failed to switch to cash');
                 }
               }}>
-                Chuyển sang Tiền Mặt (CASH)
+                Switch to Cash (CASH)
               </Button>
             </div>
           </div>
@@ -676,8 +676,8 @@ const StaffSessions = () => {
         {checkOutStep === 4 && (
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <CheckCircleFilled style={{ fontSize: 72, color: '#52c41a' }} />
-            <Title level={3} style={{ marginTop: 24, color: '#52c41a' }}>Thanh Toán Thành Công!</Title>
-            <Text type="secondary">Cửa tự động mở. Vui lòng cho xe di chuyển ra ngoài...</Text>
+            <Title level={3} style={{ marginTop: 24, color: '#52c41a' }}>Payment Successful!</Title>
+            <Text type="secondary">The gate is open. Please proceed to exit...</Text>
           </div>
         )}
       </Modal>

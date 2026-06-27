@@ -108,9 +108,9 @@ const ManagerPricing = () => {
         <Form form={form} layout="vertical" onFinish={handleSave}>
           <Form.Item name="vehicleType" label="Vehicle Type" rules={[{ required: true }]}>
             <Select>
-              <Option value="CAR">Car (Ô tô)</Option>
-              <Option value="MOTORBIKE">Motorbike (Xe máy)</Option>
-              <Option value="BICYCLE">Bicycle (Xe đạp)</Option>
+              <Option value="CAR">Car</Option>
+              <Option value="MOTORBIKE">Motorbike</Option>
+              <Option value="BICYCLE">Bicycle</Option>
             </Select>
           </Form.Item>
           <Form.Item name="baseHourlyRate" label="Base Hourly Rate (VND)" rules={[{ required: true }]}>

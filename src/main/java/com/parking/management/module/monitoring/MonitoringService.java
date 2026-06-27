@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MonitoringService {
     private final ParkingSlotRepository parkingSlotRepository;
+    private final com.parking.management.security.SecurityUtils securityUtils;
 
     @Transactional(readOnly = true)
     public MonitoringDashboardResponse getParkingDashboard(
@@ -27,6 +28,11 @@ public class MonitoringService {
             Integer floorId,
             Integer zoneId,
             Integer vehicleTypeId) {
+        Integer userBuildingId = securityUtils.getBuildingId();
+        if (userBuildingId != null) {
+            buildingId = userBuildingId; // Force manager/staff to only see their building
+        }
+
         List<ParkingSlot> slots = parkingSlotRepository.findSlotsForMonitoring(buildingId, floorId, zoneId, vehicleTypeId);
 
         MonitoringDashboardResponse response = new MonitoringDashboardResponse();

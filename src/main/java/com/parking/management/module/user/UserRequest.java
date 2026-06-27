@@ -23,4 +23,6 @@ public class UserRequest {
     private LocalDate dateOfBirth;
 
     private String address;
+
+    private Integer buildingId;
 }

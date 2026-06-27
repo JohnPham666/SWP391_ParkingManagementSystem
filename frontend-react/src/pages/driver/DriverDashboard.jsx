@@ -2,12 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { Typography, Card, Row, Col, Statistic, Empty, Button } from 'antd';
 import { CarOutlined, HistoryOutlined, CalendarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import api, { sessionApi, reservationApi, paymentApi } from '../../services/api';
 
 const { Title, Text } = Typography;
 
 const DriverDashboard = () => {
   const [user, setUser] = useState(null);
+  const [stats, setStats] = useState({
+    activeSessions: 0,
+    upcomingReservations: 0,
+    totalPayments: 0
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,7 +23,41 @@ const DriverDashboard = () => {
     }
     try {
       const parsed = JSON.parse(auth);
-      setUser(parsed.user || parsed);
+      const currentUser = parsed.user || parsed;
+      setUser(currentUser);
+      
+      const fetchDriverStats = async () => {
+        try {
+          const [sessionRes, reservationRes, paymentRes] = await Promise.all([
+            sessionApi.getSessions().catch(() => ({ data: { data: [] } })),
+            reservationApi.getReservations().catch(() => ({ data: { data: [] } })),
+            paymentApi.getPayments().catch(() => ({ data: { data: [] } }))
+          ]);
+
+          const sessions = sessionRes.data?.data || [];
+          const reservations = reservationRes.data?.data || [];
+          const payments = paymentRes.data?.data || [];
+
+          // Note: In a real app we'd filter by user.userId, but assuming the API already filters by current user or we do it here
+          const userSessions = sessions.filter(s => s.user?.userId === currentUser.userId || s.userId === currentUser.userId || s.user === null);
+          const userReservations = reservations.filter(r => r.user?.userId === currentUser.userId || r.userId === currentUser.userId || r.user === null);
+          const userPayments = payments.filter(p => true); // Adjust if payments belong directly to user
+
+          const active = userSessions.filter(s => s.status === 'PARKING');
+          const upcoming = userReservations.filter(r => r.status === 'CONFIRMED' || r.status === 'PENDING');
+          const paid = userPayments.filter(p => p.paymentStatus === 'PAID');
+
+          setStats({
+            activeSessions: active.length,
+            upcomingReservations: upcoming.length,
+            totalPayments: paid.length
+          });
+        } catch (err) {
+          console.error(err);
+        }
+      };
+      
+      fetchDriverStats();
     } catch (e) {
       navigate('/login');
     }
@@ -38,7 +77,7 @@ const DriverDashboard = () => {
           <Card hoverable style={{ borderRadius: 12 }}>
             <Statistic 
               title={<span style={{ fontWeight: 600 }}>Active Sessions</span>}
-              value={0} 
+              value={stats.activeSessions} 
               prefix={<CarOutlined style={{ color: '#ea580c' }} />} 
             />
           </Card>
@@ -47,7 +86,7 @@ const DriverDashboard = () => {
           <Card hoverable style={{ borderRadius: 12 }}>
             <Statistic 
               title={<span style={{ fontWeight: 600 }}>Upcoming Reservations</span>}
-              value={0} 
+              value={stats.upcomingReservations} 
               prefix={<CalendarOutlined style={{ color: '#10b981' }} />} 
             />
           </Card>
@@ -56,7 +95,7 @@ const DriverDashboard = () => {
           <Card hoverable style={{ borderRadius: 12 }}>
             <Statistic 
               title={<span style={{ fontWeight: 600 }}>Total Payments</span>}
-              value={0} 
+              value={stats.totalPayments} 
               prefix={<HistoryOutlined style={{ color: '#3b82f6' }} />} 
             />
           </Card>

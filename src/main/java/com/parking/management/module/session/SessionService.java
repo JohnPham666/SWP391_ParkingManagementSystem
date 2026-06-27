@@ -405,7 +405,8 @@ public class SessionService {
     }
 
     public List<SessionResponse> getAll() {
-        return parkingSessionRepository.findAll()
+        Integer buildingId = securityUtils.getBuildingId();
+        return parkingSessionRepository.findAllWithBuildingFilter(buildingId)
                 .stream()
                 .map(this::mapEntityToResponse)
                 .toList();

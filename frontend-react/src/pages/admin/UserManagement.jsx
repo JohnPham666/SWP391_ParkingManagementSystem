@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Switch, Popconfirm, Drawer, Descriptions, Avatar } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UserOutlined, StopOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import { userApi, roleApi } from '../../services/api';
+import { userApi, roleApi, buildingApi } from '../../services/api';
 
 const { Option } = Select;
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [buildings, setBuildings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -25,8 +26,22 @@ const UserManagement = () => {
 
   useEffect(() => {
     fetchRoles();
+    fetchBuildings();
     fetchUsers();
   }, []);
+
+  const fetchBuildings = async () => {
+    try {
+      const res = await buildingApi.getBuildings();
+      if (res.data?.success) {
+        setBuildings(res.data.data);
+      } else {
+        setBuildings(res.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching buildings:', error);
+    }
+  };
 
   const fetchRoles = async () => {
     try {
@@ -76,6 +91,7 @@ const UserManagement = () => {
       email: user.email,
       phoneNumber: user.phoneNumber,
       roleId: user.roleId,
+      buildingId: user.buildingId,
       isActive: user.isActive,
     });
     setIsDrawerVisible(false);
@@ -177,6 +193,12 @@ const UserManagement = () => {
           {roleName || 'Driver'}
         </Tag>
       ),
+    },
+    {
+      title: 'Building',
+      dataIndex: 'buildingName',
+      key: 'buildingName',
+      render: (buildingName) => buildingName || '-',
     },
     {
       title: 'Status',
@@ -310,6 +332,9 @@ const UserManagement = () => {
               <Descriptions.Item label="Role">
                 <Tag color="blue">{selectedUser.roleName || 'Driver'}</Tag>
               </Descriptions.Item>
+              <Descriptions.Item label="Building">
+                {selectedUser.buildingName || 'N/A'}
+              </Descriptions.Item>
               <Descriptions.Item label="Joined Date">
                 {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'}
               </Descriptions.Item>
@@ -350,6 +375,14 @@ const UserManagement = () => {
             <Select placeholder="Select role">
               {roles.map(r => (
                 <Option key={r.roleId} value={r.roleId}>{r.roleName}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="buildingId" label="Managed Building (for Staff/Manager)">
+            <Select placeholder="Select building (optional)" allowClear>
+              {buildings.map(b => (
+                <Option key={b.buildingId} value={b.buildingId}>{b.buildingName}</Option>
               ))}
             </Select>
           </Form.Item>

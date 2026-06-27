@@ -15,4 +15,7 @@ public class UserResponse {
     private String roleName;
     private Boolean isActive;
     private LocalDateTime createdAt;
+    
+    private Integer buildingId;
+    private String buildingName;
 }
