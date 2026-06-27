@@ -136,11 +136,19 @@ const IncidentPage = () => {
             
             const response = await driverService.createIncident(payload);
             const createdIncident = response?.data || response;
+<<<<<<< Updated upstream
             
+=======
+
+>>>>>>> Stashed changes
             if (values.incidentImage?.fileList?.length > 0) {
                 const file = values.incidentImage.fileList[0].originFileObj;
                 await driverService.uploadIncidentImage(createdIncident.incidentId || createdIncident.id, file);
             }
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
             message.success('Incident reported successfully. Our team will review it shortly.');
             setIsModalVisible(false);
             form.resetFields();

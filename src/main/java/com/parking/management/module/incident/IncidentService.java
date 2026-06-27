@@ -150,6 +150,27 @@ public class IncidentService {
         return IncidentResponse.fromEntity(saved);
     }
 
+    public IncidentResponse uploadIncidentImage(Integer id, org.springframework.web.multipart.MultipartFile file) {
+        IncidentReport incident = incidentReportRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Incident not found"));
+        
+        try {
+            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            java.nio.file.Path uploadPath = java.nio.file.Paths.get("uploads/incidents").toAbsolutePath().normalize();
+            if (!java.nio.file.Files.exists(uploadPath)) {
+                java.nio.file.Files.createDirectories(uploadPath);
+            }
+            java.nio.file.Path filePath = uploadPath.resolve(fileName);
+            java.nio.file.Files.copy(file.getInputStream(), filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            
+            incident.setIncidentImage("/uploads/incidents/" + fileName);
+            IncidentReport saved = incidentReportRepository.save(incident);
+            return IncidentResponse.fromEntity(saved);
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Could not store image", e);
+        }
+    }
+
     private User getCurrentAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 

@@ -55,12 +55,20 @@ public class IncidentController {
         return ApiResponse.success("Status updated successfully", incidentService.updateStatus(id, status));
     }
 
+<<<<<<< Updated upstream
     @Operation(summary = "Upload incident image")
     @PostMapping("/{id}/image")
     public ApiResponse<IncidentResponse> uploadIncidentImage(
             @PathVariable Integer id,
             @RequestParam("file") org.springframework.web.multipart.MultipartFile file
     ) {
+=======
+    @Operation(summary = "Upload incident evidence image")
+    @PostMapping("/{id}/image")
+    public ApiResponse<IncidentResponse> uploadIncidentImage(
+            @PathVariable Integer id,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+>>>>>>> Stashed changes
         return ApiResponse.success("Image uploaded successfully", incidentService.uploadIncidentImage(id, file));
     }
 }
