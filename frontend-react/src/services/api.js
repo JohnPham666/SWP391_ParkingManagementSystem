@@ -104,7 +104,23 @@ export const incidentApi = {
   createIncident: (data) => api.post('/incidents', data),
   updateIncident: (id, data) => api.put(`/incidents/${id}`, data),
   updateIncidentStatus: (id, status) => api.patch(`/incidents/${id}/status?status=${status}`),
+  uploadIncidentImage: (id, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/incidents/${id}/image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
   deleteIncident: (id) => api.delete(`/incidents/${id}`),
+  uploadIncidentImage: (incidentId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/incidents/${incidentId}/image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
 };
 
 export const subscriptionApi = {

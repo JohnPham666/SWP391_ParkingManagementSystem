@@ -24,6 +24,7 @@ const StaffDashboard = () => {
 
   // --- Modal States ---
   const [isCheckInVisible, setIsCheckInVisible] = useState(false);
+  const [isResCheckInVisible, setIsResCheckInVisible] = useState(false);
   const [isCheckOutVisible, setIsCheckOutVisible] = useState(false);
   const [isSummaryVisible, setIsSummaryVisible] = useState(false);
   
@@ -37,6 +38,7 @@ const StaffDashboard = () => {
   const [searchFallback, setSearchFallback] = useState('');
 
   const [checkInForm] = Form.useForm();
+  const [resCheckInForm] = Form.useForm();
   const [checkOutSearchForm] = Form.useForm();
   const [checkOutConfirmForm] = Form.useForm();
 
@@ -200,6 +202,23 @@ const StaffDashboard = () => {
       fetchActiveCards();
     } catch (error) {
       message.error(error.response?.data?.message || 'Check-in failed');
+    }
+  };
+
+  // === Reservation Check-in ===
+  const handleResCheckInSubmit = async (values) => {
+    try {
+      const payload = {
+        reservationId: parseInt(values.reservationId, 10),
+        entryGate: values.entryGate,
+      };
+      await sessionApi.checkIn(payload);
+      message.success('Check-in theo đặt chỗ thành công!');
+      setIsResCheckInVisible(false);
+      resCheckInForm.resetFields();
+      fetchData();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Check-in thất bại');
     }
   };
 
@@ -427,7 +446,7 @@ const StaffDashboard = () => {
         <Col xs={24} lg={8}>
           <Card 
             hoverable 
-            onClick={() => navigate('/staff/reservations?date=today')}
+            onClick={() => navigate('/staff/reservations')}
             style={{ 
               boxShadow: '0 4px 12px rgba(0,0,0,0.08)', 
               borderRadius: '12px',
@@ -451,17 +470,17 @@ const StaffDashboard = () => {
         </Col>
       </Row>
 
-      {/* 3 Big Buttons */}
+      {/* Quick Actions */}
       <div style={{ marginTop: 24 }}>
         <Title level={4} style={{ marginBottom: 16 }}>Quick Actions</Title>
         <Row gutter={[24, 24]}>
-          <Col xs={24} md={12}>
+          <Col xs={24} md={8}>
             <Button 
               type="primary" 
               block 
               style={{ 
                 height: '100px', 
-                fontSize: '22px', 
+                fontSize: '20px', 
                 fontWeight: 'bold', 
                 backgroundColor: '#10b981', 
                 borderColor: '#10b981',
@@ -475,7 +494,26 @@ const StaffDashboard = () => {
             </Button>
           </Col>
 
-          <Col xs={24} md={12}>
+          <Col xs={24} md={8}>
+            <Button 
+              block 
+              style={{ 
+                height: '100px', 
+                fontSize: '20px', 
+                fontWeight: 'bold', 
+                borderColor: '#3b82f6',
+                color: '#3b82f6',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)',
+                borderRadius: '12px'
+              }}
+              icon={<SafetyCertificateOutlined style={{ fontSize: '28px' }} />}
+              onClick={() => setIsResCheckInVisible(true)}
+            >
+              Check-in Đặt chỗ
+            </Button>
+          </Col>
+
+          <Col xs={24} md={8}>
             <Button 
               type="primary" 
               danger
@@ -634,6 +672,22 @@ const StaffDashboard = () => {
             <p><strong>Gate:</strong> {summaryData.gate}</p>
           </div>
         )}
+      </Modal>
+
+      {/* RESERVATION CHECK-IN MODAL */}
+      <Modal title="Check-in theo Đặt chỗ" open={isResCheckInVisible}
+        onCancel={() => { setIsResCheckInVisible(false); resCheckInForm.resetFields(); }} footer={null}>
+        <Form form={resCheckInForm} layout="vertical" onFinish={handleResCheckInSubmit} size="large">
+          <Form.Item name="reservationId" label="Mã đặt chỗ (Reservation ID)" rules={[{ required: true, message: 'Nhập mã đặt chỗ' }]}>
+            <Input type="number" placeholder="VD: 12345" />
+          </Form.Item>
+          <Form.Item name="entryGate" label="Cổng vào" initialValue="Gate A">
+            <Select><Option value="Gate A">Gate A</Option><Option value="Gate B">Gate B</Option></Select>
+          </Form.Item>
+          <Button type="primary" htmlType="submit" block style={{ height: 50, fontSize: 16, fontWeight: 'bold' }}>
+            Xác nhận Check-in
+          </Button>
+        </Form>
       </Modal>
 
       {/* CHECK-OUT MODAL */}

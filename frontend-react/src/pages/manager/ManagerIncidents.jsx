@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Tag, message, Card, Space, Input, Select, Modal, Form, Descriptions, Image, Badge, Typography, Divider } from 'antd';
-import { SearchOutlined, AlertOutlined, EyeOutlined, FileImageOutlined } from '@ant-design/icons';
+import { Table, Button, Tag, message, Card, Space, Input, Select, Modal, Form, Descriptions, Image, Badge, Typography, Divider, Upload } from 'antd';
+import { SearchOutlined, AlertOutlined, EyeOutlined, FileImageOutlined, UploadOutlined } from '@ant-design/icons';
 import { incidentApi } from '../../services/api';
 import dayjs from 'dayjs';
 
@@ -8,7 +8,6 @@ const { Option } = Select;
 const { Text, Title } = Typography;
 
 const STATUS_CONFIG = {
-  REPORTED: { color: 'orange', label: 'Reported' },
   OPEN: { color: 'gold', label: 'Open' },
   IN_PROGRESS: { color: 'blue', label: 'In Progress' },
   RESOLVED: { color: 'green', label: 'Resolved' },
@@ -26,10 +25,14 @@ const IncidentManagement = () => {
 
   useEffect(() => {
     fetchIncidents();
+    const interval = setInterval(() => {
+      fetchIncidents(true);
+    }, 10000);
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchIncidents = async () => {
-    setLoading(true);
+  const fetchIncidents = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await incidentApi.getIncidents();
       let data = res.data?.success ? res.data.data : res.data;
@@ -63,11 +66,19 @@ const IncidentManagement = () => {
 
   const handleReportIncident = async (values) => {
     try {
+      const { incidentImage, ...restValues } = values;
       const payload = {
-        ...values,
+        ...restValues,
         sessionId: values.sessionId ? parseInt(values.sessionId) : null
       };
-      await incidentApi.createIncident(payload);
+      const response = await incidentApi.createIncident(payload);
+      const createdIncident = response?.data?.data || response?.data || response;
+
+      if (values.incidentImage?.fileList?.length > 0) {
+        const file = values.incidentImage.fileList[0].originFileObj;
+        await incidentApi.uploadIncidentImage(createdIncident.incidentId || createdIncident.id, file);
+      }
+
       message.success('Incident reported successfully');
       setIsCreateModalVisible(false);
       form.resetFields();
@@ -134,7 +145,6 @@ const IncidentManagement = () => {
           style={{ width: 140, fontWeight: 600 }}
           bordered={false}
         >
-          <Option value="REPORTED" style={{ color: '#d97706' }}>Reported</Option>
           <Option value="OPEN" style={{ color: '#d97706' }}>Open</Option>
           <Option value="IN_PROGRESS" style={{ color: '#2563eb' }}>In Progress</Option>
           <Option value="RESOLVED" style={{ color: '#059669' }}>Resolved</Option>
@@ -205,7 +215,6 @@ const IncidentManagement = () => {
           onChange={(val) => setFilters({ ...filters, status: val || null })}
         >
           <Option value="">All Statuses</Option>
-          <Option value="REPORTED">Reported</Option>
           <Option value="OPEN">Open</Option>
           <Option value="IN_PROGRESS">In Progress</Option>
           <Option value="RESOLVED">Resolved</Option>
@@ -221,6 +230,7 @@ const IncidentManagement = () => {
         pagination={{ pageSize: 10 }}
         scroll={{ x: 900 }}
       />
+
 
       {/* === DETAIL MODAL === */}
       <Modal
@@ -269,7 +279,7 @@ const IncidentManagement = () => {
                   onChange={(val) => handleStatusChange(selectedIncident.incidentId, val)}
                   style={{ width: 160, fontWeight: 600 }}
                 >
-                  <Option value="REPORTED">Reported</Option>
+
                   <Option value="OPEN">Open</Option>
                   <Option value="IN_PROGRESS">In Progress</Option>
                   <Option value="RESOLVED">Resolved</Option>
@@ -310,6 +320,7 @@ const IncidentManagement = () => {
       </Modal>
 
       {/* === CREATE INCIDENT MODAL === */}
+
       <Modal
         title="Report New Incident"
         open={isCreateModalVisible}
@@ -333,6 +344,12 @@ const IncidentManagement = () => {
 
           <Form.Item name="sessionId" label="Session ID (Optional)">
             <Input type="number" placeholder="Enter session ID if related" />
+          </Form.Item>
+
+          <Form.Item name="incidentImage" label="Photo Evidence (Optional)">
+            <Upload beforeUpload={() => false} listType="picture" maxCount={1}>
+              <Button icon={<UploadOutlined />}>Click to upload image</Button>
+            </Upload>
           </Form.Item>
 
           <Form.Item style={{ textAlign: 'right', marginBottom: 0, marginTop: 24 }}>

@@ -126,14 +126,22 @@ const IncidentPage = () => {
             const values = await form.validateFields();
             setSubmitting(true);
             
+            const { incidentImage, ...restValues } = values;
             const payload = {
-                incidentType: values.title,
-                description: values.description,
+                incidentType: restValues.title,
+                description: restValues.description,
                 sessionId: null,
                 status: 'OPEN'
             };
             
-            await driverService.createIncident(payload);
+            const response = await driverService.createIncident(payload);
+            const createdIncident = response?.data || response;
+
+            if (values.incidentImage?.fileList?.length > 0) {
+                const file = values.incidentImage.fileList[0].originFileObj;
+                await driverService.uploadIncidentImage(createdIncident.incidentId || createdIncident.id, file);
+            }
+
             message.success('Incident reported successfully. Our team will review it shortly.');
             setIsModalVisible(false);
             form.resetFields();
@@ -241,12 +249,12 @@ const IncidentPage = () => {
                     <Form.Item name="description" label="Detailed Description" rules={[{ required: true }]}>
                         <TextArea rows={4} placeholder="Please describe exactly what happened and when..." />
                     </Form.Item>
-                    <Form.Item label="Photo Evidence (Optional)">
-                        <Upload listType="picture" maxCount={3}>
+                    <Form.Item name="incidentImage" label="Photo Evidence (Optional)">
+                        <Upload beforeUpload={() => false} listType="picture" maxCount={1}>
                             <Button icon={<UploadOutlined />}>Click to upload</Button>
                         </Upload>
                         <div style={{ marginTop: 8 }}>
-                            <Text type="secondary" style={{ fontSize: 12 }}>You can upload up to 3 images.</Text>
+                            <Text type="secondary" style={{ fontSize: 12 }}>You can upload 1 image.</Text>
                         </div>
                     </Form.Item>
                 </Form>

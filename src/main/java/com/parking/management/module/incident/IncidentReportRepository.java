@@ -14,9 +14,16 @@ public interface IncidentReportRepository extends JpaRepository<IncidentReport, 
     List<IncidentReport> findAllByOrderByCreatedAtDesc();
     List<IncidentReport> findByReportedBy_UserIdOrderByCreatedAtDesc(Integer userId);
 
-    @org.springframework.data.jpa.repository.Query("SELECT i FROM IncidentReport i WHERE :buildingId IS NULL OR " +
-       "(i.reportedBy.building.buildingId = :buildingId OR " +
-       "(i.session IS NOT NULL AND i.session.slot.zone.floor.building.buildingId = :buildingId)) " +
+    @org.springframework.data.jpa.repository.Query("SELECT i FROM IncidentReport i " +
+       "LEFT JOIN i.reportedBy u " +
+       "LEFT JOIN u.building ub " +
+       "LEFT JOIN i.session s " +
+       "LEFT JOIN s.slot sl " +
+       "LEFT JOIN sl.zone z " +
+       "LEFT JOIN z.floor f " +
+       "LEFT JOIN f.building sb " +
+       "WHERE :buildingId IS NULL OR " +
+       "(ub.buildingId = :buildingId OR sb.buildingId = :buildingId) " +
        "ORDER BY i.createdAt DESC")
     List<IncidentReport> findAllWithBuildingFilter(@org.springframework.data.repository.query.Param("buildingId") Integer buildingId);
 }

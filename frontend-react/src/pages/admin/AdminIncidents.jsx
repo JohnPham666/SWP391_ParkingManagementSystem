@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Tag, message, Card, Space, Input, Select, Modal, Form } from 'antd';
-import { SearchOutlined, AlertOutlined } from '@ant-design/icons';
+import { Table, Button, Tag, message, Card, Space, Input, Select, Modal, Form, Upload, Typography } from 'antd';
+import { SearchOutlined, AlertOutlined, UploadOutlined } from '@ant-design/icons';
 import { incidentApi } from '../../services/api';
 import dayjs from 'dayjs';
 
@@ -36,23 +36,22 @@ const IncidentManagement = () => {
     }
   };
 
-  const handleStatusChange = async (id, status) => {
-    try {
-      await incidentApi.updateIncidentStatus(id, status);
-      message.success('Status updated successfully');
-      fetchIncidents();
-    } catch (error) {
-      message.error(error.response?.data?.message || 'Failed to update status');
-    }
-  };
 
   const handleReportIncident = async (values) => {
     try {
+      const { incidentImage, ...restValues } = values;
       const payload = {
-        ...values,
+        ...restValues,
         sessionId: values.sessionId ? parseInt(values.sessionId) : null
       };
-      await incidentApi.createIncident(payload);
+      const response = await incidentApi.createIncident(payload);
+      const createdIncident = response?.data?.data || response?.data || response;
+
+      if (values.incidentImage?.fileList?.length > 0) {
+        const file = values.incidentImage.fileList[0].originFileObj;
+        await incidentApi.uploadIncidentImage(createdIncident.incidentId || createdIncident.id, file);
+      }
+
       message.success('Incident reported successfully');
       setIsModalVisible(false);
       form.resetFields();
@@ -84,19 +83,6 @@ const IncidentManagement = () => {
       render: (_, record) => <span style={{ fontWeight: 600 }}>{record.title || record.description || '-'}</span>
     },
     {
-      title: 'Severity',
-      dataIndex: 'severity',
-      key: 'severity',
-      render: (sev) => {
-        let color = 'default';
-        if (sev === 'LOW') color = 'blue';
-        if (sev === 'MEDIUM') color = 'orange';
-        if (sev === 'HIGH') color = 'red';
-        if (sev === 'CRITICAL') color = '#991b1b'; // darker red
-        return <Tag color={color}>{sev || '-'}</Tag>;
-      }
-    },
-    {
       title: 'Type',
       dataIndex: 'incidentType',
       key: 'incidentType',
@@ -105,20 +91,14 @@ const IncidentManagement = () => {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (status, record) => (
-        <Select 
-          value={status} 
-          onChange={(val) => handleStatusChange(record.incidentId, val)}
-          style={{ width: 140, fontWeight: 600 }}
-          bordered={false}
-        >
-          <Option value="REPORTED" style={{ color: '#d97706' }}>Reported</Option>
-          <Option value="OPEN" style={{ color: '#d97706' }}>Open</Option>
-          <Option value="IN_PROGRESS" style={{ color: '#2563eb' }}>In Progress</Option>
-          <Option value="RESOLVED" style={{ color: '#059669' }}>Resolved</Option>
-          <Option value="CLOSED" style={{ color: '#6b7280' }}>Closed</Option>
-        </Select>
-      )
+      render: (status) => {
+        let color = 'default';
+        if (status === 'OPEN') color = 'gold';
+        if (status === 'IN_PROGRESS') color = 'blue';
+        if (status === 'RESOLVED') color = 'green';
+        if (status === 'CLOSED') color = 'default';
+        return <Tag color={color}>{status || '-'}</Tag>;
+      }
     },
     {
       title: 'Reporter',
@@ -167,7 +147,6 @@ const IncidentManagement = () => {
           value={filters.status}
           onChange={(val) => setFilters({ ...filters, status: val })}
         >
-          <Option value="REPORTED">Reported</Option>
           <Option value="OPEN">Open</Option>
           <Option value="IN_PROGRESS">In Progress</Option>
           <Option value="RESOLVED">Resolved</Option>
@@ -208,6 +187,12 @@ const IncidentManagement = () => {
 
           <Form.Item name="sessionId" label="Session ID (Optional)">
             <Input type="number" placeholder="Enter session ID if related" />
+          </Form.Item>
+
+          <Form.Item name="incidentImage" label="Photo Evidence (Optional)">
+            <Upload beforeUpload={() => false} listType="picture" maxCount={1}>
+              <Button icon={<UploadOutlined />}>Click to upload image</Button>
+            </Upload>
           </Form.Item>
 
           <Form.Item style={{ textAlign: 'right', marginBottom: 0, marginTop: 24 }}>

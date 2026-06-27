@@ -77,5 +77,13 @@ export const driverApi = {
     createIncident: async (data) => {
         const response = await api.post('/incidents', data);
         return response.data;
+    },
+    uploadIncidentImage: async (incidentId, file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post(`/incidents/${incidentId}/image`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
     }
 };

@@ -116,5 +116,8 @@ export const driverService = {
 
     createIncident: async (data) => {
         return await driverApi.createIncident(data);
+    },
+    uploadIncidentImage: async (incidentId, file) => {
+        return await driverApi.uploadIncidentImage(incidentId, file);
     }
 };

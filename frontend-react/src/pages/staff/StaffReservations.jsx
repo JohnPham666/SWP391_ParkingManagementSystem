@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Space, Input, Select, Tag, message, Typography } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
-import { useLocation } from 'react-router-dom';
+import { Table, Card, Space, Input, Select, Tag, message, Typography, DatePicker } from 'antd';
+import { SearchOutlined, CalendarOutlined } from '@ant-design/icons';
 import { reservationApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
+const { Text } = Typography;
 
 const StaffReservations = () => {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({ search: '', status: null });
-  const location = useLocation();
+  const [selectedDate, setSelectedDate] = useState(dayjs()); // Default: today
 
   useEffect(() => {
     fetchReservations();
@@ -19,7 +19,7 @@ const StaffReservations = () => {
       fetchReservations(true);
     }, 10000);
     return () => clearInterval(interval);
-  }, [location.search]);
+  }, [selectedDate]);
 
   const fetchReservations = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -31,13 +31,10 @@ const StaffReservations = () => {
       }
       
       if (Array.isArray(data)) {
-        // Handle ?date=today parameter
-        const searchParams = new URLSearchParams(location.search);
-        const isToday = searchParams.get('date') === 'today';
-        
-        if (isToday) {
-          const todayStr = dayjs().format('YYYY-MM-DD');
-          data = data.filter(r => r.reservationStart && dayjs(r.reservationStart).format('YYYY-MM-DD') === todayStr);
+        // Filter by selected date
+        if (selectedDate) {
+          const dateStr = selectedDate.format('YYYY-MM-DD');
+          data = data.filter(r => r.reservationStart && dayjs(r.reservationStart).format('YYYY-MM-DD') === dateStr);
         }
 
         data.sort((a, b) => b.reservationId - a.reservationId);
@@ -47,7 +44,7 @@ const StaffReservations = () => {
       }
     } catch (error) {
       console.error('Error fetching reservations:', error);
-      message.error('Failed to load reservations: ' + (error.response?.data?.message || error.message || String(error)));
+      if (!silent) message.error('Failed to load reservations: ' + (error.response?.data?.message || error.message || String(error)));
     } finally {
       setLoading(false);
     }
@@ -70,7 +67,7 @@ const StaffReservations = () => {
       render: (text) => <strong>#{text}</strong>
     },
     {
-      title: 'Customer',
+      title: 'Khách hàng',
       key: 'customer',
       render: (_, record) => (
         <div>
@@ -79,16 +76,16 @@ const StaffReservations = () => {
       )
     },
     {
-      title: 'License Plate',
+      title: 'Biển số',
       dataIndex: 'licensePlate',
       key: 'licensePlate',
       render: (text) => <strong style={{ color: '#ea580c' }}>{text || '-'}</strong>
     },
     {
-      title: 'Reserved Slot',
+      title: 'Chỗ đỗ',
       dataIndex: 'slotCode',
       key: 'slotCode',
-      render: (text) => text || 'Any Available'
+      render: (text) => text || 'Bất kỳ'
     },
     {
       title: 'Expected Arrival',
@@ -97,44 +94,57 @@ const StaffReservations = () => {
       render: (date) => date ? dayjs(date).format('DD/MM/YYYY HH:mm') : '-'
     },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
       render: (status) => {
         let color = 'default';
-        if (status === 'CONFIRMED') color = 'success';
-        if (status === 'COMPLETED') color = 'processing';
-        if (status === 'CANCELLED') color = 'error';
-        if (status === 'PENDING') color = 'warning';
-        return <Tag color={color}>{status || '-'}</Tag>;
+        let label = status || '-';
+        if (status === 'CONFIRMED') { color = 'success'; label = 'Đã xác nhận'; }
+        if (status === 'COMPLETED') { color = 'processing'; label = 'Hoàn thành'; }
+        if (status === 'CANCELLED') { color = 'error'; label = 'Đã hủy'; }
+        if (status === 'PENDING') { color = 'warning'; label = 'Chờ duyệt'; }
+        return <Tag color={color}>{label}</Tag>;
       }
     }
   ];
 
-  const searchParams = new URLSearchParams(location.search);
-  const isToday = searchParams.get('date') === 'today';
-
   return (
     <Card 
-      title={isToday ? "Today's Reservations" : "All Reservations"}
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <span>
+            <CalendarOutlined style={{ marginRight: 8 }} />
+            Đặt chỗ — {selectedDate ? selectedDate.format('DD/MM/YYYY') : 'Tất cả'}
+          </span>
+          <DatePicker
+            value={selectedDate}
+            onChange={(date) => setSelectedDate(date)}
+            format="DD/MM/YYYY"
+            allowClear
+            placeholder="Chọn ngày"
+            style={{ width: 160 }}
+          />
+        </div>
+      }
     >
       <Space style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap' }}>
         <Input 
-          placeholder="Search by ID, Name, Phone, Plate..." 
+          placeholder="Tìm theo ID, tên, SĐT, biển số..." 
           prefix={<SearchOutlined />} 
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           style={{ width: 300 }}
         />
         <Select 
-          placeholder="All statuses" 
+          placeholder="Tất cả trạng thái" 
           style={{ width: 160 }} 
           allowClear 
           onChange={(val) => setFilters({ ...filters, status: val })}
         >
-          <Option value="CONFIRMED">Confirmed</Option>
-          <Option value="COMPLETED">Completed</Option>
-          <Option value="PENDING">Pending</Option>
-          <Option value="CANCELLED">Cancelled</Option>
+          <Option value="CONFIRMED">Đã xác nhận</Option>
+          <Option value="COMPLETED">Hoàn thành</Option>
+          <Option value="PENDING">Chờ duyệt</Option>
+          <Option value="CANCELLED">Đã hủy</Option>
         </Select>
       </Space>
 

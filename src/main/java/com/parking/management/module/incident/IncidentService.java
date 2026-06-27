@@ -1,5 +1,13 @@
 package com.parking.management.module.incident;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.multipart.MultipartFile;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
+
 import com.parking.management.common.EmailService;
 import com.parking.management.module.session.ParkingSession;
 import com.parking.management.module.session.ParkingSessionRepository;
@@ -27,6 +35,9 @@ public class IncidentService {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final SecurityUtils securityUtils;
+
+    @Value("${file.upload-dir.incidents:uploads/incidents}")
+    private String uploadDir;
 
     public IncidentResponse create(IncidentRequest request) {
         User reportedBy = getCurrentAuthenticatedUser();
@@ -139,6 +150,27 @@ public class IncidentService {
         return IncidentResponse.fromEntity(saved);
     }
 
+    public IncidentResponse uploadIncidentImage(Integer id, org.springframework.web.multipart.MultipartFile file) {
+        IncidentReport incident = incidentReportRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Incident not found"));
+        
+        try {
+            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            java.nio.file.Path uploadPath = java.nio.file.Paths.get("uploads/incidents").toAbsolutePath().normalize();
+            if (!java.nio.file.Files.exists(uploadPath)) {
+                java.nio.file.Files.createDirectories(uploadPath);
+            }
+            java.nio.file.Path filePath = uploadPath.resolve(fileName);
+            java.nio.file.Files.copy(file.getInputStream(), filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            
+            incident.setIncidentImage("/uploads/incidents/" + fileName);
+            IncidentReport saved = incidentReportRepository.save(incident);
+            return IncidentResponse.fromEntity(saved);
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Could not store image", e);
+        }
+    }
+
     private User getCurrentAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -152,5 +184,38 @@ public class IncidentService {
 
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Reporter user not found"));
+    }
+
+    public IncidentResponse uploadIncidentImage(Integer incidentId, MultipartFile file) {
+        IncidentReport incident = incidentReportRepository.findById(incidentId)
+                .orElseThrow(() -> new RuntimeException("Incident report not found with id: " + incidentId));
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Image file is required");
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+
+        String fileName = "incident_" + incidentId + "_" + UUID.randomUUID() + extension;
+
+        try {
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+            Path filePath = uploadPath.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            String imageUrl = "/uploads/incidents/" + fileName;
+            incident.setIncidentImage(imageUrl);
+
+            return IncidentResponse.fromEntity(incidentReportRepository.save(incident));
+        } catch (Exception e) {
+            throw new RuntimeException("Could not upload image: " + e.getMessage());
+        }
     }
 }
