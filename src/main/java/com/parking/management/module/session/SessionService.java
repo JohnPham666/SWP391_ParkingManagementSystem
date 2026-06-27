@@ -63,8 +63,7 @@ public class SessionService {
     public SessionResponse checkIn(CheckInRequest request) {
         Reservation reservation = reservationRepository.findById(request.getReservationId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Reservation not found with id: " + request.getReservationId()
-                ));
+                        "Reservation not found with id: " + request.getReservationId()));
 
         Vehicle vehicle = reservation.getVehicle();
         ParkingSlot slot = reservation.getSlot();
@@ -93,14 +92,16 @@ public class SessionService {
          * Phải CONFIRMED mới được vào.
          */
         if (!"CONFIRMED".equals(reservation.getStatus())) {
-            throw new IllegalArgumentException("Reservation is not CONFIRMED (maybe not paid yet). Current status: " + reservation.getStatus());
+            throw new IllegalArgumentException(
+                    "Reservation is not CONFIRMED (maybe not paid yet). Current status: " + reservation.getStatus());
         }
 
         LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(reservation.getReservationStart().minusMinutes(30))) {
-            throw new IllegalArgumentException("Quá sớm để check-in cho lịch đặt chỗ này (chỉ hỗ trợ check-in trước 30 phút). Vui lòng check-in theo diện khách vãng lai (Walk-in).");
+        if (now.isBefore(reservation.getReservationStart().minusMinutes(40))) {
+            throw new IllegalArgumentException(
+                    "Quá sớm để check-in cho lịch đặt chỗ này (chỉ hỗ trợ check-in trước 30 phút). Vui lòng check-in theo diện khách vãng lai (Walk-in).");
         }
-        
+
         if (now.isAfter(reservation.getReservationEnd())) {
             throw new IllegalArgumentException("Lịch đặt chỗ này đã quá hạn sử dụng.");
         }
@@ -166,7 +167,8 @@ public class SessionService {
         Vehicle vehicle = vehicleRepository.findByLicensePlate(request.getLicensePlate())
                 .orElseGet(() -> {
                     VehicleType type = vehicleTypeRepository.findById(request.getVehicleTypeId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Vehicle type not found with id: " + request.getVehicleTypeId()));
+                            .orElseThrow(() -> new ResourceNotFoundException(
+                                    "Vehicle type not found with id: " + request.getVehicleTypeId()));
                     Vehicle newVehicle = new Vehicle();
                     newVehicle.setLicensePlate(request.getLicensePlate());
                     newVehicle.setVehicleType(type);
@@ -184,8 +186,7 @@ public class SessionService {
         // 3. Tìm Slot trống đầu tiên phù hợp với loại xe (kiểm tra cả capacity)
         ParkingSlot slot = parkingSlotRepository
                 .findFirstAvailableSlot(
-                        request.getVehicleTypeId()
-                )
+                        request.getVehicleTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chỗ trống phù hợp cho loại xe này."));
 
         // 4. Kiểm tra lại capacity trước khi tăng (phòng race condition)
@@ -232,8 +233,7 @@ public class SessionService {
     public SessionResponse checkOut(Integer sessionId, CheckOutRequest request) {
         ParkingSession session = parkingSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Parking session not found with id: " + sessionId
-                ));
+                        "Parking session not found with id: " + sessionId));
 
         if (SessionStatus.UNPAID.name().equals(session.getStatus())) {
             return mapEntityToResponse(session);
@@ -255,21 +255,22 @@ public class SessionService {
         Long vehicleTypeId = Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId());
 
         // Kiểm tra xem session này có reservation đi kèm không
-        java.util.Optional<Reservation> resOpt = reservationRepository.findFirstByVehicle_VehicleIdAndSlot_SlotIdAndStatus(
-                session.getVehicle().getVehicleId(),
-                slot.getSlotId(),
-                "CONFIRMED"
-        );
+        java.util.Optional<Reservation> resOpt = reservationRepository
+                .findFirstByVehicle_VehicleIdAndSlot_SlotIdAndStatus(
+                        session.getVehicle().getVehicleId(),
+                        slot.getSlotId(),
+                        "CONFIRMED");
 
         BigDecimal calculatedFinalFee;
 
         // Xử lý vé tháng (Subscription)
-        List<MonthlySubscription> activeSubs = subscriptionRepository.findActiveSubscriptionsByVehicleId(session.getVehicle().getVehicleId());
+        List<MonthlySubscription> activeSubs = subscriptionRepository
+                .findActiveSubscriptionsByVehicleId(session.getVehicle().getVehicleId());
 
         if (!activeSubs.isEmpty()) {
             // Khách có vé tháng hợp lệ -> Không tính phí đỗ xe
             calculatedFinalFee = BigDecimal.ZERO;
-            
+
             if (resOpt.isPresent()) {
                 Reservation r = resOpt.get();
                 r.setStatus("COMPLETED");
@@ -284,10 +285,10 @@ public class SessionService {
              * Có reservation -> Tính phí 2 giai đoạn:
              *
              * Giai đoạn 1 (normal): entryTime -> ReservationEnd
-             *   rush/offpeak rate + BasePrice
+             * rush/offpeak rate + BasePrice
              *
              * Giai đoạn 2 (overtime): ReservationEnd -> exitTime (nếu xe ra trễ)
-             *   OvertimeFeePerHour x số giờ quá
+             * OvertimeFeePerHour x số giờ quá
              *
              * Sau đó trừ đi phần đã thanh toán khi đặt chỗ.
              */
@@ -295,15 +296,14 @@ public class SessionService {
                     vehicleTypeId,
                     session.getEntryTime(),
                     exitTime,
-                    r.getReservationEnd()   // overtimeStart = hết giờ đặt chỗ
+                    r.getReservationEnd() // overtimeStart = hết giờ đặt chỗ
             );
 
             // Phần phí reservation đã thu trước đó (để trừ ra, tránh tính 2 lần)
             FeeCalculationResponse reservationFeeResponse = pricingService.calculateFee(
                     vehicleTypeId,
                     r.getReservationStart(),
-                    r.getReservationEnd()
-            );
+                    r.getReservationEnd());
             BigDecimal reservationAlreadyPaid = reservationFeeResponse.getFinalFee();
 
             calculatedFinalFee = feeResponse.getFinalFee().subtract(reservationAlreadyPaid);
@@ -319,17 +319,17 @@ public class SessionService {
             FeeCalculationResponse feeResponse = pricingService.calculateFee(
                     vehicleTypeId,
                     session.getEntryTime(),
-                    exitTime
-            );
+                    exitTime);
             calculatedFinalFee = feeResponse.getFinalFee();
         }
 
         session.setFinalFee(calculatedFinalFee);
 
         if (calculatedFinalFee.compareTo(BigDecimal.ZERO) == 0) {
-            // Final fee is 0 (e.g. valid subscription, fully paid reservation) -> Complete immediately
+            // Final fee is 0 (e.g. valid subscription, fully paid reservation) -> Complete
+            // immediately
             session.setStatus(SessionStatus.COMPLETED.name());
-            
+
             if (session.getCard() != null) {
                 ParkingCard card = session.getCard();
                 card.setStatus("ACTIVE");
@@ -337,7 +337,8 @@ public class SessionService {
             }
 
             int newOcc = slot.getCurrentOccupancy() - 1;
-            if (newOcc < 0) newOcc = 0;
+            if (newOcc < 0)
+                newOcc = 0;
             slot.setCurrentOccupancy(newOcc);
             if (slot.getCurrentOccupancy() < slot.getCapacity()) {
                 slot.setStatus(SlotStatus.AVAILABLE);
@@ -363,9 +364,9 @@ public class SessionService {
      * Method này được thiết kế IDEMPOTENT (gọi nhiều lần không gây lỗi):
      * - Nếu session đã COMPLETED rồi → return luôn, không làm gì thêm.
      * - Nhờ vậy, dù PaymentService hay SessionService gọi, slot chỉ bị
-     *   giảm occupancy đúng 1 lần.
+     * giảm occupancy đúng 1 lần.
      *
-     * @param sessionId   ID của ParkingSession cần hoàn tất
+     * @param sessionId ID của ParkingSession cần hoàn tất
      */
     @Transactional
     public void completeSession(Integer sessionId) {
@@ -391,9 +392,10 @@ public class SessionService {
         ParkingSlot slot = session.getSlot();
         if (slot != null) {
             int newOcc = slot.getCurrentOccupancy() - 1;
-            if (newOcc < 0) newOcc = 0;
+            if (newOcc < 0)
+                newOcc = 0;
             slot.setCurrentOccupancy(newOcc);
-            
+
             // Nếu slot còn chỗ trống → đổi về AVAILABLE
             if (slot.getCurrentOccupancy() < slot.getCapacity()) {
                 slot.setStatus(SlotStatus.AVAILABLE);
@@ -405,12 +407,10 @@ public class SessionService {
         parkingSessionRepository.save(session);
     }
 
-
     public SessionResponse getById(Integer id) {
         ParkingSession session = parkingSessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Parking session not found with id: " + id
-                ));
+                        "Parking session not found with id: " + id));
         return mapEntityToResponse(session);
     }
 
@@ -426,8 +426,7 @@ public class SessionService {
     public void delete(Integer id) {
         ParkingSession session = parkingSessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Parking session not found with id: " + id
-                ));
+                        "Parking session not found with id: " + id));
         parkingSessionRepository.delete(session);
     }
 
@@ -447,8 +446,9 @@ public class SessionService {
 
         String normalizedLicensePlate = licensePlate.trim();
 
-        java.util.List<String> activeStatuses = java.util.Arrays.asList(SessionStatus.PARKING.name(), SessionStatus.UNPAID.name());
-        
+        java.util.List<String> activeStatuses = java.util.Arrays.asList(SessionStatus.PARKING.name(),
+                SessionStatus.UNPAID.name());
+
         java.util.Optional<ParkingSession> sessionOpt = parkingSessionRepository
                 .findFirstByVehicle_LicensePlateIgnoreCaseAndStatusInOrderBySessionIdDesc(
                         normalizedLicensePlate, activeStatuses);
@@ -460,8 +460,7 @@ public class SessionService {
         }
 
         ParkingSession session = sessionOpt.orElseThrow(() -> new ResourceNotFoundException(
-                        "No active parking session found for search key: " + normalizedLicensePlate
-                ));
+                "No active parking session found for search key: " + normalizedLicensePlate));
 
         return mapEntityToResponse(session);
     }
@@ -492,7 +491,7 @@ public class SessionService {
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
             String imageUrl = "/uploads/sessions/" + fileName;
-            
+
             if ("exit".equalsIgnoreCase(type)) {
                 session.setExitImage(imageUrl);
             } else {
@@ -514,7 +513,7 @@ public class SessionService {
         if (session.getVehicle() != null) {
             response.setVehicleId(session.getVehicle().getVehicleId());
             response.setLicensePlate(session.getVehicle().getLicensePlate());
-            
+
             if (session.getVehicle().getVehicleType() != null) {
                 response.setVehicleTypeId(session.getVehicle().getVehicleType().getVehicleTypeId());
                 response.setVehicleTypeName(session.getVehicle().getVehicleType().getTypeName());
@@ -548,7 +547,7 @@ public class SessionService {
         if (session.getCreatedBy() != null) {
             response.setCreatedBy(session.getCreatedBy().getFullName());
         }
-        
+
         if (session.getCard() != null) {
             response.setCardId(session.getCard().getCardId());
         }
