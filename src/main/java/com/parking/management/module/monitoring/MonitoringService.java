@@ -92,7 +92,7 @@ public class MonitoringService {
 
     private List<ZoneDashboardResponse> buildZoneResponses(List<ParkingSlot> slots) {
         Map<Zone, List<ParkingSlot>> slotsByZone = slots.stream()
-                .collect(Collectors.groupingBy(ParkingSlot::getZone));
+                .collect(Collectors.groupingBy(slot -> slot.getZone()));
 
         return slotsByZone.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey((left, right) -> left.getZoneName().compareToIgnoreCase(right.getZoneName())))
