@@ -44,6 +44,10 @@ public class SecurityConfig {
                                 "/uploads/**",
                                 "/mock-payment/**"
                         ).permitAll()
+                        
+                        // Cho phép xem thông tin tòa nhà và bãi đỗ xe ở trang chủ (không cần đăng nhập)
+                        .requestMatchers(HttpMethod.GET, "/api/buildings", "/api/slots")
+                        .permitAll()
 
                         // Driver, Staff, Manager, Admin đều được tạo/báo incident
                         .requestMatchers(HttpMethod.POST, "/api/incidents")
