@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Row, Col, Card, Typography, Tag, Space, Progress, Skeleton, Statistic, Badge, Divider, theme } from 'antd';
-import { 
-    CarOutlined, 
-    CalendarOutlined, 
-    EnvironmentOutlined, 
+import {
+    CarOutlined,
+    CalendarOutlined,
+    EnvironmentOutlined,
     ArrowRightOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -51,7 +51,7 @@ const DashboardPage = () => {
                 return s === 'CONFIRMED' || s === 'PENDING';
             });
             const availableSlots = slots.filter(s => String(s.status).toUpperCase() === 'AVAILABLE');
-            
+
             const occupiedSlots = slots.filter(s => String(s.status).toUpperCase() === 'OCCUPIED');
             const reservedSlots = slots.filter(s => String(s.status).toUpperCase() === 'RESERVED');
             const totalSlots = slots.length;
@@ -60,13 +60,13 @@ const DashboardPage = () => {
             let carAvailable = 0;
             let totalCapacity = 0;
             let currentOccupancy = 0;
-            
+
             slots.forEach(s => {
                 const cap = s.capacity || 1;
                 const occ = s.currentOccupancy || 0;
                 totalCapacity += cap;
                 currentOccupancy += occ;
-                
+
                 const typeName = (s.vehicleType?.name || s.vehicleTypeName || '').toLowerCase();
                 if (typeName.includes('motor') || typeName.includes('xe máy')) {
                     motorbikeAvailable += Math.max(0, cap - occ);
@@ -141,12 +141,12 @@ const DashboardPage = () => {
             <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
                 {cards.map((card, index) => (
                     <Col xs={24} sm={12} lg={8} xl={8} key={index}>
-                        <Card 
-                            hoverable 
+                        <Card
+                            hoverable
                             className="interactive-stat-card"
-                            style={{ 
-                                borderRadius: '16px', 
-                                border: 'none', 
+                            style={{
+                                borderRadius: '16px',
+                                border: 'none',
                                 boxShadow: token.boxShadowTertiary,
                                 height: '100%',
                                 display: 'flex',
@@ -157,13 +157,13 @@ const DashboardPage = () => {
                             onClick={() => navigate(card.path)}
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                                <div 
-                                    style={{ 
-                                        width: '48px', 
-                                        height: '48px', 
-                                        borderRadius: '12px', 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
+                                <div
+                                    style={{
+                                        width: '48px',
+                                        height: '48px',
+                                        borderRadius: '12px',
+                                        display: 'flex',
+                                        alignItems: 'center',
                                         justifyContent: 'center',
                                         fontSize: '24px',
                                         color: card.color,
@@ -189,15 +189,15 @@ const DashboardPage = () => {
             </Row>
 
             {/* Parking Occupancy Overview */}
-            <Card 
-                title={<Title level={4} style={{ margin: 0 }}>Parking Occupancy Overview</Title>} 
+            <Card
+                title={<Title level={4} style={{ margin: 0 }}>Parking Occupancy Overview</Title>}
                 style={{ borderRadius: '16px', border: 'none', boxShadow: token.boxShadowTertiary, background: token.colorBgContainer }}
             >
                 <Row gutter={[32, 32]} align="middle">
                     <Col xs={24} md={8} style={{ textAlign: 'center' }}>
-                        <Progress 
-                            type="dashboard" 
-                            percent={stats.occupancyRate} 
+                        <Progress
+                            type="dashboard"
+                            percent={stats.occupancyRate}
                             strokeColor={{ '0%': token.colorSuccess, '100%': token.colorError }}
                             size={180}
                         />
@@ -206,7 +206,7 @@ const DashboardPage = () => {
                             <Text type="secondary">{stats.currentOccupancy} / {stats.totalCapacity} Occupied</Text>
                         </div>
                     </Col>
-                    
+
                     <Col xs={24} md={16}>
                         <Row gutter={[16, 24]}>
                             <Col xs={12} sm={8}>
@@ -225,19 +225,19 @@ const DashboardPage = () => {
                                 <Statistic title="Available Motorbike Slots" value={stats.motorbikeSlots} />
                             </Col>
                         </Row>
-                        
+
                         <Divider style={{ margin: '24px 0' }} />
-                        
+
                         <Title level={5} style={{ marginBottom: '16px' }}>Today's Activity</Title>
                         <Space size="large" wrap>
                             <Badge status="processing" text={<Text>Reservations: {stats.todaysReservations}</Text>} />
                         </Space>
-                        
+
                         <div style={{ marginTop: '24px' }}>
                             <Text strong style={{ display: 'block', marginBottom: '8px' }}>Capacity Breakdown</Text>
-                            <Progress 
-                                percent={100} 
-                                success={{ percent: stats.totalCapacity ? ((stats.totalCapacity - stats.currentOccupancy) / stats.totalCapacity) * 100 : 0, strokeColor: token.colorSuccess }} 
+                            <Progress
+                                percent={100}
+                                success={{ percent: stats.totalCapacity ? ((stats.totalCapacity - stats.currentOccupancy) / stats.totalCapacity) * 100 : 0, strokeColor: token.colorSuccess }}
                                 strokeColor={token.colorWarning}
                                 format={() => `${stats.totalCapacity} Total`}
                             />
