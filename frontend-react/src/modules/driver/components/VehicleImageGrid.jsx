@@ -19,7 +19,7 @@ const VehicleImageGrid = ({ value = {}, onChange, mode = 'edit' }) => {
     const getImageUrl = (path) => {
         if (!path) return null;
         if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('blob:')) return path;
-        return `http://localhost:8080${path.startsWith('/') ? '' : '/'}${path}`;
+        return `https://swp391-parkingmanagementsystem-1.onrender.com${path.startsWith('/') ? '' : '/'}${path}`;
     };
 
     const handlePreview = (fileOrUrl, title) => {

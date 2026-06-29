@@ -17,7 +17,7 @@ const ManagerVehicles = () => {
   const getImageUrl = (path) => {
       if (!path) return null;
       if (path.startsWith('http') || path.startsWith('data:')) return path;
-      const baseUrl = vehicleApi ? 'http://localhost:8080' : 'http://localhost:8080'; // fallback
+      const baseUrl = vehicleApi ? 'https://swp391-parkingmanagementsystem-1.onrender.com' : 'https://swp391-parkingmanagementsystem-1.onrender.com'; // fallback
       return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
   };
 
