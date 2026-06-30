@@ -1,6 +1,8 @@
-import React from 'react';
-import { Layout, Button, Space, Typography, Dropdown } from 'antd';
+import React, { useContext } from 'react';
+import { Layout, Button, Space, Typography, Dropdown, theme } from 'antd';
 import { Outlet, useNavigate } from 'react-router-dom';
+import { ThemeContext } from '../../contexts/ThemeContext';
+import logoImg from '../../assets/logo.png';
 import { 
   CarOutlined, 
   GlobalOutlined, 
@@ -9,7 +11,9 @@ import {
   CreditCardOutlined, 
   SafetyCertificateOutlined,
   ThunderboltOutlined,
-  HistoryOutlined
+  HistoryOutlined,
+  MoonOutlined,
+  SunOutlined
 } from '@ant-design/icons';
 
 const { Header, Content, Footer } = Layout;
@@ -17,6 +21,8 @@ const { Title } = Typography;
 
 const DriverLayout = () => {
   const navigate = useNavigate();
+  const { token } = theme.useToken();
+  const { isDarkMode, toggleTheme } = useContext(ThemeContext);
 
   // Dropdown for Services
   const servicesMenu = {
@@ -91,20 +97,20 @@ const DriverLayout = () => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh', backgroundColor: '#fff' }}>
+    <Layout style={{ minHeight: '100vh', backgroundColor: token.colorBgLayout }}>
       <Header style={{ 
         position: 'sticky', 
         top: 0, 
         zIndex: 1000, 
         width: '100%', 
-        backgroundColor: '#fff',
-        borderBottom: '1px solid #f3f4f6',
+        backgroundColor: token.colorBgContainer,
+        borderBottom: `1px solid ${token.colorBorderSecondary}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 40px',
-        height: '76px',
-        lineHeight: '76px'
+        height: '120px',
+        lineHeight: '120px'
       }}>
         {/* Left Section: Brand & Navigation */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -113,26 +119,34 @@ const DriverLayout = () => {
             style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginRight: '48px' }}
             onClick={scrollToTop}
           >
-            <CarOutlined style={{ fontSize: '32px', color: '#ea580c', marginRight: '10px' }} />
-            <Title level={3} style={{ margin: 0, color: '#111827', fontWeight: 800, fontSize: '24px', letterSpacing: '-0.5px' }}>ParkSmart</Title>
+            <img src={logoImg} alt="ParkSmart Logo" style={{ 
+              height: '72px', 
+              marginRight: '12px', 
+              objectFit: 'contain',
+              backgroundColor: '#ffffff',
+              borderRadius: '12px',
+              padding: '4px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+            }} />
+            <Title level={3} style={{ margin: 0, color: token.colorTextHeading, fontWeight: 800, fontSize: '24px', letterSpacing: '-0.5px' }}>ParkSmart</Title>
           </div>
 
           {/* Navigation (Dropbox style spacing and font) */}
           <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
             <Dropdown menu={servicesMenu} placement="bottom" arrow={{ pointAtCenter: true }} trigger={['hover', 'click']}>
-              <span style={{ cursor: 'pointer', fontWeight: 600, fontSize: '15px', color: '#374151', display: 'flex', alignItems: 'center', gap: '6px' }} className="nav-item">
-                Services <DownOutlined style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 'bold' }} className="nav-arrow" />
+              <span style={{ cursor: 'pointer', fontWeight: 600, fontSize: '15px', color: token.colorText, display: 'flex', alignItems: 'center', gap: '6px' }} className="nav-item">
+                Services <DownOutlined style={{ fontSize: '12px', color: token.colorTextSecondary, fontWeight: 'bold' }} className="nav-arrow" />
               </span>
             </Dropdown>
             
             <Dropdown menu={featuresMenu} placement="bottom" arrow={{ pointAtCenter: true }} trigger={['hover', 'click']}>
-              <span style={{ cursor: 'pointer', fontWeight: 600, fontSize: '15px', color: '#374151', display: 'flex', alignItems: 'center', gap: '6px' }} className="nav-item">
-                Features <DownOutlined style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 'bold' }} className="nav-arrow" />
+              <span style={{ cursor: 'pointer', fontWeight: 600, fontSize: '15px', color: token.colorText, display: 'flex', alignItems: 'center', gap: '6px' }} className="nav-item">
+                Features <DownOutlined style={{ fontSize: '12px', color: token.colorTextSecondary, fontWeight: 'bold' }} className="nav-arrow" />
               </span>
             </Dropdown>
 
             <span 
-              style={{ cursor: 'pointer', fontWeight: 600, fontSize: '15px', color: '#374151' }} 
+              style={{ cursor: 'pointer', fontWeight: 600, fontSize: '15px', color: token.colorText }} 
               className="nav-item"
               onClick={() => {
                 if (window.location.pathname !== '/') navigate('/');
@@ -147,10 +161,18 @@ const DriverLayout = () => {
         {/* Right Section: Actions */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <Space size="large" align="center">
+            {/* Theme Toggle */}
+            <Button 
+              type="text" 
+              icon={isDarkMode ? <SunOutlined style={{ fontSize: '20px', color: '#fbbf24' }}/> : <MoonOutlined style={{ fontSize: '20px', color: '#4b5563' }}/>} 
+              onClick={toggleTheme}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            />
+
             {localStorage.getItem('parking_auth') ? (
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginLeft: '12px' }}>
                 <span 
-                  style={{ cursor: 'pointer', fontWeight: 600, fontSize: '15px', color: '#374151' }} 
+                  style={{ cursor: 'pointer', fontWeight: 600, fontSize: '15px', color: token.colorText }} 
                   onClick={() => navigate('/dashboard')}
                   className="nav-item"
                 >
@@ -170,7 +192,7 @@ const DriverLayout = () => {
             ) : (
               <div style={{ display: 'flex', gap: '20px', alignItems: 'center', marginLeft: '16px' }}>
                 <span 
-                  style={{ cursor: 'pointer', fontWeight: 600, fontSize: '15px', color: '#374151' }} 
+                  style={{ cursor: 'pointer', fontWeight: 600, fontSize: '15px', color: token.colorText }} 
                   onClick={() => navigate('/login')}
                   className="nav-item"
                 >
@@ -192,15 +214,6 @@ const DriverLayout = () => {
       <Content>
         <Outlet />
       </Content>
-
-      {/* Footer styled similarly clean */}
-      <Footer style={{ textAlign: 'center', backgroundColor: '#f9fafb', padding: '60px 20px', color: '#6b7280', borderTop: '1px solid #f3f4f6' }}>
-        <Title level={4} style={{ color: '#111827', fontWeight: 800 }}>ParkSmart - Smart Parking System</Title>
-        <p style={{ maxWidth: '600px', margin: '0 auto', fontSize: '16px' }}>
-          A system that helps drivers find available spots, book in advance, and pay automatically.
-        </p>
-        <p style={{ marginTop: '24px', fontWeight: 500 }}>© {new Date().getFullYear()} ParkSmart. All Rights Reserved.</p>
-      </Footer>
 
       {/* Embedded CSS for seamless hover states */}
       <style>{`

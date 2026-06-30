@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Typography, Row, Col, Card, Steps, Skeleton, Result } from 'antd';
+import { Button, Typography, Row, Col, Card, Steps, Skeleton, Result, theme } from 'antd';
 import { 
   ThunderboltOutlined, 
   EnvironmentOutlined,
@@ -8,7 +8,10 @@ import {
   CarOutlined,
   CreditCardOutlined,
   LeftOutlined,
-  RightOutlined
+  RightOutlined,
+  LoginOutlined,
+  FormOutlined,
+  CheckCircleOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { buildingApi, slotApi } from '../../services/api';
@@ -42,6 +45,7 @@ const itemVariants = {
 };
 
 const LandingPage = () => {
+  const { token } = theme.useToken();
   const navigate = useNavigate();
   const [buildingsData, setBuildingsData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -176,7 +180,7 @@ const LandingPage = () => {
   const renderBuildingDashboard = () => {
     if (loading) {
       return (
-        <div style={{ width: '100%', maxWidth: '600px', backgroundColor: '#fff', borderRadius: '24px', padding: '32px 20px', border: '1px solid #f3f4f6' }}>
+        <div style={{ width: '100%', maxWidth: '600px', backgroundColor: token.colorBgContainer, borderRadius: '24px', padding: '32px 20px', border: `1px solid ${token.colorBorderSecondary}` }}>
           <Skeleton.Button active style={{ width: '160px', height: '44px', borderRadius: '24px', margin: '0 auto 20px', display: 'block' }} />
           <Skeleton.Image active style={{ width: '100%', height: '280px', borderRadius: '16px', marginBottom: '24px' }} />
           <Skeleton active paragraph={{ rows: 2 }} />
@@ -186,7 +190,7 @@ const LandingPage = () => {
 
     if (error || totalBuildings === 0) {
       return (
-        <div style={{ width: '100%', maxWidth: '600px', backgroundColor: '#fff', borderRadius: '24px', padding: '40px 20px', border: '1px solid #f3f4f6' }}>
+        <div style={{ width: '100%', maxWidth: '600px', backgroundColor: token.colorBgContainer, borderRadius: '24px', padding: '40px 20px', border: `1px solid ${token.colorBorderSecondary}` }}>
           <Result status="error" title="Parking Data Unavailable" subTitle={`We couldn't connect to the live parking database right now. Details: ${errorMessage}`} />
         </div>
       );
@@ -204,11 +208,11 @@ const LandingPage = () => {
           position: 'relative', 
           width: '100%', 
           maxWidth: '600px',
-          backgroundColor: '#fff', 
+          backgroundColor: token.colorBgContainer, 
           borderRadius: '24px', 
           padding: '24px 20px 20px 20px',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
-          border: '1px solid #f3f4f6',
+          border: `1px solid ${token.colorBorderSecondary}`,
         }}
       >
         {/* CURRENT BUILDING NAME BADGE */}
@@ -323,14 +327,14 @@ const LandingPage = () => {
         {/* PARKING STATISTICS */}
         <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
           
-          <div className="stat-card" style={{ flex: '1 1 200px', backgroundColor: '#f8fafc', padding: '16px 20px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '16px', border: '1px solid #f1f5f9', transition: 'all 0.3s ease' }}>
+          <div className="stat-card" style={{ flex: '1 1 200px', backgroundColor: token.colorFillQuaternary, padding: '16px 20px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '16px', border: `1px solid ${token.colorBorderSecondary}`, transition: 'all 0.3s ease' }}>
             <div style={{ width: 52, height: 52, borderRadius: '14px', backgroundColor: '#e0f2fe', color: '#0ea5e9', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '24px' }}>
               <CarOutlined />
             </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
-              <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Car Slots</div>
+              <div style={{ fontSize: '13px', color: token.colorTextSecondary, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Car Slots</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                <span style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', transition: 'all 0.3s' }}>
+                <span style={{ fontSize: '24px', fontWeight: 800, color: token.colorTextHeading, transition: 'all 0.3s' }}>
                   {currentBuilding?.carSlots ?? 0}
                 </span>
                 <span style={{ fontSize: '13px', fontWeight: 600, color: '#10b981' }}>Available</span>
@@ -338,14 +342,14 @@ const LandingPage = () => {
             </div>
           </div>
           
-          <div className="stat-card" style={{ flex: '1 1 200px', backgroundColor: '#f8fafc', padding: '16px 20px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '16px', border: '1px solid #f1f5f9', transition: 'all 0.3s ease' }}>
+          <div className="stat-card" style={{ flex: '1 1 200px', backgroundColor: token.colorFillQuaternary, padding: '16px 20px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '16px', border: `1px solid ${token.colorBorderSecondary}`, transition: 'all 0.3s ease' }}>
             <div style={{ width: 52, height: 52, borderRadius: '14px', backgroundColor: '#fef3c7', color: '#f59e0b', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '24px' }}>
               <span style={{ fontSize: '24px', lineHeight: 1 }}>🛵</span>
             </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
-              <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Motorcycle Slots</div>
+              <div style={{ fontSize: '13px', color: token.colorTextSecondary, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Motorcycle Slots</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                <span style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', transition: 'all 0.3s' }}>
+                <span style={{ fontSize: '24px', fontWeight: 800, color: token.colorTextHeading, transition: 'all 0.3s' }}>
                   {currentBuilding?.motorSlots ?? 0}
                 </span>
                 <span style={{ fontSize: '13px', fontWeight: 600, color: '#10b981' }}>Available</span>
@@ -379,12 +383,12 @@ const LandingPage = () => {
   };
 
   return (
-    <div style={{ backgroundColor: '#fff', overflow: 'hidden' }}>
+    <div style={{ backgroundColor: '#111827', overflow: 'hidden' }}>
       
       {/* 1. HERO SECTION */}
       <div style={{ 
         padding: '80px 5%', 
-        background: 'linear-gradient(135deg, #fffaf0 0%, #ffffff 100%)',
+        background: `linear-gradient(135deg, ${token.colorBgLayout} 0%, ${token.colorBgContainer} 100%)`,
         minHeight: '85vh',
         display: 'flex',
         alignItems: 'center',
@@ -412,14 +416,14 @@ const LandingPage = () => {
                 </motion.div>
                 
                 <motion.div variants={itemVariants}>
-                  <Title style={{ fontSize: '3.5rem', fontWeight: 900, lineHeight: 1.15, marginBottom: 24, color: '#111827', letterSpacing: '-1px' }}>
+                  <Title style={{ fontSize: '3.5rem', fontWeight: 900, lineHeight: 1.15, marginBottom: 24, color: token.colorTextHeading, letterSpacing: '-1px' }}>
                     Find Parking <br />
                     <span style={{ color: '#ea580c' }}>Easier</span> than ever
                   </Title>
                 </motion.div>
                 
                 <motion.div variants={itemVariants}>
-                  <Paragraph style={{ fontSize: '1.15rem', color: '#4b5563', marginBottom: 40, lineHeight: 1.6 }}>
+                  <Paragraph style={{ fontSize: '1.15rem', color: token.colorTextSecondary, marginBottom: 40, lineHeight: 1.6 }}>
                     No more driving around looking for a spot. Our app helps you check real-time availability, book in advance, and pay cashless with just a few taps.
                   </Paragraph>
                 </motion.div>
@@ -458,7 +462,7 @@ const LandingPage = () => {
       </div>
 
       {/* 2. CÁC TÍNH NĂNG NỔI BẬT */}
-      <div id="features" style={{ padding: '120px 5%', backgroundColor: '#f9fafb' }}>
+      <div id="features" style={{ padding: '120px 5%', backgroundColor: token.colorBgLayout }}>
         <motion.div 
           variants={containerVariants}
           initial="hidden"
@@ -470,7 +474,7 @@ const LandingPage = () => {
             <Text style={{ color: '#ea580c', fontWeight: 700, fontSize: 15, letterSpacing: 2, textTransform: 'uppercase' }}>Exceptional Experience</Text>
           </motion.div>
           <motion.div variants={itemVariants}>
-            <Title level={2} style={{ fontWeight: 900, fontSize: '2.5rem', marginTop: 12, color: '#111827' }}>Everything at your fingertips</Title>
+            <Title level={2} style={{ fontWeight: 900, fontSize: '2.5rem', marginTop: 12, color: token.colorTextHeading }}>Everything at your fingertips</Title>
           </motion.div>
         </motion.div>
         
@@ -498,13 +502,13 @@ const LandingPage = () => {
                     bodyStyle={{ padding: 40 }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
-                      <div style={{ width: 64, height: 64, backgroundColor: '#fff7ed', borderRadius: 20, display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#ea580c', fontSize: 28, marginRight: 20 }}>
+                      <div style={{ width: 64, height: 64, backgroundColor: token.colorFillQuaternary, borderRadius: 20, display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#ea580c', fontSize: 28, marginRight: 20 }}>
                         {feature.icon}
                       </div>
                       <Text style={{ fontSize: 24, color: '#f59e0b', fontWeight: 900, opacity: 0.5 }}>0{index + 1}</Text>
                     </div>
-                    <Title level={4} style={{ fontWeight: 800, fontSize: 20, color: '#1f2937' }}>{feature.title}</Title>
-                    <Paragraph style={{ color: '#6b7280', fontSize: 16, lineHeight: 1.6, margin: 0 }}>{feature.desc}</Paragraph>
+                    <Title level={4} style={{ fontWeight: 800, fontSize: 20, color: token.colorTextHeading }}>{feature.title}</Title>
+                    <Paragraph style={{ color: token.colorTextSecondary, fontSize: 16, lineHeight: 1.6, margin: 0 }}>{feature.desc}</Paragraph>
                   </Card>
                 </motion.div>
               </Col>
@@ -514,53 +518,59 @@ const LandingPage = () => {
       </div>
 
       {/* 3. QUY TRÌNH SỬ DỤNG */}
-      <div id="booking-steps" style={{ padding: '120px 5%', backgroundColor: '#fff' }}>
+      <div id="booking-steps" style={{ padding: '120px 5%', backgroundColor: token.colorBgContainer }}>
         <motion.div
           variants={containerVariants}
           initial="hidden"
           whileInView="show"
           viewport={{ once: false, amount: 0.1 }}
         >
-          <Row align="middle" gutter={[80, 64]}>
-            <Col xs={24} lg={10}>
+          <Row justify="center" align="middle" gutter={[0, 64]}>
+            <Col xs={24} style={{ textAlign: 'center' }}>
               <motion.div variants={itemVariants}>
                 <Text style={{ color: '#ea580c', fontWeight: 700, fontSize: 15, letterSpacing: 2, textTransform: 'uppercase' }}>How to Book</Text>
               </motion.div>
               <motion.div variants={itemVariants}>
-                <Title level={2} style={{ fontWeight: 900, fontSize: '2.5rem', marginTop: 12, color: '#111827' }}>Detailed Booking Steps</Title>
+                <Title level={2} style={{ fontWeight: 900, fontSize: '2.5rem', marginTop: 12, color: token.colorTextHeading }}>Detailed Booking Steps</Title>
               </motion.div>
               <motion.div variants={itemVariants}>
-                <Paragraph style={{ color: '#6b7280', fontSize: 18, marginBottom: 40, lineHeight: 1.7 }}>
+                <Paragraph style={{ color: token.colorTextSecondary, fontSize: 18, marginBottom: 40, lineHeight: 1.7, maxWidth: 600, margin: '0 auto 40px' }}>
                   Follow these 5 simple steps to book a parking spot for your car effortlessly.
                 </Paragraph>
               </motion.div>
             </Col>
-            <Col xs={24} lg={14}>
+            <Col xs={24}>
               <motion.div variants={itemVariants}>
                 <Steps
-                  direction="vertical"
+                  direction="horizontal"
+                  labelPlacement="vertical"
                   current={-1}
                   size="default"
                   items={[
                     {
-                      title: <span style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>Login</span>,
-                      description: <span style={{ fontSize: 16, color: '#6b7280', display: 'inline-block', marginTop: 8, paddingBottom: 16 }}>Log in to the system to get started.</span>,
+                      title: <span style={{ fontSize: 20, fontWeight: 800, color: token.colorTextHeading }}>Login</span>,
+                      icon: <LoginOutlined style={{ color: '#ea580c', fontSize: 28 }} />,
+                      description: <span style={{ fontSize: 14, color: token.colorTextSecondary, display: 'inline-block', marginTop: 8 }}>Log in to the system.</span>,
                     },
                     {
-                      title: <span style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>Register Vehicle</span>,
-                      description: <span style={{ fontSize: 16, color: '#6b7280', display: 'inline-block', marginTop: 8, paddingBottom: 16 }}>Add your vehicle information to the system.</span>,
+                      title: <span style={{ fontSize: 20, fontWeight: 800, color: token.colorTextHeading }}>Register Vehicle</span>,
+                      icon: <FormOutlined style={{ color: '#ea580c', fontSize: 28 }} />,
+                      description: <span style={{ fontSize: 14, color: token.colorTextSecondary, display: 'inline-block', marginTop: 8 }}>Add your vehicle details.</span>,
                     },
                     {
-                      title: <span style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>Select Slot</span>,
-                      description: <span style={{ fontSize: 16, color: '#6b7280', display: 'inline-block', marginTop: 8, paddingBottom: 16 }}>View available slots and select a suitable position.</span>,
+                      title: <span style={{ fontSize: 20, fontWeight: 800, color: token.colorTextHeading }}>Select Slot</span>,
+                      icon: <CarOutlined style={{ color: '#ea580c', fontSize: 28 }} />,
+                      description: <span style={{ fontSize: 14, color: token.colorTextSecondary, display: 'inline-block', marginTop: 8 }}>Select a suitable position.</span>,
                     },
                     {
-                      title: <span style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>Create Booking</span>,
-                      description: <span style={{ fontSize: 16, color: '#6b7280', display: 'inline-block', marginTop: 8, paddingBottom: 16 }}>Confirm booking details and create an order.</span>,
+                      title: <span style={{ fontSize: 20, fontWeight: 800, color: token.colorTextHeading }}>Create Booking</span>,
+                      icon: <CheckCircleOutlined style={{ color: '#ea580c', fontSize: 28 }} />,
+                      description: <span style={{ fontSize: 14, color: token.colorTextSecondary, display: 'inline-block', marginTop: 8 }}>Confirm booking details.</span>,
                     },
                     {
-                      title: <span style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>Payment</span>,
-                      description: <span style={{ fontSize: 16, color: '#6b7280', display: 'inline-block', marginTop: 8 }}>Pay online to complete your reservation.</span>,
+                      title: <span style={{ fontSize: 20, fontWeight: 800, color: token.colorTextHeading }}>Payment</span>,
+                      icon: <CreditCardOutlined style={{ color: '#ea580c', fontSize: 28 }} />,
+                      description: <span style={{ fontSize: 14, color: token.colorTextSecondary, display: 'inline-block', marginTop: 8 }}>Pay online to complete.</span>,
                     },
                   ]}
                 />
