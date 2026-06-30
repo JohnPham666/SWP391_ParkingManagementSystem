@@ -27,6 +27,9 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final com.parking.management.common.EmailService emailService;
 
+    @org.springframework.beans.factory.annotation.Value("${app.frontend-url:http://localhost:5173}")
+    private String frontendUrl;
+
     /**
      * Xử lý đăng nhập:
      * 1. Tìm user theo email
@@ -142,7 +145,7 @@ public class AuthService {
                 .compact();
 
         // Cấu hình link reset (Frontend URL)
-        String resetLink = "http://localhost:5173/#/reset-password?token=" + token;
+        String resetLink = frontendUrl + "/#/reset-password?token=" + token;
 
         // Gọi EmailService để gửi mail chuyên nghiệp
         emailService.sendResetPasswordEmail(user.getEmail(), resetLink);

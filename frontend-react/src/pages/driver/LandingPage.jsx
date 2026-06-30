@@ -437,9 +437,9 @@ const LandingPage = () => {
                   <Button 
                     size="large" 
                     style={{ height: 56, padding: '0 40px', fontSize: 16, fontWeight: 600, borderRadius: '12px', borderColor: '#e5e7eb', color: '#4b5563', backgroundColor: '#fff' }}
-                    onClick={() => { document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }) }}
+                    onClick={() => { document.getElementById('booking-steps')?.scrollIntoView({ behavior: 'smooth' }) }}
                   >
-                    Explore Features
+                    View feature
                   </Button>
                 </motion.div>
               </div>
@@ -514,7 +514,7 @@ const LandingPage = () => {
       </div>
 
       {/* 3. QUY TRÌNH SỬ DỤNG */}
-      <div style={{ padding: '120px 5%', backgroundColor: '#fff' }}>
+      <div id="booking-steps" style={{ padding: '120px 5%', backgroundColor: '#fff' }}>
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -524,14 +524,14 @@ const LandingPage = () => {
           <Row align="middle" gutter={[80, 64]}>
             <Col xs={24} lg={10}>
               <motion.div variants={itemVariants}>
-                <Text style={{ color: '#ea580c', fontWeight: 700, fontSize: 15, letterSpacing: 2, textTransform: 'uppercase' }}>Simplified</Text>
+                <Text style={{ color: '#ea580c', fontWeight: 700, fontSize: 15, letterSpacing: 2, textTransform: 'uppercase' }}>How to Book</Text>
               </motion.div>
               <motion.div variants={itemVariants}>
-                <Title level={2} style={{ fontWeight: 900, fontSize: '2.5rem', marginTop: 12, color: '#111827' }}>Just 3 simple steps</Title>
+                <Title level={2} style={{ fontWeight: 900, fontSize: '2.5rem', marginTop: 12, color: '#111827' }}>Detailed Booking Steps</Title>
               </motion.div>
               <motion.div variants={itemVariants}>
                 <Paragraph style={{ color: '#6b7280', fontSize: 18, marginBottom: 40, lineHeight: 1.7 }}>
-                  We've optimized all unnecessary actions so you can enter and exit the parking lot as fast as possible. Automation technology handles the rest.
+                  Follow these 5 simple steps to book a parking spot for your car effortlessly.
                 </Paragraph>
               </motion.div>
             </Col>
@@ -543,16 +543,24 @@ const LandingPage = () => {
                   size="default"
                   items={[
                     {
-                      title: <span style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>Create a Free Account</span>,
-                      description: <span style={{ fontSize: 16, color: '#6b7280', display: 'inline-block', marginTop: 8, paddingBottom: 32 }}>Takes only 30 seconds to register. Manage all your vehicles in a single account.</span>,
+                      title: <span style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>Login</span>,
+                      description: <span style={{ fontSize: 16, color: '#6b7280', display: 'inline-block', marginTop: 8, paddingBottom: 16 }}>Log in to the system to get started.</span>,
                     },
                     {
-                      title: <span style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>Find & Reserve a Spot</span>,
-                      description: <span style={{ fontSize: 16, color: '#6b7280', display: 'inline-block', marginTop: 8, paddingBottom: 32 }}>View available slots by zone, compare prices, and hit reserve before you depart.</span>,
+                      title: <span style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>Register Vehicle</span>,
+                      description: <span style={{ fontSize: 16, color: '#6b7280', display: 'inline-block', marginTop: 8, paddingBottom: 16 }}>Add your vehicle information to the system.</span>,
                     },
                     {
-                      title: <span style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>Park & Auto-Pay</span>,
-                      description: <span style={{ fontSize: 16, color: '#6b7280', display: 'inline-block', marginTop: 8 }}>AI cameras recognize your license plate, barriers open automatically. The fee is deducted when you leave.</span>,
+                      title: <span style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>Select Slot</span>,
+                      description: <span style={{ fontSize: 16, color: '#6b7280', display: 'inline-block', marginTop: 8, paddingBottom: 16 }}>View available slots and select a suitable position.</span>,
+                    },
+                    {
+                      title: <span style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>Create Booking</span>,
+                      description: <span style={{ fontSize: 16, color: '#6b7280', display: 'inline-block', marginTop: 8, paddingBottom: 16 }}>Confirm booking details and create an order.</span>,
+                    },
+                    {
+                      title: <span style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>Payment</span>,
+                      description: <span style={{ fontSize: 16, color: '#6b7280', display: 'inline-block', marginTop: 8 }}>Pay online to complete your reservation.</span>,
                     },
                   ]}
                 />
@@ -590,6 +598,36 @@ const LandingPage = () => {
           </Button>
         </motion.div>
       </motion.div>
+
+      {/* 5. FOOTER */}
+      <div style={{ backgroundColor: '#111827', color: '#fff', padding: '60px 5% 40px' }}>
+        <Row gutter={[40, 40]}>
+          <Col xs={24} md={8}>
+            <Title level={3} style={{ color: '#fff', fontWeight: 800, margin: '0 0 24px 0' }}>ParkSmart</Title>
+            <Paragraph style={{ color: '#9ca3af', fontSize: 16, lineHeight: 1.8 }}>
+              Leading smart parking solution. Fast, safe, and convenient.
+            </Paragraph>
+          </Col>
+          <Col xs={24} md={8}>
+            <Title level={4} style={{ color: '#fff', fontWeight: 700, margin: '0 0 24px 0' }}>Contact Us</Title>
+            <div style={{ color: '#9ca3af', fontSize: 16, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>📞 <strong>Phone:</strong> 0123 456 789</div>
+              <div>💬 <strong>Zalo:</strong> 0123 456 789</div>
+              <div>✉️ <strong>Email:</strong> contact@parksmart.vn</div>
+            </div>
+          </Col>
+          <Col xs={24} md={8}>
+            <Title level={4} style={{ color: '#fff', fontWeight: 700, margin: '0 0 24px 0' }}>Address</Title>
+            <Paragraph style={{ color: '#9ca3af', fontSize: 16, lineHeight: 1.8 }}>
+              Hoa Lac Hi-Tech Park, <br />
+              Thach That, Hanoi, Vietnam
+            </Paragraph>
+          </Col>
+        </Row>
+        <div style={{ borderTop: '1px solid #374151', marginTop: 40, paddingTop: 20, textAlign: 'center', color: '#6b7280' }}>
+          © {new Date().getFullYear()} ParkSmart. All Rights Reserved.
+        </div>
+      </div>
 
       <style>{`
         .hero-btn-hover {
