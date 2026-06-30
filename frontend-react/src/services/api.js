@@ -174,7 +174,7 @@ export const reportApi = {
 
 export const monitoringApi = {
   getDashboard: (params) => {
-    const q = Object.entries(params || {}).filter(([,v]) => v).map(([k,v]) => `${k}=${v}`).join('&');
+    const q = Object.entries(params || {}).filter(([, v]) => v).map(([k, v]) => `${k}=${v}`).join('&');
     return api.get(`/monitoring/dashboard${q ? '?' + q : ''}`);
   }
 };
