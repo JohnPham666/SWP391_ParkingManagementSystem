@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { Layout, Menu, Avatar, Dropdown, Space, Typography, Badge, Switch, Tag, Popover, List, Button } from 'antd';
+import logoImg from '../../assets/logo.png';
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -183,7 +184,15 @@ const MainLayout = () => {
       >
         <div style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '24px 16px', cursor: 'pointer', borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid #f0f0f0' }} onClick={() => navigate(basePath)}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: collapsed ? 'center' : 'flex-start' }}>
-            <CarOutlined style={{ fontSize: '28px', color: '#f97316' }} />
+            <img src={logoImg} alt="ParkSmart Logo" style={{ 
+              height: collapsed ? '36px' : '56px', 
+              objectFit: 'contain', 
+              maxWidth: '100%',
+              backgroundColor: '#ffffff',
+              borderRadius: '8px',
+              padding: '4px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }} />
             {!collapsed && <Title level={3} style={{ margin: 0, color: '#f97316' }}>ParkSmart</Title>}
           </div>
           {!collapsed && <Text type="secondary" style={{ fontSize: '12px', marginTop: '8px', fontWeight: 600 }}>Smart Parking Solution</Text>}

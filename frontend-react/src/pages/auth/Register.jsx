@@ -4,6 +4,7 @@ import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined } from '@ant-de
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { ThemeContext } from '../../contexts/ThemeContext';
+import logoImg from '../../assets/logo.png';
 
 const { Title, Text } = Typography;
 
@@ -58,10 +59,17 @@ const Register = () => {
 
         <div style={{ zIndex: 1, textAlign: 'center' }}>
           <img 
-            src="/images/signupImg.svg" 
+            src={logoImg} 
             alt="ParkSmart Join" 
-            style={{ maxWidth: '80%', maxHeight: '60vh', marginBottom: '2rem', filter: 'drop-shadow(0px 20px 30px rgba(234,88,12,0.15))' }}
-            onError={(e) => { e.target.style.display = 'none'; }}
+            style={{ 
+              maxWidth: '80%', 
+              maxHeight: '40vh', 
+              marginBottom: '2rem', 
+              backgroundColor: '#fff',
+              padding: '24px',
+              borderRadius: '32px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.15)'
+            }}
           />
           <Title level={1} style={{ color: '#ea580c', fontWeight: 800, margin: 0 }}>ParkSmart</Title>
           <Text style={{ fontSize: '18px', color: isDarkMode ? '#aaa' : '#666' }}>Smart & Modern Parking Management System</Text>
@@ -95,7 +103,7 @@ const Register = () => {
           >
             <Form.Item
               name="fullName"
-              label={<span style={{ fontWeight: 600 }}>Full Name *</span>}
+              label={<span style={{ fontWeight: 600, color: isDarkMode ? '#fff' : undefined }}>Full Name *</span>}
               rules={[{ required: true, message: 'Please enter your full name!' }]}
             >
               <Input 
@@ -107,7 +115,7 @@ const Register = () => {
 
             <Form.Item
               name="email"
-              label={<span style={{ fontWeight: 600 }}>Email Address *</span>}
+              label={<span style={{ fontWeight: 600, color: isDarkMode ? '#fff' : undefined }}>Email Address *</span>}
               rules={[
                 { required: true, message: 'Please enter your email!' },
                 { type: 'email', message: 'Invalid email format!' }
@@ -122,7 +130,7 @@ const Register = () => {
 
             <Form.Item
               name="phone"
-              label={<span style={{ fontWeight: 600 }}>Phone Number *</span>}
+              label={<span style={{ fontWeight: 600, color: isDarkMode ? '#fff' : undefined }}>Phone Number *</span>}
               rules={[{ required: true, message: 'Please enter your phone number!' }]}
             >
               <Input 
@@ -134,7 +142,7 @@ const Register = () => {
 
             <Form.Item
               name="password"
-              label={<span style={{ fontWeight: 600 }}>Password *</span>}
+              label={<span style={{ fontWeight: 600, color: isDarkMode ? '#fff' : undefined }}>Password *</span>}
               rules={[
                 { required: true, message: 'Please enter your password!' },
                 { min: 6, message: 'Password must be at least 6 characters!' }
@@ -149,7 +157,7 @@ const Register = () => {
 
             <Form.Item
               name="confirmPassword"
-              label={<span style={{ fontWeight: 600 }}>Confirm Password *</span>}
+              label={<span style={{ fontWeight: 600, color: isDarkMode ? '#fff' : undefined }}>Confirm Password *</span>}
               dependencies={['password']}
               rules={[
                 { required: true, message: 'Please confirm your password!' },
@@ -179,7 +187,7 @@ const Register = () => {
               ]}
               style={{ marginBottom: '32px' }}
             >
-              <Checkbox>
+              <Checkbox style={{ color: isDarkMode ? '#fff' : undefined }}>
                 I agree to the <a style={{ color: '#ea580c' }}>Privacy Policy</a> and <a style={{ color: '#ea580c' }}>Terms of Service</a>.
               </Checkbox>
             </Form.Item>

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import api, { authApi } from '../../services/api';
 import { getDefaultRouteByRole } from '../../utils/authUtils';
 import { ThemeContext } from '../../contexts/ThemeContext';
+import logoImg from '../../assets/logo.png';
 
 const { Title, Text } = Typography;
 
@@ -84,10 +85,17 @@ const Login = () => {
 
         <div style={{ zIndex: 1, textAlign: 'center' }}>
           <img 
-            src="/images/signinImg.svg" 
+            src={logoImg} 
             alt="ParkSmart Welcome" 
-            style={{ maxWidth: '80%', maxHeight: '60vh', marginBottom: '2rem', filter: 'drop-shadow(0px 20px 30px rgba(234,88,12,0.15))' }}
-            onError={(e) => { e.target.style.display = 'none'; }}
+            style={{ 
+              maxWidth: '80%', 
+              maxHeight: '40vh', 
+              marginBottom: '2rem', 
+              backgroundColor: '#fff',
+              padding: '24px',
+              borderRadius: '32px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.15)'
+            }}
           />
           <Title level={1} style={{ color: '#ea580c', fontWeight: 800, margin: 0 }}>ParkSmart</Title>
           <Text style={{ fontSize: '18px', color: isDarkMode ? '#aaa' : '#666' }}>Smart & Modern Parking Management System</Text>
@@ -120,7 +128,7 @@ const Login = () => {
           >
             <Form.Item
               name="email"
-              label={<span style={{ fontWeight: 600 }}>Email Address</span>}
+              label={<span style={{ fontWeight: 600, color: isDarkMode ? '#fff' : undefined }}>Email Address</span>}
               rules={[
                 { required: true, message: 'Please enter your email!' },
                 { type: 'email', message: 'Invalid email format!' }
@@ -135,7 +143,7 @@ const Login = () => {
 
             <Form.Item
               name="password"
-              label={<span style={{ fontWeight: 600 }}>Password</span>}
+              label={<span style={{ fontWeight: 600, color: isDarkMode ? '#fff' : undefined }}>Password</span>}
               rules={[{ required: true, message: 'Please enter your password!' }]}
               style={{ marginBottom: '16px' }}
             >
@@ -149,7 +157,7 @@ const Login = () => {
             <Form.Item style={{ marginBottom: '32px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Form.Item name="remember" valuePropName="checked" noStyle>
-                  <Checkbox>Remember me</Checkbox>
+                  <Checkbox style={{ color: isDarkMode ? '#fff' : undefined }}>Remember me</Checkbox>
                 </Form.Item>
                 <a 
                   style={{ color: '#ea580c', fontWeight: 600, cursor: 'pointer' }}
@@ -213,7 +221,7 @@ const Login = () => {
         <Form form={forgotForm} layout="vertical" onFinish={handleForgotPassword}>
           <Form.Item
             name="email"
-            label={<span style={{ fontWeight: 600 }}>Email Address</span>}
+            label={<span style={{ fontWeight: 600, color: isDarkMode ? '#fff' : undefined }}>Email Address</span>}
             rules={[
               { required: true, message: 'Please enter your email!' },
               { type: 'email', message: 'Invalid email format!' }
