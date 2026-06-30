@@ -314,7 +314,8 @@ INSERT INTO Users (UserID, FullName, Email, PhoneNumber, DateOfBirth, Address, P
 (13, 'Trần Minh Khoa',       'khoa@gmail.com',             '0912345005', '1991-03-28', '33 Nguyễn Đình Chiểu, Q.3, TP.HCM',   '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.', 4, NULL, TRUE),
 (14, 'Phan Thị Lan Anh',     'lananh@gmail.com',           '0912345006', '1996-10-07', '10 Lê Văn Sỹ, Quận 3, TP.HCM',         '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.', 4, NULL, TRUE),
 (15, 'Đỗ Đức Thành',         'thanh@gmail.com',            '0912345007', '1987-06-19', '77 Đoàn Văn Bơ, Quận 4, TP.HCM',       '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.', 4, NULL, TRUE),
-(16, 'Nguyễn Văn Cường',     'cuong.inactive@gmail.com',   '0912345008', '1990-01-01', '5 Âu Cơ, Quận Tân Bình, TP.HCM',       '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.', 4, NULL, FALSE);
+(16, 'Nguyễn Văn Cường',     'cuong.inactive@gmail.com',   '0912345008', '1990-01-01', '5 Âu Cơ, Quận Tân Bình, TP.HCM',       '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.', 4, NULL, FALSE),
+(17, 'Admin',                'admin@gmail.com',            '111111111',  '1990-01-01', 'Admin Address',                      '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.', 1, NULL, TRUE);
 SELECT setval('users_userid_seq', (SELECT MAX(UserID) FROM Users));
 
 -- 3. BUILDINGS

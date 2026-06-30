@@ -181,7 +181,7 @@ const IncidentManagement = () => {
   const getImageUrl = (path) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
-    return `http://localhost:8080/${path.replace(/^\/+/, '')}`;
+    return `https://swp391-parkingmanagementsystem-1.onrender.com/${path.replace(/^\/+/, '')}`;
   };
 
   return (
