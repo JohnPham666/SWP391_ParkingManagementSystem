@@ -87,8 +87,8 @@ public class EmailService {
 
     /**
      * Gửi email khôi phục mật khẩu với giao diện chuyên nghiệp
+     * Gửi đồng bộ để lỗi SMTP được trả về cho client
      */
-    @Async
     public void sendResetPasswordEmail(String toEmail, String resetLink) {
         try {
             jakarta.mail.internet.MimeMessage mimeMessage = mailSender.createMimeMessage();
@@ -149,7 +149,7 @@ public class EmailService {
             log.info("Password reset email sent successfully to {}", toEmail);
         } catch (Exception e) {
             log.error("Failed to send reset password email to {}: {}", toEmail, e.getMessage());
-            System.out.println("RESET LINK (TESTING): " + resetLink);
+            throw new RuntimeException("Không thể gửi email đặt lại mật khẩu: " + e.getMessage());
         }
     }
 }
