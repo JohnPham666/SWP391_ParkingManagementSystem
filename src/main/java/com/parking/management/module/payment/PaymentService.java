@@ -39,6 +39,9 @@ public class PaymentService {
     private final VnPayService vnPayService;
     private final SecurityUtils securityUtils;
 
+    @org.springframework.beans.factory.annotation.Value("${app.backend-url:http://localhost:8080}")
+    private String backendUrl;
+
     // SessionService được inject để dùng chung logic hoàn tất session + giải phóng slot.
     // Tránh duplicate code giữa PaymentService và SessionService.
     private final SessionService sessionService;
@@ -346,7 +349,7 @@ public class PaymentService {
             response.setQrContent("BANK_TRANSFER|PAYMENT_ID=" + response.getPaymentId()
                     + "|AMOUNT=" + response.getAmount()
                     + "|CONTENT=PAYMENT" + response.getPaymentId());
-            response.setPaymentUrl("http://localhost:8080/mock-payment/bank-transfer/" + response.getPaymentId());
+            response.setPaymentUrl(backendUrl + "/mock-payment/bank-transfer/" + response.getPaymentId());
             return;
         }
 
@@ -354,13 +357,13 @@ public class PaymentService {
             response.setPaymentInstruction("Pay using mock e-wallet gateway. This is for demo purpose.");
             response.setQrContent("E_WALLET|PAYMENT_ID=" + response.getPaymentId()
                     + "|AMOUNT=" + response.getAmount());
-            response.setPaymentUrl("http://localhost:8080/mock-payment/e-wallet/" + response.getPaymentId());
+            response.setPaymentUrl(backendUrl + "/mock-payment/e-wallet/" + response.getPaymentId());
             return;
         }
 
         if (PaymentMethod.CREDIT_CARD.name().equals(response.getPaymentMethod())) {
             response.setPaymentInstruction("Pay using mock credit card gateway. This is for demo purpose.");
-            response.setPaymentUrl("http://localhost:8080/mock-payment/card/" + response.getPaymentId());
+            response.setPaymentUrl(backendUrl + "/mock-payment/card/" + response.getPaymentId());
         }
     }
     @Transactional
