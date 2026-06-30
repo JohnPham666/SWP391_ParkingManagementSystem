@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Statistic, Typography, Button, Spin, message, Modal, Form, Input, Select, Upload, Tag, Progress } from 'antd';
+import { Row, Col, Card, Statistic, Typography, Button, Spin, message, Modal, Form, Input, Select, Upload, Tag, Progress, theme } from 'antd';
 import { 
   CarOutlined, 
   SafetyCertificateOutlined,
@@ -17,6 +17,7 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const StaffDashboard = () => {
+  const { token } = theme.useToken();
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
   const [todayReservationList, setTodayReservationList] = useState([]);
@@ -148,11 +149,10 @@ const StaffDashboard = () => {
 
       let resList = resRes.data?.data || resRes.data || [];
       if (Array.isArray(resList)) {
-        const todayStr = dayjs().format('YYYY-MM-DD');
-        const todayRes = resList.filter(r => 
-          r.reservationStart && dayjs(r.reservationStart).format('YYYY-MM-DD') === todayStr && (r.status === 'CONFIRMED' || r.status === 'PENDING')
+        const activeRes = resList.filter(r => 
+          r.status === 'CONFIRMED' || r.status === 'PENDING'
         );
-        setTodayReservationList(todayRes);
+        setTodayReservationList(activeRes);
       }
     } catch (error) {
       console.error('Error fetching dashboard:', error);
@@ -482,11 +482,11 @@ const StaffDashboard = () => {
                 
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
                   {Object.entries(vTypeStats).map(([type, stats]) => (
-                    <div key={type} style={{ background: '#f8fafc', padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '20px', color: '#64748b' }}>{getTypeIcon(type)}</span>
+                    <div key={type} style={{ background: token.colorFillQuaternary, padding: '8px 16px', borderRadius: '8px', border: `1px solid ${token.colorBorderSecondary}`, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '20px', color: token.colorTextSecondary }}>{getTypeIcon(type)}</span>
                       <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>{type}</div>
-                        <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a' }}>{stats.current} <span style={{ color: '#94a3b8', fontSize: '14px' }}>/ {stats.capacity}</span></div>
+                        <div style={{ fontSize: '12px', color: token.colorTextSecondary, fontWeight: 'bold' }}>{type}</div>
+                        <div style={{ fontSize: '16px', fontWeight: 'bold', color: token.colorText }}>{stats.current} <span style={{ color: token.colorTextQuaternary, fontSize: '14px' }}>/ {stats.capacity}</span></div>
                       </div>
                     </div>
                   ))}
@@ -518,7 +518,7 @@ const StaffDashboard = () => {
           >
             <SafetyCertificateOutlined style={{ fontSize: '48px', color: 'rgba(255,255,255,0.9)', marginBottom: '16px' }} />
             <h3 style={{ color: 'white', fontSize: '20px', margin: '0 0 8px 0' }}>Reservation</h3>
-            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginBottom: '16px' }}>Pending Arrivals Today</p>
+            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginBottom: '16px' }}>All Pending Arrivals</p>
             <div style={{ fontSize: '64px', fontWeight: '900', lineHeight: 1 }}>{todayReservationList.length}</div>
           </Card>
         </Col>
@@ -528,7 +528,7 @@ const StaffDashboard = () => {
       <div style={{ marginTop: 24 }}>
         <Title level={4} style={{ marginBottom: 16 }}>Quick Actions</Title>
         <Row gutter={[24, 24]}>
-          <Col xs={24} md={8}>
+          <Col xs={24} md={12}>
             <Button 
               type="primary" 
               block 
@@ -548,26 +548,7 @@ const StaffDashboard = () => {
             </Button>
           </Col>
 
-          <Col xs={24} md={8}>
-            <Button 
-              block 
-              style={{ 
-                height: '100px', 
-                fontSize: '20px', 
-                fontWeight: 'bold', 
-                borderColor: '#3b82f6',
-                color: '#3b82f6',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)',
-                borderRadius: '12px'
-              }}
-              icon={<SafetyCertificateOutlined style={{ fontSize: '28px' }} />}
-              onClick={() => setIsResCheckInVisible(true)}
-            >
-              Check-in Đặt chỗ
-            </Button>
-          </Col>
-
-          <Col xs={24} md={8}>
+          <Col xs={24} md={12}>
             <Button 
               type="primary" 
               danger
@@ -662,8 +643,8 @@ const StaffDashboard = () => {
               <p style={{ margin: 0 }}><strong>Slot:</strong> {matchedReservation.slotCode || 'Any'}</p>
             </div>
           ) : (
-            <div style={{ padding: '16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', marginBottom: '24px' }}>
-              <Text type="secondary">No reservation found for this plate. Proceeding as <strong style={{ color: '#1e293b' }}>Walk-in</strong>.</Text>
+            <div style={{ padding: '16px', background: token.colorFillQuaternary, border: `1px solid ${token.colorBorderSecondary}`, borderRadius: '8px', marginBottom: '24px' }}>
+              <Text type="secondary">No reservation found for this plate. Proceeding as <strong style={{ color: token.colorText }}>Walk-in</strong>.</Text>
             </div>
           )}
 

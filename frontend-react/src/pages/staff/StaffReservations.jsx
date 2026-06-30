@@ -11,7 +11,7 @@ const StaffReservations = () => {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({ search: '', status: null });
-  const [selectedDate, setSelectedDate] = useState(dayjs()); // Default: today
+  const [selectedDate, setSelectedDate] = useState(null); // Default: all
 
   useEffect(() => {
     fetchReservations();

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Input, Select, Space, Tag, Typography, message, Spin, Row, Col, Modal, Descriptions } from 'antd';
+import { Card, Input, Select, Space, Tag, Typography, message, Spin, Row, Col, Modal, Descriptions, theme } from 'antd';
 import { SearchOutlined, CarOutlined } from '@ant-design/icons';
 import { slotApi } from '../../services/api';
 
@@ -7,6 +7,7 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const StaffSlots = () => {
+  const { token } = theme.useToken();
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   
@@ -71,10 +72,10 @@ const StaffSlots = () => {
   });
 
   const getStatusColor = (status) => {
-    if (status === 'AVAILABLE') return { bg: '#f0fdf4', border: '#bbf7d0', text: '#16a34a', label: 'Available' };
-    if (status === 'OCCUPIED') return { bg: '#fef2f2', border: '#fecaca', text: '#dc2626', label: 'Occupied' };
-    if (status === 'RESERVED') return { bg: '#fffbeb', border: '#fde68a', text: '#d97706', label: 'Reserved' };
-    return { bg: '#f3f4f6', border: '#e5e7eb', text: '#4b5563', label: 'Locked' }; // LOCKED or others
+    if (status === 'AVAILABLE') return { bg: token.colorSuccessBg, border: token.colorSuccessBorder, text: token.colorSuccessText, label: 'Available' };
+    if (status === 'OCCUPIED') return { bg: token.colorErrorBg, border: token.colorErrorBorder, text: token.colorErrorText, label: 'Occupied' };
+    if (status === 'RESERVED') return { bg: token.colorWarningBg, border: token.colorWarningBorder, text: token.colorWarningText, label: 'Reserved' };
+    return { bg: token.colorFillAlter, border: token.colorBorder, text: token.colorTextSecondary, label: 'Locked' };
   };
 
   const getVehicleIcon = (type) => {
@@ -145,7 +146,7 @@ const StaffSlots = () => {
                   const capZ = zSlots.reduce((acc, s) => acc + (s.capacity || 1), 0);
 
                   return (
-                    <div key={zName} style={{ marginBottom: 20, background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <div key={zName} style={{ marginBottom: 20, background: token.colorFillQuaternary, padding: '16px', borderRadius: '8px', border: `1px solid ${token.colorBorderSecondary}` }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                         <Text strong style={{ fontSize: '16px' }}>{zName}</Text>
                         <Tag color="blue" style={{ fontSize: '14px', padding: '4px 10px' }}>
@@ -190,9 +191,9 @@ const StaffSlots = () => {
                                      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
                                   {getVehicleIcon(s.vehicleTypeName)}
                                 </div>
-                                <div style={{ fontWeight: '900', fontSize: '16px', color: '#1f2937' }}>{s.slotCode}</div>
+                                <div style={{ fontWeight: '900', fontSize: '16px', color: token.colorText }}>{s.slotCode}</div>
                                 <div style={{ fontSize: '12px', fontWeight: 'bold', color: colors.text }}>{colors.label}</div>
-                                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px', background: '#fff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e5e7eb' }}>
+                                <div style={{ fontSize: '12px', color: token.colorTextSecondary, marginTop: '2px', background: token.colorBgContainer, padding: '2px 6px', borderRadius: '4px', border: `1px solid ${token.colorBorder}` }}>
                                   {s.currentOccupancy || 0}/{s.capacity || 1}
                                 </div>
                               </div>
