@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Avatar, Typography, Drawer, Button, Dropdown, Space, Badge, Tag, Switch, ConfigProvider, theme as antdTheme } from 'antd';
+import { Layout, Menu, Avatar, Typography, Drawer, Button, Dropdown, Space, Badge, Tag, Switch, ConfigProvider, theme as antdTheme, Modal, Steps } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     DashboardOutlined,
@@ -14,7 +14,8 @@ import {
     LogoutOutlined,
     SettingOutlined,
     MoonOutlined,
-    SunOutlined
+    SunOutlined,
+    InfoCircleOutlined
 } from '@ant-design/icons';
 import '../assets/styles/driver.css';
 
@@ -25,6 +26,7 @@ const DriverLayout = () => {
     const [collapsed, setCollapsed] = useState(false);
     const [drawerVisible, setDrawerVisible] = useState(false);
     const [user, setUser] = useState(null);
+    const [isInstructionModalVisible, setInstructionModalVisible] = useState(false);
     const [isDriverDarkMode, setIsDriverDarkMode] = useState(() => {
         return localStorage.getItem('driver_theme') === 'dark';
     });
@@ -93,7 +95,7 @@ const DriverLayout = () => {
     };
 
     const sidebarContent = (
-        <>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="driver-logo-container" style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '24px 16px', cursor: 'pointer' }} onClick={() => navigate('/driver/dashboard')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <CarOutlined style={{ fontSize: '28px', color: '#f97316' }} />
@@ -101,15 +103,43 @@ const DriverLayout = () => {
                 </div>
                 {!collapsed && <Text type="secondary" style={{ fontSize: '12px', marginTop: '8px', fontWeight: 600 }}>Smart Parking Solution</Text>}
             </div>
-            <Menu
-                className="driver-menu"
-                theme={isDriverDarkMode ? 'dark' : 'light'}
-                selectedKeys={[location.pathname]}
-                items={menuItems}
-                onClick={handleMenuClick}
-                mode="inline"
-            />
-        </>
+            
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+                <Menu
+                    className="driver-menu"
+                    theme={isDriverDarkMode ? 'dark' : 'light'}
+                    selectedKeys={[location.pathname]}
+                    items={menuItems}
+                    onClick={handleMenuClick}
+                    mode="inline"
+                />
+            </div>
+
+            <div style={{ padding: '16px', borderTop: isDriverDarkMode ? '1px solid #333' : '1px solid #f0f0f0' }}>
+                <Button 
+                    type="primary" 
+                    icon={<InfoCircleOutlined />} 
+                    block={!collapsed}
+                    style={{ 
+                        backgroundColor: '#ea580c', 
+                        borderColor: '#ea580c',
+                        height: '40px',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: collapsed ? 0 : undefined,
+                        boxShadow: '0 4px 6px -1px rgba(234, 88, 12, 0.4)'
+                    }}
+                    onClick={() => {
+                        setInstructionModalVisible(true);
+                        setDrawerVisible(false);
+                    }}
+                >
+                    {!collapsed && <span>How to book</span>}
+                </Button>
+            </div>
+        </div>
     );
 
     const currentDate = new Date().toLocaleDateString('en-US', {
@@ -195,6 +225,37 @@ const DriverLayout = () => {
                     <Outlet />
                 </Content>
             </Layout>
+
+            <Modal
+                title={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px' }}>
+                        <InfoCircleOutlined style={{ color: '#ea580c' }} />
+                        <span>Booking Instructions</span>
+                    </div>
+                }
+                open={isInstructionModalVisible}
+                onCancel={() => setInstructionModalVisible(false)}
+                footer={[
+                    <Button key="close" type="primary" onClick={() => setInstructionModalVisible(false)} style={{ backgroundColor: '#ea580c', border: 'none' }}>
+                        Got it!
+                    </Button>
+                ]}
+                width={600}
+                centered
+            >
+                <div style={{ padding: '24px 0' }}>
+                    <Steps
+                        direction="vertical"
+                        current={-1}
+                        items={[
+                            { title: <strong style={{ fontSize: '16px' }}>Register Vehicle</strong>, description: 'Add your vehicle information to the system.' },
+                            { title: <strong style={{ fontSize: '16px' }}>Select Slot</strong>, description: 'View available slots and select a suitable position.' },
+                            { title: <strong style={{ fontSize: '16px' }}>Create Booking</strong>, description: 'Confirm booking details and create an order.' },
+                            { title: <strong style={{ fontSize: '16px' }}>Payment</strong>, description: 'Pay online to complete your reservation.' },
+                        ]}
+                    />
+                </div>
+            </Modal>
         </Layout>
         </ConfigProvider>
     );

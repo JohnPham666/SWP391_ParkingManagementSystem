@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://swp391-parkingmanagementsystem-1.onrender.com/api', // Đảm bảo cổng này khớp với Spring Boot
+  baseURL: 'http://localhost:8080/api', // Đảm bảo cổng này khớp với Spring Boot
   headers: {
     'Content-Type': 'application/json',
   },
