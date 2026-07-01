@@ -6,6 +6,7 @@ import { driverService } from '../services/driverService';
 
 const { Title, Text } = Typography;
 
+// Khởi tạo component Trang Cá nhân (ProfilePage)
 const ProfilePage = () => {
     const { token } = theme.useToken();
     const [user, setUser] = useState(null);
@@ -14,6 +15,7 @@ const ProfilePage = () => {
     const [form] = Form.useForm();
     const [passwordForm] = Form.useForm();
 
+    // Hook lấy thông tin người dùng từ Local Storage khi component được tải lên
     useEffect(() => {
         const authStr = localStorage.getItem('parking_auth');
         if (authStr) {
@@ -24,6 +26,7 @@ const ProfilePage = () => {
         }
     }, []);
 
+    // Hàm xử lý mở popup (modal) để chỉnh sửa thông tin cá nhân và điền sẵn dữ liệu hiện tại
     const handleEditClick = () => {
         form.setFieldsValue({
             fullName: user?.fullName,
@@ -35,6 +38,7 @@ const ProfilePage = () => {
         setIsEditModalVisible(true);
     };
 
+    // Hàm xử lý khi người dùng nhấn "Lưu" thông tin cá nhân mới, gọi API cập nhật lên server
     const handleSaveProfile = async () => {
         try {
             const values = await form.validateFields();
@@ -70,6 +74,7 @@ const ProfilePage = () => {
         setIsPasswordModalVisible(true);
     };
 
+    // Hàm xử lý khi người dùng nhấn "Lưu" mật khẩu mới
     const handleSavePassword = async () => {
         try {
             const values = await passwordForm.validateFields();
@@ -93,6 +98,7 @@ const ProfilePage = () => {
         // Prevent default upload behavior since we don't have a backend endpoint for user avatar
     };
 
+    // Xử lý upload ảnh đại diện (avatar) dạng Base64 và lưu trực tiếp vào Local Storage
     const customUpload = async ({ file, onSuccess, onError }) => {
         try {
             const reader = new FileReader();
@@ -111,6 +117,7 @@ const ProfilePage = () => {
         }
     };
 
+    // Render giao diện thông tin cá nhân bao gồm ảnh đại diện, chi tiết liên hệ và bảo mật
     return (
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
             <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

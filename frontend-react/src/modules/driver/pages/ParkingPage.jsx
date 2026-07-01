@@ -24,10 +24,12 @@ const ParkingPage = () => {
     const [, forceRender] = useReducer(x => x + 1, 0);
     const [drawerVisible, setDrawerVisible] = useState(false);
 
+    // Gọi API để lấy dữ liệu về bãi đỗ khi component được render lần đầu
     useEffect(() => {
         fetchData();
     }, []);
 
+    // Hàm gọi song song các API lấy danh sách slots, đặt chỗ và các phiên đỗ xe hiện tại
     const fetchData = async () => {
         parkingStore.loading = true;
         forceRender();
@@ -52,6 +54,7 @@ const ParkingPage = () => {
         }
     };
 
+    // Xử lý khi người dùng thay đổi các tiêu chí lọc (toà nhà, tầng, loại xe...)
     const handleFilterChange = (key, value) => {
         parkingStore.filters[key] = value;
         forceRender();
@@ -77,7 +80,7 @@ const ParkingPage = () => {
 
     const slots = Array.isArray(parkingStore.slots) ? parkingStore.slots : [];
 
-    // Calculate dynamic options for filters
+    // Tự động trích xuất danh sách toà nhà, tầng, khu vực... từ dữ liệu slots để tạo options cho các dropdown lọc
     const filterOptions = useMemo(() => {
         const buildings = new Set();
         const floors = new Set();
@@ -102,7 +105,7 @@ const ParkingPage = () => {
         };
     }, [slots]);
 
-    // Apply filters
+    // Thuật toán lọc danh sách slot đỗ xe dựa trên các tiêu chí và kiểm tra trùng lặp đặt chỗ theo thời gian
     const filteredSlots = useMemo(() => {
         const isSlotReservedSoon = (slotId, allReservations = []) => {
             const now = Date.now();
@@ -212,6 +215,7 @@ const ParkingPage = () => {
         return sortAndRecommendSlots(finalFilteredSlots);
     }, [slots, parkingStore.filters.buildingName, parkingStore.filters.floorName, parkingStore.filters.zoneName, parkingStore.filters.vehicleTypeName, parkingStore.filters.status, parkingStore.filters.startTime, parkingStore.filters.endTime, parkingStore.allReservations, parkingStore.allSessions]);
 
+    // Hàm trả về màu sắc và nhãn hiển thị tương ứng với từng trạng thái của slot đỗ xe
     const getStatusInfo = (status) => {
         const s = String(status).toUpperCase();
         if (s === 'AVAILABLE') return { color: 'green', hex: '#10b981', label: 'AVAILABLE' };
@@ -226,6 +230,7 @@ const ParkingPage = () => {
         return <Skeleton active paragraph={{ rows: 12 }} />;
     }
 
+    // Render giao diện chính của trang Tìm bãi đỗ xe
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>

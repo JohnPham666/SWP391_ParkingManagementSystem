@@ -8,6 +8,7 @@ import VehicleImageGrid from '../components/VehicleImageGrid';
 const { Title, Text } = Typography;
 const { Search } = Input;
 
+// Khởi tạo component Quản lý Phương tiện (VehiclePage)
 const VehiclePage = () => {
     const { token } = theme.useToken();
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -21,10 +22,12 @@ const VehiclePage = () => {
     const [searchText, setSearchText] = useState('');
     const [typeFilter, setTypeFilter] = useState('all');
 
+    // Kích hoạt việc gọi API lấy danh sách xe khi component được tạo ra
     useEffect(() => {
         fetchData();
     }, []);
 
+    // Hàm gọi song song các API lấy danh sách xe cá nhân và danh mục loại xe từ backend
     const fetchData = async () => {
         vehicleStore.loading = true;
         forceRender();
@@ -49,12 +52,14 @@ const VehiclePage = () => {
         }
     };
 
+    // Mở popup (modal) để người dùng thêm xe mới, reset lại toàn bộ trường dữ liệu
     const handleAdd = () => {
         setEditingVehicle(null);
         form.resetFields();
         setIsModalVisible(true);
     };
 
+    // Mở popup (modal) chỉnh sửa xe và điền tự động thông tin của xe được chọn vào form
     const handleEdit = (record) => {
         setEditingVehicle(record);
         form.setFieldsValue({
@@ -79,11 +84,13 @@ const VehiclePage = () => {
         setIsModalVisible(true);
     };
 
+    // Mở popup xem chi tiết thông tin và giấy tờ của xe (Chế độ chỉ xem - Readonly)
     const handleView = (record) => {
         setViewingVehicle(record);
         setIsViewModalVisible(true);
     };
 
+    // Gọi API xoá một chiếc xe khỏi danh sách của tài xế
     const handleDelete = async (id) => {
         try {
             await driverService.removeVehicle(id);
@@ -94,6 +101,7 @@ const VehiclePage = () => {
         }
     };
 
+    // Xử lý logic khi bấm "Lưu" (Đăng ký xe mới hoặc Cập nhật thông tin xe), đồng thời upload từng ảnh chứng từ lên server
     const handleModalOk = async () => {
         try {
             const { images, ...values } = await form.validateFields();
@@ -141,7 +149,7 @@ const VehiclePage = () => {
     const safeVehicles = Array.isArray(vehicleStore.vehicles) ? vehicleStore.vehicles : [];
     const safeVehicleTypes = Array.isArray(vehicleStore.vehicleTypes) ? vehicleStore.vehicleTypes : [];
 
-    // Filter logic
+    // Lọc danh sách xe trên máy khách (client-side filter) theo từ khoá tìm kiếm và loại xe
     const filteredVehicles = useMemo(() => {
         return safeVehicles.filter(v => {
             const matchSearch = (v.licensePlate || '').toLowerCase().includes(searchText.toLowerCase()) || 
@@ -152,7 +160,7 @@ const VehiclePage = () => {
         });
     }, [safeVehicles, searchText, typeFilter]);
 
-    // Stats
+    // Tính toán thống kê nhanh số lượng xe (Tổng số, Ô tô, Xe máy)
     const totalVehicles = safeVehicles.length;
     const cars = safeVehicles.filter(v => (v.vehicleType?.typeName || v.vehicleType?.name || v.vehicleTypeName || '').toLowerCase().includes('car')).length;
     const motorbikes = safeVehicles.filter(v => (v.vehicleType?.typeName || v.vehicleType?.name || v.vehicleTypeName || '').toLowerCase().includes('motor')).length;
@@ -161,6 +169,7 @@ const VehiclePage = () => {
         return <Skeleton active paragraph={{ rows: 10 }} />;
     }
 
+    // Render cấu trúc giao diện chính của trang Quản lý Phương tiện
     return (
         <div>
             {/* Statistics */}
