@@ -94,6 +94,7 @@ public class EmailService {
             jakarta.mail.internet.MimeMessage mimeMessage = mailSender.createMimeMessage();
             org.springframework.mail.javamail.MimeMessageHelper helper = new org.springframework.mail.javamail.MimeMessageHelper(mimeMessage, "utf-8");
 
+            helper.setFrom("smartparking.admin25.noreply@gmail.com");
             helper.setTo(toEmail);
             helper.setSubject("Reset Your ParkSmart Password");
 
