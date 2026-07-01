@@ -335,19 +335,22 @@ const ParkingPage = () => {
                                     const statusInfo = getStatusInfo(slot.status);
 
                                     return (
-                                        <Col xs={24} sm={12} md={8} lg={6} xl={4} key={slot.slotId || slot.id || slot.slotCode}>
+                                        <Col xs={24} sm={12} md={8} lg={6} xl={4} key={slot.slotId || slot.id || slot.slotCode} style={{ display: 'flex' }}>
                                             <Card
                                                 hoverable
                                                 className="saas-card"
-                                                styles={{ body: { padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' } }}
+                                                styles={{ body: { padding: '24px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', flex: 1 } }}
                                                 onClick={() => handleView(slot)}
                                                 style={{
-                                                    ... (slot.isRecommended ? { border: `2px solid ${token.colorPrimary}`, boxShadow: `0 4px 16px ${token.colorPrimary}40`, transform: 'scale(1.02)' } : { border: `1px solid ${statusInfo.hex}30` }),
+                                                    ... (slot.isRecommended ? { border: `2px solid ${token.colorPrimary}`, boxShadow: `0 4px 16px ${token.colorPrimary}40` } : { border: `1px solid ${statusInfo.hex}30` }),
                                                     borderRadius: 16,
                                                     position: 'relative',
                                                     backgroundColor: statusInfo.hex + '0A',
                                                     overflow: 'hidden',
-                                                    transition: 'all 0.3s ease'
+                                                    transition: 'all 0.3s ease',
+                                                    width: '100%',
+                                                    display: 'flex',
+                                                    flexDirection: 'column'
                                                 }}
                                             >
                                                 {slot.isRecommended && (
@@ -372,13 +375,15 @@ const ParkingPage = () => {
                                                     {slot.vehicleTypeName || 'N/A'} • {slot.floorName || 'N/A'}
                                                 </Text>
 
-                                                <div style={{ marginTop: 16, padding: '8px 16px', width: '100%', backgroundColor: '#fff', borderRadius: 8, border: `1px solid ${token.colorBorderSecondary}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>Occupancy</Text>
-                                                    <Text strong style={{ fontSize: 14 }}>{slot.currentOccupancy || 0} / {slot.capacity || 1}</Text>
-                                                </div>
+                                                <div style={{ marginTop: 'auto', paddingTop: 16, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                    <div style={{ padding: '8px 12px', width: '100%', backgroundColor: '#fff', borderRadius: 8, border: `1px solid ${token.colorBorderSecondary}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                                                        <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>Occupancy</Text>
+                                                        <Text strong style={{ fontSize: 14, whiteSpace: 'nowrap' }}>{slot.currentOccupancy || 0} / {slot.capacity || 1}</Text>
+                                                    </div>
 
-                                                <div style={{ marginTop: 12, padding: '6px 16px', borderRadius: 20, backgroundColor: statusInfo.hex, color: '#fff', fontWeight: 700, fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-                                                    {statusInfo.label}
+                                                    <div style={{ marginTop: 12, padding: '6px 16px', borderRadius: 20, backgroundColor: statusInfo.hex, color: '#fff', fontWeight: 700, fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                                                        {statusInfo.label}
+                                                    </div>
                                                 </div>
                                             </Card>
                                         </Col>
