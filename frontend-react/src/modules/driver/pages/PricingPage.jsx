@@ -5,15 +5,18 @@ import { driverService } from '../services/driverService';
 
 const { Title, Text } = Typography;
 
+// Khởi tạo component Bảng giá (PricingPage)
 const PricingPage = () => {
     const { token } = theme.useToken();
     const [loading, setLoading] = useState(true);
     const [plans, setPlans] = useState([]);
 
+    // Gọi dữ liệu khi component vừa được render
     useEffect(() => {
         fetchData();
     }, []);
 
+    // Hàm gọi song song 2 API lấy danh sách chính sách giá và loại xe từ backend
     const fetchData = async () => {
         setLoading(true);
         try {
@@ -33,6 +36,7 @@ const PricingPage = () => {
             if (Array.isArray(pData)) {
                 const now = new Date();
                 
+                // Lọc ra những chính sách giá đang có hiệu lực dựa vào ngày hiện tại
                 const activePlans = pData.filter(p => {
                     if (!p.effectiveFrom) return false;
                     const from = new Date(p.effectiveFrom);
@@ -42,6 +46,7 @@ const PricingPage = () => {
                     return true;
                 });
 
+                // Map dữ liệu thành định dạng phù hợp để hiển thị lên các thẻ (Card) bảng giá
                 const formattedPlans = activePlans.map((p, index) => {
                     const vTypeName = typesMap[p.vehicleTypeId] || `Type ${p.vehicleTypeId}`;
                     const isMotorbike = vTypeName.toLowerCase().includes('motor') || vTypeName.toLowerCase().includes('xe máy');
@@ -85,6 +90,7 @@ const PricingPage = () => {
         return <Skeleton active paragraph={{ rows: 10 }} />;
     }
 
+    // Render giao diện chính của trang Bảng giá hiển thị dưới dạng lưới (Grid)
     return (
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: 48 }}>

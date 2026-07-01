@@ -16,6 +16,15 @@
 .driver-sider {
   box-shadow: var(--shadow-sm);
   z-index: 10;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.driver-sider::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
 }
 
 .driver-logo-container {

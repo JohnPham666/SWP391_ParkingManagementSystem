@@ -6,11 +6,22 @@ import {
     EnvironmentOutlined,
     ArrowRightOutlined
 } from '@ant-design/icons';
+import Icon from '@ant-design/icons';
+
+const MotorbikeSvg = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="1em" height="1em">
+        <circle cx="5.5" cy="16.5" r="3.5" />
+        <circle cx="18.5" cy="16.5" r="3.5" />
+        <path d="M15 6h5M12.5 12.5l3.5-6.5M5.5 13L9 6h3" />
+    </svg>
+);
+const MotorbikeIcon = (props) => <Icon component={MotorbikeSvg} {...props} />;
 import { useNavigate } from 'react-router-dom';
 import { driverService } from '../services/driverService';
 
 const { Title, Text } = Typography;
 
+// Khởi tạo component DashboardPage và các state lưu trữ dữ liệu thống kê
 const DashboardPage = () => {
     const navigate = useNavigate();
     const { token } = theme.useToken();
@@ -30,10 +41,12 @@ const DashboardPage = () => {
         todaysReservations: 0
     });
 
+    // Gọi hàm fetchDashboardData một lần khi component vừa được render xong
     useEffect(() => {
         fetchDashboardData();
     }, []);
 
+    // Hàm bất đồng bộ để gọi API lấy dữ liệu xe, đặt chỗ, và slot đỗ xe từ backend
     const fetchDashboardData = async () => {
         try {
             const [vehiclesRes, reservationsRes, slotsRes] = await Promise.all([
@@ -46,10 +59,12 @@ const DashboardPage = () => {
             const reservations = Array.isArray(reservationsRes?.data || reservationsRes) ? (reservationsRes?.data || reservationsRes) : [];
             const slots = Array.isArray(slotsRes?.data || slotsRes) ? (slotsRes?.data || slotsRes) : [];
 
+            // Lọc ra các đặt chỗ đang hoạt động (trạng thái CONFIRMED hoặc PENDING)
             const activeReservations = reservations.filter(r => {
                 const s = String(r.status).toUpperCase();
                 return s === 'CONFIRMED' || s === 'PENDING';
             });
+            // Phân loại các slot đỗ xe theo trạng thái (trống, đang sử dụng, đã đặt)
             const availableSlots = slots.filter(s => String(s.status).toUpperCase() === 'AVAILABLE');
 
             const occupiedSlots = slots.filter(s => String(s.status).toUpperCase() === 'OCCUPIED');
@@ -61,6 +76,7 @@ const DashboardPage = () => {
             let totalCapacity = 0;
             let currentOccupancy = 0;
 
+            // Vòng lặp tính toán tổng sức chứa, lượng xe đang đỗ và phân loại slot theo xe máy/ô tô
             slots.forEach(s => {
                 const cap = s.capacity || 1;
                 const occ = s.currentOccupancy || 0;
@@ -75,11 +91,13 @@ const DashboardPage = () => {
                 }
             });
 
+            // Tính tỷ lệ lấp đầy và lọc ra số lượng đặt chỗ trong ngày hôm nay
             const occupancyRate = totalCapacity > 0 ? Number((currentOccupancy / totalCapacity * 100).toFixed(1)) : 0;
 
             const todayStr = new Date().toDateString();
             const todaysReservations = reservations.filter(r => r.reservationStart && new Date(r.reservationStart).toDateString() === todayStr);
 
+            // Cập nhật lại state với dữ liệu đã được tính toán
             setStats({
                 vehicles: vehicles.length,
                 activeReservations: activeReservations.length,
@@ -101,10 +119,12 @@ const DashboardPage = () => {
         }
     };
 
+    // Hiển thị khung xương (Skeleton) trong lúc chờ lấy dữ liệu (loading)
     if (loading) {
         return <Skeleton active paragraph={{ rows: 10 }} />;
     }
 
+    // Cấu hình dữ liệu cho các thẻ (Cards) hiển thị thông tin nhanh trên màn hình
     const cards = [
         {
             title: 'My Vehicles',
@@ -210,19 +230,10 @@ const DashboardPage = () => {
                     <Col xs={24} md={16}>
                         <Row gutter={[16, 24]}>
                             <Col xs={12} sm={8}>
-                                <Statistic title="Available Slots" value={stats.availableSlots} valueStyle={{ color: token.colorSuccess }} />
-                            </Col>
-                            <Col xs={12} sm={8}>
-                                <Statistic title="Occupied Slots" value={stats.occupiedSlots} valueStyle={{ color: token.colorWarning }} />
-                            </Col>
-                            <Col xs={12} sm={8}>
-                                <Statistic title="Reserved Slots" value={stats.reservedSlots} valueStyle={{ color: token.colorInfo }} />
-                            </Col>
-                            <Col xs={12} sm={8}>
                                 <Statistic title="Available Car Slots" value={stats.carSlots} prefix={<CarOutlined />} />
                             </Col>
                             <Col xs={12} sm={8}>
-                                <Statistic title="Available Motorbike Slots" value={stats.motorbikeSlots} />
+                                <Statistic title="Available Motorbike Slots" value={stats.motorbikeSlots} prefix={<MotorbikeIcon />} />
                             </Col>
                         </Row>
 

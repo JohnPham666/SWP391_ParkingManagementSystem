@@ -5,6 +5,7 @@ import { driverService } from '../services/driverService';
 
 const { Title, Text } = Typography;
 
+// Các hàm tiện ích hỗ trợ trích xuất thông tin ID, Trạng thái Thanh toán và Kiểm tra xem có thể thanh toán hay không
 const getReservationId = (reservation) => reservation?.reservationId || reservation?.id;
 const getPaymentStatus = (reservation) => {
     const reservationStatus = String(reservation?.status || reservation?.reservationStatus || '').toUpperCase();
@@ -18,6 +19,7 @@ const canPayReservation = (reservation) => {
 };
 const getResponseData = (response) => response?.data || response;
 
+// Khởi tạo component quản lý Thanh toán (PaymentPage)
 const PaymentPage = () => {
     const { token } = theme.useToken();
     const [loading, setLoading] = useState(true);
@@ -29,10 +31,12 @@ const PaymentPage = () => {
     const [payingReservationId, setPayingReservationId] = useState(null);
     const [paymentModalVisible, setPaymentModalVisible] = useState(false);
 
+    // Gọi API để tải danh sách thanh toán khi component vừa render
     useEffect(() => {
         fetchData();
     }, []);
 
+    // Hook tạo vòng lặp (polling) kiểm tra trạng thái thanh toán mỗi 3 giây khi có modal thanh toán đang mở
     useEffect(() => {
         let interval;
         if (paymentModalVisible && payingReservationId) {
@@ -45,6 +49,7 @@ const PaymentPage = () => {
         };
     }, [paymentModalVisible, payingReservationId]);
 
+    // Hook theo dõi danh sách thanh toán, tự động đóng modal và thông báo kết quả khi phát hiện trạng thái đã được cập nhật thành PAID/COMPLETED hoặc FAILED
     useEffect(() => {
         if (paymentModalVisible && payingReservationId) {
             const currentRes = payments.find(r => (r.reservationId || r.id) === payingReservationId);
@@ -63,6 +68,7 @@ const PaymentPage = () => {
         }
     }, [payments, paymentModalVisible, payingReservationId]);
 
+    // Hàm gọi API lấy danh sách đặt chỗ từ backend và tính toán các chỉ số thống kê thanh toán (tổng đã thu, hóa đơn chờ xử lý, số liệu tháng này)
     const fetchData = async (isPolling = false) => {
         if (!isPolling) setLoading(true);
         try {
@@ -115,6 +121,7 @@ const PaymentPage = () => {
         }
     };
 
+    // Xử lý tạo phiên thanh toán mới với VNPay khi tài xế nhấn nút "Pay Now"
     const handlePayment = async (reservation) => {
         try {
             const reservationId = getReservationId(reservation);
@@ -154,6 +161,7 @@ const PaymentPage = () => {
         }
     };
 
+    // Khởi tạo các cột dữ liệu cho bảng lịch sử giao dịch
     const columns = [
         {
             title: 'Transaction ID',
@@ -206,6 +214,7 @@ const PaymentPage = () => {
 
     if (loading) return <Skeleton active paragraph={{ rows: 10 }} />;
 
+    // Render phần giao diện thống kê và bảng lịch sử giao dịch của trang thanh toán
     return (
         <div>
             <div style={{ marginBottom: 24 }}>

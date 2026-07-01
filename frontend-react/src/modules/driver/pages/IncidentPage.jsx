@@ -7,6 +7,7 @@ import { driverService } from '../services/driverService';
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
+// Khởi tạo component quản lý sự cố (IncidentPage)
 const IncidentPage = () => {
     const { token } = theme.useToken();
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -17,10 +18,12 @@ const IncidentPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
     
+    // Gọi API lấy dữ liệu sự cố ngay khi trang được tải
     useEffect(() => {
         fetchData();
     }, []);
 
+    // Hook này kiểm tra xem có dữ liệu truyền qua state của React Router (navigate) để tự động mở form báo cáo sự cố hay không
     useEffect(() => {
         if (location.state?.autoOpen) {
             form.resetFields();
@@ -33,6 +36,7 @@ const IncidentPage = () => {
         }
     }, [location.state, navigate]);
 
+    // Hàm gọi API để lấy danh sách sự cố của tài xế hiện tại
     const fetchData = async () => {
         setLoading(true);
         try {
@@ -75,6 +79,7 @@ const IncidentPage = () => {
         }
     };
 
+    // Danh sách các loại sự cố có thể báo cáo
     const incidentTypes = [
         { value: 'LOST_TICKET', label: 'Lost Ticket' },
         { value: 'WRONG_LICENSE_PLATE', label: 'Wrong License Plate' },
@@ -91,6 +96,7 @@ const IncidentPage = () => {
         return type ? type.label : value;
     };
 
+    // Cấu hình các cột cho bảng hiển thị danh sách sự cố
     const columns = [
         {
             title: 'Incident ID',
@@ -121,6 +127,7 @@ const IncidentPage = () => {
         }
     ];
 
+    // Hàm xử lý khi người dùng nhấn nút Submit gửi báo cáo sự cố mới
     const handleSubmit = async () => {
         try {
             const values = await form.validateFields();
@@ -154,6 +161,7 @@ const IncidentPage = () => {
         }
     };
 
+    // Tính toán số lượng thống kê để hiển thị trên các thẻ (Cards) đầu trang
     const stats = {
         total: incidents.length,
         active: incidents.filter(i => i.status === 'OPEN' || i.status === 'IN_PROGRESS' || i.status === 'IN PROGRESS').length,
@@ -162,6 +170,7 @@ const IncidentPage = () => {
 
     if (loading) return <Skeleton active paragraph={{ rows: 10 }} />;
 
+    // Render giao diện chính của trang Quản lý sự cố
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>

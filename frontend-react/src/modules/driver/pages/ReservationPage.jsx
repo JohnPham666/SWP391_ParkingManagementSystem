@@ -10,6 +10,7 @@ import { parkingStore } from '../store/parkingStore';
 
 const { Title, Text } = Typography;
 
+// Các hàm tiện ích kiểm tra điều kiện đặt chỗ: ID, Thời hạn (sau 15 phút không thanh toán sẽ hết hạn), Trạng thái thanh toán và Quyền thanh toán
 const getReservationId = (reservation) => reservation?.reservationId || reservation?.id;
 const isReservationExpired = (reservation) => {
     if (String(reservation?.status || '').toUpperCase() !== 'PENDING') return false;
@@ -31,6 +32,7 @@ const canPayReservation = (reservation) => {
 };
 const getResponseData = (response) => response?.data || response;
 
+// Component đồng hồ đếm ngược 15 phút dành cho trạng thái PENDING
 const CountdownTimer = ({ createdAt, onExpire }) => {
     const [timeLeft, setTimeLeft] = useState('');
     
@@ -80,6 +82,7 @@ const CountdownTimer = ({ createdAt, onExpire }) => {
     return <Text type="danger" style={{ fontSize: 13, fontWeight: 'bold' }}>{timeLeft}</Text>;
 };
 
+// Khởi tạo component Quản lý Đặt chỗ (ReservationPage)
 const ReservationPage = () => {
     const { token } = theme.useToken();
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -109,6 +112,7 @@ const ReservationPage = () => {
         fetchData();
     }, []);
 
+    // Hook khởi tạo bộ đếm (polling) để liên tục kiểm tra kết quả thanh toán từ VNPay mỗi 3 giây khi modal chờ thanh toán đang mở
     useEffect(() => {
         let interval;
         if (paymentModalVisible && payingReservationId) {
@@ -121,6 +125,7 @@ const ReservationPage = () => {
         };
     }, [paymentModalVisible, payingReservationId]);
 
+    // Hàm polling gọi API cập nhật trạng thái các đặt chỗ mới nhất ngầm bên dưới
     const pollPaymentStatus = async () => {
         try {
             const reservationsRes = await driverService.loadReservations();
@@ -134,6 +139,7 @@ const ReservationPage = () => {
         }
     };
 
+    // Hook theo dõi sự thay đổi của danh sách đặt chỗ, so khớp mã reservationId đang được thanh toán để hiển thị thông báo thành công hoặc thất bại
     useEffect(() => {
         if (paymentModalVisible && payingReservationId) {
             const safeReservations = Array.isArray(reservationStore.reservations) ? reservationStore.reservations : [];
@@ -156,6 +162,7 @@ const ReservationPage = () => {
         }
     }, [reservationStore.reservations, paymentModalVisible, payingReservationId, viewingReservation]);
 
+    // Hàm tải dữ liệu đặt chỗ, xe cá nhân và danh sách slot trống từ backend
     const fetchData = async () => {
         reservationStore.loading = true;
         forceRender();
@@ -195,6 +202,7 @@ const ReservationPage = () => {
     const safeVehicles = Array.isArray(vehicleStore.vehicles) ? vehicleStore.vehicles : [];
     const safeSlots = Array.isArray(parkingStore.slots) ? parkingStore.slots : [];
 
+    // Hook lắng nghe dữ liệu truyền từ trang "Tìm Slot" để tự động điền sẵn slot vào form đặt chỗ
     useEffect(() => {
         if (safeSlots.length > 0 && location.state?.prefilledSlot) {
             const slot = location.state.prefilledSlot;
@@ -214,6 +222,7 @@ const ReservationPage = () => {
         }
     }, [safeSlots.length, location.state, navigate]);
 
+    // Hàm mở popup tạo đặt chỗ mới và thiết lập thời gian mặc định (bắt đầu sau 5 phút)
     const handleCreate = () => {
         setErrorAlert(null);
         form.resetFields();
@@ -226,6 +235,7 @@ const ReservationPage = () => {
         setIsModalVisible(true);
     };
 
+    // Hàm xử lý gửi form tạo đặt chỗ mới lên API backend, bao gồm kiểm tra logic thời gian và loại xe
     const handleModalOk = async () => {
         try {
             setErrorAlert(null);
@@ -288,6 +298,7 @@ const ReservationPage = () => {
         }
     };
 
+    // Hàm gọi API huỷ bỏ các đặt chỗ đang PENDING (Chưa thanh toán)
     const handleDelete = async (id) => {
         try {
             await driverService.cancelReservation(id);
@@ -303,6 +314,7 @@ const ReservationPage = () => {
         setCancelPaidModalVisible(true);
     };
 
+    // Hàm xác nhận huỷ đặt chỗ ĐÃ THANH TOÁN, sau đó hiển thị hướng dẫn hoàn tiền
     const confirmCancelPaid = async () => {
         if (!reservationToCancel) return;
         const id = reservationToCancel.reservationId || reservationToCancel.id;
@@ -323,6 +335,7 @@ const ReservationPage = () => {
         setIsDetailsVisible(true);
     };
 
+    // Hàm khởi tạo giao dịch thanh toán thông qua VNPay, mở tab mới và bật modal chờ thanh toán
     const handlePayment = async (reservation) => {
         try {
             const reservationId = getReservationId(reservation);
@@ -363,6 +376,7 @@ const ReservationPage = () => {
         }
     };
 
+    // Khai báo cấu trúc các cột cho bảng hiển thị danh sách đặt chỗ
     const columns = [
         {
             title: 'ReservationID',
@@ -472,6 +486,7 @@ const ReservationPage = () => {
         return !sType.includes('motor') && !sType.includes('xe máy') && String(s.status).toUpperCase() === 'AVAILABLE';
     });
 
+    // Xử lý logic tự động gán slot hoặc vô hiệu hóa chọn slot dựa vào loại xe (Xe máy không cần chọn slot cụ thể)
     const handleVehicleChange = (vehicleId) => {
         const vehicle = safeVehicles.find(v => (v.vehicleId || v.id) === vehicleId);
         if (vehicle) {
@@ -501,6 +516,7 @@ const ReservationPage = () => {
         return <Skeleton active paragraph={{ rows: 10 }} />;
     }
 
+    // Render toàn bộ giao diện của trang Quản lý Đặt chỗ (Thống kê, Bảng dữ liệu, Các Modals)
     return (
         <div>
             {/* Statistics Row */}
