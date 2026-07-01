@@ -18,6 +18,7 @@ import {
     InfoCircleOutlined
 } from '@ant-design/icons';
 import '../assets/styles/driver.css';
+import logoImg from '../../../assets/logo.png';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -98,7 +99,15 @@ const DriverLayout = () => {
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="driver-logo-container" style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '24px 16px', cursor: 'pointer' }} onClick={() => navigate('/driver/dashboard')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <CarOutlined style={{ fontSize: '28px', color: '#f97316' }} />
+                    <img src={logoImg} alt="ParkSmart Logo" style={{ 
+                        height: collapsed ? '36px' : '56px', 
+                        objectFit: 'contain', 
+                        maxWidth: '100%',
+                        backgroundColor: '#ffffff',
+                        borderRadius: '8px',
+                        padding: '4px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    }} />
                     {!collapsed && <Title level={3} className="driver-logo-text" style={{ margin: 0, color: '#f97316' }}>ParkSmart</Title>}
                 </div>
                 {!collapsed && <Text type="secondary" style={{ fontSize: '12px', marginTop: '8px', fontWeight: 600 }}>Smart Parking Solution</Text>}

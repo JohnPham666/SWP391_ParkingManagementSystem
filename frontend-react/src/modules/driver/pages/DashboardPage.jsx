@@ -6,6 +6,16 @@ import {
     EnvironmentOutlined,
     ArrowRightOutlined
 } from '@ant-design/icons';
+import Icon from '@ant-design/icons';
+
+const MotorbikeSvg = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="1em" height="1em">
+        <circle cx="5.5" cy="16.5" r="3.5" />
+        <circle cx="18.5" cy="16.5" r="3.5" />
+        <path d="M15 6h5M12.5 12.5l3.5-6.5M5.5 13L9 6h3" />
+    </svg>
+);
+const MotorbikeIcon = (props) => <Icon component={MotorbikeSvg} {...props} />;
 import { useNavigate } from 'react-router-dom';
 import { driverService } from '../services/driverService';
 
@@ -223,7 +233,7 @@ const DashboardPage = () => {
                                 <Statistic title="Available Car Slots" value={stats.carSlots} prefix={<CarOutlined />} />
                             </Col>
                             <Col xs={12} sm={8}>
-                                <Statistic title="Available Motorbike Slots" value={stats.motorbikeSlots} />
+                                <Statistic title="Available Motorbike Slots" value={stats.motorbikeSlots} prefix={<MotorbikeIcon />} />
                             </Col>
                         </Row>
 
