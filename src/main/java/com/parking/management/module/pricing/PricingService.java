@@ -180,6 +180,10 @@ public class PricingService {
         long rushHours    = 0;
         long offPeakHours = 0;
 
+        // Base price đã bao gồm 1 giờ đầu tiên, nên phí giờ (hourly fee) sẽ tính từ giờ thứ 2
+        long billableHours = Math.max(0, totalHours - 1);
+        LocalDateTime billingStartTime = entryTime.plusHours(1); // Giờ bắt đầu tính phí theo giờ
+
         // Tối ưu thuật toán O(1) thay vì O(N) vòng lặp
         long rushHoursPerDay;
         if (rushStart.isBefore(rushEnd)) {
@@ -189,14 +193,14 @@ public class PricingService {
         }
         long offPeakHoursPerDay = 24 - rushHoursPerDay;
 
-        long fullDays = totalHours / 24;
-        long remainingHours = totalHours % 24;
+        long fullDays = billableHours / 24;
+        long remainingHours = billableHours % 24;
 
         rushHours = fullDays * rushHoursPerDay;
         offPeakHours = fullDays * offPeakHoursPerDay;
 
-        // Tính các giờ lẻ còn lại (tối đa 23 vòng lặp)
-        LocalDateTime currentHour = entryTime.plusDays(fullDays);
+        // Tính các giờ lẻ còn lại
+        LocalDateTime currentHour = billingStartTime.plusDays(fullDays);
         for (int i = 0; i < remainingHours; i++) {
             LocalTime timeOfDay = currentHour.toLocalTime();
             if (isRushHour(timeOfDay, rushStart, rushEnd)) {
@@ -212,7 +216,7 @@ public class PricingService {
         BigDecimal totalFeeBeforeCap = rushHourFee.add(offPeakFee);
 
         // --- Áp MaxDailyRate cap theo từng ngày ---
-        BigDecimal cappedHourlyFee = applyDailyCap(totalFeeBeforeCap, totalHours, policy, entryTime, rushStart, rushEnd);
+        BigDecimal cappedHourlyFee = applyDailyCap(totalFeeBeforeCap, billableHours, policy, billingStartTime, rushStart, rushEnd);
 
         // ============================================================
         // 3. OVERTIME FEE — tính cho khoảng thời gian xe ở quá giờ
