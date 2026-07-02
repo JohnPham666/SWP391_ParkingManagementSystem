@@ -67,19 +67,32 @@ public class IncidentService {
     public List<IncidentResponse> getAll() {
         User currentUser = getCurrentAuthenticatedUser();
         String roleName = currentUser.getRole().getRoleName();
+
+        // Driver: chỉ xem incident của chính mình
+        if ("Driver".equals(roleName)) {
+            return incidentReportRepository.findByReportedBy_UserIdOrderByCreatedAtDesc(currentUser.getUserId())
+                    .stream()
+                    .map(IncidentResponse::fromEntity)
+                    .toList();
+        }
+
+        // ParkingStaff: chỉ xem incident do mình tạo
         if ("ParkingStaff".equals(roleName)) {
             return incidentReportRepository.findByReportedBy_UserIdOrderByCreatedAtDesc(currentUser.getUserId())
                     .stream()
                     .map(IncidentResponse::fromEntity)
                     .toList();
         }
-        
+
+        // ParkingManager / Admin: xem TẤT CẢ incident trong phạm vi building
+        // (Driver không có building → luôn hiện với Manager nhờ query đã fix)
         Integer buildingId = securityUtils.getBuildingId();
         return incidentReportRepository.findAllWithBuildingFilter(buildingId)
                 .stream()
                 .map(IncidentResponse::fromEntity)
                 .toList();
     }
+
 
     public IncidentResponse getById(Integer id) {
         IncidentReport incident = incidentReportRepository.findById(id)

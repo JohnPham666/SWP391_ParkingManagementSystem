@@ -14,6 +14,16 @@ public interface IncidentReportRepository extends JpaRepository<IncidentReport, 
     List<IncidentReport> findAllByOrderByCreatedAtDesc();
     List<IncidentReport> findByReportedBy_UserIdOrderByCreatedAtDesc(Integer userId);
 
+    /**
+     * Lấy tất cả incident có filter theo building của Manager.
+     *
+     * Logic:
+     * - Nếu buildingId IS NULL (Admin) → trả về TẤT CẢ incident.
+     * - Nếu buildingId IS NOT NULL (Manager) → trả về:
+     *     + Incident từ reporter KHÔNG có building (Driver) → luôn hiện
+     *     + Incident từ reporter CÓ building trùng với Manager
+     *     + Incident có session thuộc building của Manager
+     */
     @org.springframework.data.jpa.repository.Query("SELECT i FROM IncidentReport i " +
        "LEFT JOIN i.reportedBy u " +
        "LEFT JOIN u.building ub " +
@@ -22,8 +32,10 @@ public interface IncidentReportRepository extends JpaRepository<IncidentReport, 
        "LEFT JOIN sl.zone z " +
        "LEFT JOIN z.floor f " +
        "LEFT JOIN f.building sb " +
-       "WHERE :buildingId IS NULL OR " +
-       "(ub.buildingId = :buildingId OR sb.buildingId = :buildingId) " +
+       "WHERE :buildingId IS NULL " +
+       "OR ub.buildingId IS NULL " +
+       "OR ub.buildingId = :buildingId " +
+       "OR sb.buildingId = :buildingId " +
        "ORDER BY i.createdAt DESC")
     List<IncidentReport> findAllWithBuildingFilter(@org.springframework.data.repository.query.Param("buildingId") Integer buildingId);
-}
+}

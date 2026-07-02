@@ -11,7 +11,9 @@ import com.parking.management.module.vehicle.VehicleRepository;
 import com.parking.management.module.vehicle.VehicleType;
 import com.parking.management.module.vehicle.VehicleTypeRepository;
 import com.parking.management.security.SecurityUtils;
+import com.parking.management.module.payment.Payment;
 import com.parking.management.module.payment.PaymentRepository;
+import com.parking.management.module.payment.PaymentStatus;
 import com.parking.management.module.pricing.PricingService;
 import com.parking.management.module.pricing.FeeCalculationResponse;
 import lombok.RequiredArgsConstructor;
@@ -198,12 +200,27 @@ public class ReservationService {
         }
 
         reservation.setStatus("CANCELLED");
-        
+
         ParkingSlot slot = reservation.getSlot();
         if (slot != null && slot.getStatus() == SlotStatus.RESERVED) {
             slot.setStatus(SlotStatus.AVAILABLE);
             parkingSlotRepository.save(slot);
         }
+
+        // Cập nhật trạng thái Payment liên quan
+        paymentRepository.findFirstByReservation_ReservationIdOrderByPaymentIdDesc(reservation.getReservationId())
+                .ifPresent(payment -> {
+                    String currentStatus = payment.getPaymentStatus();
+                    if (PaymentStatus.PAID.name().equals(currentStatus)) {
+                        // Đã thanh toán rồi -> cần hoàn tiền, Staff/Admin xử lý thủ công
+                        payment.setPaymentStatus(PaymentStatus.REFUND_PENDING.name());
+                        paymentRepository.save(payment);
+                    } else if (PaymentStatus.PENDING.name().equals(currentStatus)) {
+                        // Chưa thanh toán -> hủy luôn
+                        payment.setPaymentStatus(PaymentStatus.FAILED.name());
+                        paymentRepository.save(payment);
+                    }
+                });
 
         reservationRepository.save(reservation);
     }

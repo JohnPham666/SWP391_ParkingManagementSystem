@@ -2,6 +2,7 @@ package com.parking.management.module.reservation;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import jakarta.transaction.Transactional;
@@ -26,6 +27,14 @@ public class ReservationScheduler {
     private final ReservationRepository reservationRepository;
 
     /**
+     * Thời gian tối đa để thanh toán reservation sau khi tạo (phút).
+     * Có thể cấu hình trong application.properties:
+     *   reservation.payment.timeout-minutes=15
+     */
+    @Value("${reservation.payment.timeout-minutes:15}")
+    private int paymentTimeoutMinutes;
+
+    /**
      * Quét DB mỗi phút, tìm tất cả Reservation có:
      * - status = "PENDING"
      * - createdAt < (now - 15 phút)
@@ -35,7 +44,7 @@ public class ReservationScheduler {
     @Scheduled(fixedRate = 60000)
     @Transactional
     public void autoCancelStalePendingReservations() {
-        LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(15);
+        LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(paymentTimeoutMinutes);
 
         List<Reservation> staleReservations = reservationRepository
                 .findStalePendingReservations(cutoffTime);

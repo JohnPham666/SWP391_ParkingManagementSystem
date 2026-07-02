@@ -10,4 +10,10 @@ public class CheckInRequest {
     private Integer reservationId;
 
     private String entryGate;
-}
+
+    /**
+     * Thẻ từ (optional) – Staff scan thẻ khi khách check-in bằng reservation.
+     * Nếu có, session sẽ được gán card để có thể checkout bằng thẻ sau này.
+     */
+    private String cardId;
+}
