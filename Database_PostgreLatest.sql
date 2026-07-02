@@ -209,7 +209,7 @@ CREATE TABLE Payments (
     ReservationID INT NULL,
     Amount        DECIMAL(10,2) NOT NULL,
     PaymentMethod VARCHAR(30) CHECK (PaymentMethod IN ('CASH', 'BANK_TRANSFER', 'E_WALLET', 'CREDIT_CARD', 'VNPAY')),
-    PaymentStatus VARCHAR(20) CHECK (PaymentStatus IN ('PENDING', 'PAID', 'FAILED')),
+    PaymentStatus VARCHAR(20) CHECK (PaymentStatus IN ('PENDING', 'PAID', 'FAILED', 'REFUND_PENDING', 'REFUNDED')),
     PaidAt        TIMESTAMP,
     CONSTRAINT FK_Payments_Sessions FOREIGN KEY (SessionID) REFERENCES ParkingSessions(SessionID),
     CONSTRAINT FK_Payments_Reservations FOREIGN KEY (ReservationID) REFERENCES Reservations(ReservationID),

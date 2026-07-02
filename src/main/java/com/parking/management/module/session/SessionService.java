@@ -119,10 +119,6 @@ public class SessionService {
         }
         parkingSlotRepository.save(slot);
 
-        // Reservation: Tạm giữ nguyên CONFIRMED, sẽ đổi thành COMPLETED khi check-out
-        // reservation.setStatus("CONFIRMED");
-        // reservationRepository.save(reservation);
-
         ParkingSession session = new ParkingSession();
         session.setVehicle(vehicle);
         session.setSlot(slot);
@@ -131,6 +127,16 @@ public class SessionService {
         session.setStatus(SessionStatus.PARKING.name());
         session.setEstimatedFee(BigDecimal.ZERO);
         session.setFinalFee(null);
+
+        // Gán thẻ từ nếu staff scan thẻ khi check-in reservation
+        if (request.getCardId() != null && !request.getCardId().isBlank()) {
+            ParkingCard card = parkingCardRepository.findByCardIdAndStatus(request.getCardId(), "ACTIVE")
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Thẻ từ không hợp lệ hoặc đang được sử dụng: " + request.getCardId()));
+            card.setStatus("IN_USE");
+            parkingCardRepository.save(card);
+            session.setCard(card);
+        }
 
         ParkingSession savedSession = parkingSessionRepository.save(session);
 

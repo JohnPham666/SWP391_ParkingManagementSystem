@@ -42,6 +42,7 @@ public class EmailService {
         }
     }
 
+
     private String mapStatusToLabel(String status) {
         return switch (status.toUpperCase()) {
             case "OPEN"        -> "Open - Awaiting Review";
