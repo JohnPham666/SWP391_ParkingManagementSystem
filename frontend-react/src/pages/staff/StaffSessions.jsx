@@ -12,7 +12,7 @@ const StaffSessions = () => {
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [activeCards, setActiveCards] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   const [filters, setFilters] = useState({
     search: '',
     status: null,
@@ -28,10 +28,10 @@ const StaffSessions = () => {
   const [isResCheckInVisible, setIsResCheckInVisible] = useState(false);
   const [isCheckOutVisible, setIsCheckOutVisible] = useState(false);
   const [isSummaryVisible, setIsSummaryVisible] = useState(false);
-  
+
   const [checkOutStep, setCheckOutStep] = useState(1); // 1: Search, 2: Confirm, 3: Paid, 4: Done
   const [checkoutSessionData, setCheckoutSessionData] = useState(null);
-  
+
   const [walkInForm] = Form.useForm();
   const [resCheckInForm] = Form.useForm();
   const [checkOutSearchForm] = Form.useForm();
@@ -46,15 +46,15 @@ const StaffSessions = () => {
           const res = await paymentApi.getPayment(checkoutSessionData.paymentId);
           const paymentData = res.data?.data || res.data;
           if (paymentData.paymentStatus === 'PAID') {
-             clearInterval(interval);
-             setCheckOutStep(4);
-             fetchSessions();
-             setTimeout(() => {
-                setIsCheckOutVisible(false);
-                setCheckOutStep(1);
-                checkOutSearchForm.resetFields();
-                checkOutConfirmForm.resetFields();
-             }, 3000);
+            clearInterval(interval);
+            setCheckOutStep(4);
+            fetchSessions();
+            setTimeout(() => {
+              setIsCheckOutVisible(false);
+              setCheckOutStep(1);
+              checkOutSearchForm.resetFields();
+              checkOutConfirmForm.resetFields();
+            }, 3000);
           }
         } catch (e) {
           console.error("Error polling VNPay status", e);
@@ -90,10 +90,10 @@ const StaffSessions = () => {
 
   const fetchVehicleTypes = async () => {
     try {
-      const res = await vehicleApi.getVehicles(); 
+      const res = await vehicleApi.getVehicles();
       // Note: we should actually call getVehicleTypes but the existing backend might serve it under /vehicle-types. 
       // If we don't have vehicleTypes api mapped, we can hardcode for now or map it.
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const fetchSessions = async () => {
@@ -126,7 +126,7 @@ const StaffSessions = () => {
       };
       const res = await sessionApi.walkIn(payload);
       const sessionData = res.data.data;
-      
+
       // Step 2: Upload Image if provided
       if (values.entryImage && values.entryImage.fileList.length > 0) {
         const file = values.entryImage.fileList[0].originFileObj;
@@ -136,7 +136,7 @@ const StaffSessions = () => {
       message.success('Walk-in Check-in Successful!');
       setIsWalkInVisible(false);
       walkInForm.resetFields();
-      
+
       // Show Summary
       setSummaryData({
         ...sessionData,
@@ -179,9 +179,9 @@ const StaffSessions = () => {
         message.error('No active session found for this license plate');
         return;
       }
-      
+
       const targetSession = res.data.data;
-      
+
       let exitImageUrl = null;
       let exitImageFile = null;
       if (values.exitImage && values.exitImage.fileList.length > 0) {
@@ -191,19 +191,19 @@ const StaffSessions = () => {
 
       const exitTimeIso = new Date().toISOString();
       let calculatedFee = 0;
-      
+
       if (!targetSession.hasActiveSubscription) {
-         try {
-             const feeRes = await pricingApi.calculateFee({
-                vehicleTypeId: targetSession.vehicleTypeId,
-                entryTime: dayjs(targetSession.entryTime).format('YYYY-MM-DDTHH:mm:ss'),
-                exitTime: dayjs(exitTimeIso).format('YYYY-MM-DDTHH:mm:ss')
-             });
-             calculatedFee = feeRes.data.data.finalFee;
-         } catch (e) {
-             console.error("Fee calculation failed", e);
-             message.error("Lỗi tính phí từ Backend: " + (e.response?.data?.message || e.message));
-         }
+        try {
+          const feeRes = await pricingApi.calculateFee({
+            vehicleTypeId: targetSession.vehicleTypeId,
+            entryTime: dayjs(targetSession.entryTime).format('YYYY-MM-DDTHH:mm:ss'),
+            exitTime: dayjs(exitTimeIso).format('YYYY-MM-DDTHH:mm:ss')
+          });
+          calculatedFee = feeRes.data.data.finalFee;
+        } catch (e) {
+          console.error("Fee calculation failed", e);
+          message.error("Lỗi tính phí từ Backend: " + (e.response?.data?.message || e.message));
+        }
       }
 
       setCheckoutSessionData({
@@ -217,9 +217,9 @@ const StaffSessions = () => {
       setCheckOutStep(2);
     } catch (error) {
       if (error.response?.data?.message?.includes('already has a PENDING payment')) {
-         message.error('Vehicle already in checkout process');
+        message.error('Vehicle already in checkout process');
       } else {
-         message.error(error.response?.data?.message || 'Error finding vehicle');
+        message.error(error.response?.data?.message || 'Error finding vehicle');
       }
     }
   };
@@ -227,7 +227,7 @@ const StaffSessions = () => {
   const handleCheckOutConfirm = async (values) => {
     try {
       const sessionId = checkoutSessionData.sessionId;
-      
+
       // 1. Check out to finalize the fee and change status to UNPAID or COMPLETED
       const checkOutRes = await sessionApi.checkOut(sessionId, { exitGate: 'Gate A' });
       const updatedSession = checkOutRes.data?.data || checkOutRes.data;
@@ -237,35 +237,44 @@ const StaffSessions = () => {
       }
 
       if (updatedSession.status === 'COMPLETED' || updatedSession.finalFee === 0) {
-         message.success('Check-out Successful (Pre-paid / Zero Fee)');
-         setIsCheckOutVisible(false);
-         setCheckOutStep(1);
-         checkOutSearchForm.resetFields();
-         checkOutConfirmForm.resetFields();
-         fetchSessions();
-         return;
+        message.success('Check-out Successful (Pre-paid / Zero Fee)');
+        // Bắn popup xanh lá báo thành công
+
+        setIsCheckOutVisible(false);
+        // Đóng cửa sổ popup check-out
+
+        setCheckOutStep(1);
+        // Reset lại bước check-out
+
+        checkOutSearchForm.resetFields();
+        // Xóa trắng ô nhập liệu
+
+        checkOutConfirmForm.resetFields();
+        fetchSessions();
+        // QUAN TRỌNG: Gọi API lấy lại danh sách xe mới nhất để cập nhật bảng Data Table trên màn hình.
+        return;
       }
-      
+
       // 2. Create Payment
       const pRes = await paymentApi.createPayment({ sessionId: sessionId, paymentMethod: values.paymentMethod });
       const paymentId = pRes.data?.data?.paymentId;
 
       if (values.paymentMethod === 'CASH' || checkoutSessionData.totalFee === 0) {
-         await paymentApi.confirmCash(paymentId);
-         message.success('Check-out & Payment Successful!');
-         setIsCheckOutVisible(false);
-         setCheckOutStep(1);
-         checkOutSearchForm.resetFields();
-         checkOutConfirmForm.resetFields();
-         fetchSessions();
+        await paymentApi.confirmCash(paymentId);
+        message.success('Check-out & Payment Successful!');
+        setIsCheckOutVisible(false);
+        setCheckOutStep(1);
+        checkOutSearchForm.resetFields();
+        checkOutConfirmForm.resetFields();
+        fetchSessions();
       } else {
-         const vnRes = await paymentApi.createVnPayUrl(paymentId);
-         if (vnRes.data?.data?.paymentUrl) {
-            window.open(vnRes.data.data.paymentUrl, '_blank');
-            message.info('Opened VNPay Payment Gateway');
-            setCheckoutSessionData({ ...checkoutSessionData, paymentId });
-            setCheckOutStep(3);
-         }
+        const vnRes = await paymentApi.createVnPayUrl(paymentId);
+        if (vnRes.data?.data?.paymentUrl) {
+          window.open(vnRes.data.data.paymentUrl, '_blank');
+          message.info('Opened VNPay Payment Gateway');
+          setCheckoutSessionData({ ...checkoutSessionData, paymentId });
+          setCheckOutStep(3);
+        }
       }
     } catch (error) {
       message.error(error.response?.data?.message || 'Check-out failed');
@@ -277,7 +286,7 @@ const StaffSessions = () => {
 
   // Filter
   const filteredSessions = sessions.filter(session => {
-    const searchMatch = !filters.search || 
+    const searchMatch = !filters.search ||
       session.licensePlate?.toLowerCase().includes(filters.search.toLowerCase()) ||
       session.sessionId?.toString().includes(filters.search);
     const statusMatch = !filters.status || session.status === filters.status || (filters.status === 'ACTIVE' && session.status === 'PARKING');
@@ -292,14 +301,18 @@ const StaffSessions = () => {
     { title: 'SLOT', dataIndex: 'slotCode', key: 'slotCode', render: text => text || '-' },
     { title: 'VEHICLE TYPE', key: 'vehicleType', render: (_, record) => record.vehicleTypeName || record.vehicleType?.typeName || 'Car' },
     { title: 'CARD ID', dataIndex: 'cardId', key: 'cardId', render: text => text || '-' },
-    { title: 'ENTRY TIME', key: 'entryTime', render: (_, record) => {
+    {
+      title: 'ENTRY TIME', key: 'entryTime', render: (_, record) => {
         const time = record.checkInTime || record.checkinTime || record.entryTime;
         return time ? dayjs(time).format('HH:mm:ss DD/MM/YYYY') : '-';
-    }},
-    { title: 'EXIT TIME', key: 'exitTime', render: (_, record) => {
+      }
+    },
+    {
+      title: 'EXIT TIME', key: 'exitTime', render: (_, record) => {
         const time = record.checkOutTime || record.checkoutTime || record.exitTime;
         return time ? dayjs(time).format('HH:mm:ss DD/MM/YYYY') : '-';
-    }},
+      }
+    },
     { title: 'ENTRY GATE', dataIndex: 'entryGate', key: 'entryGate', render: text => text || '-' },
     { title: 'EXIT GATE', dataIndex: 'exitGate', key: 'exitGate', render: text => text || '-' },
     { title: 'FINAL FEE', dataIndex: 'finalFee', key: 'finalFee', render: text => text != null ? `${text.toLocaleString()} ₫` : '-' },
@@ -325,8 +338,8 @@ const StaffSessions = () => {
       title: 'ACTION',
       key: 'action',
       render: (_, record) => (
-        <Button 
-          style={{ borderRadius: 6, padding: '4px 16px', height: 'auto', borderColor: '#d9d9d9' }} 
+        <Button
+          style={{ borderRadius: 6, padding: '4px 16px', height: 'auto', borderColor: '#d9d9d9' }}
           onClick={() => {
             setSummaryData({
               sessionId: record.sessionId,
@@ -359,14 +372,14 @@ const StaffSessions = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '16px' }}>
           <Title level={4} style={{ margin: 0 }}>Parking Sessions</Title>
           <Space style={{ flexWrap: 'wrap' }}>
-            <Input 
-              placeholder="Search plate..." 
+            <Input
+              placeholder="Search plate..."
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
               style={{ width: 180 }}
             />
-            <Select 
+            <Select
               defaultValue=""
-              style={{ width: 160 }} 
+              style={{ width: 160 }}
               onChange={(val) => setFilters({ ...filters, status: val })}
             >
               <Option value="">All Statuses</Option>
@@ -375,9 +388,9 @@ const StaffSessions = () => {
               <Option value="UNPAID">Unpaid</Option>
               <Option value="LOST_TICKET">Lost Ticket</Option>
             </Select>
-            <Select 
+            <Select
               defaultValue=""
-              style={{ width: 150 }} 
+              style={{ width: 150 }}
               onChange={(val) => setFilters({ ...filters, vehicleType: val })}
             >
               <Option value="">All Vehicle Types</Option>
@@ -385,19 +398,19 @@ const StaffSessions = () => {
                 <Option key={type} value={type}>{type}</Option>
               ))}
             </Select>
-            <DatePicker 
-              format="MM/DD/YYYY" 
-              placeholder="mm/dd/yyyy" 
+            <DatePicker
+              format="MM/DD/YYYY"
+              placeholder="mm/dd/yyyy"
               onChange={(date, dateString) => setFilters({ ...filters, date: dateString })}
               style={{ width: 130 }}
             />
           </Space>
         </div>
 
-        <Table 
-          columns={columns} 
-          dataSource={[...filteredSessions].sort((a, b) => b.sessionId - a.sessionId)} 
-          rowKey="sessionId" 
+        <Table
+          columns={columns}
+          dataSource={[...filteredSessions].sort((a, b) => b.sessionId - a.sessionId)}
+          rowKey="sessionId"
           loading={loading}
           pagination={{ pageSize: 10 }}
           scroll={{ x: 800 }}
@@ -493,23 +506,23 @@ const StaffSessions = () => {
               <Col span={12}>
                 <Text type="secondary">Status</Text>
                 <div>
-                   {(() => {
-                      let sColor = 'default';
-                      let sText = summaryData.status;
-                      if (sText === 'ACTIVE' || sText === 'PARKING') { sColor = 'error'; sText = 'Parking'; }
-                      else if (sText === 'COMPLETED') { sColor = 'success'; sText = 'Completed'; }
-                      else if (sText === 'UNPAID') { sColor = 'warning'; sText = 'Unpaid'; }
-                      else if (sText === 'LOST_TICKET') { sColor = 'purple'; sText = 'Lost Ticket'; }
-                      return <Tag color={sColor} style={{ borderRadius: 12 }}>{sText}</Tag>;
-                   })()}
+                  {(() => {
+                    let sColor = 'default';
+                    let sText = summaryData.status;
+                    if (sText === 'ACTIVE' || sText === 'PARKING') { sColor = 'error'; sText = 'Parking'; }
+                    else if (sText === 'COMPLETED') { sColor = 'success'; sText = 'Completed'; }
+                    else if (sText === 'UNPAID') { sColor = 'warning'; sText = 'Unpaid'; }
+                    else if (sText === 'LOST_TICKET') { sColor = 'purple'; sText = 'Lost Ticket'; }
+                    return <Tag color={sColor} style={{ borderRadius: 12 }}>{sText}</Tag>;
+                  })()}
                 </div>
               </Col>
-              
+
               <Col span={12}>
                 <Text type="secondary">Card ID</Text>
                 <div style={{ fontWeight: 'bold', fontSize: 16 }}>{summaryData.cardId || '-'}</div>
               </Col>
-              
+
               <Col span={12}>
                 <Text type="secondary">License Plate</Text>
                 <div style={{ fontWeight: 'bold', fontSize: 16 }}>{summaryData.plate || '-'}</div>
@@ -518,7 +531,7 @@ const StaffSessions = () => {
                 <Text type="secondary">Vehicle Type</Text>
                 <div style={{ fontSize: 16 }}>{summaryData.type || '-'}</div>
               </Col>
-              
+
               <Col span={12}>
                 <Text type="secondary">Entry Time</Text>
                 <div style={{ fontSize: 16 }}>{summaryData.time || '-'}</div>
@@ -527,7 +540,7 @@ const StaffSessions = () => {
                 <Text type="secondary">Entry Gate</Text>
                 <div style={{ fontSize: 16 }}>{summaryData.gate || '-'}</div>
               </Col>
-              
+
               <Col span={12}>
                 <Text type="secondary">Exit Time</Text>
                 <div style={{ fontSize: 16 }}>{summaryData.exitTime || '-'}</div>
@@ -545,7 +558,7 @@ const StaffSessions = () => {
                 <Text type="secondary">Staff (In/Out)</Text>
                 <div style={{ fontSize: 16 }}>{summaryData.createdBy} / -</div>
               </Col>
-              
+
               <Col span={24} style={{ textAlign: 'center', marginTop: 16 }}>
                 <Text type="secondary" style={{ fontSize: 16 }}>
                   {summaryData.status === 'PARKING' ? 'Estimated Fee' : 'Final Fee'}
@@ -591,11 +604,11 @@ const StaffSessions = () => {
       <Modal
         title="Check-out & Payment"
         open={isCheckOutVisible}
-        onCancel={() => { 
-          setIsCheckOutVisible(false); 
-          setCheckOutStep(1); 
-          checkOutSearchForm.resetFields(); 
-          checkOutConfirmForm.resetFields(); 
+        onCancel={() => {
+          setIsCheckOutVisible(false);
+          setCheckOutStep(1);
+          checkOutSearchForm.resetFields();
+          checkOutConfirmForm.resetFields();
         }}
         footer={null}
         width={700}
@@ -634,9 +647,9 @@ const StaffSessions = () => {
               <Col span={12} style={{ textAlign: 'center' }}>
                 <p><strong>Exit Image</strong></p>
                 {checkoutSessionData.exitImageUrl ? (
-                   <img src={checkoutSessionData.exitImageUrl} alt="Exit" style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px' }} />
+                  <img src={checkoutSessionData.exitImageUrl} alt="Exit" style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px' }} />
                 ) : (
-                   <div style={{ height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                  <div style={{ height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
                     <Text type="secondary">No Image</Text>
                   </div>
                 )}
@@ -681,14 +694,14 @@ const StaffSessions = () => {
             <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
               Please complete the payment in the VNPay tab. The system will automatically close this popup upon successful payment.
             </Text>
-            
+
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
               <Button onClick={() => {
-                 setIsCheckOutVisible(false);
-                 setCheckOutStep(1);
-                 checkOutSearchForm.resetFields();
-                 checkOutConfirmForm.resetFields();
-                 fetchSessions();
+                setIsCheckOutVisible(false);
+                setCheckOutStep(1);
+                checkOutSearchForm.resetFields();
+                checkOutConfirmForm.resetFields();
+                fetchSessions();
               }}>Close (Cancel Payment)</Button>
               <Button type="primary" danger onClick={async () => {
                 try {
@@ -699,7 +712,7 @@ const StaffSessions = () => {
                   checkOutSearchForm.resetFields();
                   checkOutConfirmForm.resetFields();
                   fetchSessions();
-                } catch(e) {
+                } catch (e) {
                   message.error('Failed to switch to cash');
                 }
               }}>

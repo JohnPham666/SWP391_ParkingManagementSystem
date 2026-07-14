@@ -268,36 +268,33 @@ public class SessionService {
                         "CONFIRMED");
 
         BigDecimal calculatedFinalFee;
+//Chia thành 3 trường hợp: có vé tháng, có reservation, không có vé tháng không có reservation
+        //1. Xử lý vé tháng (Subscription)
 
-        // Xử lý vé tháng (Subscription)
+        //Tìm vé tháng
         List<MonthlySubscription> activeSubs = subscriptionRepository
                 .findActiveSubscriptionsByVehicleId(session.getVehicle().getVehicleId());
 
+        //Nếu có tồn tại vé tháng
         if (!activeSubs.isEmpty()) {
-            // Khách có vé tháng hợp lệ -> Không tính phí đỗ xe
+            // Khách có vé tháng hợp lệ -> Không tính phí đỗ xe vì họ đã thanh toán vé tháng đó rồi
             calculatedFinalFee = BigDecimal.ZERO;
 
+            // Dọn dẹp dữ liệu (Clean-up): Nếu khách dùng tính năng Đặt chỗ (Reservation) để giữ slot, 
+            // ta bắt buộc phải "đóng" đơn đặt chỗ đó lại (chuyển sang COMPLETED) khi khách đi ra.
+            // Nếu không, đơn sẽ bị treo mãi mãi ở trạng thái CONFIRMED gây kẹt dữ liệu, mặc dù khách không phải trả thêm tiền.
             if (resOpt.isPresent()) {
                 Reservation r = resOpt.get();
                 r.setStatus("COMPLETED");
                 reservationRepository.save(r);
             }
-        } else if (resOpt.isPresent()) {
+        } else if (resOpt.isPresent()) {//nếu vé tháng ko tồn tại thì sẽ kiểm tra tới reservation
             Reservation r = resOpt.get();
             r.setStatus("COMPLETED");
             reservationRepository.save(r);
 
-            /*
-             * Có reservation -> Tính phí 2 giai đoạn:
-             *
-             * Giai đoạn 1 (normal): entryTime -> ReservationEnd
-             * rush/offpeak rate + BasePrice
-             *
-             * Giai đoạn 2 (overtime): ReservationEnd -> exitTime (nếu xe ra trễ)
-             * OvertimeFeePerHour x số giờ quá
-             *
-             * Sau đó trừ đi phần đã thanh toán khi đặt chỗ.
-             */
+            // Bước 1: Tính tổng chi phí thực tế mà khách phải chịu từ lúc Vào cổng đến lúc Ra cổng.
+            // Nếu khách ra trễ hơn ReservationEnd, hàm này sẽ tự động tính thêm tiền phạt quá giờ (overtime).
             FeeCalculationResponse feeResponse = pricingService.calculateFee(
                     vehicleTypeId,
                     session.getEntryTime(),
@@ -305,19 +302,25 @@ public class SessionService {
                     r.getReservationEnd() // overtimeStart = hết giờ đặt chỗ
             );
 
-            // Phần phí reservation đã thu trước đó (để trừ ra, tránh tính 2 lần)
+            // Bước 2: Tính lại số tiền khách ĐÃ TRẢ (hoặc đã cọc) lúc tạo đơn Đặt chỗ trước đó.
+            // Bằng cách chạy lại hàm tính tiền cho đúng khoảng thời gian đặt giữ chỗ (Start -> End).
             FeeCalculationResponse reservationFeeResponse = pricingService.calculateFee(
                     vehicleTypeId,
                     r.getReservationStart(),
                     r.getReservationEnd());
             BigDecimal reservationAlreadyPaid = reservationFeeResponse.getFinalFee();
 
+            // Bước 3: Cấn trừ tiền (Số tiền cần trả thêm = Tổng phí đỗ xe thực tế - Tiền đã cọc lúc đặt chỗ)
             calculatedFinalFee = feeResponse.getFinalFee().subtract(reservationAlreadyPaid);
+            
+            // Bước 4: Xử lý trường hợp khách về sớm (Tiền trả thêm bị ÂM)
+            // Nếu khách về sớm hơn giờ đặt, hệ thống ép tiền trả thêm về 0 đồng (Cho qua cổng luôn, KHÔNG HOÀN LẠI tiền thừa)
             if (calculatedFinalFee.compareTo(BigDecimal.ZERO) < 0) {
                 calculatedFinalFee = BigDecimal.ZERO;
             }
 
         } else {
+        //3. Không có reservation và không có subscription
             /*
              * Walk-in hoặc không có reservation
              * FinalFee = BasePrice + HourlyFee (capped by MaxDailyRate)
