@@ -114,8 +114,8 @@ const ManagerVehicles = () => {
     if (aIsPending && !bIsPending) return -1;
     if (!aIsPending && bIsPending) return 1;
     
-    // 2. Sort by vehicleId ascending (theo thứ tự ID)
-    return (a.vehicleId || 0) - (b.vehicleId || 0);
+    // 2. Sort by vehicleId descending (theo thứ tự ID mới nhất)
+    return (b.vehicleId || 0) - (a.vehicleId || 0);
   });
 
   const columns = [
