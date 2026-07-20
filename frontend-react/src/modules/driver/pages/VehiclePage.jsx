@@ -3,7 +3,9 @@ import { Card, Row, Col, Button, Modal, Form, Input, Select, Popconfirm, Tag, Sp
 import { CarOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 import { vehicleStore } from '../store/vehicleStore';
+import { subscriptionApi, paymentApi } from '../../../services/api';
 import VehicleImageGrid from '../components/VehicleImageGrid';
+import SubscriptionRegistrationModal from '../components/SubscriptionRegistrationModal';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -22,6 +24,11 @@ const VehiclePage = () => {
     const [searchText, setSearchText] = useState('');
     const [typeFilter, setTypeFilter] = useState('all');
 
+    // Subscriptions
+    const [subscriptions, setSubscriptions] = useState([]);
+    const [isSubModalVisible, setIsSubModalVisible] = useState(false);
+    const [selectedVehicleForSub, setSelectedVehicleForSub] = useState(null);
+
     // Kích hoạt việc gọi API lấy danh sách xe khi component được tạo ra
     useEffect(() => {
         fetchData();
@@ -32,9 +39,10 @@ const VehiclePage = () => {
         vehicleStore.loading = true;
         forceRender();
         try {
-            const [vehiclesRes, typesRes] = await Promise.all([
+            const [vehiclesRes, typesRes, subsRes] = await Promise.all([
                 driverService.loadMyVehicles(),
-                driverService.loadVehicleTypes()
+                driverService.loadVehicleTypes(),
+                subscriptionApi.getSubscriptions().catch(() => ({ data: [] }))
             ]);
             
             const vRes = vehiclesRes?.data || vehiclesRes;
@@ -42,10 +50,18 @@ const VehiclePage = () => {
 
             const tRes = typesRes?.data || typesRes;
             vehicleStore.vehicleTypes = Array.isArray(tRes) ? tRes : [];
+
+            let subData = subsRes?.data?.success ? subsRes.data.data : subsRes.data;
+            if (Array.isArray(subData)) {
+                setSubscriptions(subData);
+            } else if (subData?.content) {
+                setSubscriptions(subData.content);
+            }
         } catch (error) {
             message.error('Failed to load data');
             vehicleStore.vehicles = [];
             vehicleStore.vehicleTypes = [];
+            setSubscriptions([]);
         } finally {
             vehicleStore.loading = false;
             forceRender();
@@ -143,6 +159,19 @@ const VehiclePage = () => {
             if (error.errorFields) return;
             console.error(error);
             message.error('Operation failed');
+        }
+    };
+
+
+
+    const handleCancelSub = async (subId) => {
+        try {
+            await subscriptionApi.cancelSubscriptionByUser(subId);
+            message.success('Đã hủy vé tháng thành công. Hệ thống đã chốt cước sử dụng.');
+            fetchData();
+        } catch (error) {
+            console.error(error);
+            message.error('Hủy vé tháng thất bại');
         }
     };
 
@@ -274,6 +303,49 @@ const VehiclePage = () => {
                                                     </Popconfirm>
                                                 </Space>
                                             </div>
+
+                                            {/* Subscription Info */}
+                                            {vehicle.status === 'APPROVED' && (() => {
+                                                const vehicleSubs = subscriptions
+                                                    .filter(s => s.vehicleId === (vehicle.vehicleId || vehicle.id))
+                                                    .sort((a, b) => (b.subscriptionId || b.id) - (a.subscriptionId || a.id));
+                                                
+                                                const sub = vehicleSubs.find(s => s.status === 'ACTIVE' || s.status === 'PENDING') || vehicleSubs[0];
+
+                                                if (!sub || sub.status === 'CANCELLED' || sub.status === 'REJECTED' || sub.status === 'EXPIRED') {
+                                                    return (
+                                                        <div style={{ marginTop: 12 }}>
+                                                            <Button type="dashed" block onClick={(e) => { e.stopPropagation(); setSelectedVehicleForSub(vehicle); setIsSubModalVisible(true); }}>
+                                                                Register Monthly Pass
+                                                            </Button>
+                                                        </div>
+                                                    );
+                                                }
+                                                return (
+                                                    <div style={{ marginTop: 12, padding: '8px', background: '#f8fafc', borderRadius: '8px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <Text strong style={{ fontSize: '12px' }}>Monthly Pass</Text>
+                                                            <Tag color={sub.status === 'ACTIVE' ? 'green' : sub.status === 'PENDING' ? 'orange' : sub.status === 'EXPIRED' ? 'red' : 'default'} style={{ margin: 0 }}>
+                                                                {sub.status}
+                                                            </Tag>
+                                                        </div>
+                                                        {sub.status === 'ACTIVE' && (
+                                                            <>
+                                                                <Popconfirm 
+                                                                    title="Xác nhận hủy vé tháng?" 
+                                                                    description="Hệ thống sẽ chốt hóa đơn dựa trên số ngày bạn đã sử dụng trong tháng. Hóa đơn sẽ xuất hiện trong mục Payments." 
+                                                                    onConfirm={(e) => { e.stopPropagation(); handleCancelSub(sub.subscriptionId || sub.id); }} 
+                                                                    onCancel={(e) => e.stopPropagation()}
+                                                                >
+                                                                    <Button size="small" type="primary" danger block style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
+                                                                        Hủy vé tháng
+                                                                    </Button>
+                                                                </Popconfirm>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     </Card>
                                 </Col>
@@ -400,6 +472,16 @@ const VehiclePage = () => {
                     </div>
                 )}
             </Modal>
+
+            <SubscriptionRegistrationModal
+                visible={isSubModalVisible}
+                initialVehicleId={selectedVehicleForSub?.vehicleId || selectedVehicleForSub?.id}
+                onCancel={() => setIsSubModalVisible(false)}
+                onSuccess={() => {
+                    setIsSubModalVisible(false);
+                    fetchData();
+                }}
+            />
         </div>
     );
 };

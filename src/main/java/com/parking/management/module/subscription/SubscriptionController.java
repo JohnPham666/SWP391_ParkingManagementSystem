@@ -57,6 +57,26 @@ public class SubscriptionController {
         return ApiResponse.success("Fetched by user id successfully", responses);
     }
 
+    // UPDATE: Duyệt vé tháng (Approve)
+    @Operation(summary = "Approve a subscription",
+               description = "Manager approves a pending monthly subscription")
+    @PutMapping("/{id}/approve")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
+    public ApiResponse<SubscriptionResponse> approve(@PathVariable Integer id) {
+        SubscriptionResponse response = service.approveSubscription(id);
+        return ApiResponse.success("Approved successfully", response);
+    }
+
+    // UPDATE: Từ chối vé tháng (Reject)
+    @Operation(summary = "Reject a subscription",
+               description = "Manager rejects a pending monthly subscription")
+    @PutMapping("/{id}/reject")
+    @PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
+    public ApiResponse<SubscriptionResponse> reject(@PathVariable Integer id) {
+        SubscriptionResponse response = service.rejectSubscription(id);
+        return ApiResponse.success("Rejected successfully", response);
+    }
+
     // UPDATE: Cập nhật vé tháng
     @Operation(summary = "Update a subscription",
                description = "Update an existing monthly subscription by its ID")
@@ -75,5 +95,14 @@ public class SubscriptionController {
     public ApiResponse<Void> delete(@PathVariable Integer id) {
         service.deleteSubscription(id);
         return ApiResponse.success("Deleted successfully", null);
+    }
+
+    // CANCEL: Người dùng tự hủy vé tháng (Tính phí Prorated)
+    @Operation(summary = "Cancel a subscription by user",
+               description = "Cancel an active monthly subscription and generate a prorated payment")
+    @PutMapping("/{id}/cancel-by-user")
+    public ApiResponse<SubscriptionResponse> cancelByUser(@PathVariable Integer id) {
+        SubscriptionResponse response = service.cancelSubscriptionByUser(id);
+        return ApiResponse.success("Cancelled successfully", response);
     }
 }

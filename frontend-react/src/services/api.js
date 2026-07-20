@@ -129,6 +129,9 @@ export const subscriptionApi = {
   createSubscription: (data) => api.post('/subscriptions', data),
   updateSubscription: (id, data) => api.put(`/subscriptions/${id}`, data),
   deleteSubscription: (id) => api.delete(`/subscriptions/${id}`),
+  approveSubscription: (id) => api.put(`/subscriptions/${id}/approve`),
+  rejectSubscription: (id) => api.put(`/subscriptions/${id}/reject`),
+  cancelSubscriptionByUser: (id) => api.put(`/subscriptions/${id}/cancel-by-user`),
 };
 
 export const buildingApi = {
@@ -158,6 +161,7 @@ export const pricingApi = {
   updatePricingRule: (id, data) => api.put(`/pricings/${id}`, data),
   deletePricingRule: (id) => api.delete(`/pricings/${id}`),
   calculateFee: (data) => api.post('/pricings/calculate-fee', data),
+  getPricingPoliciesByVehicleType: (vehicleTypeId) => api.get(`/pricings/vehicle-type/${vehicleTypeId}`),
 };
 
 export const reportApi = {

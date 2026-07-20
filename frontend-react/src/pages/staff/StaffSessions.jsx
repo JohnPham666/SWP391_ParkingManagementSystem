@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Upload, Row, Col, Typography, Divider, DatePicker } from 'antd';
 import { SearchOutlined, CarOutlined, CreditCardOutlined, UploadOutlined, SafetyCertificateOutlined, CheckCircleFilled } from '@ant-design/icons';
-import { sessionApi, paymentApi, vehicleApi, pricingApi, cardApi } from '../../services/api';
+import { sessionApi, paymentApi, vehicleApi, pricingApi, cardApi, subscriptionApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -11,6 +11,7 @@ const StaffSessions = () => {
   const [sessions, setSessions] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [activeCards, setActiveCards] = useState([]);
+  const [activeSubPlates, setActiveSubPlates] = useState(new Map());
   const [loading, setLoading] = useState(false);
 
   const [filters, setFilters] = useState({
@@ -73,8 +74,27 @@ const StaffSessions = () => {
     fetchSessions();
     fetchVehicleTypes();
     fetchActiveCards();
+    fetchSubscriptions();
     // eslint-disable-next-line
   }, []);
+
+  const fetchSubscriptions = async () => {
+    try {
+      const res = await subscriptionApi.getSubscriptions();
+      const allSubs = res.data?.success ? res.data.data : res.data;
+      if (Array.isArray(allSubs)) {
+        const subMap = new Map();
+        allSubs.forEach(sub => {
+          if (sub.licensePlate) {
+            subMap.set(sub.licensePlate.trim().toUpperCase(), sub.status);
+          }
+        });
+        setActiveSubPlates(subMap);
+      }
+    } catch (e) {
+      console.error('Failed to fetch subscriptions', e);
+    }
+  };
 
   const fetchActiveCards = async () => {
     try {
@@ -290,7 +310,7 @@ const StaffSessions = () => {
       session.licensePlate?.toLowerCase().includes(filters.search.toLowerCase()) ||
       session.sessionId?.toString().includes(filters.search);
     const statusMatch = !filters.status || session.status === filters.status || (filters.status === 'ACTIVE' && session.status === 'PARKING');
-    const typeMatch = !filters.vehicleType || (session.vehicleTypeName || session.vehicleType?.typeName || 'Ô tô') === filters.vehicleType;
+    const typeMatch = !filters.vehicleType || (session.vehicleTypeName || session.vehicleType?.typeName || 'Ã” tÃ´') === filters.vehicleType;
     const dateMatch = !filters.date || dayjs(session.checkInTime || session.checkinTime || session.entryTime).format('MM/DD/YYYY') === filters.date;
     return searchMatch && statusMatch && typeMatch && dateMatch;
   });
@@ -315,7 +335,7 @@ const StaffSessions = () => {
     },
     { title: 'ENTRY GATE', dataIndex: 'entryGate', key: 'entryGate', render: text => text || '-' },
     { title: 'EXIT GATE', dataIndex: 'exitGate', key: 'exitGate', render: text => text || '-' },
-    { title: 'FINAL FEE', dataIndex: 'finalFee', key: 'finalFee', render: text => text != null ? `${text.toLocaleString()} ₫` : '-' },
+    { title: 'FINAL FEE', dataIndex: 'finalFee', key: 'finalFee', render: text => text != null ? `${text.toLocaleString()} VNĐ` : '-' },
     { title: 'CUSTOMER', key: 'customer', render: (_, record) => record.customerName || record.userFullName || '-' },
     { title: 'PHONE', key: 'phone', render: (_, record) => record.customerPhone || record.userPhone || '-' },
     { title: 'MONTHLY PASS?', dataIndex: 'hasActiveSubscription', key: 'hasActiveSubscription', render: text => text ? <Tag color="green">Yes</Tag> : <Tag color="default">No</Tag> },
@@ -431,19 +451,63 @@ const StaffSessions = () => {
               <Button icon={<UploadOutlined />}>Upload Image</Button>
             </Upload>
           </Form.Item>
-          <Form.Item name="cardId" label="Card ID" rules={[{ required: true, message: 'Please select Card ID' }]}>
-            <Select
-              showSearch
-              placeholder="Select an available Card ID"
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-              }
-              options={activeCards.map(c => ({ value: c.cardId, label: c.cardId }))}
-            />
-          </Form.Item>
           <Form.Item name="licensePlate" label="License Plate (Optional for Bicycle)">
             <Input placeholder="e.g. 29A-12345" style={{ textTransform: 'uppercase' }} />
+          </Form.Item>
+          <Form.Item
+            shouldUpdate={(prevValues, currentValues) => prevValues.licensePlate !== currentValues.licensePlate}
+            noStyle
+          >
+            {({ getFieldValue }) => {
+              const currentPlate = (getFieldValue('licensePlate') || '').trim().toUpperCase();
+              const subStatus = activeSubPlates.get(currentPlate);
+              const hasSub = subStatus === 'ACTIVE';
+              
+              return (
+                <div style={{ marginBottom: 24 }}>
+                  {subStatus === 'ACTIVE' && (
+                    <div style={{ marginBottom: 16 }}>
+                      <Tag color="green" icon={<SafetyCertificateOutlined />} style={{ fontSize: '14px', padding: '6px 12px' }}>
+                        Xe cÃ³ vÃ© thÃ¡ng ACTIVE - KhÃ´ng cáº§n quáº¹t tháº»
+                      </Tag>
+                    </div>
+                  )}
+                  {subStatus === 'PENDING' && (
+                    <div style={{ marginBottom: 16 }}>
+                      <Tag color="warning" style={{ fontSize: '14px', padding: '6px 12px' }}>
+                        VÃ© thÃ¡ng xe nÃ y ÄANG CHá»œ DUYá»†T (Cáº§n duyá»‡t trÆ°á»›c)
+                      </Tag>
+                    </div>
+                  )}
+                  {subStatus === 'CANCELLED' && (
+                    <div style={{ marginBottom: 16 }}>
+                      <Tag color="error" style={{ fontSize: '14px', padding: '6px 12px' }}>
+                        VÃ© thÃ¡ng xe nÃ y ÄÃƒ Bá»Š HUá»¶
+                      </Tag>
+                    </div>
+                  )}
+                  
+                  <Form.Item 
+                    name="cardId" 
+                    label="Card ID" 
+                    rules={[{ required: !hasSub, message: 'Please select Card ID' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Select
+                      showSearch
+                      placeholder="Select an available Card ID"
+                      optionFilterProp="children"
+                      disabled={hasSub}
+                      allowClear
+                      filterOption={(input, option) =>
+                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                      options={activeCards.map(c => ({ value: c.cardId, label: c.cardId }))}
+                    />
+                  </Form.Item>
+                </div>
+              );
+            }}
           </Form.Item>
           <Form.Item name="vehicleType" label="Vehicle Type" rules={[{ required: true }]}>
             <Select>
@@ -564,7 +628,7 @@ const StaffSessions = () => {
                   {summaryData.status === 'PARKING' ? 'Estimated Fee' : 'Final Fee'}
                 </Text>
                 <div style={{ fontSize: 32, fontWeight: 'bold', color: '#ef4444' }}>
-                  {summaryData.finalFee.toLocaleString()} ₫
+                  {summaryData.finalFee.toLocaleString()} VNĐ
                 </div>
               </Col>
             </Row>
@@ -575,7 +639,7 @@ const StaffSessions = () => {
                 <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: '8px', fontWeight: 600 }}>Entry Image</Text>
                 <div style={{ textAlign: 'center' }}>
                   {summaryData.entryImage ? (
-                    <img src={summaryData.entryImage.startsWith('http') ? summaryData.entryImage : `https://swp391-parkingmanagementsystem-1.onrender.com${summaryData.entryImage}`} alt="Entry" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
+                    <img src={summaryData.entryImage.startsWith('http') ? summaryData.entryImage : `http://localhost:8080${summaryData.entryImage}`} alt="Entry" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
                   ) : (
                     <div style={{ width: '100%', aspectRatio: '1/1', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
                       <Text type="secondary" italic>No image available</Text>
@@ -587,7 +651,7 @@ const StaffSessions = () => {
                 <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: '8px', fontWeight: 600 }}>Exit Image</Text>
                 <div style={{ textAlign: 'center' }}>
                   {summaryData.exitImage ? (
-                    <img src={summaryData.exitImage.startsWith('http') ? summaryData.exitImage : `https://swp391-parkingmanagementsystem-1.onrender.com${summaryData.exitImage}`} alt="Exit" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
+                    <img src={summaryData.exitImage.startsWith('http') ? summaryData.exitImage : `http://localhost:8080${summaryData.exitImage}`} alt="Exit" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
                   ) : (
                     <div style={{ width: '100%', aspectRatio: '1/1', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
                       <Text type="secondary" italic>No image available</Text>
@@ -665,7 +729,7 @@ const StaffSessions = () => {
                 <Col span={12}>
                   <p><strong>Exit:</strong> {dayjs(checkoutSessionData.exitTime).format('DD/MM/YYYY HH:mm:ss')}</p>
                   <div style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold', marginTop: '10px' }}>
-                    Fee: {checkoutSessionData.totalFee.toLocaleString()} ₫
+                    Fee: {checkoutSessionData.totalFee.toLocaleString()} VNĐ
                   </div>
                 </Col>
               </Row>
@@ -736,3 +800,4 @@ const StaffSessions = () => {
 };
 
 export default StaffSessions;
+

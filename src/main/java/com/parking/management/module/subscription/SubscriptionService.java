@@ -10,6 +10,11 @@ import com.parking.management.module.vehicle.VehicleRepository;
 import com.parking.management.module.zone.Zone;
 import com.parking.management.module.zone.ZoneRepository;
 import com.parking.management.security.SecurityUtils;
+import com.parking.management.module.pricing.PricingPolicyRepository;
+import com.parking.management.module.pricing.PricingPolicy;
+import com.parking.management.module.payment.Payment;
+import com.parking.management.module.payment.PaymentRepository;
+import com.parking.management.module.payment.PaymentStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +32,8 @@ public class SubscriptionService {
     private final VehicleRepository vehicleRepository;
     private final ParkingSlotRepository slotRepository;
     private final ZoneRepository zoneRepository;
+    private final PricingPolicyRepository pricingPolicyRepository;
+    private final PaymentRepository paymentRepository;
     private final SecurityUtils securityUtils;
 
     //================================================================================================================
@@ -48,13 +55,14 @@ public class SubscriptionService {
             throw new IllegalArgumentException("Phương tiện chưa được duyệt (APPROVED), không thể đăng ký vé tháng.");
         }
 
-        // Kiểm tra xem xe này đã có vé tháng ACTIVE chưa
+        // Kiểm tra xem xe này đã có vé tháng ACTIVE hoặc PENDING chưa
         List<MonthlySubscription> existingSubs = repository.findByVehicle_VehicleId(request.getVehicleId());
-        boolean hasActiveSub = existingSubs.stream()
-                .anyMatch(sub -> SubscriptionStatus.ACTIVE.name().equals(sub.getStatus()));
+        boolean hasActiveOrPendingSub = existingSubs.stream()
+                .anyMatch(sub -> SubscriptionStatus.ACTIVE.name().equals(sub.getStatus()) 
+                              || SubscriptionStatus.PENDING.name().equals(sub.getStatus()));
         
-        if (hasActiveSub) {
-            throw new IllegalArgumentException("This vehicle already has an ACTIVE monthly subscription.");
+        if (hasActiveOrPendingSub) {
+            throw new IllegalArgumentException("This vehicle already has an ACTIVE or PENDING monthly subscription.");
         }
 
         // Tạo entity mới
@@ -81,14 +89,22 @@ public class SubscriptionService {
         // Set ngày bắt đầu
         subscription.setStartDate(request.getStartDate());
 
-        // Tự tính endDate = startDate + 1 tháng
-        subscription.setEndDate(request.getStartDate().plusMonths(1));
+        // Đăng ký trả sau (Post-paid) vô thời hạn cho đến khi hủy
+        subscription.setEndDate(java.time.LocalDate.of(2099, 12, 31));
 
-        // Set phí hàng tháng
-        subscription.setMonthlyFee(request.getMonthlyFee());
+        // Lấy giá MonthlyPrice từ PricingPolicy đang active (ghi đè request.getMonthlyFee() để bảo mật)
+        PricingPolicy policy = pricingPolicyRepository.findActivePolicyByVehicleTypeId(
+                Long.valueOf(vehicle.getVehicleType().getVehicleTypeId()), LocalDateTime.now())
+                .orElseThrow(() -> new IllegalArgumentException("No active pricing policy for this vehicle type."));
+        
+        if (policy.getMonthlyPrice() == null) {
+            subscription.setMonthlyFee(request.getMonthlyFee()); // Fallback
+        } else {
+            subscription.setMonthlyFee(policy.getMonthlyPrice());
+        }
 
-        // Vé mới tạo -> trạng thái = ACTIVE
-        subscription.setStatus(SubscriptionStatus.ACTIVE.name());
+        // Vé mới tạo -> trạng thái = PENDING (chờ duyệt)
+        subscription.setStatus(SubscriptionStatus.PENDING.name());
 
         // Set thời gian tạo
         subscription.setCreatedAt(LocalDateTime.now());
@@ -98,6 +114,36 @@ public class SubscriptionService {
 
         // Map sang response và trả về
         return entityMapToResponse(saved);
+    }
+
+    //================================================================================================================
+    // A: APPROVE/REJECT - Duyệt vé tháng
+    //================================================================================================================
+    public SubscriptionResponse approveSubscription(Integer id) {
+        MonthlySubscription subscription = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription not found with id: " + id));
+
+        if (!SubscriptionStatus.PENDING.name().equals(subscription.getStatus())) {
+            throw new IllegalArgumentException("Chỉ có thể duyệt vé tháng đang chờ duyệt (PENDING).");
+        }
+
+        subscription.setStatus(SubscriptionStatus.ACTIVE.name());
+        subscription.setStartDate(java.time.LocalDate.now());
+        // Giữ nguyên EndDate 2099-12-31 cho đến khi hủy
+        
+        return entityMapToResponse(repository.save(subscription));
+    }
+
+    public SubscriptionResponse rejectSubscription(Integer id) {
+        MonthlySubscription subscription = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription not found with id: " + id));
+
+        if (!SubscriptionStatus.PENDING.name().equals(subscription.getStatus())) {
+            throw new IllegalArgumentException("Chỉ có thể từ chối vé tháng đang chờ duyệt (PENDING).");
+        }
+
+        subscription.setStatus(SubscriptionStatus.REJECTED.name());
+        return entityMapToResponse(repository.save(subscription));
     }
 
     //================================================================================================================
@@ -190,8 +236,8 @@ public class SubscriptionService {
         }
 
         // Cập nhật ngày bắt đầu và tự tính lại endDate
+        // Cập nhật ngày bắt đầu và giữ endDate
         subscription.setStartDate(request.getStartDate());
-        subscription.setEndDate(request.getStartDate().plusMonths(1));
 
         // Cập nhật phí
         subscription.setMonthlyFee(request.getMonthlyFee());
@@ -213,6 +259,57 @@ public class SubscriptionService {
             securityUtils.checkDataOwnership(subscription.getUser().getUserId());
         }
         repository.delete(subscription);
+    }
+
+    //================================================================================================================
+    // CANCEL - Người dùng tự hủy vé tháng (Tính phí Prorated)
+    //================================================================================================================
+    public SubscriptionResponse cancelSubscriptionByUser(Integer id) {
+        MonthlySubscription subscription = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription not found with id: " + id));
+
+        if (subscription.getUser() != null) {
+            securityUtils.checkDataOwnership(subscription.getUser().getUserId());
+        }
+
+        if (!SubscriptionStatus.ACTIVE.name().equals(subscription.getStatus())) {
+            throw new IllegalArgumentException("Chỉ có thể hủy vé tháng đang hoạt động (ACTIVE).");
+        }
+
+        // 1. Chốt ngày kết thúc là hôm nay
+        java.time.LocalDate today = java.time.LocalDate.now();
+        subscription.setEndDate(today);
+        subscription.setStatus(SubscriptionStatus.CANCELLED.name());
+        
+        // 2. Tính tiền theo ngày sử dụng trong tháng hiện tại
+        java.time.YearMonth currentMonth = java.time.YearMonth.from(today);
+        int daysInMonth = currentMonth.lengthOfMonth();
+        
+        java.time.LocalDate billingStartDate = subscription.getStartDate();
+        if (billingStartDate.isBefore(currentMonth.atDay(1))) {
+            billingStartDate = currentMonth.atDay(1); // Nếu vé bắt đầu từ tháng trước, chỉ tính từ đầu tháng này
+        }
+
+        long usedDays = java.time.temporal.ChronoUnit.DAYS.between(billingStartDate, today) + 1;
+        if (usedDays < 0) usedDays = 0;
+
+        java.math.BigDecimal monthlyFee = subscription.getMonthlyFee();
+        java.math.BigDecimal dailyRate = monthlyFee.divide(java.math.BigDecimal.valueOf(daysInMonth), 2, java.math.RoundingMode.HALF_UP);
+        java.math.BigDecimal proratedFee = dailyRate.multiply(java.math.BigDecimal.valueOf(usedDays));
+
+        repository.save(subscription);
+
+        // 3. Tạo Payment
+        if (proratedFee.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            Payment payment = new Payment();
+            payment.setSubscription(subscription);
+            payment.setAmount(proratedFee);
+            payment.setPaymentMethod("VNPAY"); // Default
+            payment.setPaymentStatus(PaymentStatus.PENDING.name());
+            paymentRepository.save(payment);
+        }
+
+        return entityMapToResponse(subscription);
     }
 
     //================================================================================================================

@@ -7,7 +7,9 @@ package com.parking.management.module.subscription;
  * - CANCELLED: Vé đã bị hủy
  */
 public enum SubscriptionStatus {
+    PENDING,
     ACTIVE,
     EXPIRED,
-    CANCELLED
+    CANCELLED,
+    REJECTED
 }

@@ -25,6 +25,7 @@ public class PricingResponse {
     private BigDecimal basePrice;
     private BigDecimal rushHourPrice;
     private BigDecimal offPeakPrice;
+    private BigDecimal monthlyPrice;
 
     private LocalTime rushHourStart;
     private LocalTime rushHourEnd;

@@ -15,6 +15,7 @@ import java.util.List;
 @SuppressWarnings("null")
 public class PricingService {
     private final PricingPolicyRepository repository;
+    private final com.parking.management.module.subscription.SubscriptionRepository subscriptionRepository;
 
 
     //C : CREATE
@@ -130,6 +131,34 @@ public class PricingService {
                                                LocalDateTime entryTime,
                                                LocalDateTime exitTime) {
         return calculateFee(vehicleTypeId, entryTime, exitTime, null);
+    }
+
+    public FeeCalculationResponse calculateFee(Long vehicleTypeId,
+                                               LocalDateTime entryTime,
+                                               LocalDateTime exitTime,
+                                               LocalDateTime overtimeStart,
+                                               Integer vehicleId) {
+        if (vehicleId != null) {
+            List<com.parking.management.module.subscription.MonthlySubscription> activeSubs = 
+                subscriptionRepository.findActiveSubscriptionsByVehicleId(vehicleId);
+            if (!activeSubs.isEmpty()) {
+                FeeCalculationResponse res = new FeeCalculationResponse();
+                res.setPolicyName("Monthly Pass Active");
+                res.setBaseFee(BigDecimal.ZERO);
+                res.setTotalHours((long) Math.ceil(java.time.Duration.between(entryTime, exitTime).toMinutes() / 60.0));
+                res.setRushHours(0);
+                res.setOffPeakHours(0);
+                res.setRushHourFee(BigDecimal.ZERO);
+                res.setOffPeakFee(BigDecimal.ZERO);
+                res.setTotalFeeBeforeCap(BigDecimal.ZERO);
+                res.setCappedHourlyFee(BigDecimal.ZERO);
+                res.setOvertimeHours(0L);
+                res.setOvertimeFee(BigDecimal.ZERO);
+                res.setFinalFee(BigDecimal.ZERO);
+                return res;
+            }
+        }
+        return calculateFee(vehicleTypeId, entryTime, exitTime, overtimeStart);
     }
 
     /**
@@ -337,6 +366,8 @@ public class PricingService {
         entity.setRushHourPrice(request.getRushHourPrice());
         //Off-peak price
         entity.setOffPeakPrice(request.getOffPeakPrice());
+        //Monthly price
+        entity.setMonthlyPrice(request.getMonthlyPrice());
         //Rush hour start
         entity.setRushHourStart(request.getRushHourStart());
         //Rush hour end
@@ -370,6 +401,8 @@ public class PricingService {
         response.setRushHourPrice(entity.getRushHourPrice());
         //Off-peak price
         response.setOffPeakPrice(entity.getOffPeakPrice());
+        //Monthly price
+        response.setMonthlyPrice(entity.getMonthlyPrice());
         //Rush hour start
         response.setRushHourStart(entity.getRushHourStart());
         //Rush hour end

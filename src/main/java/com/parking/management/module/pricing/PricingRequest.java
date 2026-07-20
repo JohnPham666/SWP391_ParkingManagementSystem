@@ -44,6 +44,10 @@ public class PricingRequest {
     @PositiveOrZero(message = "Off-peak price must be greater than or equal to 0")
     private BigDecimal offPeakPrice;
 
+    //Monthly price
+    @PositiveOrZero(message = "Monthly price must be greater than or equal to 0")
+    private BigDecimal monthlyPrice;
+
     //Rush hour start
     @NotNull(message = "Rush hour start is required")
     private LocalTime rushHourStart;

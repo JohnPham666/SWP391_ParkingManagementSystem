@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Statistic, Typography, Button, Spin, message, Modal, Form, Input, Select, Upload, Tag, Progress, theme } from 'antd';
 import { 
   CarOutlined, 
@@ -10,7 +10,7 @@ import {
   CheckCircleFilled
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { monitoringApi, reservationApi, sessionApi, paymentApi, vehicleApi, pricingApi, cardApi, alprApi } from '../../services/api';
+import { monitoringApi, reservationApi, sessionApi, paymentApi, vehicleApi, pricingApi, cardApi, alprApi, subscriptionApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -30,6 +30,7 @@ const StaffDashboard = () => {
   const [isSummaryVisible, setIsSummaryVisible] = useState(false);
   
   const [activeCards, setActiveCards] = useState([]);
+  const [activeSubPlates, setActiveSubPlates] = useState(new Map());
   
   // --- ALPR States ---
   const [isScanningEntry, setIsScanningEntry] = useState(false);
@@ -41,7 +42,7 @@ const StaffDashboard = () => {
       if (!file) return;
 
       setIsScanningEntry(true);
-      message.loading({ content: 'Đang dùng AI quét biển số...', key: 'scanningEntry' });
+      message.loading({ content: 'Scanning license plate using AI...', key: 'scanningEntry' });
 
       try {
         const response = await alprApi.scanPlate(file);
@@ -49,11 +50,11 @@ const StaffDashboard = () => {
         
         if (plateStr) {
           checkInForm.setFieldsValue({ licensePlate: plateStr });
-          message.success({ content: `Nhận diện thành công: ${plateStr}`, key: 'scanningEntry', duration: 3 });
+          message.success({ content: `Successfully recognized: ${plateStr}`, key: 'scanningEntry', duration: 3 });
           handleLicensePlateChange({ target: { value: plateStr } });
         }
       } catch (error) {
-        message.error({ content: 'Không tìm thấy biển số trong ảnh!', key: 'scanningEntry', duration: 3 });
+        message.error({ content: 'No license plate found in image!', key: 'scanningEntry', duration: 3 });
       } finally {
         setIsScanningEntry(false);
       }
@@ -66,7 +67,7 @@ const StaffDashboard = () => {
       if (!file) return;
 
       setIsScanningExit(true);
-      message.loading({ content: 'Đang dùng AI quét biển số...', key: 'scanningExit' });
+      message.loading({ content: 'Scanning license plate using AI...', key: 'scanningExit' });
 
       try {
         const response = await alprApi.scanPlate(file);
@@ -74,10 +75,10 @@ const StaffDashboard = () => {
         
         if (plateStr) {
           checkOutSearchForm.setFieldsValue({ licensePlate: plateStr });
-          message.success({ content: `Nhận diện thành công: ${plateStr}`, key: 'scanningExit', duration: 3 });
+          message.success({ content: `Successfully recognized: ${plateStr}`, key: 'scanningExit', duration: 3 });
         }
       } catch (error) {
-        message.error({ content: 'Không tìm thấy biển số trong ảnh!', key: 'scanningExit', duration: 3 });
+        message.error({ content: 'No license plate found in image!', key: 'scanningExit', duration: 3 });
       } finally {
         setIsScanningExit(false);
       }
@@ -129,6 +130,7 @@ const StaffDashboard = () => {
   useEffect(() => {
     fetchData();
     fetchActiveCards();
+    fetchSubscriptions();
     const interval = setInterval(() => {
       fetchData(true);
     }, 10000);
@@ -159,6 +161,25 @@ const StaffDashboard = () => {
       message.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  
+  const fetchSubscriptions = async () => {
+    try {
+      const res = await subscriptionApi.getSubscriptions();
+      const allSubs = res.data?.success ? res.data.data : res.data;
+      if (Array.isArray(allSubs)) {
+        const subMap = new Map();
+        allSubs.forEach(sub => {
+          if (sub.licensePlate) {
+            subMap.set(sub.licensePlate.replace(/\s+/g, '').toUpperCase(), sub.status);
+          }
+        });
+        setActiveSubPlates(subMap);
+      }
+    } catch (e) {
+      console.error('Failed to fetch subscriptions', e);
     }
   };
 
@@ -267,12 +288,12 @@ const StaffDashboard = () => {
         entryGate: values.entryGate,
       };
       await sessionApi.checkIn(payload);
-      message.success('Check-in theo đặt chỗ thành công!');
+      message.success('Check-in Successful!');
       setIsResCheckInVisible(false);
       resCheckInForm.resetFields();
       fetchData();
     } catch (error) {
-      message.error(error.response?.data?.message || 'Check-in thất bại');
+      message.error(error.response?.data?.message || 'Check-in failed');
     }
   };
 
@@ -306,7 +327,7 @@ const StaffDashboard = () => {
              calculatedFee = feeRes.data.data.finalFee;
          } catch (e) {
              console.error("Fee calculation failed", e);
-             message.error("Lỗi tính phí từ Backend: " + (e.response?.data?.message || e.message));
+             message.error('Fee calculation error from Backend: ' + (e.response?.data?.message || e.message));
          }
       }
 
@@ -427,10 +448,14 @@ const StaffDashboard = () => {
   // Icons mapping for vehicle types
   const getTypeIcon = (type) => {
     const t = type.toLowerCase();
-    if (t.includes('car') || t.includes('ô tô')) return <CarOutlined />;
-    if (t.includes('motor') || t.includes('máy')) return <span>🏍️</span>;
-    if (t.includes('bicycle') || t.includes('bike') || t.includes('đạp')) return <span>🚲</span>;
-    if (t.includes('tải') || t.includes('truck')) return <span>🚚</span>;
+    if (t.includes('car')) return <CarOutlined />;
+    if (t.includes('motor')) return <span>🏍️</span>;
+    if (t.includes('bicycle') || t.includes('bike')) return <span>🚲</span>;
+    if (t.includes('truck')) return <span>🚚</span>;
+    return <CarOutlined />;
+    if (t.includes('motor') || t.includes('mÃ¡y')) return <span>ðŸï¸</span>;
+    if (t.includes('bicycle') || t.includes('bike') || t.includes('Ä‘áº¡p')) return <span>ðŸš²</span>;
+    if (t.includes('táº£i') || t.includes('truck')) return <span>ðŸšš</span>;
     return <CarOutlined />;
   };
 
@@ -542,7 +567,7 @@ const StaffDashboard = () => {
                 borderRadius: '12px'
               }}
               icon={<ScanOutlined style={{ fontSize: '28px' }} />}
-              onClick={() => setIsCheckInVisible(true)}
+              onClick={() => { fetchSubscriptions(); setIsCheckInVisible(true); }}
             >
               Smart Check-in
             </Button>
@@ -608,16 +633,58 @@ const StaffDashboard = () => {
               </div>
             </Upload>
           </Form.Item>
-          <Form.Item name="cardId" label="Card ID" rules={[{ required: true, message: 'Please select Card ID' }]}>
-            <Select
-              showSearch
-              placeholder="Select an available Card ID"
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-              }
-              options={activeCards.map(c => ({ value: c.cardId, label: c.cardId }))}
-            />
+          <Form.Item
+            shouldUpdate={true}
+            noStyle
+          >
+            {({ getFieldValue }) => {
+              const currentPlate = (getFieldValue('licensePlate') || '').replace(/\s+/g, '').toUpperCase();
+              const subStatus = activeSubPlates.get(currentPlate);
+              const hasSub = subStatus === 'ACTIVE';
+              
+              return (
+                <div style={{ marginBottom: 24 }}>
+                  {subStatus === 'ACTIVE' && (
+                    <div style={{ marginBottom: 16 }}>
+                      <Tag color="green" icon={<SafetyCertificateOutlined />} style={{ fontSize: '14px', padding: '6px 12px' }}>
+                        Active Monthly Subscription - No card required
+                      </Tag>
+                    </div>
+                  )}
+                  {subStatus === 'PENDING' && (
+                    <div style={{ marginBottom: 16 }}>
+                      <Tag color="warning" style={{ fontSize: '14px', padding: '6px 12px' }}>
+                        Subscription is PENDING approval
+                      </Tag>
+                    </div>
+                  )}
+                  {subStatus === 'CANCELLED' && (
+                    <div style={{ marginBottom: 16 }}>
+                      <Tag color="error" style={{ fontSize: '14px', padding: '6px 12px' }}>
+                        Subscription is CANCELLED
+                      </Tag>
+                    </div>
+                  )}
+                  
+                  <Form.Item 
+                    name="cardId" 
+                    label="Card ID" 
+                    rules={[{ required: !hasSub, message: 'Please select Card ID' }]}
+                    style={{ marginBottom: 16 }}
+                  >
+                    <Select
+                      showSearch
+                      placeholder="Select an available Card ID"
+                      optionFilterProp="children"
+                      filterOption={(input, option) =>
+                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                      options={activeCards.map(c => ({ value: c.cardId, label: c.cardId }))}
+                    />
+                  </Form.Item>
+                </div>
+              );
+            }}
           </Form.Item>
 
           <Form.Item name="licensePlate" label="License Plate (Optional for Bicycle)">
@@ -643,8 +710,8 @@ const StaffDashboard = () => {
               <p style={{ margin: 0 }}><strong>Slot:</strong> {matchedReservation.slotCode || 'Any'}</p>
             </div>
           ) : (
-            <div style={{ padding: '16px', background: token.colorFillQuaternary, border: `1px solid ${token.colorBorderSecondary}`, borderRadius: '8px', marginBottom: '24px' }}>
-              <Text type="secondary">No reservation found for this plate. Proceeding as <strong style={{ color: token.colorText }}>Walk-in</strong>.</Text>
+            <div style={{ padding: '16px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '24px' }}>
+              <Text type="secondary">No reservation found for this plate. Proceeding as <strong style={{ color: '#000' }}>Walk-in</strong>.</Text>
             </div>
           )}
 
@@ -710,17 +777,17 @@ const StaffDashboard = () => {
       </Modal>
 
       {/* RESERVATION CHECK-IN MODAL */}
-      <Modal title="Check-in theo Đặt chỗ" open={isResCheckInVisible}
+      <Modal title="Reservation Check-in" open={isResCheckInVisible}
         onCancel={() => { setIsResCheckInVisible(false); resCheckInForm.resetFields(); }} footer={null}>
         <Form form={resCheckInForm} layout="vertical" onFinish={handleResCheckInSubmit} size="large">
-          <Form.Item name="reservationId" label="Mã đặt chỗ (Reservation ID)" rules={[{ required: true, message: 'Nhập mã đặt chỗ' }]}>
+          <Form.Item name="reservationId" label="Reservation ID" rules={[{ required: true, message: 'Enter Reservation ID' }]}>
             <Input type="number" placeholder="VD: 12345" />
           </Form.Item>
-          <Form.Item name="entryGate" label="Cổng vào" initialValue="Gate A">
+          <Form.Item name="entryGate" label="Entry Gate" initialValue="Gate A">
             <Select><Option value="Gate A">Gate A</Option><Option value="Gate B">Gate B</Option></Select>
           </Form.Item>
           <Button type="primary" htmlType="submit" block style={{ height: 50, fontSize: 16, fontWeight: 'bold' }}>
-            Xác nhận Check-in
+            Confirm Check-in
           </Button>
         </Form>
       </Modal>
@@ -755,6 +822,24 @@ const StaffDashboard = () => {
                 <Form.Item name="licensePlate" label="License Plate / Card ID" rules={[{ required: true, message: 'Enter plate or card' }]}>
                   <Input placeholder="e.g. 29A-12345 or 001" style={{ textTransform: 'uppercase' }} />
                 </Form.Item>
+                  <Form.Item shouldUpdate={true} noStyle>
+                    {({ getFieldValue }) => {
+                      const currentPlate = (getFieldValue('licensePlate') || '').replace(/\s+/g, '').toUpperCase();
+                      const subStatus = activeSubPlates.get(currentPlate);
+                      const hasSub = subStatus === 'ACTIVE';
+                      
+                      return (
+                        <div style={{ marginBottom: 16 }}>
+                          {hasSub && (
+                            <Tag color="success" style={{ padding: '4px 12px', fontSize: '14px', borderRadius: '4px', width: '100%', textAlign: 'center' }}>
+                              <CheckCircleFilled style={{ marginRight: '6px' }} />
+                              Active Monthly Subscription
+                            </Tag>
+                          )}
+                        </div>
+                      );
+                    }}
+                  </Form.Item>
               </Col>
             </Row>
             <Button type="primary" htmlType="submit" block style={{ height: '50px', fontSize: '16px', fontWeight: 'bold' }}>
@@ -769,7 +854,7 @@ const StaffDashboard = () => {
               <Col span={12} style={{ textAlign: 'center' }}>
                 <p><strong>Entry Image</strong></p>
                 {checkoutSessionData.entryImage ? (
-                  <img src={`https://swp391-parkingmanagementsystem-1.onrender.com${checkoutSessionData.entryImage}`} alt="Entry" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px' }} />
+                  <img src={`http://localhost:8080${checkoutSessionData.entryImage}`} alt="Entry" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px' }} />
                 ) : (
                   <div style={{ width: '100%', aspectRatio: '1/1', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
                     <Text type="secondary">No Image</Text>
@@ -793,12 +878,20 @@ const StaffDashboard = () => {
                 <Col span={12}>
                   <p><strong>Card ID:</strong> <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>{checkoutSessionData.cardId || 'N/A'}</Text></p>
                   <p><strong>Plate:</strong> <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>{checkoutSessionData.licensePlate}</Text></p>
+                    {checkoutSessionData.hasActiveSubscription && (
+                      <div style={{ marginTop: '4px' }}>
+                        <Tag color="success" style={{ padding: '2px 8px', fontSize: '12px', borderRadius: '4px' }}>
+                          <CheckCircleFilled style={{ marginRight: '4px' }} />
+                          Active Monthly Subscription
+                        </Tag>
+                      </div>
+                    )}
                   <p><strong>Entry:</strong> {dayjs(checkoutSessionData.entryTime || checkoutSessionData.checkInTime).format('DD/MM/YYYY HH:mm:ss')}</p>
                 </Col>
                 <Col span={12}>
                   <p><strong>Exit:</strong> {dayjs(checkoutSessionData.exitTime).format('DD/MM/YYYY HH:mm:ss')}</p>
                   <div style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold', marginTop: '10px' }}>
-                    Fee: {checkoutSessionData.totalFee.toLocaleString()} ₫
+                    Fee: {checkoutSessionData.totalFee.toLocaleString()} VNĐ
                   </div>
                 </Col>
               </Row>
@@ -857,3 +950,4 @@ const StaffDashboard = () => {
 };
 
 export default StaffDashboard;
+

@@ -7,6 +7,7 @@ import { driverService } from '../services/driverService';
 import { reservationStore } from '../store/reservationStore';
 import { vehicleStore } from '../store/vehicleStore';
 import { parkingStore } from '../store/parkingStore';
+import { subscriptionApi } from '../../../services/api';
 
 const { Title, Text } = Typography;
 
@@ -107,6 +108,7 @@ const ReservationPage = () => {
     const [reservationToCancel, setReservationToCancel] = useState(null);
     const [refundInstructionModalVisible, setRefundInstructionModalVisible] = useState(false);
     const [cancelledReservationId, setCancelledReservationId] = useState(null);
+    const [subscriptions, setSubscriptions] = useState([]);
 
     useEffect(() => {
         fetchData();
@@ -167,10 +169,11 @@ const ReservationPage = () => {
         reservationStore.loading = true;
         forceRender();
         try {
-            const [reservationsRes, vehiclesRes, slotsRes] = await Promise.all([
+            const [reservationsRes, vehiclesRes, slotsRes, subsRes] = await Promise.all([
                 driverService.loadReservations(),
                 driverService.loadMyVehicles(),
-                driverService.loadSlots()
+                driverService.loadSlots(),
+                subscriptionApi.getSubscriptions().catch(() => ({ data: [] }))
             ]);
 
             const rRes = reservationsRes?.data || reservationsRes;
@@ -187,6 +190,9 @@ const ReservationPage = () => {
 
             const sRes = slotsRes?.data || slotsRes;
             parkingStore.slots = Array.isArray(sRes) ? sRes : [];
+
+            let subData = subsRes?.data?.success ? subsRes.data.data : (subsRes?.data || []);
+            setSubscriptions(Array.isArray(subData) ? subData : []);
         } catch (error) {
             message.error('Failed to load data');
             reservationStore.reservations = [];
@@ -605,7 +611,19 @@ const ReservationPage = () => {
                 <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
                     <Form.Item name="vehicleId" label="Select Vehicle" rules={[{ required: true }]}>
                         <Select size="large" placeholder="Choose your vehicle" onChange={handleVehicleChange}>
-                            {safeVehicles.map(v => <Select.Option key={v.vehicleId || v.id} value={v.vehicleId || v.id}>{v.licensePlate} ({v.brand || 'N/A'})</Select.Option>)}
+                            {safeVehicles.map(v => {
+                                const vId = v.vehicleId || v.id;
+                                const hasSub = subscriptions.some(s => {
+                                    const subVid = s.vehicle?.vehicleId || s.vehicle?.id || s.vehicleId;
+                                    const status = String(s.status).toUpperCase();
+                                    return subVid === vId && (status === 'ACTIVE' || status === 'PENDING');
+                                });
+                                return (
+                                    <Select.Option key={vId} value={vId} disabled={hasSub}>
+                                        {v.licensePlate} ({v.brand || 'N/A'}) {hasSub ? ' (Has Monthly Pass)' : ''}
+                                    </Select.Option>
+                                );
+                            })}
                         </Select>
                     </Form.Item>
                     

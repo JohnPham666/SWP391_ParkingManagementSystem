@@ -8,6 +8,8 @@ public class PaymentRequest {
     private Integer sessionId;
     
     private Integer reservationId;
+    
+    private Integer subscriptionId;
 
     @NotNull(message = "Payment method is required")
     private PaymentMethod paymentMethod;
