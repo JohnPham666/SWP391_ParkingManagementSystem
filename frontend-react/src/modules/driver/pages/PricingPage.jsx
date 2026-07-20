@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Typography, Button, Divider, Tag, theme, Skeleton } from 'antd';
 import { CheckCircleFilled } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
+import SubscriptionRegistrationModal from '../components/SubscriptionRegistrationModal';
 
 const { Title, Text } = Typography;
 
@@ -9,6 +10,7 @@ const { Title, Text } = Typography;
 const PricingPage = () => {
     const { token } = theme.useToken();
     const [loading, setLoading] = useState(true);
+    const [isSubModalVisible, setIsSubModalVisible] = useState(false);
     const [plans, setPlans] = useState([]);
 
     // Gọi dữ liệu khi component vừa được render
@@ -136,10 +138,26 @@ const PricingPage = () => {
                                     </div>
                                 ))}
                             </div>
+                            
+                            <Button 
+                                type="primary" 
+                                size="large" 
+                                block 
+                                style={{ marginTop: 24, backgroundColor: plan.color, borderColor: plan.color }}
+                                onClick={() => setIsSubModalVisible(true)}
+                            >
+                                Register Monthly Pass
+                            </Button>
                         </Card>
                     </Col>
                 ))}
             </Row>
+
+            <SubscriptionRegistrationModal
+                visible={isSubModalVisible}
+                onCancel={() => setIsSubModalVisible(false)}
+                onSuccess={() => setIsSubModalVisible(false)}
+            />
         </div>
     );
 };

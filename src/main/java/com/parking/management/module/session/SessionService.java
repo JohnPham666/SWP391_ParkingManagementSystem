@@ -15,7 +15,7 @@ import com.parking.management.module.vehicle.VehicleRepository;
 import com.parking.management.module.subscription.MonthlySubscription;
 import com.parking.management.module.subscription.SubscriptionRepository;
 import com.parking.management.module.vehicle.VehicleType;
-import com.parking.management.module.vehicle.VehicleTypeRepository;
+import com.parking.management.module.vehicle.VehicleTypeRepository;import com.parking.management.common.S3Service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -43,7 +43,7 @@ public class SessionService {
     private final VehicleTypeRepository vehicleTypeRepository;
     private final ParkingCardRepository parkingCardRepository;
     private final SubscriptionRepository subscriptionRepository;
-    private final SecurityUtils securityUtils;
+    private final SecurityUtils securityUtils;    private final S3Service s3Service;
 
     @Value("${file.upload-dir.sessions:uploads/sessions}")
     private String uploadDir;
@@ -166,9 +166,6 @@ public class SessionService {
             }
         }
 
-        ParkingCard card = parkingCardRepository.findByCardIdAndStatus(request.getCardId(), "ACTIVE")
-                .orElseThrow(() -> new IllegalArgumentException("Parking card is invalid or already in use"));
-
         // 1. Tìm hoặc tạo Vehicle ẩn danh
         Vehicle vehicle = vehicleRepository.findByLicensePlate(request.getLicensePlate())
                 .orElseGet(() -> {
@@ -182,34 +179,50 @@ public class SessionService {
                     return vehicleRepository.save(newVehicle);
                 });
 
-        // 2. Kiểm tra xe đã có session active chưa
+        // 2. Kiểm tra xem xe có vé tháng ACTIVE không
+        boolean hasActiveSubscription = subscriptionRepository.findByVehicle_VehicleId(vehicle.getVehicleId())
+                .stream()
+                .anyMatch(sub -> "ACTIVE".equals(sub.getStatus()) && !sub.getStartDate().isAfter(java.time.LocalDate.now()));
+
+        ParkingCard card = null;
+        if (!hasActiveSubscription) {
+            // Nếu không có vé tháng, bắt buộc phải có CardID
+            if (request.getCardId() == null || request.getCardId().trim().isEmpty()) {
+                throw new IllegalArgumentException("Card ID is required for walk-in check-in without a monthly subscription.");
+            }
+            card = parkingCardRepository.findByCardIdAndStatus(request.getCardId(), "ACTIVE")
+                    .orElseThrow(() -> new IllegalArgumentException("Parking card is invalid or already in use"));
+        }
+
+        // 3. Kiểm tra xe đã có session active chưa
         parkingSessionRepository
                 .findFirstByVehicle_VehicleIdAndStatus(vehicle.getVehicleId(), SessionStatus.PARKING.name())
                 .ifPresent(existingSession -> {
                     throw new IllegalArgumentException("This vehicle already has an active parking session");
                 });
 
-        // 3. Tìm Slot trống đầu tiên phù hợp với loại xe (kiểm tra cả capacity)
+        // 4. Tìm Slot trống đầu tiên phù hợp với loại xe
         ParkingSlot slot = parkingSlotRepository
-                .findFirstAvailableSlot(
-                        request.getVehicleTypeId())
+                .findFirstAvailableSlot(request.getVehicleTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chỗ trống phù hợp cho loại xe này."));
 
-        // 4. Kiểm tra lại capacity trước khi tăng (phòng race condition)
+        // 5. Kiểm tra lại capacity trước khi tăng
         if (slot.getCurrentOccupancy() >= slot.getCapacity()) {
             throw new IllegalArgumentException("Ô đỗ đã đầy, vui lòng thử lại.");
         }
 
-        // 5. Cập nhật trạng thái Slot
+        // 6. Cập nhật trạng thái Slot
         slot.setCurrentOccupancy(slot.getCurrentOccupancy() + 1);
         if (slot.getCurrentOccupancy() >= slot.getCapacity()) {
             slot.setStatus(SlotStatus.OCCUPIED);
         }
         parkingSlotRepository.save(slot);
 
-        // 6. Tạo ParkingSession & Đổi trạng thái Thẻ
-        card.setStatus("IN_USE");
-        parkingCardRepository.save(card);
+        // 7. Tạo ParkingSession & Đổi trạng thái Thẻ (Nếu có)
+        if (card != null) {
+            card.setStatus("IN_USE");
+            parkingCardRepository.save(card);
+        }
 
         ParkingSession session = new ParkingSession();
         session.setVehicle(vehicle);
@@ -270,8 +283,19 @@ public class SessionService {
         BigDecimal calculatedFinalFee;
 
         // Xử lý vé tháng (Subscription)
-        List<MonthlySubscription> activeSubs = subscriptionRepository
-                .findActiveSubscriptionsByVehicleId(session.getVehicle().getVehicleId());
+        List<MonthlySubscription> activeSubs = subscriptionRepository.findByVehicle_VehicleId(session.getVehicle().getVehicleId())
+                .stream()
+                .filter(sub -> "ACTIVE".equals(sub.getStatus()))
+                .filter(sub -> {
+                    java.time.LocalDate now = java.time.LocalDate.now();
+                    if (now.isBefore(sub.getStartDate())) return false;
+                    if (!now.isAfter(sub.getEndDate())) return true; // Trong hạn
+                    
+                    // Xử lý Grace Period: Nếu đã qua EndDate, kiểm tra xem có <= mùng 10 của tháng liền sau không
+                    java.time.LocalDate gracePeriodEnd = sub.getEndDate().plusMonths(1).withDayOfMonth(10);
+                    return !now.isAfter(gracePeriodEnd);
+                })
+                .toList();
 
         if (!activeSubs.isEmpty()) {
             // Khách có vé tháng hợp lệ -> Không tính phí đỗ xe
@@ -282,51 +306,89 @@ public class SessionService {
                 r.setStatus("COMPLETED");
                 reservationRepository.save(r);
             }
-        } else if (resOpt.isPresent()) {
-            Reservation r = resOpt.get();
-            r.setStatus("COMPLETED");
-            reservationRepository.save(r);
-
-            /*
-             * Có reservation -> Tính phí 2 giai đoạn:
-             *
-             * Giai đoạn 1 (normal): entryTime -> ReservationEnd
-             * rush/offpeak rate + BasePrice
-             *
-             * Giai đoạn 2 (overtime): ReservationEnd -> exitTime (nếu xe ra trễ)
-             * OvertimeFeePerHour x số giờ quá
-             *
-             * Sau đó trừ đi phần đã thanh toán khi đặt chỗ.
-             */
-            FeeCalculationResponse feeResponse = pricingService.calculateFee(
-                    vehicleTypeId,
-                    session.getEntryTime(),
-                    exitTime,
-                    r.getReservationEnd() // overtimeStart = hết giờ đặt chỗ
-            );
-
-            // Phần phí reservation đã thu trước đó (để trừ ra, tránh tính 2 lần)
-            FeeCalculationResponse reservationFeeResponse = pricingService.calculateFee(
-                    vehicleTypeId,
-                    r.getReservationStart(),
-                    r.getReservationEnd());
-            BigDecimal reservationAlreadyPaid = reservationFeeResponse.getFinalFee();
-
-            calculatedFinalFee = feeResponse.getFinalFee().subtract(reservationAlreadyPaid);
-            if (calculatedFinalFee.compareTo(BigDecimal.ZERO) < 0) {
-                calculatedFinalFee = BigDecimal.ZERO;
-            }
-
         } else {
-            /*
-             * Walk-in hoặc không có reservation
-             * FinalFee = BasePrice + HourlyFee (capped by MaxDailyRate)
-             */
-            FeeCalculationResponse feeResponse = pricingService.calculateFee(
-                    vehicleTypeId,
-                    session.getEntryTime(),
-                    exitTime);
-            calculatedFinalFee = feeResponse.getFinalFee();
+            // Exceptional Case 2: Khách huỷ vé tháng trong khi xe đang đỗ trong bãi
+            List<MonthlySubscription> cancelledSubsDuringSession = subscriptionRepository.findByVehicle_VehicleId(session.getVehicle().getVehicleId())
+                    .stream()
+                    .filter(sub -> "CANCELLED".equals(sub.getStatus()))
+                    .filter(sub -> sub.getEndDate() != null && !sub.getEndDate().isBefore(session.getEntryTime().toLocalDate()))
+                    .toList();
+            
+            if (!cancelledSubsDuringSession.isEmpty()) {
+                // Khách có vé tháng hợp lệ lúc check-in nhưng đã huỷ.
+                // Vé tháng đã tính tiền prorated đến hết ngày EndDate.
+                // Nếu khách ra sau ngày EndDate, tính phí walk-in từ đầu ngày hôm sau.
+                MonthlySubscription cancelledSub = cancelledSubsDuringSession.get(0);
+                LocalDateTime feeStartTime = cancelledSub.getEndDate().plusDays(1).atStartOfDay();
+                
+                if (exitTime.isAfter(feeStartTime)) {
+                    FeeCalculationResponse feeResponse = pricingService.calculateFee(
+                            vehicleTypeId,
+                            feeStartTime,
+                            exitTime,
+                            null,
+                            session.getVehicle() != null ? session.getVehicle().getVehicleId() : null);
+                    calculatedFinalFee = feeResponse.getFinalFee();
+                } else {
+                    calculatedFinalFee = BigDecimal.ZERO;
+                }
+                
+                if (resOpt.isPresent()) {
+                    Reservation r = resOpt.get();
+                    r.setStatus("COMPLETED");
+                    reservationRepository.save(r);
+                }
+            } else if (resOpt.isPresent()) {
+                Reservation r = resOpt.get();
+                r.setStatus("COMPLETED");
+                reservationRepository.save(r);
+
+                /*
+                 * Có reservation -> Tính phí 2 giai đoạn:
+                 *
+                 * Giai đoạn 1 (normal): entryTime -> ReservationEnd
+                 * rush/offpeak rate + BasePrice
+                 *
+                 * Giai đoạn 2 (overtime): ReservationEnd -> exitTime (nếu xe ra trễ)
+                 * OvertimeFeePerHour x số giờ quá
+                 *
+                 * Sau đó trừ đi phần đã thanh toán khi đặt chỗ.
+                 */
+                FeeCalculationResponse feeResponse = pricingService.calculateFee(
+                        vehicleTypeId,
+                        session.getEntryTime(),
+                        exitTime,
+                        r.getReservationEnd(), // overtimeStart = hết giờ đặt chỗ
+                        session.getVehicle() != null ? session.getVehicle().getVehicleId() : null
+                );
+
+                // Phần phí reservation đã thu trước đó (để trừ ra, tránh tính 2 lần)
+                FeeCalculationResponse reservationFeeResponse = pricingService.calculateFee(
+                        vehicleTypeId,
+                        r.getReservationStart(),
+                        r.getReservationEnd(),
+                        null,
+                        session.getVehicle() != null ? session.getVehicle().getVehicleId() : null);
+                BigDecimal reservationAlreadyPaid = reservationFeeResponse.getFinalFee();
+
+                calculatedFinalFee = feeResponse.getFinalFee().subtract(reservationAlreadyPaid);
+                if (calculatedFinalFee.compareTo(BigDecimal.ZERO) < 0) {
+                    calculatedFinalFee = BigDecimal.ZERO;
+                }
+
+            } else {
+                /*
+                 * Walk-in hoặc không có reservation
+                 * FinalFee = BasePrice + HourlyFee (capped by MaxDailyRate)
+                 */
+                FeeCalculationResponse feeResponse = pricingService.calculateFee(
+                        vehicleTypeId,
+                        session.getEntryTime(),
+                        exitTime,
+                        null,
+                        session.getVehicle() != null ? session.getVehicle().getVehicleId() : null);
+                calculatedFinalFee = feeResponse.getFinalFee();
+            }
         }
 
         session.setFinalFee(calculatedFinalFee);
@@ -561,9 +623,30 @@ public class SessionService {
         // Kiểm tra vé tháng (Monthly Subscription)
         // Giúp staff/driver biết ngay lúc check-in rằng xe có vé tháng
         if (session.getVehicle() != null) {
-            List<MonthlySubscription> activeSubs = subscriptionRepository
-                    .findActiveSubscriptionsByVehicleId(session.getVehicle().getVehicleId());
-            response.setHasActiveSubscription(!activeSubs.isEmpty());
+            boolean hasActiveSubscription = subscriptionRepository.findByVehicle_VehicleId(session.getVehicle().getVehicleId())
+                    .stream()
+                    .filter(sub -> "ACTIVE".equals(sub.getStatus()))
+                    .anyMatch(sub -> {
+                        java.time.LocalDate now = java.time.LocalDate.now();
+                        if (now.isBefore(sub.getStartDate())) return false;
+                        if (!now.isAfter(sub.getEndDate())) return true;
+                        java.time.LocalDate gracePeriodEnd = sub.getEndDate().plusMonths(1).withDayOfMonth(10);
+                        return !now.isAfter(gracePeriodEnd);
+                    });
+            
+            // Exceptional case: Cancelled during session
+            if (!hasActiveSubscription && session.getEntryTime() != null) {
+                hasActiveSubscription = subscriptionRepository.findByVehicle_VehicleId(session.getVehicle().getVehicleId())
+                        .stream()
+                        .filter(sub -> "CANCELLED".equals(sub.getStatus()))
+                        .filter(sub -> sub.getEndDate() != null && !sub.getEndDate().isBefore(session.getEntryTime().toLocalDate()))
+                        .anyMatch(sub -> {
+                            java.time.LocalDate exitDate = session.getExitTime() != null ? session.getExitTime().toLocalDate() : java.time.LocalDate.now();
+                            return !exitDate.isAfter(sub.getEndDate());
+                        });
+            }
+
+            response.setHasActiveSubscription(hasActiveSubscription);
         } else {
             response.setHasActiveSubscription(false);
         }

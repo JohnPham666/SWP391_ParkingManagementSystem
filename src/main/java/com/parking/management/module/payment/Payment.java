@@ -28,6 +28,10 @@ public class Payment {
     @JoinColumn(name = "ReservationID", nullable = true)
     private Reservation reservation;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "SubscriptionID", nullable = true)
+    private com.parking.management.module.subscription.MonthlySubscription subscription;
+
     @Column(name = "Amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 

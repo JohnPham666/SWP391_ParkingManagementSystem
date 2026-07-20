@@ -11,6 +11,7 @@ public class PaymentResponse {
     private Integer paymentId;
     private Integer sessionId;
     private Integer reservationId;
+    private Integer subscriptionId;
 
     private BigDecimal amount;
 

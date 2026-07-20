@@ -1,7 +1,7 @@
 package com.parking.management.module.incident;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartFile;import com.parking.management.common.S3Service;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,7 +34,7 @@ public class IncidentService {
     private final ParkingSessionRepository parkingSessionRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
-    private final SecurityUtils securityUtils;
+    private final SecurityUtils securityUtils;    private final S3Service s3Service;
 
     @Value("${file.upload-dir.incidents:uploads/incidents}")
     private String uploadDir;
@@ -197,14 +197,7 @@ public class IncidentService {
         String fileName = "incident_" + incidentId + "_" + UUID.randomUUID() + extension;
 
         try {
-            Path uploadPath = Paths.get(uploadDir);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-            Path filePath = uploadPath.resolve(fileName);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            String imageUrl = "/uploads/incidents/" + fileName;
+            String imageUrl = s3Service.uploadFile(file, "incidents", fileName);
             incident.setIncidentImage(imageUrl);
 
             return IncidentResponse.fromEntity(incidentReportRepository.save(incident));

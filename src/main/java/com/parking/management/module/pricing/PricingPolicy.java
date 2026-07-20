@@ -34,6 +34,9 @@ public class PricingPolicy {
     @Column(name = "OffPeakPrice", nullable = false, precision = 10, scale = 2)
     private BigDecimal offPeakPrice;
 
+    @Column(name = "MonthlyPrice", precision = 10, scale = 2)
+    private BigDecimal monthlyPrice;
+
     @Column(name = "RushHourStart", nullable = false)
     private LocalTime rushHourStart;
 

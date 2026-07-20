@@ -9,7 +9,7 @@ import com.parking.management.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartFile;import com.parking.management.common.S3Service;
 import java.time.LocalDate;
 
 import java.nio.file.Files;
@@ -33,7 +33,7 @@ public class VehicleService {
     private final ParkingSessionRepository parkingSessionRepository;
     private final ReservationRepository reservationRepository;
     private final SubscriptionRepository subscriptionRepository;
-    private final SecurityUtils securityUtils;
+    private final SecurityUtils securityUtils;    private final S3Service s3Service;
 
     @Value("${file.upload-dir:uploads/vehicles}")
     private String uploadDir;
@@ -202,16 +202,7 @@ public class VehicleService {
         String fileName = prefix + vehicleId + "_" + UUID.randomUUID() + extension;
 
         try {
-            Path uploadPath = Paths.get(uploadDir);
-
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
-            Path filePath = uploadPath.resolve(fileName);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            String imageUrl = "/uploads/vehicles/" + fileName;
+            String imageUrl = s3Service.uploadFile(file, "vehicles", fileName);
             
             if ("ownerportrait".equalsIgnoreCase(type)) {
                 vehicle.setOwnerPortrait(imageUrl);

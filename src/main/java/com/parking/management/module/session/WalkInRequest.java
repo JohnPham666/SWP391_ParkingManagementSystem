@@ -16,6 +16,5 @@ public class WalkInRequest {
     
     private String guestName;
 
-    @NotBlank(message = "Card ID is required")
     private String cardId;
 }

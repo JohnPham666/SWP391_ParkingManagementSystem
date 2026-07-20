@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Row, Col, Card, Typography, Tag, Space, Progress, Skeleton, Statistic, Badge, Divider, theme } from 'antd';
+import SubscriptionRegistrationModal from '../components/SubscriptionRegistrationModal';
 import {
     CarOutlined,
     CalendarOutlined,
@@ -26,6 +27,7 @@ const DashboardPage = () => {
     const navigate = useNavigate();
     const { token } = theme.useToken();
     const [loading, setLoading] = useState(true);
+    const [isSubModalVisible, setIsSubModalVisible] = useState(false);
     const [stats, setStats] = useState({
         vehicles: 0,
         activeReservations: 0,
@@ -152,6 +154,15 @@ const DashboardPage = () => {
             bg: token.colorInfoBg,
             action: 'Find Parking',
             path: '/driver/parking'
+        },
+        {
+            title: 'Monthly Pass',
+            value: null,
+            icon: <ArrowRightOutlined />,
+            color: token.colorWarning,
+            bg: token.colorWarningBg,
+            action: 'Register Now',
+            path: '#register-sub'
         }
     ];
 
@@ -174,7 +185,13 @@ const DashboardPage = () => {
                                 background: token.colorBgContainer
                             }}
                             bodyStyle={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}
-                            onClick={() => navigate(card.path)}
+                            onClick={() => {
+                                if (card.path === '#register-sub') {
+                                    setIsSubModalVisible(true);
+                                } else {
+                                    navigate(card.path);
+                                }
+                            }}
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                                 <div
@@ -260,10 +277,19 @@ const DashboardPage = () => {
                         </div>
                     </Col>
                 </Row>
+                <Divider />
             </Card>
+
+            <SubscriptionRegistrationModal
+                visible={isSubModalVisible}
+                onCancel={() => setIsSubModalVisible(false)}
+                onSuccess={() => {
+                    setIsSubModalVisible(false);
+                    fetchDashboardData();
+                }}
+            />
         </div>
     );
 };
 
 export default DashboardPage;
-

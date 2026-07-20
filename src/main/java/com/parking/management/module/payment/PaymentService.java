@@ -34,6 +34,7 @@ public class PaymentService {
     private final ParkingSessionRepository parkingSessionRepository;
     private final ReservationRepository reservationRepository;
     private final ParkingSlotRepository parkingSlotRepository;
+    private final com.parking.management.module.subscription.SubscriptionRepository subscriptionRepository;
     private final PricingService pricingService;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final VnPayService vnPayService;
@@ -52,9 +53,40 @@ public class PaymentService {
             return createForSession(request);
         } else if (request.getReservationId() != null) {
             return createForReservation(request);
+        } else if (request.getSubscriptionId() != null) {
+            return createForSubscription(request);
         } else {
-            throw new IllegalArgumentException("Must provide either sessionId or reservationId");
+            throw new IllegalArgumentException("Must provide either sessionId, reservationId, or subscriptionId");
         }
+    }
+
+    private PaymentResponse createForSubscription(PaymentRequest request) {
+        com.parking.management.module.subscription.MonthlySubscription subscription = 
+                subscriptionRepository.findById(request.getSubscriptionId())
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription not found with id: " + request.getSubscriptionId()));
+
+        if (subscription.getUser() != null) {
+            securityUtils.checkDataOwnership(subscription.getUser().getUserId());
+        }
+
+        if (!"ACTIVE".equals(subscription.getStatus()) && !"EXPIRED".equals(subscription.getStatus())) {
+            throw new IllegalArgumentException("Only ACTIVE or EXPIRED subscriptions can be renewed");
+        }
+
+        java.util.Optional<Payment> existingPaymentOpt = paymentRepository.findFirstBySubscription_SubscriptionIdOrderByPaymentIdDesc(subscription.getSubscriptionId());
+        if (existingPaymentOpt.isPresent()) {
+            Payment existingPayment = existingPaymentOpt.get();
+            if ("PENDING".equals(existingPayment.getPaymentStatus())) {
+                return mapEntityToResponse(existingPayment);
+            }
+        }
+
+        Payment payment = new Payment();
+        payment.setSubscription(subscription);
+        payment.setAmount(subscription.getMonthlyFee());
+        payment.setPaymentMethod(request.getPaymentMethod().name());
+        payment.setPaymentStatus(PaymentStatus.PENDING.name());
+        return mapEntityToResponse(paymentRepository.save(payment));
     }
 
     private PaymentResponse createForSession(PaymentRequest request) {
@@ -95,7 +127,7 @@ public class PaymentService {
 
             FeeCalculationResponse feeResponse = pricingService.calculateFee(
                     Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId()),
-                    session.getEntryTime(), exitTime);
+                    session.getEntryTime(), exitTime, null, session.getVehicle().getVehicleId());
 
             amountToPay = feeResponse.getFinalFee();
             session.setFinalFee(amountToPay);
@@ -141,7 +173,7 @@ public class PaymentService {
         try {
             feeResponse = pricingService.calculateFee(
                     Long.valueOf(reservation.getVehicleType().getVehicleTypeId()),
-                    reservation.getReservationStart(), reservation.getReservationEnd());
+                    reservation.getReservationStart(), reservation.getReservationEnd(), null, reservation.getVehicle() != null ? reservation.getVehicle().getVehicleId() : null);
         } catch (Exception e) {
             throw new IllegalArgumentException("Chưa có chính sách giá phù hợp để tính phí đặt chỗ.");
         }
@@ -265,6 +297,14 @@ public class PaymentService {
             }
         }
         
+        if (payment.getSubscription() != null) {
+            com.parking.management.module.subscription.MonthlySubscription sub = payment.getSubscription();
+            sub.setEndDate(sub.getEndDate().plusMonths(1));
+            sub.setStatus("ACTIVE"); // Cập nhật từ EXPIRED sang ACTIVE nếu cần
+            
+            subscriptionRepository.save(sub);
+        }
+        
         // Dùng helper method từ SessionService (tránh duplicate code)
         if (payment.getSession() != null) {
             ParkingSession session = payment.getSession();
@@ -316,6 +356,17 @@ public class PaymentService {
             if (payment.getReservation().getUser() != null) {
                 response.setCustomerName(payment.getReservation().getUser().getFullName());
                 response.setCustomerPhone(payment.getReservation().getUser().getPhoneNumber());
+            }
+        }
+        
+        if (payment.getSubscription() != null) {
+            response.setSubscriptionId(payment.getSubscription().getSubscriptionId());
+            if (payment.getSubscription().getVehicle() != null && payment.getSubscription().getVehicle().getLicensePlate() != null) {
+                response.setLicensePlate(payment.getSubscription().getVehicle().getLicensePlate());
+            }
+            if (payment.getSubscription().getUser() != null) {
+                response.setCustomerName(payment.getSubscription().getUser().getFullName());
+                response.setCustomerPhone(payment.getSubscription().getUser().getPhoneNumber());
             }
         }
 
@@ -481,6 +532,14 @@ public class PaymentService {
                 log.info("Đặt chỗ xử lý xong cho Reservation ID: {}", reservation.getReservationId());
             }
 
+            if (payment.getSubscription() != null) {
+                com.parking.management.module.subscription.MonthlySubscription sub = payment.getSubscription();
+                sub.setEndDate(sub.getEndDate().plusMonths(1));
+                sub.setStatus("ACTIVE"); // Đổi từ EXPIRED -> ACTIVE nếu cần
+                
+                subscriptionRepository.save(sub);
+            }
+
             // Dùng helper method từ SessionService (tránh duplicate code)
             if (payment.getSession() != null) {
                 ParkingSession session = payment.getSession();
@@ -529,6 +588,8 @@ public class PaymentService {
             securityUtils.checkDataOwnership(payment.getSession().getVehicle().getUser().getUserId());
         } else if (payment.getReservation() != null && payment.getReservation().getUser() != null) {
             securityUtils.checkDataOwnership(payment.getReservation().getUser().getUserId());
+        } else if (payment.getSubscription() != null && payment.getSubscription().getUser() != null) {
+            securityUtils.checkDataOwnership(payment.getSubscription().getUser().getUserId());
         }
     }
 }

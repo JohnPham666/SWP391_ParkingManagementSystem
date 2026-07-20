@@ -258,7 +258,9 @@ public class ReservationService {
             FeeCalculationResponse feeRes = pricingService.calculateFee(
                     Long.valueOf(reservation.getVehicleType().getVehicleTypeId()),
                     reservation.getReservationStart(),
-                    reservation.getReservationEnd()
+                    reservation.getReservationEnd(),
+                    null,
+                    reservation.getVehicle() != null ? reservation.getVehicle().getVehicleId() : null
             );
             response.setEstimatedFee(feeRes.getFinalFee());
         } catch (Exception e) {

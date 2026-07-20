@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Tag, message, Card, Space, Input, Select, Modal, Form, DatePicker, InputNumber } from 'antd';
-import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { subscriptionApi } from '../../services/api';
 import dayjs from 'dayjs';
 
@@ -73,6 +73,26 @@ const ManagerSubscriptions = () => {
       fetchSubscriptions();
     } catch (error) {
       message.error(error.response?.data?.message || 'Operation failed');
+    }
+  };
+
+  const handleApprove = async (id) => {
+    try {
+      await subscriptionApi.approveSubscription(id);
+      message.success('Subscription approved successfully');
+      fetchSubscriptions();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Failed to approve subscription');
+    }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      await subscriptionApi.rejectSubscription(id);
+      message.success('Subscription rejected successfully');
+      fetchSubscriptions();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Failed to reject subscription');
     }
   };
 
@@ -155,6 +175,8 @@ const ManagerSubscriptions = () => {
         if (status === 'ACTIVE') color = 'success';
         if (status === 'EXPIRED') color = 'error';
         if (status === 'CANCELLED') color = 'warning';
+        if (status === 'PENDING') color = 'processing';
+        if (status === 'REJECTED') color = 'error';
         return <Tag color={color}>{status || '-'}</Tag>;
       }
     },
@@ -163,7 +185,13 @@ const ManagerSubscriptions = () => {
       key: 'actions',
       render: (_, record) => (
         <Space size="middle">
-          <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
+          {record.status === 'PENDING' && (
+            <>
+              <Button type="primary" size="small" onClick={() => handleApprove(record.subscriptionId)}>Approve</Button>
+              <Button type="primary" danger size="small" onClick={() => handleReject(record.subscriptionId)}>Reject</Button>
+            </>
+          )}
+          <Button type="text" icon={<EyeOutlined />} onClick={() => handleOpenModal(record)} />
           <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.subscriptionId)} />
         </Space>
       )
@@ -186,9 +214,11 @@ const ManagerSubscriptions = () => {
           onChange={(val) => setFilters({ ...filters, status: val || null })}
         >
           <Option value="">All Statuses</Option>
+          <Option value="PENDING">Pending</Option>
           <Option value="ACTIVE">Active</Option>
           <Option value="EXPIRED">Expired</Option>
           <Option value="CANCELLED">Cancelled</Option>
+          <Option value="REJECTED">Rejected</Option>
         </Select>
       </Space>
 
@@ -202,50 +232,43 @@ const ManagerSubscriptions = () => {
       />
 
       <Modal
-        title={editingId ? "Edit Subscription" : "Create Subscription"}
+        title="View Subscription Details"
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         footer={null}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Form.Item name="userId" label="User ID" rules={[{ required: true, message: 'Please enter User ID' }]}>
-            <Input type="number" />
+        <Form form={form} layout="vertical">
+          <Form.Item name="userFullName" label="Customer Name">
+            <Input readOnly />
           </Form.Item>
           
-          <Form.Item name="licensePlate" label="License Plate" rules={[{ required: true, message: 'Please enter License Plate' }]}>
-            <Input />
+          <Form.Item name="licensePlate" label="License Plate">
+            <Input readOnly />
           </Form.Item>
 
-          <Form.Item name="slotCode" label="Parking Slot (Optional)">
-            <Input placeholder="E.g., A1-01" />
+          <Form.Item name="zoneName" label="Parking Zone (Optional)">
+            <Input placeholder="E.g., Zone A" readOnly />
           </Form.Item>
 
           <Space style={{ display: 'flex', width: '100%', gap: '16px' }}>
-            <Form.Item name="startDate" label="Start Date" style={{ flex: 1 }} rules={[{ required: true, message: 'Please select start date' }]}>
-              <DatePicker style={{ width: '100%' }} />
+            <Form.Item name="startDate" label="Start Date" style={{ flex: 1 }}>
+              <DatePicker style={{ width: '100%' }} disabled />
             </Form.Item>
-            <Form.Item name="endDate" label="End Date" style={{ flex: 1 }} rules={[{ required: true, message: 'Please select end date' }]}>
-              <DatePicker style={{ width: '100%' }} />
+            <Form.Item name="endDate" label="End Date" style={{ flex: 1 }}>
+              <DatePicker style={{ width: '100%' }} disabled />
             </Form.Item>
           </Space>
 
-          <Form.Item name="monthlyFee" label="Monthly Fee" rules={[{ required: true, message: 'Please enter fee' }]}>
-            <InputNumber style={{ width: '100%' }} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
+          <Form.Item name="monthlyFee" label="Monthly Fee">
+            <InputNumber style={{ width: '100%' }} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} readOnly />
           </Form.Item>
 
-          <Form.Item name="status" label="Status" rules={[{ required: true, message: 'Please select status' }]}>
-            <Select>
-              <Option value="ACTIVE">Active</Option>
-              <Option value="EXPIRED">Expired</Option>
-              <Option value="CANCELLED">Cancelled</Option>
-            </Select>
+          <Form.Item name="status" label="Status">
+            <Input readOnly />
           </Form.Item>
 
           <Form.Item style={{ textAlign: 'right', marginBottom: 0 }}>
-            <Button onClick={() => setIsModalVisible(false)} style={{ marginRight: 8 }}>Cancel</Button>
-            <Button type="primary" htmlType="submit" style={{ backgroundColor: '#ea580c' }}>
-              {editingId ? "Update" : "Create"}
-            </Button>
+            <Button onClick={() => setIsModalVisible(false)}>Close</Button>
           </Form.Item>
         </Form>
       </Modal>
