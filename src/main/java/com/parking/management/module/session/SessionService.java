@@ -250,27 +250,36 @@ public class SessionService {
      */
     @Transactional
     public SessionResponse checkOut(Integer sessionId, CheckOutRequest request) {
+
+        //Tìm xem session với id tương ứng có tồn tại hay không
         ParkingSession session = parkingSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Parking session not found with id: " + sessionId));
 
+        //kiểm tra session chưa thanh toán(UnPaid) thì ko cho check out
         if (SessionStatus.UNPAID.name().equals(session.getStatus())) {
             return mapEntityToResponse(session);
         }
 
+        //kiểm tra session ko có trạng thái PARKING hay không
         if (!SessionStatus.PARKING.name().equals(session.getStatus())) {
             throw new IllegalArgumentException("Session is not active, current status: " + session.getStatus());
         }
 
+        //Get slot của session tương ứng
         ParkingSlot slot = session.getSlot();
 
+        //Nếu không có slot thì return ra exception
         if (slot == null) {
             throw new IllegalArgumentException("Session does not have slot information");
         }
 
+        //Lấy exit time bằng LocalDateTime.now()
         LocalDateTime exitTime = LocalDateTime.now();
+        //Gán exitTime và exit gate vào session
         session.setExitTime(exitTime);
         session.setExitGate(request.getExitGate());
+        //Lấy vehicleTypeId từ vehicle của session, phục vụ cho việc thanh toán dựa theo loại xe
         Long vehicleTypeId = Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId());
 
         // Kiểm tra xem session này có reservation đi kèm không
@@ -280,11 +289,13 @@ public class SessionService {
                         slot.getSlotId(),
                         "CONFIRMED");
 
+        //Khởi tạo FinalFee
         BigDecimal calculatedFinalFee;
+
 //Chia thành 3 trường hợp: có vé tháng, có reservation, không có vé tháng không có reservation
         //1. Xử lý vé tháng (Subscription)
 
-        //Tìm vé tháng
+        //Tìm vé tháng của vehicle id trên
         List<MonthlySubscription> activeSubs = subscriptionRepository
                 .findActiveSubscriptionsByVehicleId(session.getVehicle().getVehicleId());
 
@@ -352,27 +363,32 @@ public class SessionService {
             // immediately
             session.setStatus(SessionStatus.COMPLETED.name());
 
+            //Tìm card từ session
             if (session.getCard() != null) {
                 ParkingCard card = session.getCard();
+                //Set lại trạng thái là ACTIVE để có thể sử dụng lại 
                 card.setStatus("ACTIVE");
                 parkingCardRepository.save(card);
             }
 
+            //Giảm currentOccupancy xuống 1 và thay đổi trạng thái của slot
             int newOcc = slot.getCurrentOccupancy() - 1;
-            if (newOcc < 0)
-                newOcc = 0;
-            slot.setCurrentOccupancy(newOcc);
-            if (slot.getCurrentOccupancy() < slot.getCapacity()) {
-                slot.setStatus(SlotStatus.AVAILABLE);
+            if (newOcc < 0) 
+                newOcc = 0;// Đảm bảo số lượng không âm
+            slot.setCurrentOccupancy(newOcc);//cập nhật số xe hiện tại
+            if (slot.getCurrentOccupancy() < slot.getCapacity()) { // Nếu số xe hiện tại ít hơn công suất
+                slot.setStatus(SlotStatus.AVAILABLE); // Thì trả trạng thái slot về có sẵn (AVAILABLE)
             }
-            parkingSlotRepository.save(slot);
+            parkingSlotRepository.save(slot);//Cập nhật slot
         } else {
-            // Fee > 0 -> Needs payment. Set UNPAID, do not release slot yet.
+            // Nếu finalFee > 0 -> Cần thanh toán -> Set trạng thái UNPAID và không giải phóng slot
             session.setStatus(SessionStatus.UNPAID.name());
         }
 
+        //Lưu updated session
         ParkingSession updatedSession = parkingSessionRepository.save(session);
 
+        //Convert/map to response and return to front end/ swagger
         return mapEntityToResponse(updatedSession);
     }
 
