@@ -764,7 +764,7 @@ const StaffDashboard = () => {
         {summaryData && (
           <div style={{ textAlign: 'center' }}>
             {summaryData.image && (
-              <img src={summaryData.image} alt="Entry" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px' }} />
+              <img src={summaryData.image.startsWith('http') ? summaryData.image : `http://localhost:8080${summaryData.image}`} alt="Entry" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px' }} />
             )}
             <p><strong>Card ID:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1677ff' }}>{summaryData.cardId || 'N/A'}</span></p>
             <p><strong>Plate:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1677ff' }}>{summaryData.plate}</span></p>
@@ -854,7 +854,7 @@ const StaffDashboard = () => {
               <Col span={12} style={{ textAlign: 'center' }}>
                 <p><strong>Entry Image</strong></p>
                 {checkoutSessionData.entryImage ? (
-                  <img src={`http://localhost:8080${checkoutSessionData.entryImage}`} alt="Entry" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px' }} />
+                  <img src={checkoutSessionData.entryImage.startsWith('http') ? checkoutSessionData.entryImage : `http://localhost:8080${checkoutSessionData.entryImage}`} alt="Entry" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px' }} />
                 ) : (
                   <div style={{ width: '100%', aspectRatio: '1/1', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
                     <Text type="secondary">No Image</Text>
