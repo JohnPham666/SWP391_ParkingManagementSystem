@@ -120,6 +120,7 @@ const VehiclePage = () => {
 
     // Xử lý logic khi bấm "Lưu" (Đăng ký xe mới hoặc Cập nhật thông tin xe), đồng thời upload từng ảnh chứng từ lên server
     const handleModalOk = async () => {
+        setIsSubmitting(true);
         try {
             const { images, ...values } = await form.validateFields();
             const payload = { ...values, vehicleColor: values.color };
@@ -157,9 +158,11 @@ const VehiclePage = () => {
             setIsModalVisible(false);
             fetchData();
         } catch (error) {
-            if (error.errorFields) return;
+            if (error.errorFields) return; // Validation error
             console.error(error);
             message.error('Operation failed');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
