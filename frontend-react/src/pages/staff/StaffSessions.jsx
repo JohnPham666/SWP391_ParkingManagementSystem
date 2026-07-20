@@ -639,7 +639,7 @@ const StaffSessions = () => {
                 <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: '8px', fontWeight: 600 }}>Entry Image</Text>
                 <div style={{ textAlign: 'center' }}>
                   {summaryData.entryImage ? (
-                    <img src={summaryData.entryImage.startsWith('http') ? summaryData.entryImage : `${(import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace('/api', '')}${`summaryData.entryImage}`} alt="Entry" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
+                    <img src={summaryData.entryImage.startsWith('http') ? summaryData.entryImage : `${(import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace('/api', '')}${summaryData.entryImage}`} alt="Entry" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
                   ) : (
                     <div style={{ width: '100%', aspectRatio: '1/1', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
                       <Text type="secondary" italic>No image available</Text>
@@ -651,7 +651,7 @@ const StaffSessions = () => {
                 <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: '8px', fontWeight: 600 }}>Exit Image</Text>
                 <div style={{ textAlign: 'center' }}>
                   {summaryData.exitImage ? (
-                    <img src={summaryData.exitImage.startsWith('http') ? summaryData.exitImage : `${(import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace('/api', '')}${`summaryData.exitImage}`} alt="Exit" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
+                    <img src={summaryData.exitImage.startsWith('http') ? summaryData.exitImage : `${(import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace('/api', '')}${summaryData.exitImage}`} alt="Exit" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e8e8e8' }} />
                   ) : (
                     <div style={{ width: '100%', aspectRatio: '1/1', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
                       <Text type="secondary" italic>No image available</Text>
