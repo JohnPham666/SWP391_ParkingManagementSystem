@@ -14,6 +14,7 @@ const { Search } = Input;
 const VehiclePage = () => {
     const { token } = theme.useToken();
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [isViewModalVisible, setIsViewModalVisible] = useState(false);
     const [editingVehicle, setEditingVehicle] = useState(null);
     const [viewingVehicle, setViewingVehicle] = useState(null);

@@ -11,6 +11,7 @@ const { Title, Text } = Typography;
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState(null);
   const [isForgotModalVisible, setIsForgotModalVisible] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotForm] = Form.useForm();
@@ -54,11 +55,11 @@ const Login = () => {
 
         navigate(route);
       } else {
-        message.error(response.data.message || 'Login failed');
+        setLoginError(response.data.message || 'Login failed');
       }
     } catch (error) {
       console.error(error);
-      message.error(error.response?.data?.message || 'Error connecting to the server');
+      setLoginError(error.response?.data?.message || 'Error connecting to the server');
     } finally {
       setLoading(false);
     }
@@ -168,7 +169,8 @@ const Login = () => {
               </div>
             </Form.Item>
 
-            <Form.Item>
+            {loginError && <div style={{ color: '#ea580c', marginBottom: '16px', textAlign: 'center', fontWeight: 600, padding: '10px', backgroundColor: '#fff7ed', borderRadius: '8px' }}>{loginError}</div>}
+              <Form.Item>
               <Button 
                 type="primary" 
                 htmlType="submit" 
