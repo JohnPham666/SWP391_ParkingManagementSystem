@@ -478,7 +478,7 @@ const SessionManagement = () => {
         {summaryData && (
           <div style={{ textAlign: 'center' }}>
             {summaryData.image && (
-              <img src={summaryData.image.startsWith('http') ? summaryData.image : `http://localhost:8080${summaryData.image}`} alt="Entry" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px' }} />
+              <img src={summaryData.image.startsWith('http') ? summaryData.image : `${(import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace('/api', '')}${summaryData.image}`} alt="Entry" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px' }} />
             )}
             <p><strong>Card ID:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1677ff' }}>{summaryData.cardId || '-'}</span></p>
             <p><strong>Plate:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1677ff' }}>{summaryData.plate}</span></p>
