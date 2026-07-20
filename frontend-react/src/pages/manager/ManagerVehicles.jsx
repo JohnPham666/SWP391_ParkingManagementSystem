@@ -253,19 +253,19 @@ const ManagerVehicles = () => {
               <Col span={8}>
                 <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Owner Portrait</Typography.Text>
                 <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
-                  {getImageUrl(editingVehicle.ownerPortrait) ? <Image wrapperStyle={{ width: '100%', height: '100%' }} src={getImageUrl(editingVehicle.ownerPortrait)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://via.placeholder.com/160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                  {getImageUrl(editingVehicle.ownerPortrait) ? <Image wrapperStyle={{ width: '100%', height: '100%' }} src={getImageUrl(editingVehicle.ownerPortrait)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://placehold.co/160x160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
                 </div>
               </Col>
               <Col span={8}>
                 <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>ID Card (Front)</Typography.Text>
                 <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
-                  {getImageUrl(editingVehicle.idCardFront) ? <Image wrapperStyle={{ width: '100%', height: '100%' }} src={getImageUrl(editingVehicle.idCardFront)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://via.placeholder.com/160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                  {getImageUrl(editingVehicle.idCardFront) ? <Image wrapperStyle={{ width: '100%', height: '100%' }} src={getImageUrl(editingVehicle.idCardFront)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://placehold.co/160x160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
                 </div>
               </Col>
               <Col span={8}>
                 <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>ID Card (Back)</Typography.Text>
                 <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
-                  {getImageUrl(editingVehicle.idCardBack) ? <Image wrapperStyle={{ width: '100%', height: '100%' }} src={getImageUrl(editingVehicle.idCardBack)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://via.placeholder.com/160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                  {getImageUrl(editingVehicle.idCardBack) ? <Image wrapperStyle={{ width: '100%', height: '100%' }} src={getImageUrl(editingVehicle.idCardBack)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://placehold.co/160x160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
                 </div>
               </Col>
             </Row>
@@ -274,19 +274,19 @@ const ManagerVehicles = () => {
               <Col span={8}>
                 <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Vehicle Image</Typography.Text>
                 <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
-                  {getImageUrl(editingVehicle.vehicleImage) ? <Image wrapperStyle={{ width: '100%', height: '100%' }} src={getImageUrl(editingVehicle.vehicleImage)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://via.placeholder.com/160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                  {getImageUrl(editingVehicle.vehicleImage) ? <Image wrapperStyle={{ width: '100%', height: '100%' }} src={getImageUrl(editingVehicle.vehicleImage)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://placehold.co/160x160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
                 </div>
               </Col>
               <Col span={8}>
                 <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Registration (Front)</Typography.Text>
                 <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
-                  {getImageUrl(editingVehicle.registrationPhotoFront || editingVehicle.registrationPhoto) ? <Image wrapperStyle={{ width: '100%', height: '100%' }} src={getImageUrl(editingVehicle.registrationPhotoFront || editingVehicle.registrationPhoto)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://via.placeholder.com/160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                  {getImageUrl(editingVehicle.registrationPhotoFront || editingVehicle.registrationPhoto) ? <Image wrapperStyle={{ width: '100%', height: '100%' }} src={getImageUrl(editingVehicle.registrationPhotoFront || editingVehicle.registrationPhoto)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://placehold.co/160x160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
                 </div>
               </Col>
               <Col span={8}>
                 <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Registration (Back)</Typography.Text>
                 <div style={{ textAlign: 'center', height: 160, background: '#f5f5f5', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e8e8e8' }}>
-                  {getImageUrl(editingVehicle.registrationPhotoBack) ? <Image wrapperStyle={{ width: '100%', height: '100%' }} src={getImageUrl(editingVehicle.registrationPhotoBack)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://via.placeholder.com/160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
+                  {getImageUrl(editingVehicle.registrationPhotoBack) ? <Image wrapperStyle={{ width: '100%', height: '100%' }} src={getImageUrl(editingVehicle.registrationPhotoBack)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fallback="https://placehold.co/160x160?text=Error" /> : <Typography.Text type="secondary" italic>No Image</Typography.Text>}
                 </div>
               </Col>
             </Row>
