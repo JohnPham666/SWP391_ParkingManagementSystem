@@ -190,9 +190,10 @@ const VehiclePage = () => {
     }, [safeVehicles, searchText, typeFilter]);
 
     // Tính toán thống kê nhanh số lượng xe (Tổng số, Ô tô, Xe máy)
-    const totalVehicles = safeVehicles.length;
-    const cars = safeVehicles.filter(v => (v.vehicleType?.typeName || v.vehicleType?.name || v.vehicleTypeName || '').toLowerCase().includes('car')).length;
-    const motorbikes = safeVehicles.filter(v => (v.vehicleType?.typeName || v.vehicleType?.name || v.vehicleTypeName || '').toLowerCase().includes('motor')).length;
+    const approvedVehicles = safeVehicles.filter(v => v.status === 'APPROVED');
+    const totalVehicles = approvedVehicles.length;
+    const cars = approvedVehicles.filter(v => (v.vehicleType?.typeName || v.vehicleType?.name || v.vehicleTypeName || '').toLowerCase().includes('car')).length;
+    const motorbikes = approvedVehicles.filter(v => (v.vehicleType?.typeName || v.vehicleType?.name || v.vehicleTypeName || '').toLowerCase().includes('motor')).length;
 
     if (vehicleStore.loading) {
         return <Skeleton active paragraph={{ rows: 10 }} />;
