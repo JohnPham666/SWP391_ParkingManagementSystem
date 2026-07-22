@@ -280,8 +280,20 @@ public class SubscriptionService {
             securityUtils.checkDataOwnership(subscription.getUser().getUserId());
         }
 
+        if (SubscriptionStatus.PENDING.name().equals(subscription.getStatus())) {
+            subscription.setStatus(SubscriptionStatus.CANCELLED.name());
+            repository.save(subscription);
+            
+            paymentRepository.findFirstBySubscription_SubscriptionIdOrderByPaymentIdDesc(id)
+                .ifPresent(payment -> {
+                    payment.setPaymentStatus(PaymentStatus.FAILED.name());
+                    paymentRepository.save(payment);
+                });
+            return entityMapToResponse(subscription);
+        }
+
         if (!SubscriptionStatus.ACTIVE.name().equals(subscription.getStatus())) {
-            throw new IllegalArgumentException("Chỉ có thể hủy vé tháng đang hoạt động (ACTIVE).");
+            throw new IllegalArgumentException("Chỉ có thể hủy vé tháng đang hoạt động (ACTIVE) hoặc chờ duyệt (PENDING).");
         }
 
         // 1. Chốt ngày kết thúc là hôm nay
