@@ -250,27 +250,35 @@ public class SessionService {
      */
     @Transactional
     public SessionResponse checkOut(Integer sessionId, CheckOutRequest request) {
+        //Tìm xem session với id tương ứng có tồn tại hay không
         ParkingSession session = parkingSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Parking session not found with id: " + sessionId));
 
+        //kiểm tra session chưa thanh toán(UnPaid) thì ko cho check out
         if (SessionStatus.UNPAID.name().equals(session.getStatus())) {
             return mapEntityToResponse(session);
         }
 
+        //kiểm tra session ko có trạng thái PARKING hay không
         if (!SessionStatus.PARKING.name().equals(session.getStatus())) {
             throw new IllegalArgumentException("Session is not active, current status: " + session.getStatus());
         }
 
+        //Get slot của session tương ứng
         ParkingSlot slot = session.getSlot();
 
+        //Nếu không có slot thì return ra exception
         if (slot == null) {
             throw new IllegalArgumentException("Session does not have slot information");
         }
 
+        //Lấy exit time bằng LocalDateTime.now()
         LocalDateTime exitTime = LocalDateTime.now();
+        //Gán exitTime và exit gate vào session
         session.setExitTime(exitTime);
         session.setExitGate(request.getExitGate());
+        //Lấy vehicleTypeId từ vehicle của session, phục vụ cho việc thanh toán dựa theo loại xe
         Long vehicleTypeId = Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId());
 
         // Kiểm tra xem session này có reservation đi kèm không
@@ -280,9 +288,12 @@ public class SessionService {
                         slot.getSlotId(),
                         "CONFIRMED");
 
+        //Khởi tạo FinalFee
         BigDecimal calculatedFinalFee;
 
-        // Xử lý vé tháng (Subscription)
+        //Chia thành 3 trường hợp: có vé tháng, có reservation, không có vé tháng không có reservation
+        //1. Xử lý vé tháng (Subscription)
+        //Tìm vé tháng của vehicle id trên
         List<MonthlySubscription> activeSubs = subscriptionRepository.findByVehicle_VehicleId(session.getVehicle().getVehicleId())
                 .stream()
                 .filter(sub -> "ACTIVE".equals(sub.getStatus()))
@@ -297,10 +308,14 @@ public class SessionService {
                 })
                 .toList();
 
+        //Nếu có tồn tại vé tháng
         if (!activeSubs.isEmpty()) {
-            // Khách có vé tháng hợp lệ -> Không tính phí đỗ xe
+            // Khách có vé tháng hợp lệ -> Không tính phí đỗ xe vì họ đã thanh toán vé tháng đó rồi
             calculatedFinalFee = BigDecimal.ZERO;
 
+            // Dọn dẹp dữ liệu (Clean-up): Nếu khách dùng tính năng Đặt chỗ (Reservation) để giữ slot, 
+            // ta bắt buộc phải "đóng" đơn đặt chỗ đó lại (chuyển sang COMPLETED) khi khách đi ra.
+            // Nếu không, đơn sẽ bị treo mãi mãi ở trạng thái CONFIRMED gây kẹt dữ liệu, mặc dù khách không phải trả thêm tiền.
             if (resOpt.isPresent()) {
                 Reservation r = resOpt.get();
                 r.setStatus("COMPLETED");
@@ -338,7 +353,7 @@ public class SessionService {
                     r.setStatus("COMPLETED");
                     reservationRepository.save(r);
                 }
-            } else if (resOpt.isPresent()) {
+            } else if (resOpt.isPresent()) {//nếu vé tháng ko tồn tại thì sẽ kiểm tra tới reservation
                 Reservation r = resOpt.get();
                 r.setStatus("COMPLETED");
                 reservationRepository.save(r);
@@ -354,6 +369,8 @@ public class SessionService {
                  *
                  * Sau đó trừ đi phần đã thanh toán khi đặt chỗ.
                  */
+                // Bước 1: Tính tổng chi phí thực tế mà khách phải chịu từ lúc Vào cổng đến lúc Ra cổng.
+                // Nếu khách ra trễ hơn ReservationEnd, hàm này sẽ tự động tính thêm tiền phạt quá giờ (overtime).
                 FeeCalculationResponse feeResponse = pricingService.calculateFee(
                         vehicleTypeId,
                         session.getEntryTime(),
@@ -383,6 +400,7 @@ public class SessionService {
                 }
 
             } else {
+                //3. Không có reservation và không có subscription
                 /*
                  * Walk-in hoặc không có reservation
                  * FinalFee = BasePrice + HourlyFee (capped by MaxDailyRate)
