@@ -42,6 +42,20 @@ public class AuthController {
         return ApiResponse.success("Đăng ký thành công", response);
     }
 
+    @Operation(summary = "Google Login", description = "Authenticate user using Google ID token")
+    @PostMapping("/google")
+    public ApiResponse<Object> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
+        Object response = authService.googleLogin(request.getCredential());
+        return ApiResponse.success("Xử lý đăng nhập Google thành công", response);
+    }
+
+    @Operation(summary = "Google Register", description = "Register a new user from Google using phone number")
+    @PostMapping("/google/register")
+    public ApiResponse<JwtResponse> googleRegister(@Valid @RequestBody GoogleRegisterRequest request) {
+        JwtResponse response = authService.googleRegister(request.getCredential(), request.getPhoneNumber());
+        return ApiResponse.success("Đăng ký Google thành công", response);
+    }
+
     /**
      * Nhận yêu cầu gửi link khôi phục mật khẩu.
      * 
