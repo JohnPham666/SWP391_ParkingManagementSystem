@@ -214,34 +214,53 @@ public class PricingService {
         LocalDateTime billingStartTime = entryTime.plusHours(1); // Giờ bắt đầu tính phí theo giờ
 
         // Tối ưu thuật toán O(1) thay vì O(N) vòng lặp
+        //Số giờ cao điểm trong 1 ngày
         long rushHoursPerDay;
-        if (rushStart.isBefore(rushEnd)) {
-            rushHoursPerDay = java.time.Duration.between(rushStart, rushEnd).toHours();
-        } else {
-            rushHoursPerDay = 24 - java.time.Duration.between(rushEnd, rushStart).toHours();
+        if (rushStart.isBefore(rushEnd)) {//Nếu giờ cao điểm bắt đầu trước giờ cao điểm kết thúc
+            rushHoursPerDay = java.time.Duration.between(rushStart, rushEnd).toHours();//Tính số giờ cao điểm trong ngày
+        } else {//Nếu giờ cao điểm kết thúc trước giờ cao điểm bắt đầu(ví dụ 22h - 6h)
+            //Do không thể lấy 6h trừ 22h nên ta dùng 24h trừ đi khoảng thời gian không cao điểm
+            //Khoảng thời gian từ 22h tới 6h = (6 - 22) = -16h -> SAI
+            //Cách đúng: 24 - (22 - 6) = 24 - 16 = 8 -> ĐÚNG
+            rushHoursPerDay = 24 - java.time.Duration.between(rushEnd, rushStart).toHours();//Tính số giờ cao điểm trong ngày
         }
+        //Từ số giờ cao điểm trong ngày(rushHoursPerDay) suy ra số giờ thường trong ngày
         long offPeakHoursPerDay = 24 - rushHoursPerDay;
 
+        //Số ngày tính phí(tổng số giờ tính phí chia cho 24,ví dụ 100 giờ / 24 = 4 ngày)
         long fullDays = billableHours / 24;
+        //Số giờ còn lại sau khi đã tính hết số ngày(lấy tổng số giờ tính phí chia lấy dư cho 24)
+        //Ví dụ 100 giờ % 24 = 4 giờ lẻ
         long remainingHours = billableHours % 24;
 
+        //tính tổng số giờ cao điểm và giờ thường dựa trên số ngày tính phí
         rushHours = fullDays * rushHoursPerDay;
         offPeakHours = fullDays * offPeakHoursPerDay;
 
         // Tính các giờ lẻ còn lại
+        // Lấy mốc thời gian sau khi đã bỏ qua X ngày chẵn
+        // để làm điểm bắt đầu đếm các giờ lẻ còn lại
+        // Ví dụ: 100 giờ = 4 ngày 4 giờ lẻ
+        // fullDays = 4 ngày
+        // remainingHours = 4 giờ
+        // billingStartTime = 10:00 (ngày 1) cộng thêm 4 ngày
+        // currentHour = 10:00 (ngày 5)
         LocalDateTime currentHour = billingStartTime.plusDays(fullDays);
-        for (int i = 0; i < remainingHours; i++) {
-            LocalTime timeOfDay = currentHour.toLocalTime();
-            if (isRushHour(timeOfDay, rushStart, rushEnd)) {
-                rushHours++;
-            } else {
-                offPeakHours++;
+        for (int i = 0; i < remainingHours; i++) {//Duyệt qua số giờ còn lại
+            LocalTime timeOfDay = currentHour.toLocalTime();//Lấy giờ hiện tại
+            if (isRushHour(timeOfDay, rushStart, rushEnd)) {//Kiểm tra xem có phải giờ cao điểm không
+                rushHours++;//tăng số giờ cao điểm 
+            } else {//Nếu không phải giờ cao điểm
+                offPeakHours++;//tăng số giờ không cao điểm
             }
-            currentHour = currentHour.plusHours(1);
+            currentHour = currentHour.plusHours(1);//tăng lên 1 giờ(đi qua toàn bộ số giờ lẻ)
         }
 
-        BigDecimal rushHourFee = policy.getRushHourPrice().multiply(BigDecimal.valueOf(rushHours));
-        BigDecimal offPeakFee  = policy.getOffPeakPrice().multiply(BigDecimal.valueOf(offPeakHours));
+        BigDecimal rushHourFee = policy.getRushHourPrice().multiply(BigDecimal.valueOf(rushHours));//tính phí giờ cao điểm = số giờ cao điểm * phí giờ cao điểm
+        BigDecimal offPeakFee  = policy.getOffPeakPrice().multiply(BigDecimal.valueOf(offPeakHours));//tính phí giờ thường = số giờ thường * phí giờ thường
+        
+        //tính tổng phí giờ cao điểm và giờ thường
+        //totalFeeBeforeCap = rushHourFee + offPeakFee;
         BigDecimal totalFeeBeforeCap = rushHourFee.add(offPeakFee);
 
         // --- Áp MaxDailyRate cap theo từng ngày ---
@@ -251,19 +270,25 @@ public class PricingService {
         // 3. OVERTIME FEE — tính cho khoảng thời gian xe ở quá giờ
         //    Áp dụng khi xe ra sau overtimeStart (ví dụ: sau ReservationEnd)
         // ============================================================
+
+        //khai báo số giờ quá hạn và phí quá hạn
         long overtimeHours = 0;
         BigDecimal overtimeFee = BigDecimal.ZERO;
 
+        //kiểm tra nếu có quá hạn
         if (hasOvertime && policy.getOvertimeFeePerHour() != null
                 && policy.getOvertimeFeePerHour().compareTo(BigDecimal.ZERO) > 0) {
             long overtimeMinutes = java.time.Duration.between(overtimeStart, exitTime).toMinutes();
             overtimeHours = (long) Math.ceil(overtimeMinutes / 60.0);
+            //overtimeFee = getOvertimeFeePerHour * overtimeHours;
             overtimeFee = policy.getOvertimeFeePerHour().multiply(BigDecimal.valueOf(overtimeHours));
         }
 
         // ============================================================
         // 4. FINAL FEE = BasePrice + CappedHourlyFee + OvertimeFee
         // ============================================================
+
+        //finalFee = baseFee(1 giờ đầu tiên) + cappedHourlyFee(giờ thứ 2 trở đi) + overtimeFee(từ lúc vượt giờ)
         BigDecimal finalFee = baseFee.add(cappedHourlyFee).add(overtimeFee);
 
         // --- Build response ---
