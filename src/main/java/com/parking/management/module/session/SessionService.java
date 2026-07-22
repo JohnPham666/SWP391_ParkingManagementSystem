@@ -231,7 +231,20 @@ public class SessionService {
         session.setEntryTime(LocalDateTime.now());
         session.setEntryGate(request.getEntryGate());
         session.setStatus(SessionStatus.PARKING.name());
-        session.setEstimatedFee(BigDecimal.ZERO);
+        // Tính phí khởi tạo (thường là Base Price cho 1 giờ đầu tiên)
+        try {
+            Long vTypeId = Long.valueOf(vehicle.getVehicleType().getVehicleTypeId());
+            FeeCalculationResponse feeRes = pricingService.calculateFee(
+                    vTypeId, 
+                    session.getEntryTime(), 
+                    session.getEntryTime(), 
+                    null, 
+                    vehicle.getVehicleId()
+            );
+            session.setEstimatedFee(feeRes.getFinalFee());
+        } catch (Exception e) {
+            session.setEstimatedFee(BigDecimal.ZERO);
+        }
 
         ParkingSession savedSession = parkingSessionRepository.save(session);
 
