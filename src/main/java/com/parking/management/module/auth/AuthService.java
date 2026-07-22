@@ -157,11 +157,6 @@ public class AuthService {
             || ("$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.".equals(user.getPasswordHash()) && "password".equals(request.getPassword()));
 
         if (!isMatch) {
-            // Nếu password sai, kiểm tra xem có phải tài khoản Google không (password được sinh tự động dài hơn thông thường)
-            if (user.getPasswordHash() != null && user.getPasswordHash().length() > 20) {
-                // Ta có thể đoán nó là tài khoản Google (thực ra Bcrypt luôn 60 ký tự, nhưng ta cứ ném IllegalArgumentException)
-                throw new IllegalArgumentException("Tài khoản này có thể được đăng ký qua Google. Vui lòng đăng nhập bằng Google hoặc khôi phục mật khẩu.");
-            }
             throw new IllegalArgumentException("Mật khẩu không chính xác");
         }
 
