@@ -362,6 +362,8 @@ public class SessionService {
                         session.getVehicle() != null ? session.getVehicle().getVehicleId() : null
                 );
 
+                // Bước 2: Tính lại số tiền khách ĐÃ TRẢ (hoặc đã cọc) lúc tạo đơn Đặt chỗ trước đó.
+                // Bằng cách chạy lại hàm tính tiền cho đúng khoảng thời gian đặt giữ chỗ (Start -> End).
                 // Phần phí reservation đã thu trước đó (để trừ ra, tránh tính 2 lần)
                 FeeCalculationResponse reservationFeeResponse = pricingService.calculateFee(
                         vehicleTypeId,
@@ -371,7 +373,11 @@ public class SessionService {
                         session.getVehicle() != null ? session.getVehicle().getVehicleId() : null);
                 BigDecimal reservationAlreadyPaid = reservationFeeResponse.getFinalFee();
 
+                // Bước 3: Cấn trừ tiền (Số tiền cần trả thêm = Tổng phí đỗ xe thực tế - Tiền đã cọc lúc đặt chỗ)
                 calculatedFinalFee = feeResponse.getFinalFee().subtract(reservationAlreadyPaid);
+                
+                // Bước 4: Xử lý trường hợp khách về sớm (Tiền trả thêm bị ÂM)
+                // Nếu khách về sớm hơn giờ đặt, hệ thống ép tiền trả thêm về 0 đồng (Cho qua cổng luôn, KHÔNG HOÀN LẠI tiền thừa)
                 if (calculatedFinalFee.compareTo(BigDecimal.ZERO) < 0) {
                     calculatedFinalFee = BigDecimal.ZERO;
                 }
@@ -398,27 +404,32 @@ public class SessionService {
             // immediately
             session.setStatus(SessionStatus.COMPLETED.name());
 
+            //Tìm card từ session
             if (session.getCard() != null) {
                 ParkingCard card = session.getCard();
+                //Set lại trạng thái là ACTIVE để có thể sử dụng lại 
                 card.setStatus("ACTIVE");
                 parkingCardRepository.save(card);
             }
 
+            //Giảm currentOccupancy xuống 1 và thay đổi trạng thái của slot
             int newOcc = slot.getCurrentOccupancy() - 1;
             if (newOcc < 0)
-                newOcc = 0;
-            slot.setCurrentOccupancy(newOcc);
-            if (slot.getCurrentOccupancy() < slot.getCapacity()) {
-                slot.setStatus(SlotStatus.AVAILABLE);
+                newOcc = 0;// Đảm bảo số lượng không âm
+            slot.setCurrentOccupancy(newOcc);//cập nhật số xe hiện tại
+            if (slot.getCurrentOccupancy() < slot.getCapacity()) { // Nếu số xe hiện tại ít hơn công suất
+                slot.setStatus(SlotStatus.AVAILABLE); // Thì trả trạng thái slot về có sẵn (AVAILABLE)
             }
-            parkingSlotRepository.save(slot);
+            parkingSlotRepository.save(slot);//Cập nhật slot
         } else {
-            // Fee > 0 -> Needs payment. Set UNPAID, do not release slot yet.
+            // Nếu finalFee > 0 -> Cần thanh toán -> Set trạng thái UNPAID và không giải phóng slot
             session.setStatus(SessionStatus.UNPAID.name());
         }
 
+        //Lưu updated session
         ParkingSession updatedSession = parkingSessionRepository.save(session);
 
+        //Convert/map to response and return to front end/ swagger
         return mapEntityToResponse(updatedSession);
     }
 
