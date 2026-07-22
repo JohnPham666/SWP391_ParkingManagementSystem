@@ -160,7 +160,10 @@ const VehiclePage = () => {
         } catch (error) {
             if (error.errorFields) return; // Validation error
             console.error(error);
-            message.error('Operation failed');
+            const errMsg = typeof error.response?.data === 'string' 
+                ? error.response.data 
+                : (error.response?.data?.message || error.response?.data?.error || error.message || 'Operation failed');
+            message.error(errMsg);
         } finally {
             setIsSubmitting(false);
         }
