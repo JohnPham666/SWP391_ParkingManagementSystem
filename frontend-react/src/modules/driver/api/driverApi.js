@@ -30,6 +30,14 @@ export const driverApi = {
         });
         return response.data;
     },
+    getSubscriptions: async () => {
+        const response = await api.get('/subscriptions');
+        return response.data;
+    },
+    cancelSubscriptionByUser: async (id) => {
+        const response = await api.put(`/subscriptions/${id}/cancel-by-user`);
+        return response.data;
+    },
     getReservations: async () => {
         const response = await api.get('/reservations');
         return response.data;

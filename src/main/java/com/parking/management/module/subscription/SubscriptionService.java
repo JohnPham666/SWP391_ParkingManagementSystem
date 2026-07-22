@@ -86,11 +86,9 @@ public class SubscriptionService {
             subscription.setZone(zone);
         }
 
-        // Set ngày bắt đầu
+        // Set ngày bắt đầu và ngày kết thúc (30 ngày)
         subscription.setStartDate(request.getStartDate());
-
-        // Đăng ký trả sau (Post-paid) vô thời hạn cho đến khi hủy
-        subscription.setEndDate(java.time.LocalDate.of(2099, 12, 31));
+        subscription.setEndDate(request.getStartDate().plusDays(30));
 
         // Lấy giá MonthlyPrice từ PricingPolicy đang active (ghi đè request.getMonthlyFee() để bảo mật)
         PricingPolicy policy = pricingPolicyRepository.findActivePolicyByVehicleTypeId(
@@ -112,8 +110,18 @@ public class SubscriptionService {
         // Lưu vào database
         MonthlySubscription saved = repository.save(subscription);
 
+        // Tự động tạo Payment với trạng thái PENDING
+        Payment payment = new Payment();
+        payment.setSubscription(saved);
+        payment.setAmount(saved.getMonthlyFee());
+        payment.setPaymentMethod("VNPAY"); // Hoặc mặc định tùy ý
+        payment.setPaymentStatus(PaymentStatus.PENDING.name());
+        Payment savedPayment = paymentRepository.save(payment);
+
         // Map sang response và trả về
-        return entityMapToResponse(saved);
+        SubscriptionResponse response = entityMapToResponse(saved);
+        response.setPaymentId(savedPayment.getPaymentId());
+        return response;
     }
 
     //================================================================================================================
@@ -129,7 +137,7 @@ public class SubscriptionService {
 
         subscription.setStatus(SubscriptionStatus.ACTIVE.name());
         subscription.setStartDate(java.time.LocalDate.now());
-        // Giữ nguyên EndDate 2099-12-31 cho đến khi hủy
+        subscription.setEndDate(java.time.LocalDate.now().plusDays(30));
         
         return entityMapToResponse(repository.save(subscription));
     }
@@ -272,8 +280,20 @@ public class SubscriptionService {
             securityUtils.checkDataOwnership(subscription.getUser().getUserId());
         }
 
+        if (SubscriptionStatus.PENDING.name().equals(subscription.getStatus())) {
+            subscription.setStatus(SubscriptionStatus.CANCELLED.name());
+            repository.save(subscription);
+            
+            paymentRepository.findFirstBySubscription_SubscriptionIdOrderByPaymentIdDesc(id)
+                .ifPresent(payment -> {
+                    payment.setPaymentStatus(PaymentStatus.FAILED.name());
+                    paymentRepository.save(payment);
+                });
+            return entityMapToResponse(subscription);
+        }
+
         if (!SubscriptionStatus.ACTIVE.name().equals(subscription.getStatus())) {
-            throw new IllegalArgumentException("Chỉ có thể hủy vé tháng đang hoạt động (ACTIVE).");
+            throw new IllegalArgumentException("Chỉ có thể hủy vé tháng đang hoạt động (ACTIVE) hoặc chờ duyệt (PENDING).");
         }
 
         // 1. Chốt ngày kết thúc là hôm nay
@@ -344,6 +364,24 @@ public class SubscriptionService {
         response.setMonthlyFee(entity.getMonthlyFee());
         response.setStatus(entity.getStatus());
         response.setCreatedAt(entity.getCreatedAt());
+
+        // Tính toán remainingDays
+        if (entity.getEndDate() != null) {
+            long remaining = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), entity.getEndDate());
+            response.setRemainingDays(remaining > 0 ? (int) remaining : 0);
+        } else {
+            response.setRemainingDays(0);
+        }
+
+        // Lấy Payment ID nếu đang PENDING
+        if (SubscriptionStatus.PENDING.name().equals(entity.getStatus())) {
+            paymentRepository.findFirstBySubscription_SubscriptionIdOrderByPaymentIdDesc(entity.getSubscriptionId())
+                .ifPresent(payment -> {
+                    if ("PENDING".equals(payment.getPaymentStatus())) {
+                        response.setPaymentId(payment.getPaymentId());
+                    }
+                });
+        }
 
         return response;
     }

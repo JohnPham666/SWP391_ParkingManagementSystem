@@ -34,6 +34,9 @@ public class SubscriptionResponse {
     // Phí và trạng thái
     private BigDecimal monthlyFee;
     private String status;
+    
+    private Integer remainingDays;
+    private Integer paymentId;
 
     private LocalDateTime createdAt;
 }

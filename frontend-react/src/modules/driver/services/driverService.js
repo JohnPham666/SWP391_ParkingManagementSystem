@@ -43,6 +43,20 @@ export const driverService = {
             throw error;
         }
     },
+    loadSubscriptions: async () => {
+        try {
+            return await driverApi.getSubscriptions();
+        } catch (error) {
+            throw error;
+        }
+    },
+    cancelSubscriptionByUser: async (id) => {
+        try {
+            return await driverApi.cancelSubscriptionByUser(id);
+        } catch (error) {
+            throw error;
+        }
+    },
     loadReservations: async () => {
         try {
             return await driverApi.getReservations();

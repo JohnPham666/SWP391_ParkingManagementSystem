@@ -216,7 +216,6 @@ CREATE TABLE MonthlySubscriptions (
     MonthlyFee     DECIMAL(10,2) NOT NULL,
     Status         VARCHAR(20) NOT NULL CHECK (Status IN ('PENDING', 'ACTIVE', 'EXPIRED', 'CANCELLED', 'REJECTED')),
     CreatedAt      TIMESTAMP DEFAULT NOW(),
-    CONSTRAINT CHK_Slot_Or_Zone CHECK (SlotID IS NOT NULL OR ZoneID IS NOT NULL),
     CONSTRAINT CHK_Subscription_Time CHECK (EndDate >= StartDate),
     CONSTRAINT CHK_MonthlySubscriptions_Fee_NonNegative CHECK (MonthlyFee >= 0),
     CONSTRAINT FK_Subscriptions_Users FOREIGN KEY (UserID) REFERENCES Users(UserID),
@@ -226,7 +225,6 @@ CREATE TABLE MonthlySubscriptions (
 );
 
 CREATE UNIQUE INDEX UQ_MonthlySubscriptions_ActiveVehicle ON MonthlySubscriptions (VehicleID) WHERE Status = 'ACTIVE';
-
 
 CREATE TABLE Payments (
     PaymentID     SERIAL PRIMARY KEY,
@@ -369,15 +367,15 @@ INSERT INTO VehicleTypes (VehicleTypeID, TypeName, Description, IsReservable) OV
 SELECT setval('vehicletypes_vehicletypeid_seq', (SELECT MAX(VehicleTypeID) FROM VehicleTypes));
 
 -- 7. PRICING POLICIES
-INSERT INTO PricingPolicies (PricingPolicyID, VehicleTypeID, PolicyName, BasePrice, RushHourPrice, OffPeakPrice, RushHourStart, RushHourEnd, MaxDailyRate, LostTicketFee, OvertimeFeePerHour, EffectiveFrom, EffectiveTo) OVERRIDING SYSTEM VALUE VALUES
-(1, 1, 'Motorbike 2024',   4000,  5000, 3500, '07:00', '09:00',  40000,  40000,  NULL, '2024-01-01', '2024-12-31 23:59:59'),
-(2, 2, 'Car 2024',         8000, 15000,10000, '07:00', '09:00', 120000, 150000, 20000, '2024-01-01', '2024-12-31 23:59:59'),
-(3, 3, 'Small Truck 2024',12000, 20000,15000, '07:00', '09:00', 180000, 250000, 25000, '2024-01-01', '2024-12-31 23:59:59'),
-(4, 1, 'Motorbike 2025',   5000,  6000, 4000, '07:00', '09:00',  50000,  50000,  NULL, '2025-01-01', NULL),
-(5, 2, 'Car 2025',        10000, 20000,15000, '07:00', '09:00', 150000, 200000, 25000, '2025-01-01', NULL),
-(6, 3, 'Small Truck 2025',15000, 25000,20000, '07:00', '09:00', 200000, 300000, 30000, '2025-01-01', NULL),
-(7, 4, 'Bicycle 2025',     3000,  4000, 2000, '07:00', '09:00',  30000,  30000,  NULL, '2025-01-01', NULL),
-(8, 5, 'Large Truck 2025',25000, 35000,30000, '07:00', '09:00', 300000, 400000, 50000, '2025-01-01', NULL);
+INSERT INTO PricingPolicies (PricingPolicyID, VehicleTypeID, PolicyName, BasePrice, RushHourPrice, OffPeakPrice, MonthlyPrice, RushHourStart, RushHourEnd, MaxDailyRate, LostTicketFee, OvertimeFeePerHour, EffectiveFrom, EffectiveTo) OVERRIDING SYSTEM VALUE VALUES
+(1, 1, 'Motorbike 2024',   4000,  5000, 3500, 100000, '07:00', '09:00',  40000,  40000,  NULL, '2024-01-01', '2024-12-31 23:59:59'),
+(2, 2, 'Car 2024',         8000, 15000,10000, 500000, '07:00', '09:00', 120000, 150000, 20000, '2024-01-01', '2024-12-31 23:59:59'),
+(3, 3, 'Small Truck 2024',12000, 20000,15000, 800000, '07:00', '09:00', 180000, 250000, 25000, '2024-01-01', '2024-12-31 23:59:59'),
+(4, 1, 'Motorbike 2025',   5000,  6000, 4000, 120000, '07:00', '09:00',  50000,  50000,  NULL, '2025-01-01', NULL),
+(5, 2, 'Car 2025',        10000, 20000,15000, 600000, '07:00', '09:00', 150000, 200000, 25000, '2025-01-01', NULL),
+(6, 3, 'Small Truck 2025',15000, 25000,20000, 1000000, '07:00', '09:00', 200000, 300000, 30000, '2025-01-01', NULL),
+(7, 4, 'Bicycle 2025',     3000,  4000, 2000,  50000, '07:00', '09:00',  30000,  30000,  NULL, '2025-01-01', NULL),
+(8, 5, 'Large Truck 2025',25000, 35000,30000, 1500000, '07:00', '09:00', 300000, 400000, 50000, '2025-01-01', NULL);
 SELECT setval('pricingpolicies_pricingpolicyid_seq', (SELECT MAX(PricingPolicyID) FROM PricingPolicies));
 
 -- 8. PARKING SLOTS

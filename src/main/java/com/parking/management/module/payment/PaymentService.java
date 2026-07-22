@@ -299,8 +299,16 @@ public class PaymentService {
         
         if (payment.getSubscription() != null) {
             com.parking.management.module.subscription.MonthlySubscription sub = payment.getSubscription();
-            sub.setEndDate(sub.getEndDate().plusMonths(1));
-            sub.setStatus("ACTIVE"); // Cập nhật từ EXPIRED sang ACTIVE nếu cần
+            if ("PENDING".equals(sub.getStatus())) {
+                sub.setStatus("ACTIVE");
+                // endDate is already set during creation
+            } else if ("EXPIRED".equals(sub.getStatus())) {
+                sub.setStatus("ACTIVE");
+                sub.setStartDate(java.time.LocalDate.now());
+                sub.setEndDate(java.time.LocalDate.now().plusDays(30));
+            } else if ("ACTIVE".equals(sub.getStatus())) {
+                sub.setEndDate(sub.getEndDate().plusDays(30));
+            }
             
             subscriptionRepository.save(sub);
         }
@@ -534,8 +542,15 @@ public class PaymentService {
 
             if (payment.getSubscription() != null) {
                 com.parking.management.module.subscription.MonthlySubscription sub = payment.getSubscription();
-                sub.setEndDate(sub.getEndDate().plusMonths(1));
-                sub.setStatus("ACTIVE"); // Đổi từ EXPIRED -> ACTIVE nếu cần
+                if ("PENDING".equals(sub.getStatus())) {
+                    sub.setStatus("ACTIVE");
+                } else if ("EXPIRED".equals(sub.getStatus())) {
+                    sub.setStatus("ACTIVE");
+                    sub.setStartDate(java.time.LocalDate.now());
+                    sub.setEndDate(java.time.LocalDate.now().plusDays(30));
+                } else if ("ACTIVE".equals(sub.getStatus())) {
+                    sub.setEndDate(sub.getEndDate().plusDays(30));
+                }
                 
                 subscriptionRepository.save(sub);
             }

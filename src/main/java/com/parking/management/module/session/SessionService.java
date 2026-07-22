@@ -309,15 +309,12 @@ public class SessionService {
         //Tìm vé tháng của vehicle id trên
         List<MonthlySubscription> activeSubs = subscriptionRepository.findByVehicle_VehicleId(session.getVehicle().getVehicleId())
                 .stream()
-                .filter(sub -> "ACTIVE".equals(sub.getStatus()))
+                .filter(sub -> "ACTIVE".equals(sub.getStatus()) || "EXPIRED".equals(sub.getStatus()))
                 .filter(sub -> {
-                    java.time.LocalDate now = java.time.LocalDate.now();
-                    if (now.isBefore(sub.getStartDate())) return false;
-                    if (!now.isAfter(sub.getEndDate())) return true; // Trong hạn
-                    
-                    // Xử lý Grace Period: Nếu đã qua EndDate, kiểm tra xem có <= mùng 10 của tháng liền sau không
-                    java.time.LocalDate gracePeriodEnd = sub.getEndDate().plusMonths(1).withDayOfMonth(10);
-                    return !now.isAfter(gracePeriodEnd);
+                    java.time.LocalDate entryDate = session.getEntryTime().toLocalDate();
+                    if (entryDate.isBefore(sub.getStartDate())) return false;
+                    if (!entryDate.isAfter(sub.getEndDate())) return true; // Trong hạn lúc check-in
+                    return false;
                 })
                 .toList();
 
@@ -672,8 +669,7 @@ public class SessionService {
                         java.time.LocalDate now = java.time.LocalDate.now();
                         if (now.isBefore(sub.getStartDate())) return false;
                         if (!now.isAfter(sub.getEndDate())) return true;
-                        java.time.LocalDate gracePeriodEnd = sub.getEndDate().plusMonths(1).withDayOfMonth(10);
-                        return !now.isAfter(gracePeriodEnd);
+                        return false;
                     });
             
             // Exceptional case: Cancelled during session

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Typography, Table, Tag, Button, Empty, Skeleton, theme, message, Modal } from 'antd';
+import { Card, Row, Col, Typography, Table, Tag, Button, Empty, Skeleton, theme, message, Modal, Space } from 'antd';
 import { DollarOutlined, ClockCircleOutlined, FallOutlined, DownloadOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 
@@ -68,19 +68,27 @@ const PaymentPage = () => {
         }
     }, [payments, paymentModalVisible, payingReservationId]);
 
-    // Hàm gọi API lấy danh sách đặt chỗ từ backend và tính toán các chỉ số thống kê thanh toán (tổng đã thu, hóa đơn chờ xử lý, số liệu tháng này)
+    // Hàm gọi API lấy danh sách đặt chỗ và vé tháng từ backend và tính toán các chỉ số thống kê
     const fetchData = async (isPolling = false) => {
         if (!isPolling) setLoading(true);
         try {
-            const res = await driverService.loadReservations();
-            const rData = res?.data || res;
-            if (Array.isArray(rData)) {
-                let tPaid = 0;
-                let pendingCount = 0;
-                let tMonthly = 0;
-                const currentMonth = new Date().getMonth();
+            const [resData, subData] = await Promise.all([
+                driverService.loadReservations().catch(() => ({ data: [] })),
+                driverService.loadSubscriptions().catch(() => ({ data: [] }))
+            ]);
+            
+            const rData = resData?.data || resData;
+            const sData = subData?.data || subData;
+            
+            let tPaid = 0;
+            let pendingCount = 0;
+            let tMonthly = 0;
+            const currentMonth = new Date().getMonth();
+            const pList = [];
 
-                const pList = rData.map(r => {
+            // Xử lý Reservations
+            if (Array.isArray(rData)) {
+                rData.forEach(r => {
                     const status = getPaymentStatus(r);
                     const amount = r.amount || r.estimatedFee || 0;
                     if (status === 'PAID') {
@@ -93,7 +101,7 @@ const PaymentPage = () => {
                         }
                     }
 
-                    return {
+                    pList.push({
                         id: r.paymentId || r.reservationId || r.id,
                         reservationId: r.reservationId || r.id,
                         date: r.createdAt || r.reservationStart,
@@ -101,18 +109,52 @@ const PaymentPage = () => {
                         amount: amount,
                         status: status,
                         reservationStatus: String(r.status).toUpperCase(),
-                        rawReservation: r
-                    };
-                });
-                
-                pList.sort((a, b) => new Date(b.date) - new Date(a.date));
-                setPayments(pList);
-                setStats({
-                    totalPaid: `${tPaid.toLocaleString()} VND`,
-                    pending: pendingCount.toString(),
-                    monthly: `${tMonthly.toLocaleString()} VND`
+                        rawReservation: r,
+                        type: 'RESERVATION'
+                    });
                 });
             }
+
+            // Xử lý Subscriptions
+            if (Array.isArray(sData)) {
+                sData.forEach(s => {
+                    // Subscription payment mapping
+                    // Đối với Subscription, status của Payment phụ thuộc vào status của Subscription hoặc paymentId
+                    let paymentStatus = s.status === 'ACTIVE' ? 'PAID' : (s.status === 'PENDING' ? 'PENDING' : s.status);
+                    const amount = s.monthlyFee || 0;
+                    
+                    if (paymentStatus === 'PAID') {
+                        tPaid += amount;
+                        const sDate = new Date(s.createdAt);
+                        if (sDate.getMonth() === currentMonth) tMonthly += amount;
+                    } else if (paymentStatus === 'PENDING') {
+                        pendingCount++;
+                    }
+
+                    if (s.status !== 'REJECTED' && s.status !== 'CANCELLED') {
+                        pList.push({
+                            id: s.paymentId || `sub_${s.subscriptionId}`,
+                            reservationId: s.subscriptionId, // Dùng tạm ID của subscription để xử lý row key
+                            paymentId: s.paymentId,
+                            date: s.createdAt,
+                            description: `Monthly Subscription for ${s.licensePlate || 'Vehicle'}`,
+                            amount: amount,
+                            status: paymentStatus,
+                            reservationStatus: s.status,
+                            rawReservation: s,
+                            type: 'SUBSCRIPTION'
+                        });
+                    }
+                });
+            }
+
+            pList.sort((a, b) => new Date(b.date) - new Date(a.date));
+            setPayments(pList);
+            setStats({
+                totalPaid: `${tPaid.toLocaleString()} VND`,
+                pending: pendingCount.toString(),
+                monthly: `${tMonthly.toLocaleString()} VND`
+            });
         } catch (error) {
             console.error('Failed to load payments', error);
             if (!isPolling) message.error('Failed to load payments history');
@@ -122,43 +164,94 @@ const PaymentPage = () => {
     };
 
     // Xử lý tạo phiên thanh toán mới với VNPay khi tài xế nhấn nút "Pay Now"
-    const handlePayment = async (reservation) => {
+    const handlePayment = async (item) => {
         try {
-            const reservationId = getReservationId(reservation);
-            if (!reservationId || !canPayReservation(reservation)) {
-                message.warning({ content: 'This reservation is not available for payment.', key: 'payment' });
+            const itemId = getReservationId(item);
+            if (!itemId) {
+                message.warning({ content: 'Invalid payment target.', key: 'payment' });
                 return;
             }
 
-            message.loading({ content: 'Initializing payment...', key: 'payment' });
-
-            const payRes = await driverService.createPayment({
-                reservationId,
-                paymentMethod: 'VNPAY'
-            });
-            const paymentData = getResponseData(payRes);
-            const paymentId = paymentData?.paymentId || paymentData?.id;
-
-            if (!paymentId) {
-                message.error({ content: 'Failed to create payment', key: 'payment' });
-                return;
+            // Với Reservation
+            if (item.type === 'RESERVATION') {
+                if (!canPayReservation(item.rawReservation)) {
+                    message.warning({ content: 'This reservation is not available for payment.', key: 'payment' });
+                    return;
+                }
+                message.loading({ content: 'Initializing payment...', key: 'payment' });
+                const payRes = await driverService.createPayment({
+                    reservationId: itemId,
+                    paymentMethod: 'VNPAY'
+                });
+                const paymentData = getResponseData(payRes);
+                const paymentId = paymentData?.paymentId || paymentData?.id;
+                
+                if (!paymentId) {
+                    message.error({ content: 'Failed to create payment', key: 'payment' });
+                    return;
+                }
+                
+                const urlRes = await driverService.createVnPayUrl(paymentId);
+                const urlData = getResponseData(urlRes);
+                const paymentUrl = urlData?.paymentUrl || urlData?.url;
+                
+                if (paymentUrl) {
+                    message.success({ content: 'Redirecting to VNPay...', key: 'payment' });
+                    window.open(paymentUrl, '_blank');
+                    fetchData(); // Optionally reload after opening
+                } else {
+                    message.error({ content: 'Failed to get payment URL', key: 'payment' });
+                }
+            } 
+            // Với Subscription
+            else if (item.type === 'SUBSCRIPTION') {
+                if (item.status !== 'PENDING' || !item.paymentId) {
+                    message.warning({ content: 'This subscription does not have a pending payment.', key: 'payment' });
+                    return;
+                }
+                message.loading({ content: 'Redirecting to VNPay...', key: 'payment' });
+                
+                const urlRes = await driverService.createVnPayUrl(item.paymentId);
+                const urlData = getResponseData(urlRes);
+                const paymentUrl = urlData?.paymentUrl || urlData?.url;
+                
+                if (paymentUrl) {
+                    window.open(paymentUrl, '_blank');
+                    fetchData(); // Optionally reload after opening
+                } else {
+                    message.error({ content: 'Failed to get payment URL', key: 'payment' });
+                }
             }
-            
-            const urlRes = await driverService.createVnPayUrl(paymentId);
-            const urlData = getResponseData(urlRes);
-            const paymentUrl = urlData?.paymentUrl || urlData?.url;
-            
-            if (paymentUrl) {
-                message.success({ content: 'Redirecting to VNPay...', key: 'payment' });
-                window.open(paymentUrl, '_blank');
-                setPayingReservationId(reservationId);
-                setPaymentModalVisible(true);
-            } else {
-                message.error({ content: 'Failed to get payment URL', key: 'payment' });
-            }
+
         } catch (error) {
-            message.error({ content: 'Payment initialization failed', key: 'payment' });
+            console.error('Payment initialization failed:', error);
+            message.error({ content: 'Failed to initialize payment.', key: 'payment' });
         }
+    };
+
+    const handleCancel = (item) => {
+        Modal.confirm({
+            title: 'Cancel Transaction',
+            content: `Are you sure you want to cancel this ${item.type === 'SUBSCRIPTION' ? 'subscription' : 'reservation'}?`,
+            okText: 'Yes, Cancel',
+            okType: 'danger',
+            cancelText: 'No',
+            onOk: async () => {
+                try {
+                    const itemId = getReservationId(item);
+                    if (item.type === 'RESERVATION') {
+                        await driverService.cancelReservation(itemId);
+                    } else if (item.type === 'SUBSCRIPTION') {
+                        await driverService.cancelSubscriptionByUser(itemId);
+                    }
+                    message.success('Transaction cancelled successfully');
+                    fetchData();
+                } catch (error) {
+                    console.error('Cancel failed', error);
+                    message.error('Failed to cancel transaction');
+                }
+            }
+        });
     };
 
     // Khởi tạo các cột dữ liệu cho bảng lịch sử giao dịch
@@ -201,9 +294,23 @@ const PaymentPage = () => {
             key: 'action',
             render: (_, record) => {
                 if (record.reservationStatus === 'CANCELLED') return <Text type="secondary">Cancelled</Text>;
-                if (canPayReservation(record.rawReservation)) {
-                    return <Button type="primary" size="small" onClick={() => handlePayment(record.rawReservation)}>Pay Now</Button>;
+                
+                let showPayNow = false;
+                if (record.type === 'RESERVATION' && canPayReservation(record.rawReservation)) {
+                    showPayNow = true;
+                } else if (record.type === 'SUBSCRIPTION' && record.status === 'PENDING') {
+                    showPayNow = true;
                 }
+
+                if (showPayNow) {
+                    return (
+                        <Space>
+                            <Button type="primary" size="small" onClick={() => handlePayment(record)}>Pay Now</Button>
+                            <Button danger size="small" onClick={() => handleCancel(record)}>Cancel</Button>
+                        </Space>
+                    );
+                }
+                
                 return <Button type="link" icon={<DownloadOutlined />} size="small">Receipt</Button>;
             }
         }

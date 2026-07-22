@@ -85,14 +85,38 @@ const SubscriptionRegistrationModal = ({ visible, onCancel, onSuccess, initialVe
             const subRes = await subscriptionApi.createSubscription({
                 userId: userId,
                 vehicleId: values.vehicleId,
-                zoneId: values.zoneId,
                 startDate: values.startDate.toISOString(),
                 monthlyFee: 0 // backend will calculate
             });
 
-            message.success("Đăng ký thành công! Vé tháng của bạn đang chờ Quản lý duyệt. Bạn không cần thanh toán ngay lúc này, phí sẽ được tính vào cuối tháng hoặc khi bạn hủy gói.");
-            if (onSuccess) onSuccess();
-            onCancel();
+            message.success("Đăng ký thành công! Đang chuyển hướng đến trang thanh toán...");
+
+            // 2. Redirect to VNPay
+            const paymentId = subRes.data?.data?.paymentId || subRes.data?.paymentId;
+            if (paymentId) {
+                try {
+                    const payRes = await paymentApi.createVnPayUrl(paymentId);
+                    const paymentUrl = payRes.data?.data?.paymentUrl || payRes.data?.paymentUrl;
+                    if (paymentUrl) {
+                        window.open(paymentUrl, '_blank');
+                        if (onSuccess) onSuccess();
+                        onCancel();
+                    } else {
+                        message.warning("Không lấy được đường dẫn thanh toán. Vui lòng thử thanh toán lại trong mục Quản lý Vé tháng.");
+                        if (onSuccess) onSuccess();
+                        onCancel();
+                    }
+                } catch (payErr) {
+                    console.error("Lỗi khi tạo payment URL:", payErr);
+                    message.error("Không thể kết nối đến VNPay. Vui lòng thử thanh toán lại sau.");
+                    if (onSuccess) onSuccess();
+                    onCancel();
+                }
+            } else {
+                if (onSuccess) onSuccess();
+                onCancel();
+            }
+
         } catch (error) {
             console.error(error);
             message.error(error.response?.data?.message || "Operation failed");
@@ -138,20 +162,6 @@ const SubscriptionRegistrationModal = ({ visible, onCancel, onSuccess, initialVe
                     )}
 
                     <Form.Item 
-                        name="zoneId" 
-                        label="Select Parking Zone" 
-                        rules={[{ required: true, message: 'Please select a parking zone' }]}
-                    >
-                        <Select placeholder="Select a zone">
-                            {zones.map(z => (
-                                <Select.Option key={z.zoneId || z.id} value={z.zoneId || z.id}>
-                                    {z.floorName ? `${z.floorName} - ` : ''}{z.zoneName || z.name}
-                                </Select.Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-
-                    <Form.Item 
                         name="startDate" 
                         label="Start Date" 
                         rules={[{ required: true }]}
@@ -168,7 +178,7 @@ const SubscriptionRegistrationModal = ({ visible, onCancel, onSuccess, initialVe
                                 </Text>
                             </div>
                             <Text type="secondary" style={{ fontSize: '12px' }}>
-                                Ghi chú: Sau khi đăng ký thành công, đơn của bạn sẽ được chuyển cho quản lý (Manager) để xét duyệt. Bạn không cần thanh toán ngay bây giờ.
+                                Ghi chú: Sau khi nhấn Đăng ký, bạn sẽ được chuyển đến trang thanh toán VNPay. Vé tháng sẽ được tự động kích hoạt ngay sau khi thanh toán thành công.
                             </Text>
                         </div>
                     )}
