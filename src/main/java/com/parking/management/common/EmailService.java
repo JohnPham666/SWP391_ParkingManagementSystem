@@ -154,4 +154,72 @@ public class EmailService {
             throw new RuntimeException("Không thể gửi email đặt lại mật khẩu: " + e.getMessage());
         }
     }
+
+    @org.springframework.beans.factory.annotation.Value("${app.frontend-url:http://localhost:3000}")
+    private String frontendUrl;
+
+    @Async
+    public void sendSubscriptionExpirationEmail(String toEmail, String fullName, Integer subscriptionId, String licensePlate) {
+        try {
+            jakarta.mail.internet.MimeMessage mimeMessage = mailSender.createMimeMessage();
+            org.springframework.mail.javamail.MimeMessageHelper helper = new org.springframework.mail.javamail.MimeMessageHelper(mimeMessage, "utf-8");
+
+            helper.setFrom("smartparking.admin25.noreply@gmail.com");
+            helper.setTo(toEmail);
+            helper.setSubject("ParkSmart - Your Monthly Parking Subscription Has Expired");
+
+            String renewalLink = frontendUrl + "/user/subscriptions"; // Thay đổi theo routing frontend thực tế
+
+            String htmlMsg = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                </head>
+                <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333333;">
+                    <table border="0" cellpadding="0" cellspacing="0" width="100%%" style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow: hidden;">
+                        <tr>
+                            <td style="background-color: #ea580c; padding: 30px; text-align: center;">
+                                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: 1px;">ParkSmart</h1>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 40px 30px;">
+                                <h2 style="margin-top: 0; color: #1f2937; font-size: 22px;">Subscription Expired</h2>
+                                <p style="line-height: 1.6; color: #4b5563; font-size: 16px;">
+                                    Dear %s,
+                                </p>
+                                <p style="line-height: 1.6; color: #4b5563; font-size: 16px;">
+                                    Your monthly parking subscription for vehicle <strong>%s</strong> has expired today.
+                                    To continue enjoying the benefits of your monthly pass, please renew your subscription.
+                                </p>
+                                <div style="text-align: center; margin: 35px 0;">
+                                    <a href="%s" style="background-color: #ea580c; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-size: 16px; font-weight: 600; display: inline-block;">Renew Subscription</a>
+                                </div>
+                                <p style="line-height: 1.6; color: #4b5563; font-size: 15px;">
+                                    If you choose not to renew, standard walk-in fees will apply the next time you use our parking facility.
+                                </p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="background-color: #f9fafb; padding: 20px 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+                                <p style="margin: 0; color: #6b7280; font-size: 13px;">
+                                    &copy; 2026 ParkSmart Solutions. All rights reserved.<br>
+                                    This is an automated message, please do not reply.
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+                </html>
+                """.formatted(fullName, licensePlate, renewalLink);
+
+            helper.setText(htmlMsg, true);
+            mailSender.send(mimeMessage);
+            log.info("Subscription expiration email sent successfully to {}", toEmail);
+        } catch (Exception e) {
+            log.error("Failed to send subscription expiration email to {}: {}", toEmail, e.getMessage());
+        }
+    }
 }
