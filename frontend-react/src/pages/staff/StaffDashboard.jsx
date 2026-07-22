@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Statistic, Typography, Button, Spin, message, Modal, Form, Input, Select, Upload, Tag, Progress, theme } from 'antd';
 import { 
   CarOutlined, 
@@ -46,12 +46,15 @@ const StaffDashboard = () => {
 
       try {
         const response = await alprApi.scanPlate(file);
-        const plateStr = response.data?.data || response.data;
+        const resData = response.data || {};
         
-        if (plateStr) {
+        if (resData.success && typeof resData.data === 'string') {
+          const plateStr = resData.data;
           checkInForm.setFieldsValue({ licensePlate: plateStr });
           message.success({ content: `Successfully recognized: ${plateStr}`, key: 'scanningEntry', duration: 3 });
           handleLicensePlateChange({ target: { value: plateStr } });
+        } else {
+          message.error({ content: resData.message || 'No license plate found in image!', key: 'scanningEntry', duration: 3 });
         }
       } catch (error) {
         message.error({ content: 'No license plate found in image!', key: 'scanningEntry', duration: 3 });
@@ -71,11 +74,14 @@ const StaffDashboard = () => {
 
       try {
         const response = await alprApi.scanPlate(file);
-        const plateStr = response.data?.data || response.data;
+        const resData = response.data || {};
         
-        if (plateStr) {
+        if (resData.success && typeof resData.data === 'string') {
+          const plateStr = resData.data;
           checkOutSearchForm.setFieldsValue({ licensePlate: plateStr });
           message.success({ content: `Successfully recognized: ${plateStr}`, key: 'scanningExit', duration: 3 });
+        } else {
+          message.error({ content: resData.message || 'No license plate found in image!', key: 'scanningExit', duration: 3 });
         }
       } catch (error) {
         message.error({ content: 'No license plate found in image!', key: 'scanningExit', duration: 3 });
