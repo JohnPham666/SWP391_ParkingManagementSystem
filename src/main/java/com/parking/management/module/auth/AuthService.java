@@ -15,6 +15,12 @@ import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import javax.crypto.SecretKey;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import java.util.Collections;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +36,109 @@ public class AuthService {
     @org.springframework.beans.factory.annotation.Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
 
+    @org.springframework.beans.factory.annotation.Value("${google.client.id:YOUR_GOOGLE_CLIENT_ID}")
+    private String googleClientId;
+
+    /**
+     * Xác minh Google Token
+     */
+    private GoogleIdToken.Payload verifyGoogleToken(String tokenString) {
+        try {
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
+
+            GoogleIdToken idToken = verifier.verify(tokenString);
+            if (idToken != null) {
+                return idToken.getPayload();
+            } else {
+                throw new RuntimeException("Invalid Google ID token.");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to verify Google token", e);
+        }
+    }
+
+    /**
+     * Xử lý đăng nhập Google (Bước 1)
+     */
+    public Object googleLogin(String credential) {
+        GoogleIdToken.Payload payload = verifyGoogleToken(credential);
+        String email = payload.getEmail();
+
+        // Kiểm tra user trong DB
+        java.util.Optional<User> optionalUser = userRepository.findByEmail(email);
+        
+        if (optionalUser.isPresent()) {
+            // Đã có tài khoản -> Đăng nhập
+            User user = optionalUser.get();
+            if (user.getIsActive() != null && !user.getIsActive()) {
+                throw new RuntimeException("Tài khoản đã bị khóa");
+            }
+            String token = jwtUtil.generateToken(user.getEmail());
+            return JwtResponse.builder()
+                    .token(token)
+                    .userId(user.getUserId())
+                    .fullName(user.getFullName())
+                    .email(user.getEmail())
+                    .phoneNumber(user.getPhoneNumber())
+                    .address(user.getAddress())
+                    .status(user.getIsActive())
+                    .role(user.getRole().getRoleName())
+                    .build();
+        } else {
+            // Chưa có tài khoản -> Trả về requirement để Frontend hiển thị form số điện thoại
+            String name = (String) payload.get("name");
+            return java.util.Map.of(
+                    "status", "REQUIRE_PHONE",
+                    "email", email,
+                    "fullName", name,
+                    "message", "Vui lòng cung cấp số điện thoại để hoàn tất đăng ký."
+            );
+        }
+    }
+
+    /**
+     * Xử lý đăng ký Google (Bước 2)
+     */
+    public JwtResponse googleRegister(String credential, String phoneNumber) {
+        GoogleIdToken.Payload payload = verifyGoogleToken(credential);
+        String email = payload.getEmail();
+        String name = (String) payload.get("name");
+
+        if (userRepository.existsByEmail(email)) {
+            throw new RuntimeException("Email đã được sử dụng");
+        }
+        if (userRepository.existsByPhoneNumber(phoneNumber)) {
+            throw new RuntimeException("Số điện thoại đã được sử dụng");
+        }
+
+        Role driverRole = roleRepository.findByRoleNameIgnoreCase("DRIVER")
+                .orElseThrow(() -> new RuntimeException("Role DRIVER chưa được tạo trong Database. Hãy tạo Role trước."));
+
+        User user = new User();
+        user.setFullName(name);
+        user.setEmail(email);
+        user.setPhoneNumber(phoneNumber);
+        // Random password since they login with Google
+        user.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
+        user.setRole(driverRole);
+
+        User savedUser = userRepository.save(user);
+        String token = jwtUtil.generateToken(savedUser.getEmail());
+
+        return JwtResponse.builder()
+                .token(token)
+                .userId(savedUser.getUserId())
+                .fullName(savedUser.getFullName())
+                .email(savedUser.getEmail())
+                .phoneNumber(savedUser.getPhoneNumber())
+                .address(savedUser.getAddress())
+                .status(savedUser.getIsActive())
+                .role(savedUser.getRole().getRoleName())
+                .build();
+    }
+
     /**
      * Xử lý đăng nhập:
      * 1. Tìm user theo email
@@ -40,7 +149,7 @@ public class AuthService {
     public JwtResponse login(LoginRequest request) {
         // 1. Tìm user theo email
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Email không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Email không tồn tại"));
 
         // 2. So sánh password (Hỗ trợ cả BCrypt và so sánh chuỗi trực tiếp cho Seed Data)
         // 2. So sánh password (Hỗ trợ cả BCrypt và so sánh chuỗi trực tiếp cho Seed Data)
@@ -48,12 +157,17 @@ public class AuthService {
             || ("$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.".equals(user.getPasswordHash()) && "password".equals(request.getPassword()));
 
         if (!isMatch) {
-            throw new RuntimeException("Mật khẩu không chính xác");
+            // Nếu password sai, kiểm tra xem có phải tài khoản Google không (password được sinh tự động dài hơn thông thường)
+            if (user.getPasswordHash() != null && user.getPasswordHash().length() > 20) {
+                // Ta có thể đoán nó là tài khoản Google (thực ra Bcrypt luôn 60 ký tự, nhưng ta cứ ném IllegalArgumentException)
+                throw new IllegalArgumentException("Tài khoản này có thể được đăng ký qua Google. Vui lòng đăng nhập bằng Google hoặc khôi phục mật khẩu.");
+            }
+            throw new IllegalArgumentException("Mật khẩu không chính xác");
         }
 
         // 3. Kiểm tra tài khoản có bị khóa không
         if (user.getIsActive() != null && !user.getIsActive()) {
-            throw new RuntimeException("Tài khoản đã bị khóa");
+            throw new IllegalArgumentException("Tài khoản đã bị khóa");
         }
 
         // 4. Tạo JWT token
