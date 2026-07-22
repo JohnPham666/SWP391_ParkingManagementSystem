@@ -205,6 +205,27 @@ CREATE TABLE Reservations (
     CONSTRAINT CHK_Reservation_Time CHECK (ReservationEnd > ReservationStart)
 );
 
+CREATE TABLE MonthlySubscriptions (
+    SubscriptionID SERIAL PRIMARY KEY,
+    UserID         INT NOT NULL,
+    VehicleID      INT NOT NULL,
+    SlotID         INT NULL,
+    ZoneID         INT NULL,
+    StartDate      DATE NOT NULL,
+    EndDate        DATE NOT NULL,
+    MonthlyFee     DECIMAL(10,2) NOT NULL,
+    Status         VARCHAR(20) NOT NULL CHECK (Status IN ('PENDING', 'ACTIVE', 'EXPIRED', 'CANCELLED', 'REJECTED')),
+    CreatedAt      TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT CHK_Subscription_Time CHECK (EndDate >= StartDate),
+    CONSTRAINT CHK_MonthlySubscriptions_Fee_NonNegative CHECK (MonthlyFee >= 0),
+    CONSTRAINT FK_Subscriptions_Users FOREIGN KEY (UserID) REFERENCES Users(UserID),
+    CONSTRAINT FK_Subscriptions_Vehicles FOREIGN KEY (VehicleID) REFERENCES Vehicles(VehicleID),
+    CONSTRAINT FK_Subscriptions_Slots FOREIGN KEY (SlotID) REFERENCES ParkingSlots(SlotID),
+    CONSTRAINT FK_Subscriptions_Zones FOREIGN KEY (ZoneID) REFERENCES Zones(ZoneID)
+);
+
+CREATE UNIQUE INDEX UQ_MonthlySubscriptions_ActiveVehicle ON MonthlySubscriptions (VehicleID) WHERE Status = 'ACTIVE';
+
 CREATE TABLE Payments (
     PaymentID     SERIAL PRIMARY KEY,
     SessionID     INT NULL,
@@ -256,27 +277,6 @@ CREATE TABLE IncidentReports (
     CONSTRAINT FK_IncidentReports_Sessions FOREIGN KEY (SessionID) REFERENCES ParkingSessions(SessionID),
     CONSTRAINT FK_IncidentReports_Users FOREIGN KEY (ReportedBy) REFERENCES Users(UserID)
 );
-
-CREATE TABLE MonthlySubscriptions (
-    SubscriptionID SERIAL PRIMARY KEY,
-    UserID         INT NOT NULL,
-    VehicleID      INT NOT NULL,
-    SlotID         INT NULL,
-    ZoneID         INT NULL,
-    StartDate      DATE NOT NULL,
-    EndDate        DATE NOT NULL,
-    MonthlyFee     DECIMAL(10,2) NOT NULL,
-    Status         VARCHAR(20) NOT NULL CHECK (Status IN ('PENDING', 'ACTIVE', 'EXPIRED', 'CANCELLED', 'REJECTED')),
-    CreatedAt      TIMESTAMP DEFAULT NOW(),
-    CONSTRAINT CHK_Subscription_Time CHECK (EndDate >= StartDate),
-    CONSTRAINT CHK_MonthlySubscriptions_Fee_NonNegative CHECK (MonthlyFee >= 0),
-    CONSTRAINT FK_Subscriptions_Users FOREIGN KEY (UserID) REFERENCES Users(UserID),
-    CONSTRAINT FK_Subscriptions_Vehicles FOREIGN KEY (VehicleID) REFERENCES Vehicles(VehicleID),
-    CONSTRAINT FK_Subscriptions_Slots FOREIGN KEY (SlotID) REFERENCES ParkingSlots(SlotID),
-    CONSTRAINT FK_Subscriptions_Zones FOREIGN KEY (ZoneID) REFERENCES Zones(ZoneID)
-);
-
-CREATE UNIQUE INDEX UQ_MonthlySubscriptions_ActiveVehicle ON MonthlySubscriptions (VehicleID) WHERE Status = 'ACTIVE';
 
 CREATE TABLE ParkingPredictions (
     PredictionID           SERIAL PRIMARY KEY,
