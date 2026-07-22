@@ -237,7 +237,6 @@ const Login = () => {
                   onError={() => {
                     setLoginError('Google Login Failed');
                   }}
-                  useOneTap
                   shape="rectangular"
                   size="large"
                   theme={isDarkMode ? 'filled_black' : 'outline'}
