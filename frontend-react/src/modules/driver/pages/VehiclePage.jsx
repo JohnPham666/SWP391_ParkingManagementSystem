@@ -160,10 +160,19 @@ const VehiclePage = () => {
         } catch (error) {
             if (error.errorFields) return; // Validation error
             console.error(error);
-            const errMsg = typeof error.response?.data === 'string' 
-                ? error.response.data 
-                : (error.response?.data?.message || error.response?.data?.error || error.message || 'Operation failed');
-            message.error(errMsg);
+            const errData = error.response?.data?.data;
+            if (errData && typeof errData === 'object' && !Array.isArray(errData)) {
+                const fieldErrors = Object.entries(errData).map(([name, errMessage]) => ({
+                    name,
+                    errors: [errMessage]
+                }));
+                form.setFields(fieldErrors);
+            } else {
+                const errMsg = typeof error.response?.data === 'string' 
+                    ? error.response.data 
+                    : (error.response?.data?.message || error.response?.data?.error || error.message || 'Operation failed');
+                message.error(errMsg);
+            }
         } finally {
             setIsSubmitting(false);
         }

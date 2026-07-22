@@ -9,10 +9,12 @@ import com.parking.management.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;import com.parking.management.common.S3Service;
+import org.springframework.web.multipart.MultipartFile;
+import com.parking.management.common.S3Service;
+import com.parking.management.common.CustomValidationException;
 import java.time.LocalDate;
-
-import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -321,38 +323,50 @@ public class VehicleService {
     }
 
     private void validateUniqueOnCreate(VehicleRequest request) {
+        Map<String, String> errors = new HashMap<>();
+        
         if (vehicleRepository.existsByLicensePlate(request.getLicensePlate())) {
-            throw new IllegalArgumentException("License plate already exists");
+            errors.put("licensePlate", "Biển số xe đã tồn tại");
         }
 
         if (request.getEngineNumber() != null
                 && !request.getEngineNumber().isBlank()
                 && vehicleRepository.existsByEngineNumber(request.getEngineNumber())) {
-            throw new IllegalArgumentException("Engine number already exists");
+            errors.put("engineNumber", "Số máy đã tồn tại");
         }
 
         if (request.getChassisNumber() != null
                 && !request.getChassisNumber().isBlank()
                 && vehicleRepository.existsByChassisNumber(request.getChassisNumber())) {
-            throw new IllegalArgumentException("Chassis number already exists");
+            errors.put("chassisNumber", "Số khung đã tồn tại");
+        }
+        
+        if (!errors.isEmpty()) {
+            throw new CustomValidationException(errors);
         }
     }
 
     private void validateUniqueOnUpdate(Integer id, VehicleRequest request) {
+        Map<String, String> errors = new HashMap<>();
+
         if (vehicleRepository.existsByLicensePlateAndVehicleIdNot(request.getLicensePlate(), id)) {
-            throw new IllegalArgumentException("License plate already exists");
+            errors.put("licensePlate", "Biển số xe đã tồn tại");
         }
 
         if (request.getEngineNumber() != null
                 && !request.getEngineNumber().isBlank()
                 && vehicleRepository.existsByEngineNumberAndVehicleIdNot(request.getEngineNumber(), id)) {
-            throw new IllegalArgumentException("Engine number already exists");
+            errors.put("engineNumber", "Số máy đã tồn tại");
         }
 
         if (request.getChassisNumber() != null
                 && !request.getChassisNumber().isBlank()
                 && vehicleRepository.existsByChassisNumberAndVehicleIdNot(request.getChassisNumber(), id)) {
-            throw new IllegalArgumentException("Chassis number already exists");
+            errors.put("chassisNumber", "Số khung đã tồn tại");
+        }
+
+        if (!errors.isEmpty()) {
+            throw new CustomValidationException(errors);
         }
     }
 

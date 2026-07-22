@@ -65,6 +65,16 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Xử lý ngoại lệ CustomValidationException.
+     * Thu thập các lỗi validation tuỳ chỉnh và trả về như MethodArgumentNotValidException.
+     */
+    @ExceptionHandler(CustomValidationException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleCustomValidationExceptions(CustomValidationException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.errorWithData(ex.getMessage(), ex.getErrors()));
+    }
+
+    /**
      * Xử lý ngoại lệ Exception (Catch-all).
      * Bắt tất cả các lỗi chưa được định nghĩa cụ thể ở các phương thức trên để
      * tránh crash ứng dụng.
