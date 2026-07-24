@@ -38,13 +38,16 @@ const StaffSessions = () => {
   const [checkOutSearchForm] = Form.useForm();
   const [checkOutConfirmForm] = Form.useForm();
 
-  // --- Poll VNPay Status ---
-  // useEffect này được dùng để liên tục kiểm tra (poll) trạng thái thanh toán VNPay.
-  // Nó chỉ chạy khi quy trình check-out đang ở Bước 3 (chờ thanh toán online) và đã có mã paymentId
+  // =====================================================================
+  // HOOK LẮNG NGHE TRẠNG THÁI THANH TOÁN VNPAY (POLLING)
+  // - Mục đích: Liên tục gọi API lên server để kiểm tra xem khách hàng đã chuyển khoản/quét mã VNPay thành công hay chưa.
+  // - Điều kiện chạy: Chỉ chạy khi đang ở Bước 3 (checkOutStep === 3) VÀ đã có mã giao dịch paymentId.
+  // - Cơ chế hoạt động: Dùng hàm setInterval của JavaScript để tự động lặp lại hành động kiểm tra mỗi 3 giây.
+  // =====================================================================
   useEffect(() => {
     let interval = null;
     if (checkOutStep === 3 && checkoutSessionData?.paymentId) {
-      // Thiết lập bộ đếm thời gian, cứ mỗi 3 giây (3000ms) sẽ gọi API kiểm tra trạng thái 1 lần
+      // Thiết lập vòng lặp thời gian: Cứ mỗi 3 giây (3000ms) sẽ tự động thực thi khối lệnh bên trong
       interval = setInterval(async () => {
         try {
           // Gọi API để lấy thông tin mới nhất của giao dịch thanh toán
@@ -207,10 +210,18 @@ const StaffSessions = () => {
     }
   };
 
-  // Hàm xử lý Bước 1: Tìm kiếm xe muốn lấy ra (Check-out)
+  // =====================================================================
+  // HÀM XỬ LÝ BƯỚC 1 CHECK-OUT: TÌM KIẾM THÔNG TIN XE ĐANG ĐỖ TRONG BÃI
+  // - Sự kiện kích hoạt: Nhân viên điền biển số xe, hình ảnh và bấm nút "Search Vehicle".
+  // - Nhiệm vụ chính: 
+  //   1. Kiểm tra xem xe này có đang đỗ hợp lệ trong bãi không.
+  //   2. Lưu giữ hình ảnh xe lúc ra (nếu nhân viên có upload/chụp ảnh).
+  //   3. Tính toán trước số tiền cước phí đỗ xe mà khách hàng cần phải trả.
+  // =====================================================================
   const handleCheckOutSearch = async (values) => {
     try {
-      // 1. Gọi API tìm kiếm phiên đỗ xe đang ACTIVE dựa trên biển số xe người dùng nhập
+      // Bước 1.1: Gọi API Backend tìm phiên đỗ xe đang ACTIVE (chưa lấy xe ra) 
+      // Dựa trên dữ liệu biển số xe (values.licensePlate) do nhân viên nhập vào form.
       const res = await sessionApi.getActiveByPlate(values.licensePlate);
       if (!res.data || !res.data.data) {
         message.error('No active session found for this license plate');
@@ -269,12 +280,20 @@ const StaffSessions = () => {
     }
   };
 
-  // Hàm xử lý Bước 2: Xác nhận cho xe ra và tạo thanh toán
+  // =====================================================================
+  // HÀM XỬ LÝ BƯỚC 2 CHECK-OUT: XÁC NHẬN CHO XE RA & TẠO GIAO DỊCH THANH TOÁN
+  // - Sự kiện kích hoạt: Nhân viên chọn phương thức thanh toán (Tiền mặt/VNPay...) và bấm "Confirm Payment".
+  // - Nhiệm vụ chính:
+  //   1. Gọi API chốt thời gian xe ra và tính phí chính thức trên Backend.
+  //   2. Upload ảnh xe lúc ra lên hệ thống lưu trữ (nếu có).
+  //   3. Chuyển hướng thanh toán tùy theo phương thức mà nhân viên đã chọn.
+  // =====================================================================
   const handleCheckOutConfirm = async (values) => {
     try {
       const sessionId = checkoutSessionData.sessionId;
 
-      // 1. Gọi API Check-out để chốt thông tin trên Backend và đổi trạng thái xe thành UNPAID hoặc COMPLETED
+      // Bước 2.1: Gọi API Check-out để thông báo cho Backend cập nhật thời gian xe ra.
+      // Backend sẽ tính phí cuối cùng và đổi trạng thái xe thành UNPAID (nếu có phí) hoặc COMPLETED (nếu miễn phí/đã đóng tiền).
       const checkOutRes = await sessionApi.checkOut(sessionId, { exitGate: 'Gate A' });
       const updatedSession = checkOutRes.data?.data || checkOutRes.data;
 
@@ -695,7 +714,14 @@ const StaffSessions = () => {
         )}
       </Modal>
 
-      {/* CHECK-OUT MODAL - POPUP CHÍNH QUẢN LÝ QUY TRÌNH CHO XE RA */}
+      {/* ============================================================================== */}
+      {/* CHECK-OUT MODAL - POPUP CHÍNH QUẢN LÝ TOÀN BỘ QUY TRÌNH CHO XE RA (CHECK-OUT)   */}
+      {/* Modal này được kiểm soát bởi biến trạng thái 'checkOutStep' để thay đổi nội dung: */}
+      {/* - Bước 1 (checkOutStep = 1): Form Tìm kiếm xe bằng biển số xe.                    */}
+      {/* - Bước 2 (checkOutStep = 2): Form Xác nhận thông tin, tính phí và chọn cách thanh toán. */}
+      {/* - Bước 3 (checkOutStep = 3): Màn hình chờ hệ thống tự động kiểm tra trạng thái VNPay.   */}
+      {/* - Bước 4 (checkOutStep = 4): Màn hình thông báo hoàn tất toàn bộ quy trình.         */}
+      {/* ============================================================================== */}
       <Modal
         title="Check-out & Payment"
         open={isCheckOutVisible}
