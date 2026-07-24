@@ -27,7 +27,13 @@ public class AlprService {
             RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            headers.set("Authorization", apiToken); // Gắn chìa khóa vào Header
+            
+            // Ensure token has "Token " prefix
+            String authHeader = apiToken;
+            if (authHeader != null && !authHeader.trim().isEmpty() && !authHeader.trim().startsWith("Token ")) {
+                authHeader = "Token " + authHeader.trim();
+            }
+            headers.set("Authorization", authHeader); // Gắn chìa khóa vào Header
 
             // Đóng gói file ảnh để gửi đi
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
