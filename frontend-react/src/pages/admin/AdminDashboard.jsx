@@ -25,29 +25,7 @@ const AdminDashboard = () => {
     failedLogins: 0    
   });
 
-  const mockLogs = [
-    { key: '1', time: '10 mins ago', user: 'admin@parksmart.com', action: 'Login Success', ip: '192.168.1.45', status: 'success' },
-    { key: '2', time: '15 mins ago', user: 'staff1@parksmart.com', action: 'Login Success', ip: '192.168.1.12', status: 'success' },
-    { key: '3', time: '1 hour ago', user: 'unknown', action: 'Login Failed', ip: '113.160.2.14', status: 'failed' },
-    { key: '4', time: '2 hours ago', user: 'manager@parksmart.com', action: 'Login Success', ip: '192.168.1.66', status: 'success' },
-    { key: '5', time: '2 hours ago', user: 'unknown', action: 'Login Failed', ip: '113.160.2.14', status: 'failed' },
-  ];
 
-  const logColumns = [
-    { title: 'Time', dataIndex: 'time', key: 'time', width: 120 },
-    { title: 'User / Target', dataIndex: 'user', key: 'user' },
-    { 
-      title: 'Status', 
-      dataIndex: 'status', 
-      key: 'status',
-      render: (status) => (
-        <Tag color={status === 'success' ? 'green' : 'red'}>
-          {status.toUpperCase()}
-        </Tag>
-      )
-    },
-    { title: 'IP Address', dataIndex: 'ip', key: 'ip' },
-  ];
 
   useEffect(() => {
     const fetchAdminStats = async () => {
@@ -152,7 +130,7 @@ const AdminDashboard = () => {
         <Col xs={24} sm={12} md={12} lg={12}>
           <Card 
             hoverable 
-            style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', borderColor: '#ffccc7', background: stats.pendingIncidentsCount > 0 ? '#fff1f0' : '#fff' }}
+            style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', borderColor: '#ffccc7' }}
             onClick={() => navigate('/admin/incidents')}
           >
             <Statistic
@@ -189,23 +167,7 @@ const AdminDashboard = () => {
         </Col>
       </Row>
 
-      {/* CARD 4: RECENT LOGS */}
-      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-        <Col span={24}>
-          <Card 
-            title={<Space><HistoryOutlined /> Recent Login Activities</Space>}
-            extra={<Button type="link" onClick={() => navigate('/admin/logs')}>View Full Logs</Button>}
-            style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-          >
-            <Table 
-              dataSource={mockLogs} 
-              columns={logColumns} 
-              pagination={false}
-              size="middle"
-            />
-          </Card>
-        </Col>
-      </Row>
+
     </div>
   );
 };

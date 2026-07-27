@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, message, Button, Modal, Form, InputNumber, Input, Select, Tag, Space, DatePicker, TimePicker, Row, Col, Alert } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, InfoCircleOutlined, CarOutlined, ThunderboltOutlined, CoffeeOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, InfoCircleOutlined, CarOutlined } from '@ant-design/icons';
 import { pricingApi } from '../../services/api';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -152,8 +152,8 @@ const PricingManagement = () => {
         let icon = null;
         let color = 'default';
         if (id === 1) { icon = <CarOutlined />; color = 'blue'; }
-        if (id === 2) { icon = <ThunderboltOutlined />; color = 'orange'; }
-        if (id === 3) { icon = <CoffeeOutlined />; color = 'green'; }
+        if (id === 2) { color = 'orange'; }
+        if (id === 3) { color = 'green'; }
         return <Tag color={color} icon={icon}>{VEHICLE_TYPES[id] || `Type ${id}`}</Tag>;
       }
     },
