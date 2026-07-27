@@ -23,7 +23,6 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSessions from './pages/admin/AdminSessions';
 import AdminIncidents from './pages/admin/AdminIncidents';
 import SystemSettings from './pages/admin/SystemSettings';
-import SystemLogs from './pages/admin/SystemLogs';
 import UserManagement from './pages/admin/UserManagement';
 
 // Manager Pages
@@ -118,7 +117,6 @@ function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="settings" element={<SystemSettings />} />
-            <Route path="logs" element={<SystemLogs />} />
             <Route path="sessions" element={<AdminSessions />} />
             <Route path="slots" element={<SlotManagement />} />
             <Route path="vehicles" element={<VehicleManagement />} />

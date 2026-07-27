@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Tag, message, Card, Space, Input, Select, Modal, Form, Upload, Typography } from 'antd';
-import { SearchOutlined, AlertOutlined, UploadOutlined } from '@ant-design/icons';
+import { SearchOutlined, EditOutlined, SafetyCertificateOutlined, WarningOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { incidentApi } from '../../services/api';
 import dayjs from 'dayjs';
 
@@ -9,9 +9,10 @@ const { Option } = Select;
 const IncidentManagement = () => {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
   const [filters, setFilters] = useState({ search: '', status: null });
-  const [form] = Form.useForm();
+  const [updateModalVisible, setUpdateModalVisible] = useState(false);
+  const [selectedIncident, setSelectedIncident] = useState(null);
+  const [newStatus, setNewStatus] = useState('');
 
   useEffect(() => {
     fetchIncidents();
@@ -37,27 +38,15 @@ const IncidentManagement = () => {
   };
 
 
-  const handleReportIncident = async (values) => {
+  const handleUpdateStatus = async () => {
+    if (!selectedIncident || !newStatus) return;
     try {
-      const { incidentImage, ...restValues } = values;
-      const payload = {
-        ...restValues,
-        sessionId: values.sessionId ? parseInt(values.sessionId) : null
-      };
-      const response = await incidentApi.createIncident(payload);
-      const createdIncident = response?.data?.data || response?.data || response;
-
-      if (values.incidentImage?.fileList?.length > 0) {
-        const file = values.incidentImage.fileList[0].originFileObj;
-        await incidentApi.uploadIncidentImage(createdIncident.incidentId || createdIncident.id, file);
-      }
-
-      message.success('Incident reported successfully');
-      setIsModalVisible(false);
-      form.resetFields();
+      await incidentApi.updateIncidentStatus(selectedIncident.incidentId || selectedIncident.id, newStatus);
+      message.success('Incident status updated successfully');
+      setUpdateModalVisible(false);
       fetchIncidents();
     } catch (error) {
-      message.error(error.response?.data?.message || 'Failed to report incident');
+      message.error(error.response?.data?.message || 'Failed to update status');
     }
   };
 
@@ -86,6 +75,13 @@ const IncidentManagement = () => {
       title: 'Type',
       dataIndex: 'incidentType',
       key: 'incidentType',
+      render: (type) => {
+        const getIcon = () => {
+          if (type?.includes('DAMAGE') || type?.includes('LOST')) return <WarningOutlined style={{ color: '#faad14', marginRight: 4 }} />;
+          return <InfoCircleOutlined style={{ color: '#1677ff', marginRight: 4 }} />;
+        };
+        return <span style={{ whiteSpace: 'nowrap' }}>{getIcon()} {type}</span>;
+      }
     },
     {
       title: 'Status',
@@ -93,11 +89,11 @@ const IncidentManagement = () => {
       key: 'status',
       render: (status) => {
         let color = 'default';
-        if (status === 'OPEN') color = 'gold';
-        if (status === 'IN_PROGRESS') color = 'blue';
-        if (status === 'RESOLVED') color = 'green';
+        if (status === 'OPEN') color = 'error';
+        if (status === 'IN_PROGRESS') color = 'processing';
+        if (status === 'RESOLVED') color = 'success';
         if (status === 'CLOSED') color = 'default';
-        return <Tag color={color}>{status || '-'}</Tag>;
+        return <Tag color={color} style={{ minWidth: 80, textAlign: 'center' }}>{status || '-'}</Tag>;
       }
     },
     {
@@ -113,22 +109,28 @@ const IncidentManagement = () => {
         return time ? dayjs(time).format('DD/MM/YYYY HH:mm:ss') : '-';
       }
     },
+    {
+      title: 'Action',
+      key: 'action',
+      render: (_, record) => (
+        <Button 
+          type="link" 
+          icon={<EditOutlined />} 
+          onClick={() => {
+            setSelectedIncident(record);
+            setNewStatus(record.status);
+            setUpdateModalVisible(true);
+          }}
+        >
+          Update Status
+        </Button>
+      )
+    },
   ];
 
   return (
     <Card 
       title={<span style={{ fontSize: '18px' }}>Incident Management</span>}
-      extra={
-        <Button 
-          type="primary" 
-          size="large"
-          icon={<AlertOutlined />} 
-          onClick={() => setIsModalVisible(true)} 
-          style={{ backgroundColor: '#dc2626', fontWeight: 'bold' }}
-        >
-          Report Emergency Incident
-        </Button>
-      }
     >
       <Space style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap' }}>
         <Input 
@@ -165,43 +167,25 @@ const IncidentManagement = () => {
       />
 
       <Modal
-        title="Report New Incident"
-        open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
-        footer={null}
+        title="Update Incident Status"
+        open={updateModalVisible}
+        onCancel={() => setUpdateModalVisible(false)}
+        onOk={handleUpdateStatus}
+        okText="Update"
       >
-        <Form form={form} layout="vertical" onFinish={handleReportIncident} size="large">
-          <Form.Item name="description" label="Incident Description" rules={[{ required: true, message: 'Please enter a description' }]}>
-            <Input.TextArea rows={4} placeholder="e.g. Car scratched, Barrier broken..." />
-          </Form.Item>
-          
-          <Form.Item name="incidentType" label="Incident Type" rules={[{ required: true, message: 'Please select a type' }]}>
-            <Select>
-              <Option value="LOST_TICKET">Lost Ticket</Option>
-              <Option value="FACILITY_DAMAGE">Facility Damage</Option>
-              <Option value="WRONG_LICENSE_PLATE">Wrong License Plate</Option>
-              <Option value="SLOT_OCCUPIED">Slot Occupied</Option>
-              <Option value="OTHER">Other</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item name="sessionId" label="Session ID (Optional)">
-            <Input type="number" placeholder="Enter session ID if related" />
-          </Form.Item>
-
-          <Form.Item name="incidentImage" label="Photo Evidence (Optional)">
-            <Upload beforeUpload={() => false} listType="picture" maxCount={1}>
-              <Button icon={<UploadOutlined />}>Click to upload image</Button>
-            </Upload>
-          </Form.Item>
-
-          <Form.Item style={{ textAlign: 'right', marginBottom: 0, marginTop: 24 }}>
-            <Button onClick={() => setIsModalVisible(false)} style={{ marginRight: 8, height: '40px' }}>Cancel</Button>
-            <Button type="primary" htmlType="submit" style={{ backgroundColor: '#dc2626', height: '40px', fontWeight: 'bold' }}>
-              Submit Report
-            </Button>
-          </Form.Item>
-        </Form>
+        <div style={{ marginBottom: 16 }}>
+          <Typography.Text type="secondary">Updating status for Incident #{selectedIncident?.incidentId || selectedIncident?.id}</Typography.Text>
+        </div>
+        <Select
+          style={{ width: '100%' }}
+          value={newStatus}
+          onChange={(val) => setNewStatus(val)}
+        >
+          <Option value="OPEN">Open</Option>
+          <Option value="IN_PROGRESS">In Progress</Option>
+          <Option value="RESOLVED">Resolved</Option>
+          <Option value="CLOSED">Closed</Option>
+        </Select>
       </Modal>
     </Card>
   );

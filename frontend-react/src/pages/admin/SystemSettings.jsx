@@ -7,7 +7,13 @@ const SystemSettings = () => {
   const [settings, setSettings] = useState([
     { key: 'maintenance_mode', value: 'false', description: 'Enable system maintenance mode' },
     { key: 'max_reservation_hours', value: '24', description: 'Maximum hours for a reservation' },
-    { key: 'grace_period_minutes', value: '15', description: 'Grace period for late checkout' }
+    { key: 'grace_period_minutes', value: '15', description: 'Grace period for late checkout' },
+    { key: 'payment_timeout_minutes', value: '10', description: 'Time allowed for a driver to complete payment before it expires' },
+    { key: 'night_shift_start_time', value: '22:00', description: 'Start time for night shift pricing (HH:mm)' },
+    { key: 'night_shift_end_time', value: '06:00', description: 'End time for night shift pricing (HH:mm)' },
+    { key: 'allow_guest_parking', value: 'true', description: 'Allow unregistered drivers to park' },
+    { key: 'max_vehicles_per_user', value: '3', description: 'Maximum number of vehicles a regular user can register' },
+    { key: 'system_contact_email', value: 'support@parksmart.com', description: 'Support email for driver inquiries' }
   ]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
