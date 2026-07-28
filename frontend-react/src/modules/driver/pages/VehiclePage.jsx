@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useReducer, useMemo } from 'react';
-import { Card, Row, Col, Button, Modal, Form, Input, Select, Popconfirm, Tag, Space, message, Descriptions, Typography, Divider, Empty, Skeleton, Upload, theme } from 'antd';
+import { Card, Row, Col, Button, Modal, Form, Input, Select, Popconfirm, Tag, Space, message, Descriptions, Typography, Divider, Empty, Skeleton, Upload, theme, Checkbox } from 'antd';
 import { CarOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 import { vehicleStore } from '../store/vehicleStore';
@@ -20,6 +20,25 @@ const VehiclePage = () => {
     const [viewingVehicle, setViewingVehicle] = useState(null);
     const [, forceRender] = useReducer(x => x + 1, 0);
     const [form] = Form.useForm();
+    const [user, setUser] = useState(null);
+
+    const selectedVehicleTypeId = Form.useWatch('vehicleTypeId', form);
+    const ownerPhoneValue = Form.useWatch('ownerPhone', form);
+
+    const safeVehicleTypes = Array.isArray(vehicleStore.vehicleTypes) ? vehicleStore.vehicleTypes : [];
+
+    const isBicycle = useMemo(() => {
+        const selectedType = safeVehicleTypes.find(t => (t.vehicleTypeId || t.id) === selectedVehicleTypeId);
+        return selectedType && (selectedType.typeName || selectedType.name || '').toLowerCase().includes('bicycle');
+    }, [selectedVehicleTypeId, safeVehicleTypes]);
+
+    useEffect(() => {
+        if (isBicycle && isModalVisible) {
+            form.setFieldsValue({
+                licensePlate: ownerPhoneValue ? `BIKE_${ownerPhoneValue}` : 'BIKE_'
+            });
+        }
+    }, [isBicycle, ownerPhoneValue, isModalVisible, form]);
     
     // Local filters
     const [searchText, setSearchText] = useState('');
@@ -33,6 +52,13 @@ const VehiclePage = () => {
     // Kích hoạt việc gọi API lấy danh sách xe khi component được tạo ra
     useEffect(() => {
         fetchData();
+        const authStr = localStorage.getItem('parking_auth');
+        if (authStr) {
+            try {
+                const parsedUser = JSON.parse(authStr);
+                setUser(parsedUser);
+            } catch (e) {}
+        }
     }, []);
 
     // Hàm gọi song song các API lấy danh sách xe cá nhân và danh mục loại xe từ backend
@@ -124,6 +150,11 @@ const VehiclePage = () => {
         try {
             const { images, ...values } = await form.validateFields();
             const payload = { ...values, vehicleColor: values.color };
+            
+            // Explicitly set to null if empty to avoid DB Unique Constraint violations
+            if (!payload.engineNumber || payload.engineNumber.trim() === '') payload.engineNumber = null;
+            if (!payload.chassisNumber || payload.chassisNumber.trim() === '') payload.chassisNumber = null;
+
             let vehicleId;
             
             if (editingVehicle) {
@@ -191,8 +222,16 @@ const VehiclePage = () => {
         }
     };
 
+    const handleFillOwnerInfo = (e) => {
+        if (e.target.checked && user) {
+            form.setFieldsValue({
+                ownerName: user.fullName || '',
+                ownerPhone: user.phoneNumber || ''
+            });
+        }
+    };
+
     const safeVehicles = Array.isArray(vehicleStore.vehicles) ? vehicleStore.vehicles : [];
-    const safeVehicleTypes = Array.isArray(vehicleStore.vehicleTypes) ? vehicleStore.vehicleTypes : [];
 
     // Lọc danh sách xe trên máy khách (client-side filter) theo từ khoá tìm kiếm và loại xe
     const filteredVehicles = useMemo(() => {
@@ -381,44 +420,52 @@ const VehiclePage = () => {
                 cancelText="Cancel"
                 destroyOnHidden
             >
-                <Form form={form} layout="vertical" style={{ marginTop: 20 }}>
+                <div style={{ marginBottom: 16, color: '#8c8c8c', fontStyle: 'italic', fontSize: '13px' }}>
+                    * Please fill in the information exactly as it appears on your vehicle registration certificate.
+                </div>
+                <Form form={form} layout="vertical" style={{ marginTop: 10 }}>
                     <Row gutter={16}>
                         <Col span={12}>
-                            <Form.Item name="licensePlate" label="License Plate" rules={[{ required: true }]}>
-                                <Input size="large" />
+                            <Form.Item name="licensePlate" label={isBicycle ? "Biển số (Tự động)" : "License Plate"} rules={[{ required: true }]}>
+                                <Input size="large" disabled={isBicycle} placeholder={isBicycle ? "Hệ thống tự tạo" : "e.g. 51F-123.45"} />
                             </Form.Item>
                         </Col>
                         <Col span={12}>
                             <Form.Item name="vehicleTypeId" label="Vehicle Type" rules={[{ required: true }]}>
-                                <Select size="large">
+                                <Select size="large" placeholder="Select vehicle type">
                                     {safeVehicleTypes.map(t => <Select.Option key={t.vehicleTypeId || t.id} value={t.vehicleTypeId || t.id}>{t.typeName || t.name}</Select.Option>)}
                                 </Select>
                             </Form.Item>
                         </Col>
                         <Col span={12}>
-                            <Form.Item name="ownerName" label="Owner Name" rules={[{ required: true }]}>
-                                <Input size="large" />
+                            <Form.Item name="ownerName" label="Owner Name" rules={[{ required: true }]} style={{ marginBottom: 8 }}>
+                                <Input size="large" placeholder="e.g. NGUYEN VAN A" />
                             </Form.Item>
+                            <Checkbox onChange={handleFillOwnerInfo} style={{ marginBottom: 16, fontSize: '12px', color: '#8c8c8c' }}>I am the owner</Checkbox>
                         </Col>
                         <Col span={12}>
                             <Form.Item name="ownerPhone" label="Owner Phone" rules={[{ required: true }]}>
-                                <Input size="large" />
+                                <Input size="large" placeholder="e.g. 0901234567" />
                             </Form.Item>
                         </Col>
                         <Col span={12}>
-                            <Form.Item name="brand" label="Brand"><Input size="large" /></Form.Item>
+                            <Form.Item name="brand" label="Brand"><Input size="large" placeholder="e.g. Honda, Toyota" /></Form.Item>
                         </Col>
                         <Col span={12}>
-                            <Form.Item name="color" label="Color"><Input size="large" /></Form.Item>
+                            <Form.Item name="color" label="Color"><Input size="large" placeholder="e.g. Black, Red" /></Form.Item>
                         </Col>
+                        {!isBicycle && (
+                            <Col span={12}>
+                                <Form.Item name="engineNumber" label="Engine Number"><Input size="large" placeholder="e.g. JF51E-0123456" /></Form.Item>
+                            </Col>
+                        )}
+                        {!isBicycle && (
+                            <Col span={12}>
+                                <Form.Item name="chassisNumber" label="Chassis Number"><Input size="large" placeholder="e.g. RLHJF5103EY123456" /></Form.Item>
+                            </Col>
+                        )}
                         <Col span={12}>
-                            <Form.Item name="engineNumber" label="Engine Number"><Input size="large" /></Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item name="chassisNumber" label="Chassis Number"><Input size="large" /></Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item name="manufactureYear" label="Manufacture Year"><Input type="number" size="large" /></Form.Item>
+                            <Form.Item name="manufactureYear" label="Manufacture Year"><Input type="number" size="large" placeholder="e.g. 2022" /></Form.Item>
                         </Col>
                     </Row>
                     
@@ -428,15 +475,18 @@ const VehiclePage = () => {
                             name="images" 
                             rules={[{
                                 validator: async (_, value) => {
-                                    const requiredKeys = ['idcardfront', 'idcardback', 'ownerportrait', 'vehicle', 'registrationfront', 'registrationback'];
+                                    let requiredKeys = ['idcardfront', 'idcardback', 'ownerportrait', 'vehicle', 'registrationfront', 'registrationback'];
+                                    if (isBicycle) {
+                                        requiredKeys = ['idcardfront', 'idcardback', 'ownerportrait', 'vehicle'];
+                                    }
                                     const missing = requiredKeys.filter(k => !value || !value[k]);
                                     if (missing.length > 0) {
-                                        throw new Error('Please upload all 6 required images');
+                                        throw new Error(`Please upload all ${requiredKeys.length} required images`);
                                     }
                                 }
                             }]}
                         >
-                            <VehicleImageGrid mode="edit" />
+                            <VehicleImageGrid mode="edit" isBicycle={isBicycle} />
                         </Form.Item>
                     </div>
                 </Form>
@@ -457,8 +507,12 @@ const VehiclePage = () => {
                             <Descriptions.Item label="Owner Phone">{viewingVehicle.ownerPhone}</Descriptions.Item>
                             <Descriptions.Item label="Brand">{viewingVehicle.brand}</Descriptions.Item>
                             <Descriptions.Item label="Color">{viewingVehicle.color || viewingVehicle.vehicleColor}</Descriptions.Item>
-                            <Descriptions.Item label="Engine No.">{viewingVehicle.engineNumber || 'N/A'}</Descriptions.Item>
-                            <Descriptions.Item label="Chassis No.">{viewingVehicle.chassisNumber || 'N/A'}</Descriptions.Item>
+                            {!(viewingVehicle.vehicleType?.typeName || viewingVehicle.vehicleType?.name || viewingVehicle.vehicleTypeName || '').toLowerCase().includes('bicycle') && (
+                                <>
+                                    <Descriptions.Item label="Engine No.">{viewingVehicle.engineNumber || 'N/A'}</Descriptions.Item>
+                                    <Descriptions.Item label="Chassis No.">{viewingVehicle.chassisNumber || 'N/A'}</Descriptions.Item>
+                                </>
+                            )}
                             <Descriptions.Item label="Mfg Year">{viewingVehicle.manufactureYear || 'N/A'}</Descriptions.Item>
                             <Descriptions.Item label="Status">
                                                 <Tag color={
@@ -476,6 +530,7 @@ const VehiclePage = () => {
                         <Title level={5} style={{ marginBottom: 16 }}>Attached Documents</Title>
                         <VehicleImageGrid 
                             mode="view" 
+                            isBicycle={(viewingVehicle.vehicleType?.typeName || viewingVehicle.vehicleType?.name || viewingVehicle.vehicleTypeName || '').toLowerCase().includes('bicycle')}
                             value={{
                                 idcardfront: viewingVehicle.idCardFront,
                                 idcardback: viewingVehicle.idCardBack,
