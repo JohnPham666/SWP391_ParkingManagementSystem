@@ -11,7 +11,7 @@ export const IMAGE_SLOTS = [
     { key: 'registrationback', label: 'Registration (Back)', icon: <FileTextOutlined /> }
 ];
 
-const VehicleImageGrid = ({ value = {}, onChange, mode = 'edit' }) => {
+const VehicleImageGrid = ({ value = {}, onChange, mode = 'edit', isBicycle = false }) => {
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewImage, setPreviewImage] = useState('');
     const [previewTitle, setPreviewTitle] = useState('');
@@ -131,7 +131,10 @@ const VehicleImageGrid = ({ value = {}, onChange, mode = 'edit' }) => {
     return (
         <>
             <Row gutter={[16, 16]}>
-                {IMAGE_SLOTS.map(slot => (
+                {IMAGE_SLOTS.filter(slot => {
+                    if (isBicycle && (slot.key === 'registrationfront' || slot.key === 'registrationback')) return false;
+                    return true;
+                }).map(slot => (
                     <Col xs={24} sm={12} key={slot.key}>
                         {renderSlot(slot)}
                     </Col>
