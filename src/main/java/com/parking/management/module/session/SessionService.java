@@ -43,7 +43,9 @@ public class SessionService {
     private final VehicleTypeRepository vehicleTypeRepository;
     private final ParkingCardRepository parkingCardRepository;
     private final SubscriptionRepository subscriptionRepository;
-    private final SecurityUtils securityUtils;    private final S3Service s3Service;
+    private final SecurityUtils securityUtils;
+    private final S3Service s3Service;
+    private final com.parking.management.module.config.SystemConfigService configService;
 
     @Value("${file.upload-dir.sessions:uploads/sessions}")
     private String uploadDir;
@@ -97,15 +99,15 @@ public class SessionService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(reservation.getReservationStart().minusMinutes(40))) {
+        int earlyCheckinBuffer = Integer.parseInt(configService.getConfigValue("EARLY_CHECKIN_BUFFER_MINUTES", "30"));
+        if (now.isBefore(reservation.getReservationStart().minusMinutes(earlyCheckinBuffer))) {
             throw new IllegalArgumentException(
-                    "Quá sớm để check-in cho lịch đặt chỗ này (chỉ hỗ trợ check-in trước 30 phút). Vui lòng check-in theo diện khách vãng lai (Walk-in).");
+                    "Too early to check in. You can only check in " + earlyCheckinBuffer + " minutes prior to your reservation time.");
         }
 
         if (now.isAfter(reservation.getReservationEnd())) {
-            throw new IllegalArgumentException("Lịch đặt chỗ này đã quá hạn sử dụng.");
+            throw new IllegalArgumentException("This reservation has expired.");
         }
-
         if (slot.getCurrentOccupancy() >= slot.getCapacity()) {
             throw new IllegalArgumentException("Rất tiếc, ô đỗ đã bị xe vãng lai lấn chiếm (vượt sức chứa)!");
         }
@@ -169,6 +171,9 @@ public class SessionService {
         // 1. Tìm hoặc tạo Vehicle ẩn danh
         Vehicle vehicle = vehicleRepository.findByLicensePlate(request.getLicensePlate())
                 .orElseGet(() -> {
+                    if (!configService.getBoolean("ALLOW_GUEST_PARKING", true)) {
+                        throw new IllegalArgumentException("Hệ thống hiện không nhận khách vãng lai. Vui lòng đăng ký tài khoản.");
+                    }
                     VehicleType type = vehicleTypeRepository.findById(request.getVehicleTypeId())
                             .orElseThrow(() -> new ResourceNotFoundException(
                                     "Vehicle type not found with id: " + request.getVehicleTypeId()));
@@ -178,6 +183,10 @@ public class SessionService {
                     newVehicle.setOwnerName(request.getGuestName());
                     return vehicleRepository.save(newVehicle);
                 });
+
+        if (!configService.getBoolean("ALLOW_GUEST_PARKING", true) && vehicle.getUser() == null) {
+            throw new IllegalArgumentException("Hệ thống hiện không nhận khách vãng lai. Vui lòng đăng ký tài khoản.");
+        }
 
         // 2. Kiểm tra xem xe có vé tháng ACTIVE không
         boolean hasActiveSubscription = subscriptionRepository.findByVehicle_VehicleId(vehicle.getVehicleId())
@@ -381,10 +390,17 @@ public class SessionService {
                  */
                 // Bước 1: Tính tổng chi phí thực tế mà khách phải chịu từ lúc Vào cổng đến lúc Ra cổng.
                 // Nếu khách ra trễ hơn ReservationEnd, hàm này sẽ tự động tính thêm tiền phạt quá giờ (overtime).
+                // Grace period: Miễn phí nếu ra trễ trong khoảng thời gian cho phép
+                LocalDateTime effectiveExitTime = exitTime;
+                int graceMinutes = configService.getInt("LATE_CHECKOUT_GRACE_MINUTES", 15);
+                if (exitTime.isAfter(r.getReservationEnd()) && exitTime.isBefore(r.getReservationEnd().plusMinutes(graceMinutes))) {
+                    effectiveExitTime = r.getReservationEnd();
+                }
+
                 FeeCalculationResponse feeResponse = pricingService.calculateFee(
                         vehicleTypeId,
                         session.getEntryTime(),
-                        exitTime,
+                        effectiveExitTime,
                         r.getReservationEnd(), // overtimeStart = hết giờ đặt chỗ
                         session.getVehicle() != null ? session.getVehicle().getVehicleId() : null
                 );

@@ -39,6 +39,9 @@ public class AuthService {
     @org.springframework.beans.factory.annotation.Value("${google.client.id:YOUR_GOOGLE_CLIENT_ID}")
     private String googleClientId;
 
+    @org.springframework.beans.factory.annotation.Value("${jwt.secret}")
+    private String jwtSecret;
+
     /**
      * Xác minh Google Token
      */
@@ -243,7 +246,7 @@ public class AuthService {
 
         // Tạo secret riêng biệt chứa password hash
         // Nếu user đổi mật khẩu, passwordHash sẽ thay đổi -> token cũ bị vô hiệu
-        String secretString = "fallback_secret_key_needs_to_be_long_enough_for_hs256" + user.getPasswordHash();
+        String secretString = jwtSecret + user.getPasswordHash();
         SecretKey key = Keys.hmacShaKeyFor(secretString.getBytes(StandardCharsets.UTF_8));
 
         String token = Jwts.builder()
@@ -284,7 +287,7 @@ public class AuthService {
                     .orElseThrow(() -> new RuntimeException("Email trong token không tồn tại"));
 
             // Verify chữ ký
-            String secretString = "fallback_secret_key_needs_to_be_long_enough_for_hs256" + user.getPasswordHash();
+            String secretString = jwtSecret + user.getPasswordHash();
             SecretKey key = Keys.hmacShaKeyFor(secretString.getBytes(StandardCharsets.UTF_8));
 
             Jwts.parser()

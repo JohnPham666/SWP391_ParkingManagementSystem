@@ -16,6 +16,7 @@ import com.parking.management.module.payment.PaymentRepository;
 import com.parking.management.module.payment.PaymentStatus;
 import com.parking.management.module.pricing.PricingService;
 import com.parking.management.module.pricing.FeeCalculationResponse;
+import com.parking.management.module.config.SystemConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +36,7 @@ public class ReservationService {
     private final SecurityUtils securityUtils;
     private final PaymentRepository paymentRepository;
     private final PricingService pricingService;
+    private final SystemConfigService systemConfigService;
 
 
     public ReservationResponse create(ReservationRequest request) {
@@ -228,6 +230,12 @@ public class ReservationService {
     private void validateTime(ReservationRequest request) {
         if (!request.getReservationEnd().isAfter(request.getReservationStart())) {
             throw new IllegalArgumentException("Reservation end must be after reservation start");
+        }
+        
+        int maxHours = systemConfigService.getInt("MAX_RESERVATION_HOURS", 24);
+        long hours = java.time.Duration.between(request.getReservationStart(), request.getReservationEnd()).toHours();
+        if (hours > maxHours) {
+            throw new IllegalArgumentException("Reservation duration exceeds maximum allowed hours: " + maxHours + "h");
         }
     }
 

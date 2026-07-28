@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Button, Tag, message, Card, Space, Input, Select, Modal, Form, Descriptions, Image, Badge, Typography, Divider, Upload } from 'antd';
 import { SearchOutlined, AlertOutlined, EyeOutlined, FileImageOutlined, UploadOutlined } from '@ant-design/icons';
 import { incidentApi } from '../../services/api';
+import { getImageUrl } from '../../utils/helpers';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -178,11 +179,6 @@ const IncidentManagement = () => {
     },
   ];
 
-  const getImageUrl = (path) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    return `https://swp391-parkingmanagementsystem-1.onrender.com/${path.replace(/^\/+/, '')}`;
-  };
 
   return (
     <Card
