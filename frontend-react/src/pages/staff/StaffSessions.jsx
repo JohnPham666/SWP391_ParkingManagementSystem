@@ -418,7 +418,7 @@ const StaffSessions = () => {
               plate: record.licensePlate,
               type: record.vehicleTypeName || record.vehicleType?.typeName || 'N/A',
               time: record.checkInTime || record.checkinTime || record.entryTime ? dayjs(record.checkInTime || record.checkinTime || record.entryTime).format('HH:mm:ss DD/MM/YYYY') : '-',
-              exitTime: record.checkOutTime ? dayjs(record.checkOutTime).format('HH:mm:ss DD/MM/YYYY') : '-',
+              exitTime: (record.checkOutTime || record.checkoutTime || record.exitTime) ? dayjs(record.checkOutTime || record.checkoutTime || record.exitTime).format('HH:mm:ss DD/MM/YYYY') : '-',
               gate: record.entryGate,
               exitGate: record.exitGate,
               slot: record.slotCode,
