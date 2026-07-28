@@ -1,98 +1,175 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, message, Button, Input, Modal, Form } from 'antd';
-import { EditOutlined } from '@ant-design/icons';
-// import api from '../../services/api';
+import { Card, Table, Button, Input, Modal, Form, Tag, Tabs, App, Typography, Divider } from 'antd';
+import { EditOutlined, SettingOutlined } from '@ant-design/icons';
+import api from '../../services/api';
 
-const SystemSettings = () => {
-  const [settings, setSettings] = useState([
-    { key: 'maintenance_mode', value: 'false', description: 'Enable system maintenance mode' },
-    { key: 'max_reservation_hours', value: '24', description: 'Maximum hours for a reservation' },
-    { key: 'grace_period_minutes', value: '15', description: 'Grace period for late checkout' },
-    { key: 'payment_timeout_minutes', value: '10', description: 'Time allowed for a driver to complete payment before it expires' },
-    { key: 'night_shift_start_time', value: '22:00', description: 'Start time for night shift pricing (HH:mm)' },
-    { key: 'night_shift_end_time', value: '06:00', description: 'End time for night shift pricing (HH:mm)' },
-    { key: 'allow_guest_parking', value: 'true', description: 'Allow unregistered drivers to park' },
-    { key: 'max_vehicles_per_user', value: '3', description: 'Maximum number of vehicles a regular user can register' },
-    { key: 'system_contact_email', value: 'support@parksmart.com', description: 'Support email for driver inquiries' }
-  ]);
+const { Title, Text } = Typography;
+
+const SystemSettingsContent = () => {
+  const [settings, setSettings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [editingKey, setEditingKey] = useState(null);
+  const { message } = App.useApp();
 
-  // useEffect(() => {
-  //   fetchSettings();
-  // }, []);
+  useEffect(() => {
+    fetchSettings();
+  }, []);
 
-  // const fetchSettings = async () => {
-  //   setLoading(true);
-  //   try {
-  //     const res = await api.get('/settings');
-  //     setSettings(res.data.data);
-  //   } catch (error) {
-  //     message.error('Failed to load settings');
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+  const fetchSettings = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/settings');
+      if (res.data && res.data.success) {
+        setSettings(res.data.data);
+      }
+    } catch (error) {
+      message.error('Failed to load settings');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleEdit = (record) => {
-    setEditingKey(record.key);
-    form.setFieldsValue(record);
+    setEditingKey(record.configKey);
+    form.setFieldsValue({
+      configKey: record.configKey,
+      description: record.description,
+      configValue: record.configValue,
+    });
     setIsModalVisible(true);
   };
 
   const handleSave = async (values) => {
     try {
-      // await api.put(`/settings/${editingKey}`, { value: values.value });
-      
-      const newSettings = settings.map(s => s.key === editingKey ? { ...s, value: values.value } : s);
-      setSettings(newSettings);
-      
-      message.success('Setting updated successfully');
-      setIsModalVisible(false);
+      const res = await api.put(`/settings/${editingKey}`, { value: values.configValue });
+      if (res.data && res.data.success) {
+        message.success('Setting updated successfully');
+        fetchSettings();
+        setIsModalVisible(false);
+      } else {
+        message.error(res.data.message || 'Failed to update setting');
+      }
     } catch (error) {
       message.error('Failed to update setting');
     }
   };
 
   const columns = [
-    { title: 'Configuration Key', dataIndex: 'key', key: 'key', render: (val) => <strong>{val}</strong> },
-    { title: 'Value', dataIndex: 'value', key: 'value' },
-    { title: 'Description', dataIndex: 'description', key: 'description' },
+    { 
+      title: 'Config Key', 
+      dataIndex: 'configKey', 
+      key: 'configKey', 
+      width: '25%',
+      render: (val) => <Text strong style={{ color: '#1890ff' }}>{val}</Text> 
+    },
+    { 
+      title: 'Value', 
+      dataIndex: 'configValue', 
+      key: 'configValue',
+      width: '15%',
+      render: (val) => <Tag color="blue" style={{ fontSize: '14px', padding: '4px 10px' }}>{val}</Tag>
+    },
+    { 
+      title: 'Description', 
+      dataIndex: 'description', 
+      key: 'description',
+      width: '50%'
+    },
     {
       title: 'Action',
       key: 'action',
+      width: '10%',
       render: (_, record) => (
-        <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>Edit</Button>
+        <Button type="primary" ghost icon={<EditOutlined />} onClick={() => handleEdit(record)} size="small">
+          Edit
+        </Button>
       ),
     },
   ];
 
+  // Group settings by category
+  const groupedSettings = settings.reduce((acc, curr) => {
+    const category = curr.category || 'Other';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(curr);
+    return acc;
+  }, {});
+
+  const tabItems = Object.keys(groupedSettings).map((category) => {
+    return {
+      key: category,
+      label: (
+        <span>
+          <SettingOutlined />
+          {category}
+        </span>
+      ),
+      children: (
+        <div style={{ padding: '10px 0' }}>
+          <Title level={4} style={{ marginTop: 0, color: '#262626' }}>{category} Configuration</Title>
+          <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+            Manage all system configurations related to {category.toLowerCase()}.
+          </Text>
+          <Table 
+            columns={columns} 
+            dataSource={groupedSettings[category]} 
+            rowKey="configKey" 
+            pagination={false} 
+            bordered
+            size="middle"
+          />
+        </div>
+      ),
+    };
+  });
+
   return (
-    <Card title="System Settings">
-      <Table columns={columns} dataSource={settings} rowKey="key" loading={loading} pagination={false} />
+    <Card 
+      title={<Title level={3} style={{ margin: 0 }}>System Settings</Title>} 
+      bordered={false} 
+      style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)', borderRadius: '8px' }}
+      loading={loading}
+    >
+      {Object.keys(groupedSettings).length > 0 ? (
+        <Tabs defaultActiveKey={Object.keys(groupedSettings)[0]} items={tabItems} size="large" />
+      ) : (
+        <Table columns={columns} dataSource={[]} />
+      )}
       
       <Modal
-        title="Edit Configuration"
+        title={<div><SettingOutlined /> Edit Configuration</div>}
         open={isModalVisible}
         onOk={() => form.submit()}
         onCancel={() => setIsModalVisible(false)}
+        okText="Save Changes"
+        cancelText="Cancel"
+        destroyOnClose
       >
-        <Form form={form} layout="vertical" onFinish={handleSave}>
-          <Form.Item name="key" label="Configuration Key">
-            <Input disabled />
+        <Form form={form} layout="vertical" onFinish={handleSave} style={{ marginTop: 20 }}>
+          <Form.Item name="configKey" label="Configuration Key">
+            <Input disabled size="large" style={{ backgroundColor: '#f5f5f5' }} />
           </Form.Item>
           <Form.Item name="description" label="Description">
-            <Input disabled />
+            <Input.TextArea disabled rows={2} style={{ backgroundColor: '#f5f5f5' }} />
           </Form.Item>
-          <Form.Item name="value" label="Value" rules={[{ required: true, message: 'Value is required' }]}>
-            <Input />
+          <Divider dashed />
+          <Form.Item name="configValue" label="New Value" rules={[{ required: true, message: 'Value is required' }]}>
+            <Input size="large" autoFocus />
           </Form.Item>
         </Form>
       </Modal>
     </Card>
   );
 };
+
+const SystemSettings = () => (
+  <App>
+    <SystemSettingsContent />
+  </App>
+);
 
 export default SystemSettings;

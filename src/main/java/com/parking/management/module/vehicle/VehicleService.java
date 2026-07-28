@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.parking.management.common.S3Service;
 import com.parking.management.common.CustomValidationException;
+import com.parking.management.module.config.SystemConfigService;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;import java.nio.file.Files;
@@ -35,7 +36,9 @@ public class VehicleService {
     private final ParkingSessionRepository parkingSessionRepository;
     private final ReservationRepository reservationRepository;
     private final SubscriptionRepository subscriptionRepository;
-    private final SecurityUtils securityUtils;    private final S3Service s3Service;
+    private final SecurityUtils securityUtils;    
+    private final S3Service s3Service;
+    private final SystemConfigService systemConfigService;
 
     @Value("${file.upload-dir:uploads/vehicles}")
     private String uploadDir;
@@ -51,6 +54,12 @@ public class VehicleService {
             securityUtils.checkDataOwnership(request.getUserId());
             user = userRepository.findById(request.getUserId())
                     .orElseThrow(() -> new RuntimeException("User not found"));
+                    
+            int maxVehicles = systemConfigService.getInt("MAX_VEHICLES_PER_USER", 3);
+            long currentVehicleCount = vehicleRepository.findByUserUserIdAndIsActiveTrue(request.getUserId()).size();
+            if (currentVehicleCount >= maxVehicles) {
+                throw new IllegalArgumentException("Bạn đã đạt giới hạn đăng ký tối đa " + maxVehicles + " xe.");
+            }
         }
 
         Vehicle vehicle = new Vehicle();

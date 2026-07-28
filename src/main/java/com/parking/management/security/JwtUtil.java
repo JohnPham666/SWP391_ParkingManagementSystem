@@ -14,8 +14,16 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
 
-    @Value("${jwt.expiration}")
-    private long expiration;
+    private final com.parking.management.module.config.SystemConfigService configService;
+
+    public JwtUtil(com.parking.management.module.config.SystemConfigService configService) {
+        this.configService = configService;
+    }
+
+    private long getExpiration() {
+        String val = configService.getConfigValue("JWT_ACCESS_EXPIRATION_MINUTES", "120");
+        return Long.parseLong(val) * 60000; // minutes to ms
+    }
 
     private SecretKey getSigningKey() {
         // Chuyển chuỗi secret thành một khóa mã hóa (Key) dùng cho thuật toán HMAC-SHA256
@@ -27,7 +35,7 @@ public class JwtUtil {
         Date now = new Date();
         
         // 2. Tính toán thời điểm hết hạn = Hiện tại + Khoảng thời gian sống (expiration)
-        Date expiryDate = new Date(now.getTime() + expiration);
+        Date expiryDate = new Date(now.getTime() + getExpiration());
 
         // 3. Sử dụng Builder pattern để lắp ráp 3 phần của JWT
         return Jwts.builder()

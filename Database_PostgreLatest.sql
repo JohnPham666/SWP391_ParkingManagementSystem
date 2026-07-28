@@ -290,9 +290,26 @@ CREATE TABLE ParkingPredictions (
     CONSTRAINT FK_ParkingPredictions_Floors FOREIGN KEY (FloorID) REFERENCES Floors(FloorID)
 );
 
+CREATE TABLE SystemConfigs (
+    ConfigKey VARCHAR(100) PRIMARY KEY,
+    ConfigValue VARCHAR(255) NOT NULL,
+    Description TEXT,
+    Category VARCHAR(50)
+);
+
 -- =========================================================
 -- SEED DATA TIẾNG VIỆT CÓ DẤU CHUẨN
 -- =========================================================
+
+-- 0. SYSTEM CONFIGS
+INSERT INTO SystemConfigs (ConfigKey, ConfigValue, Description, Category) VALUES
+('EARLY_CHECKIN_BUFFER_MINUTES', '30', 'Allowed time (in minutes) for early check-in before a reservation starts.', 'Operations'),
+('LATE_CHECKOUT_GRACE_MINUTES', '15', 'Grace period (in minutes) after checkout before additional fees apply.', 'Operations'),
+('RESERVATION_PAYMENT_TIMEOUT', '10', 'Time (in minutes) to wait for reservation payment before it expires.', 'Operations'),
+('MAX_RESERVATION_HOURS', '24', 'Maximum allowed hours for a single reservation.', 'Operations'),
+('JWT_ACCESS_EXPIRATION_MINUTES', '120', 'Expiration time for JWT Access Token (in minutes).', 'Security'),
+('MAX_VEHICLES_PER_USER', '3', 'Maximum number of vehicles allowed per user account.', 'Restrictions'),
+('ALLOW_GUEST_PARKING', 'true', 'Enable or disable guest parking (Walk-in without an account).', 'Restrictions');
 
 -- 1. ROLES
 INSERT INTO Roles (RoleID, RoleName, Description) OVERRIDING SYSTEM VALUE VALUES

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Statistic, Typography, Button, Spin, message, Modal, Form, Input, Select, Upload, Tag, Progress, theme } from 'antd';
-import { 
-  CarOutlined, 
+import {
+  CarOutlined,
   SafetyCertificateOutlined,
   ArrowRightOutlined,
   LogoutOutlined,
@@ -29,10 +29,11 @@ const StaffDashboard = () => {
   const [isResCheckInVisible, setIsResCheckInVisible] = useState(false);
   const [isCheckOutVisible, setIsCheckOutVisible] = useState(false);
   const [isSummaryVisible, setIsSummaryVisible] = useState(false);
-  
+  const [earlyCheckinBuffer, setEarlyCheckinBuffer] = useState(30);
+
   const [activeCards, setActiveCards] = useState([]);
   const [activeSubPlates, setActiveSubPlates] = useState(new Map());
-  
+
   // --- ALPR States ---
   const [isScanningEntry, setIsScanningEntry] = useState(false);
   const [isScanningExit, setIsScanningExit] = useState(false);
@@ -48,7 +49,7 @@ const StaffDashboard = () => {
       try {
         const response = await alprApi.scanPlate(file);
         const resData = response.data || {};
-        
+
         if (resData.success && typeof resData.data === 'string') {
           const plateStr = resData.data;
           checkInForm.setFieldsValue({ licensePlate: plateStr });
@@ -76,7 +77,7 @@ const StaffDashboard = () => {
       try {
         const response = await alprApi.scanPlate(file);
         const resData = response.data || {};
-        
+
         if (resData.success && typeof resData.data === 'string') {
           const plateStr = resData.data;
           checkOutSearchForm.setFieldsValue({ licensePlate: plateStr });
@@ -114,15 +115,15 @@ const StaffDashboard = () => {
           const res = await paymentApi.getPayment(checkoutSessionData.paymentId);
           const paymentData = res.data?.data || res.data;
           if (paymentData.paymentStatus === 'PAID') {
-             clearInterval(interval);
-             setCheckOutStep(4);
-             fetchData();
-             setTimeout(() => {
-                setIsCheckOutVisible(false);
-                setCheckOutStep(1);
-                checkOutSearchForm.resetFields();
-                checkOutConfirmForm.resetFields();
-             }, 3000);
+            clearInterval(interval);
+            setCheckOutStep(4);
+            fetchData();
+            setTimeout(() => {
+              setIsCheckOutVisible(false);
+              setCheckOutStep(1);
+              checkOutSearchForm.resetFields();
+              checkOutConfirmForm.resetFields();
+            }, 3000);
           }
         } catch (e) {
           console.error("Error polling VNPay status", e);
@@ -133,16 +134,29 @@ const StaffDashboard = () => {
       if (interval) clearInterval(interval);
     };
   }, [checkOutStep, checkoutSessionData]);
-  
+
   useEffect(() => {
     fetchData();
     fetchActiveCards();
     fetchSubscriptions();
+    fetchSettings();
     const interval = setInterval(() => {
       fetchData(true);
     }, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await api.get('/settings');
+      if (res.data?.success) {
+        const config = res.data.data.find(c => c.configKey === 'EARLY_CHECKIN_BUFFER_MINUTES');
+        if (config) setEarlyCheckinBuffer(parseInt(config.configValue));
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    }
+  };
 
   const fetchData = async (silent = false) => {
     try {
@@ -158,7 +172,7 @@ const StaffDashboard = () => {
 
       let resList = resRes.data?.data || resRes.data || [];
       if (Array.isArray(resList)) {
-        const activeRes = resList.filter(r => 
+        const activeRes = resList.filter(r =>
           r.status === 'CONFIRMED' || r.status === 'PENDING'
         );
         setTodayReservationList(activeRes);
@@ -171,7 +185,7 @@ const StaffDashboard = () => {
     }
   };
 
-  
+
   const fetchSubscriptions = async () => {
     try {
       const res = await subscriptionApi.getSubscriptions();
@@ -207,9 +221,9 @@ const StaffDashboard = () => {
     const plate = e.target.value.toUpperCase();
     if (plate.length >= 4) {
       const now = dayjs();
-      const match = todayReservationList.find(r => 
-        r.licensePlate && r.licensePlate.toUpperCase() === plate && r.status === 'CONFIRMED' && 
-        now.isAfter(dayjs(r.reservationStart).subtract(30, 'minute')) && 
+      const match = todayReservationList.find(r =>
+        r.licensePlate && r.licensePlate.toUpperCase() === plate && r.status === 'CONFIRMED' &&
+        now.isAfter(dayjs(r.reservationStart).subtract(earlyCheckinBuffer, 'minute')) &&
         now.isBefore(dayjs(r.reservationEnd))
       );
       setMatchedReservation(match || null);
@@ -221,11 +235,11 @@ const StaffDashboard = () => {
   const handleFallbackSearch = () => {
     if (!searchFallback) return;
     const now = dayjs();
-    const match = todayReservationList.find(r => 
-      (r.reservationId.toString() === searchFallback || 
-      (r.userFullName && r.userFullName.toLowerCase().includes(searchFallback.toLowerCase()))) && 
+    const match = todayReservationList.find(r =>
+      (r.reservationId.toString() === searchFallback ||
+        (r.userFullName && r.userFullName.toLowerCase().includes(searchFallback.toLowerCase()))) &&
       r.status === 'CONFIRMED' &&
-      now.isAfter(dayjs(r.reservationStart).subtract(30, 'minute')) && 
+      now.isAfter(dayjs(r.reservationStart).subtract(30, 'minute')) &&
       now.isBefore(dayjs(r.reservationEnd))
     );
     if (match) {
@@ -259,7 +273,7 @@ const StaffDashboard = () => {
         const res = await sessionApi.walkIn(payload);
         sessionData = res.data?.data;
       }
-      
+
       if (values.entryImage && values.entryImage.fileList.length > 0 && sessionData?.sessionId) {
         const file = values.entryImage.fileList[0].originFileObj;
         await sessionApi.uploadSessionImage(sessionData.sessionId, file, 'entry');
@@ -270,7 +284,7 @@ const StaffDashboard = () => {
       checkInForm.resetFields();
       setMatchedReservation(null);
       setSearchFallback('');
-      
+
       setSummaryData({
         ...sessionData,
         plate: values.licensePlate,
@@ -311,9 +325,9 @@ const StaffDashboard = () => {
         message.error('No active session found for this license plate');
         return;
       }
-      
+
       const targetSession = res.data.data;
-      
+
       let exitImageUrl = null;
       let exitImageFile = null;
       if (values.exitImage && values.exitImage.fileList.length > 0) {
@@ -323,19 +337,19 @@ const StaffDashboard = () => {
 
       const exitTimeIso = new Date().toISOString();
       let calculatedFee = 0;
-      
+
       if (!targetSession.hasActiveSubscription) {
-         try {
-             const feeRes = await pricingApi.calculateFee({
-                vehicleTypeId: targetSession.vehicleTypeId,
-                entryTime: dayjs(targetSession.entryTime).format('YYYY-MM-DDTHH:mm:ss'),
-                exitTime: dayjs(exitTimeIso).format('YYYY-MM-DDTHH:mm:ss')
-             });
-             calculatedFee = feeRes.data.data.finalFee;
-         } catch (e) {
-             console.error("Fee calculation failed", e);
-             message.error('Fee calculation error from Backend: ' + (e.response?.data?.message || e.message));
-         }
+        try {
+          const feeRes = await pricingApi.calculateFee({
+            vehicleTypeId: targetSession.vehicleTypeId,
+            entryTime: dayjs(targetSession.entryTime).format('YYYY-MM-DDTHH:mm:ss'),
+            exitTime: dayjs(exitTimeIso).format('YYYY-MM-DDTHH:mm:ss')
+          });
+          calculatedFee = feeRes.data.data.finalFee;
+        } catch (e) {
+          console.error("Fee calculation failed", e);
+          message.error('Fee calculation error from Backend: ' + (e.response?.data?.message || e.message));
+        }
       }
 
       setCheckoutSessionData({
@@ -349,9 +363,9 @@ const StaffDashboard = () => {
       setCheckOutStep(2);
     } catch (error) {
       if (error.response?.data?.message?.includes('already has a PENDING payment')) {
-         message.error('Vehicle already in checkout process');
+        message.error('Vehicle already in checkout process');
       } else {
-         message.error(error.response?.data?.message || 'Error finding vehicle');
+        message.error(error.response?.data?.message || 'Error finding vehicle');
       }
     }
   };
@@ -359,7 +373,7 @@ const StaffDashboard = () => {
   const handleCheckOutConfirm = async (values) => {
     try {
       const sessionId = checkoutSessionData.sessionId;
-      
+
       // 1. Check out to finalize the fee and change status to UNPAID or COMPLETED
       const checkOutRes = await sessionApi.checkOut(sessionId, { exitGate: 'Gate A' });
       const updatedSession = checkOutRes.data?.data || checkOutRes.data;
@@ -369,37 +383,37 @@ const StaffDashboard = () => {
       }
 
       if (updatedSession.status === 'COMPLETED' || updatedSession.finalFee === 0) {
-         message.success('Check-out Successful (Pre-paid / Zero Fee)');
-         setIsCheckOutVisible(false);
-         setCheckOutStep(1);
-         checkOutSearchForm.resetFields();
-         checkOutConfirmForm.resetFields();
-         fetchData();
-         fetchActiveCards();
-         return;
+        message.success('Check-out Successful (Pre-paid / Zero Fee)');
+        setIsCheckOutVisible(false);
+        setCheckOutStep(1);
+        checkOutSearchForm.resetFields();
+        checkOutConfirmForm.resetFields();
+        fetchData();
+        fetchActiveCards();
+        return;
       }
-      
+
       // 2. Create Payment
       const pRes = await paymentApi.createPayment({ sessionId: sessionId, paymentMethod: values.paymentMethod });
       const paymentId = pRes.data?.data?.paymentId;
 
       if (values.paymentMethod === 'CASH' || checkoutSessionData.totalFee === 0) {
-         await paymentApi.confirmCash(paymentId);
-         message.success('Check-out & Payment Successful!');
-         setIsCheckOutVisible(false);
-         setCheckOutStep(1);
-         checkOutSearchForm.resetFields();
-         checkOutConfirmForm.resetFields();
-         fetchData();
-         fetchActiveCards();
+        await paymentApi.confirmCash(paymentId);
+        message.success('Check-out & Payment Successful!');
+        setIsCheckOutVisible(false);
+        setCheckOutStep(1);
+        checkOutSearchForm.resetFields();
+        checkOutConfirmForm.resetFields();
+        fetchData();
+        fetchActiveCards();
       } else {
-         const vnRes = await paymentApi.createVnPayUrl(paymentId);
-         if (vnRes.data?.data?.paymentUrl) {
-            window.open(vnRes.data.data.paymentUrl, '_blank');
-            message.info('Opened VNPay Payment Gateway');
-            setCheckoutSessionData({ ...checkoutSessionData, paymentId });
-            setCheckOutStep(3);
-         }
+        const vnRes = await paymentApi.createVnPayUrl(paymentId);
+        if (vnRes.data?.data?.paymentUrl) {
+          window.open(vnRes.data.data.paymentUrl, '_blank');
+          message.info('Opened VNPay Payment Gateway');
+          setCheckoutSessionData({ ...checkoutSessionData, paymentId });
+          setCheckOutStep(3);
+        }
       }
     } catch (error) {
       message.error(error.response?.data?.message || 'Check-out failed');
@@ -472,11 +486,11 @@ const StaffDashboard = () => {
 
       <Row gutter={[24, 24]}>
         <Col xs={24} lg={16}>
-          <Card 
+          <Card
             hoverable
             onClick={() => navigate('/staff/slots')}
-            style={{ 
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)', 
+            style={{
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
               borderRadius: '12px',
               height: '100%',
               cursor: 'pointer'
@@ -484,25 +498,25 @@ const StaffDashboard = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '32px', flexWrap: 'wrap' }}>
               <div style={{ textAlign: 'center' }}>
-                <Progress 
-                  type="circle" 
-                  percent={sum.totalCapacity > 0 ? parseFloat((sum.currentOccupancy / sum.totalCapacity * 100).toFixed(1)) : 0} 
+                <Progress
+                  type="circle"
+                  percent={sum.totalCapacity > 0 ? parseFloat((sum.currentOccupancy / sum.totalCapacity * 100).toFixed(1)) : 0}
                   strokeColor={sum.occupancyRate < 50 ? '#10b981' : (sum.occupancyRate < 80 ? '#f59e0b' : '#ef4444')}
                   size={160}
                   strokeWidth={8}
                 />
                 <div style={{ marginTop: '12px', fontWeight: 'bold', color: '#6b7280' }}>Occupancy Rate</div>
               </div>
-              
+
               <div style={{ flex: 1, minWidth: '250px', textAlign: 'center' }}>
                 <Title level={4} style={{ marginBottom: 20, color: '#6b7280' }}>Parking Status</Title>
-                
-                <div style={{ 
-                  background: 'rgba(14,165,233,.08)', 
-                  borderRadius: '16px', 
-                  padding: '24px', 
-                  marginBottom: '20px', 
-                  border: '2px solid rgba(14,165,233,.2)', 
+
+                <div style={{
+                  background: 'rgba(14,165,233,.08)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  marginBottom: '20px',
+                  border: '2px solid rgba(14,165,233,.2)',
                   display: 'inline-block',
                   minWidth: '200px'
                 }}>
@@ -511,7 +525,7 @@ const StaffDashboard = () => {
                     {sum.currentOccupancy} <span style={{ fontSize: '24px', color: '#94a3b8' }}>/ {sum.totalCapacity}</span>
                   </div>
                 </div>
-                
+
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
                   {Object.entries(vTypeStats).map(([type, stats]) => (
                     <div key={type} style={{ background: token.colorFillQuaternary, padding: '8px 16px', borderRadius: '8px', border: `1px solid ${token.colorBorderSecondary}`, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -530,11 +544,11 @@ const StaffDashboard = () => {
 
         {/* Card 2: Reservations */}
         <Col xs={24} lg={8}>
-          <Card 
-            hoverable 
+          <Card
+            hoverable
             onClick={() => navigate('/staff/reservations')}
-            style={{ 
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)', 
+            style={{
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
               borderRadius: '12px',
               background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
               color: 'white',
@@ -561,14 +575,15 @@ const StaffDashboard = () => {
         <Title level={4} style={{ marginBottom: 16 }}>Quick Actions</Title>
         <Row gutter={[24, 24]}>
           <Col xs={24} md={12}>
-            <Button 
-              type="primary" 
-              block 
-              style={{ 
-                height: '100px', 
-                fontSize: '20px', 
-                fontWeight: 'bold', 
-                backgroundColor: '#10b981', 
+            {/* 🟢 NÚT BẤM: Bắt đầu luồng Smart Check-in (Khách vãng lai và Đặt chỗ) */}
+            <Button
+              type="primary"
+              block
+              style={{
+                height: '100px',
+                fontSize: '20px',
+                fontWeight: 'bold',
+                backgroundColor: '#10b981',
                 borderColor: '#10b981',
                 boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
                 borderRadius: '12px'
@@ -581,14 +596,15 @@ const StaffDashboard = () => {
           </Col>
 
           <Col xs={24} md={12}>
-            <Button 
-              type="primary" 
+            {/* 🔴 NÚT BẤM: Bắt đầu luồng Check-out (Mở modal tìm xe xuất bến) */}
+            <Button
+              type="primary"
               danger
-              block 
-              style={{ 
-                height: '100px', 
-                fontSize: '20px', 
-                fontWeight: 'bold', 
+              block
+              style={{
+                height: '100px',
+                fontSize: '20px',
+                fontWeight: 'bold',
                 boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)',
                 borderRadius: '12px'
               }}
@@ -609,11 +625,11 @@ const StaffDashboard = () => {
           </div>
         }
         open={isCheckInVisible}
-        onCancel={() => { 
-          setIsCheckInVisible(false); 
-          checkInForm.resetFields(); 
-          setMatchedReservation(null); 
-          setSearchFallback(''); 
+        onCancel={() => {
+          setIsCheckInVisible(false);
+          checkInForm.resetFields();
+          setMatchedReservation(null);
+          setSearchFallback('');
         }}
         footer={null}
         width={500}
@@ -621,8 +637,8 @@ const StaffDashboard = () => {
         <div style={{ marginBottom: '24px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
           <Text type="secondary" style={{ display: 'block', marginBottom: '8px' }}>Fallback: Search if license plate changed</Text>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <Input 
-              placeholder="Enter Reservation ID or Phone..." 
+            <Input
+              placeholder="Enter Reservation ID or Phone..."
               value={searchFallback}
               onChange={(e) => setSearchFallback(e.target.value)}
               onPressEnter={handleFallbackSearch}
@@ -648,7 +664,7 @@ const StaffDashboard = () => {
               const currentPlate = (getFieldValue('licensePlate') || '').replace(/\s+/g, '').toUpperCase();
               const subStatus = activeSubPlates.get(currentPlate);
               const hasSub = subStatus === 'ACTIVE';
-              
+
               return (
                 <div style={{ marginBottom: 24 }}>
                   {subStatus === 'ACTIVE' && (
@@ -672,10 +688,10 @@ const StaffDashboard = () => {
                       </Tag>
                     </div>
                   )}
-                  
-                  <Form.Item 
-                    name="cardId" 
-                    label="Card ID" 
+
+                  <Form.Item
+                    name="cardId"
+                    label="Card ID"
                     rules={[{ required: !hasSub, message: 'Please select Card ID' }]}
                     style={{ marginBottom: 16 }}
                   >
@@ -695,9 +711,9 @@ const StaffDashboard = () => {
           </Form.Item>
 
           <Form.Item name="licensePlate" label="License Plate (Optional for Bicycle)">
-            <Input 
-              placeholder="e.g. 29A-12345" 
-              style={{ textTransform: 'uppercase', fontSize: '18px', fontWeight: 'bold' }} 
+            <Input
+              placeholder="e.g. 29A-12345"
+              style={{ textTransform: 'uppercase', fontSize: '18px', fontWeight: 'bold' }}
               onChange={handleLicensePlateChange}
               onPressEnter={(e) => e.preventDefault()}
             />
@@ -741,13 +757,14 @@ const StaffDashboard = () => {
             </Select>
           </Form.Item>
 
-          <Button 
-            type="primary" 
-            htmlType="submit" 
-            block 
-            style={{ 
-              height: '50px', 
-              fontSize: '18px', 
+          {/* 🎯 NÚT BẤM: Nút xác nhận gửi form Check-in xuống Backend API */}
+          <Button
+            type="primary"
+            htmlType="submit"
+            block
+            style={{
+              height: '50px',
+              fontSize: '18px',
               fontWeight: 'bold',
               backgroundColor: matchedReservation ? '#3b82f6' : '#10b981',
               borderColor: matchedReservation ? '#3b82f6' : '#10b981'
@@ -803,11 +820,11 @@ const StaffDashboard = () => {
       <Modal
         title="Check-out & Payment"
         open={isCheckOutVisible}
-        onCancel={() => { 
-          setIsCheckOutVisible(false); 
-          setCheckOutStep(1); 
-          checkOutSearchForm.resetFields(); 
-          checkOutConfirmForm.resetFields(); 
+        onCancel={() => {
+          setIsCheckOutVisible(false);
+          setCheckOutStep(1);
+          checkOutSearchForm.resetFields();
+          checkOutConfirmForm.resetFields();
         }}
         footer={null}
         width={700}
@@ -829,26 +846,27 @@ const StaffDashboard = () => {
                 <Form.Item name="licensePlate" label="License Plate / Card ID" rules={[{ required: true, message: 'Enter plate or card' }]}>
                   <Input placeholder="e.g. 29A-12345 or 001" style={{ textTransform: 'uppercase' }} />
                 </Form.Item>
-                  <Form.Item shouldUpdate={true} noStyle>
-                    {({ getFieldValue }) => {
-                      const currentPlate = (getFieldValue('licensePlate') || '').replace(/\s+/g, '').toUpperCase();
-                      const subStatus = activeSubPlates.get(currentPlate);
-                      const hasSub = subStatus === 'ACTIVE';
-                      
-                      return (
-                        <div style={{ marginBottom: 16 }}>
-                          {hasSub && (
-                            <Tag color="success" style={{ padding: '4px 12px', fontSize: '14px', borderRadius: '4px', width: '100%', textAlign: 'center' }}>
-                              <CheckCircleFilled style={{ marginRight: '6px' }} />
-                              Active Monthly Subscription
-                            </Tag>
-                          )}
-                        </div>
-                      );
-                    }}
-                  </Form.Item>
+                <Form.Item shouldUpdate={true} noStyle>
+                  {({ getFieldValue }) => {
+                    const currentPlate = (getFieldValue('licensePlate') || '').replace(/\s+/g, '').toUpperCase();
+                    const subStatus = activeSubPlates.get(currentPlate);
+                    const hasSub = subStatus === 'ACTIVE';
+
+                    return (
+                      <div style={{ marginBottom: 16 }}>
+                        {hasSub && (
+                          <Tag color="success" style={{ padding: '4px 12px', fontSize: '14px', borderRadius: '4px', width: '100%', textAlign: 'center' }}>
+                            <CheckCircleFilled style={{ marginRight: '6px' }} />
+                            Active Monthly Subscription
+                          </Tag>
+                        )}
+                      </div>
+                    );
+                  }}
+                </Form.Item>
               </Col>
             </Row>
+            {/* 🔍 NÚT BẤM: Tìm kiếm phiên đỗ xe (Parking Session) lúc Check-out dựa trên biển số/thẻ từ */}
             <Button type="primary" htmlType="submit" block style={{ height: '50px', fontSize: '16px', fontWeight: 'bold' }}>
               Search Vehicle
             </Button>
@@ -871,9 +889,9 @@ const StaffDashboard = () => {
               <Col span={12} style={{ textAlign: 'center' }}>
                 <p><strong>Exit Image</strong></p>
                 {checkoutSessionData.exitImageUrl ? (
-                   <img src={checkoutSessionData.exitImageUrl} alt="Exit" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px' }} />
+                  <img src={checkoutSessionData.exitImageUrl} alt="Exit" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px' }} />
                 ) : (
-                   <div style={{ width: '100%', aspectRatio: '1/1', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                  <div style={{ width: '100%', aspectRatio: '1/1', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
                     <Text type="secondary">No Image</Text>
                   </div>
                 )}
@@ -885,14 +903,14 @@ const StaffDashboard = () => {
                 <Col span={12}>
                   <p><strong>Card ID:</strong> <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>{checkoutSessionData.cardId || 'N/A'}</Text></p>
                   <p><strong>Plate:</strong> <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>{checkoutSessionData.licensePlate}</Text></p>
-                    {checkoutSessionData.hasActiveSubscription && (
-                      <div style={{ marginTop: '4px' }}>
-                        <Tag color="success" style={{ padding: '2px 8px', fontSize: '12px', borderRadius: '4px' }}>
-                          <CheckCircleFilled style={{ marginRight: '4px' }} />
-                          Active Monthly Subscription
-                        </Tag>
-                      </div>
-                    )}
+                  {checkoutSessionData.hasActiveSubscription && (
+                    <div style={{ marginTop: '4px' }}>
+                      <Tag color="success" style={{ padding: '2px 8px', fontSize: '12px', borderRadius: '4px' }}>
+                        <CheckCircleFilled style={{ marginRight: '4px' }} />
+                        Active Monthly Subscription
+                      </Tag>
+                    </div>
+                  )}
                   <p><strong>Entry:</strong> {dayjs(checkoutSessionData.entryTime || checkoutSessionData.checkInTime).format('DD/MM/YYYY HH:mm:ss')}</p>
                 </Col>
                 <Col span={12}>
@@ -913,6 +931,7 @@ const StaffDashboard = () => {
             </Form.Item>
             <div style={{ display: 'flex', gap: '16px' }}>
               <Button block onClick={() => setCheckOutStep(1)} style={{ height: '50px' }}>Cancel</Button>
+              {/* 💸 NÚT BẤM: Gửi xác nhận thanh toán (VNPay hoặc Tiền mặt) và hoàn tất Check-out */}
               <Button type="primary" htmlType="submit" block style={{ height: '50px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#10b981', borderColor: '#10b981' }}>
                 Confirm Payment
               </Button>
@@ -928,7 +947,7 @@ const StaffDashboard = () => {
             <Text type="secondary" style={{ display: 'block' }}>
               Please complete the payment in the VNPay tab. The system will automatically close this popup upon successful payment.
             </Text>
-            
+
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
               <Button type="default" danger onClick={() => {
                 setIsCheckOutVisible(false);
