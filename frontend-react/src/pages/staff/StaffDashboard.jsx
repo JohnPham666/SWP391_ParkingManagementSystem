@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { monitoringApi, reservationApi, sessionApi, paymentApi, vehicleApi, pricingApi, cardApi, alprApi, subscriptionApi } from '../../services/api';
+import { getImageUrl } from '../../utils/helpers';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -770,7 +771,7 @@ const StaffDashboard = () => {
         {summaryData && (
           <div style={{ textAlign: 'center' }}>
             {summaryData.image && (
-              <img src={summaryData.image.startsWith('http') ? summaryData.image : `${(import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace('/api', '')}${summaryData.image}`} alt="Entry" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px' }} />
+              <img src={getImageUrl(summaryData.image)} alt="Entry" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px' }} />
             )}
             <p><strong>Card ID:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1677ff' }}>{summaryData.cardId || 'N/A'}</span></p>
             <p><strong>Plate:</strong> <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1677ff' }}>{summaryData.plate}</span></p>
@@ -860,7 +861,7 @@ const StaffDashboard = () => {
               <Col span={12} style={{ textAlign: 'center' }}>
                 <p><strong>Entry Image</strong></p>
                 {checkoutSessionData.entryImage ? (
-                  <img src={checkoutSessionData.entryImage.startsWith('http') ? checkoutSessionData.entryImage : `${(import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace('/api', '')}${checkoutSessionData.entryImage}`} alt="Entry" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px' }} />
+                  <img src={getImageUrl(checkoutSessionData.entryImage)} alt="Entry" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px' }} />
                 ) : (
                   <div style={{ width: '100%', aspectRatio: '1/1', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
                     <Text type="secondary">No Image</Text>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Select, Modal, Form, message, Space, Card, Popconfirm, Tag, Typography, Row, Col, Divider, Image } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, CarOutlined } from '@ant-design/icons';
 import { vehicleApi } from '../../services/api';
+import { getImageUrl } from '../../utils/helpers';
 
 const { Option } = Select;
 
@@ -14,12 +15,6 @@ const ManagerVehicles = () => {
   const [form] = Form.useForm();
   const [filters, setFilters] = useState({ plate: '', owner: '', type: '', status: '' });
 
-  const getImageUrl = (path) => {
-      if (!path) return null;
-      if (path.startsWith('http') || path.startsWith('data:')) return path;
-      const baseUrl = vehicleApi ? 'https://swp391-parkingmanagementsystem-1.onrender.com' : 'https://swp391-parkingmanagementsystem-1.onrender.com'; // fallback
-      return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
-  };
 
   useEffect(() => {
     fetchVehicles();

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Row, Col, Upload, Modal } from 'antd';
 import { EyeOutlined, DeleteOutlined, IdcardOutlined, UserOutlined, CarOutlined, FileTextOutlined } from '@ant-design/icons';
+import { getImageUrl } from '../../../utils/helpers';
 
 export const IMAGE_SLOTS = [
     { key: 'ownerportrait', label: 'Owner Portrait', icon: <UserOutlined /> },
@@ -15,12 +16,6 @@ const VehicleImageGrid = ({ value = {}, onChange, mode = 'edit', isBicycle = fal
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewImage, setPreviewImage] = useState('');
     const [previewTitle, setPreviewTitle] = useState('');
-
-    const getImageUrl = (path) => {
-        if (!path) return null;
-        if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('blob:')) return path;
-        return `https://swp391-parkingmanagementsystem-1.onrender.com${path.startsWith('/') ? '' : '/'}${path}`;
-    };
 
     const handlePreview = (fileOrUrl, title) => {
         let url = fileOrUrl;
