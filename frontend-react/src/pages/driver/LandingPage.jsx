@@ -488,7 +488,7 @@ const LandingPage = () => {
             {[
               { icon: <EnvironmentOutlined />, title: 'Real-time Availability', desc: 'Live parking map updated instantly. Track floors, zones, and suitable vehicle types.' },
               { icon: <CarOutlined />, title: 'Advanced Booking', desc: 'Never worry about running out of spots during rush hours. Reserve your spot and drive with peace of mind.' },
-              { icon: <CreditCardOutlined />, title: 'Contactless Payment', desc: 'Automatic fee calculation and e-wallet integration. No more searching for loose change.' },
+              { icon: <CreditCardOutlined />, title: 'Contactless Payment', desc: 'Automatic fee calculation and banking QR integration. No more searching for loose change.' },
               { icon: <HistoryOutlined />, title: 'Transparent History', desc: 'Easily look up past parking sessions and export electronic receipts whenever you need.' },
               { icon: <ThunderboltOutlined />, title: 'Instant Support', desc: 'Report incidents directly from the app. Our support team will arrive within 5 minutes.' },
               { icon: <MobileOutlined />, title: 'Mobile First Design', desc: 'Fully optimized for mobile devices, allowing for ultra-fast operation while driving.' },
