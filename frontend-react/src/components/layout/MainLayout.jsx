@@ -93,10 +93,8 @@ const MainLayout = () => {
   };
 
   const userMenuItems = [
-    ...(userRole !== 'ParkingManager' ? [
-      { key: 'profile', icon: <UserOutlined />, label: 'My Profile' },
-      { type: 'divider' }
-    ] : []),
+    { key: 'profile', icon: <UserOutlined />, label: 'My Profile', onClick: () => navigate(`${basePath}/profile`) },
+    { type: 'divider' },
     { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', danger: true, onClick: handleLogout }
   ];
 

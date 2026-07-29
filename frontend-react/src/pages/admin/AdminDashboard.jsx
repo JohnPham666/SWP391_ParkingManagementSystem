@@ -21,8 +21,7 @@ const AdminDashboard = () => {
     buildingsCount: 0,
     usersCount: 0,
     pendingIncidentsCount: 0,
-    activeSessions: 0, 
-    failedLogins: 0    
+    activeSessions: 0
   });
 
 
@@ -156,11 +155,8 @@ const AdminDashboard = () => {
               <Text strong style={{ fontSize: 16, color: '#faad14' }}>Security & Health</Text>
             </div>
             <Row gutter={16}>
-              <Col span={12}>
+              <Col span={24}>
                 <Statistic title="Active Sessions" value={stats.activeSessions} valueStyle={{ color: '#389e0d', fontSize: 24 }} />
-              </Col>
-              <Col span={12}>
-                <Statistic title="Failed Logins" value={stats.failedLogins} valueStyle={{ color: '#cf1322', fontSize: 24 }} />
               </Col>
             </Row>
           </Card>
