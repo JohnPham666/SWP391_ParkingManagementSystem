@@ -74,6 +74,11 @@ public class VehicleService {
         vehicle.setChassisNumber(request.getChassisNumber());
         vehicle.setManufactureYear(request.getManufactureYear());
         vehicle.setRegistrationNumber(request.getRegistrationNumber());
+        if (request.getRegistrationDate() != null && !request.getRegistrationDate().isBlank()) {
+            vehicle.setRegistrationDate(LocalDate.parse(request.getRegistrationDate()));
+        } else {
+            vehicle.setRegistrationDate(LocalDate.now());
+        }
         if (request.getRegistrationExpiry() != null && !request.getRegistrationExpiry().isBlank()) {
             vehicle.setRegistrationExpiry(LocalDate.parse(request.getRegistrationExpiry()));
         }
@@ -148,6 +153,9 @@ public class VehicleService {
         vehicle.setChassisNumber(request.getChassisNumber());
         vehicle.setManufactureYear(request.getManufactureYear());
         vehicle.setRegistrationNumber(request.getRegistrationNumber());
+        if (request.getRegistrationDate() != null && !request.getRegistrationDate().isBlank()) {
+            vehicle.setRegistrationDate(LocalDate.parse(request.getRegistrationDate()));
+        }
         if (request.getRegistrationExpiry() != null && !request.getRegistrationExpiry().isBlank()) {
             vehicle.setRegistrationExpiry(LocalDate.parse(request.getRegistrationExpiry()));
         }

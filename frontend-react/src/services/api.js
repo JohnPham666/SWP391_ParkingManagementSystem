@@ -28,9 +28,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+      const currentPath = window.location.hash || window.location.pathname;
+      if (!currentPath.includes('login')) {
         localStorage.removeItem('parking_auth');
-        window.location.href = '/login';
+        window.location.hash = '#/login';
       }
     }
     return Promise.reject(error);

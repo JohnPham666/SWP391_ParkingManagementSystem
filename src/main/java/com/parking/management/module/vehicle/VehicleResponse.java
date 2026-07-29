@@ -22,6 +22,7 @@ public class VehicleResponse {
     private String chassisNumber;
     private Integer manufactureYear;
     private String registrationNumber;
+    private LocalDate registrationDate;
     private LocalDate registrationExpiry;
     private String vehicleImage;
     private String ownerPortrait;
@@ -46,6 +47,7 @@ public class VehicleResponse {
         res.setChassisNumber(vehicle.getChassisNumber());
         res.setManufactureYear(vehicle.getManufactureYear());
         res.setRegistrationNumber(vehicle.getRegistrationNumber());
+        res.setRegistrationDate(vehicle.getRegistrationDate() != null ? vehicle.getRegistrationDate() : LocalDate.now());
         res.setRegistrationExpiry(vehicle.getRegistrationExpiry());
         res.setVehicleImage(vehicle.getVehicleImage());
         res.setOwnerPortrait(vehicle.getOwnerPortrait());
