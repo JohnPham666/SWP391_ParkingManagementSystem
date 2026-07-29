@@ -30,7 +30,6 @@ import ManagerDashboard from './pages/manager/ManagerDashboard';
 import ManagerSessions from './pages/manager/ManagerSessions';
 import ManagerIncidents from './pages/manager/ManagerIncidents';
 import ManagerUsers from './pages/manager/ManagerUsers';
-import ManagerBuildings from './pages/manager/ManagerBuildings';
 import ManagerPayments from './pages/manager/ManagerPayments';
 import ManagerPricing from './pages/manager/ManagerPricing';
 import ManagerReports from './pages/manager/ManagerReports';
@@ -141,7 +140,6 @@ function App() {
             <Route path="payments" element={<ManagerPayments />} />
             <Route path="incidents" element={<ManagerIncidents />} />
             <Route path="subscriptions" element={<ManagerSubscriptions />} />
-            <Route path="buildings" element={<ManagerBuildings />} />
             <Route path="pricing" element={<ManagerPricing />} />
             <Route path="reports" element={<ManagerReports />} />
           </Route>
