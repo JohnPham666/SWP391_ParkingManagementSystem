@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Typography, DatePicker, Button, Statistic, message } from 'antd';
 import { DollarOutlined, CarOutlined, DownloadOutlined } from '@ant-design/icons';
-import { 
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
   LineChart, Line, AreaChart, Area, PieChart, Pie, Cell
 } from 'recharts';
@@ -16,7 +16,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#ea580c'];
 const ManagerReports = () => {
   const [loading, setLoading] = useState(false);
   const [dateRange, setDateRange] = useState([dayjs().subtract(7, 'days'), dayjs()]);
-  
+
   const [revenueData, setRevenueData] = useState([]);
   const [occupancyData, setOccupancyData] = useState([]);
   const [floorOccupancyData, setFloorOccupancyData] = useState([]);
@@ -30,14 +30,14 @@ const ManagerReports = () => {
     try {
       const start = dateRange[0].format('YYYY-MM-DD');
       const end = dateRange[1].format('YYYY-MM-DD');
-      
+
       const paymentsRes = await paymentApi.getPayments();
       const occRes = await reportApi.getOccupancyBreakdown();
       const floorOccRes = await reportApi.getFloorOccupancyBreakdown();
-      
+
       let allPayments = paymentsRes.data?.success ? paymentsRes.data.data : (paymentsRes.data || []);
       if (!Array.isArray(allPayments)) allPayments = [];
-      
+
       // Aggregate revenue by date
       const revenueMap = {};
       allPayments.forEach(p => {
@@ -51,7 +51,7 @@ const ManagerReports = () => {
       const filledData = [];
       let curr = dateRange[0].clone().startOf('day');
       const endDay = dateRange[1].clone().endOf('day');
-      
+
       while (curr.isBefore(endDay) || curr.isSame(endDay, 'day')) {
         const dateStr = curr.format('YYYY-MM-DD');
         filledData.push({
@@ -68,7 +68,7 @@ const ManagerReports = () => {
       if (floorOccRes.data?.success) {
         setFloorOccupancyData(floorOccRes.data.data);
       }
-      
+
     } catch (error) {
       message.error('Failed to load report data');
     } finally {
@@ -81,12 +81,12 @@ const ManagerReports = () => {
       const hide = message.loading('Extracting data...', 0);
       const res = await paymentApi.getPayments();
       hide();
-      
+
       let payments = res.data?.data || res.data || [];
-      
+
       const start = dateRange[0].startOf('day');
       const end = dateRange[1].endOf('day');
-      
+
       // Lọc các thanh toán thành công trong khoảng thời gian
       payments = payments.filter(p => {
         if (p.paymentStatus !== 'PAID' && p.paymentStatus !== 'COMPLETED') return false;
@@ -102,30 +102,30 @@ const ManagerReports = () => {
       const generatedOn = dayjs().format('DD/MM/YYYY HH:mm:ss');
       const totalRev = payments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
       const BOM = '\uFEFF';
-      
+
       const metaData = [
         ['PARKSMART - DETAILED REVENUE REPORT'],
         ['=============================================='],
         [],
         ['Report Period:', `${start.format('DD/MM/YYYY')} - ${end.format('DD/MM/YYYY')}`],
         ['Generated Date:', generatedOn],
-        ['Total Revenue:', `${totalRev.toLocaleString()} VND`],
+        ['Total Revenue:', `"${totalRev.toLocaleString('vi-VN')} VNĐ"`],
         ['Number of Transactions:', payments.length],
         [],
         ['----------------------------------------------']
       ];
 
       const headers = [
-        'Transaction Date', 
-        'Product/Service Name', 
-        'Quantity', 
-        'Unit Price', 
-        'Revenue', 
-        'Incurred Cost', 
-        'Net Profit', 
+        'Transaction Date',
+        'Product/Service Name',
+        'Quantity',
+        'Unit Price',
+        'Revenue',
+        'Incurred Cost',
+        'Net Profit',
         'Note'
       ];
-      
+
       const tableData = payments.map(p => {
         const date = dayjs(p.paidAt || p.createdAt).format('DD/MM/YYYY');
         let productName = 'Parking Service';
@@ -136,7 +136,7 @@ const ManagerReports = () => {
         const qty = 1;
         const price = Number(p.amount || 0);
         const revenue = price * qty;
-        const cost = 0; 
+        const cost = 0;
         const profit = revenue - cost;
         const note = p.paymentMethod === 'CASH' ? 'Cash' : (p.paymentMethod || 'Other');
 
@@ -152,7 +152,7 @@ const ManagerReports = () => {
         ];
       });
 
-      const csvContent = BOM + 
+      const csvContent = BOM +
         metaData.map(e => e.join(',')).join('\n') + '\n' +
         headers.join(',') + '\n' +
         tableData.map(row => row.join(',')).join('\n');
@@ -178,9 +178,9 @@ const ManagerReports = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <Title level={3} style={{ margin: 0 }}>Statistical Reports</Title>
         <div style={{ display: 'flex', gap: '16px' }}>
-          <RangePicker 
-            value={dateRange} 
-            onChange={dates => setDateRange(dates)} 
+          <RangePicker
+            value={dateRange}
+            onChange={dates => setDateRange(dates)}
             allowClear={false}
           />
           <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportCSV}>
@@ -197,8 +197,8 @@ const ManagerReports = () => {
                 <AreaChart data={revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ea580c" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#ea580c" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#ea580c" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="date" />
