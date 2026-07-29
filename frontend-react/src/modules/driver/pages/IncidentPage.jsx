@@ -15,6 +15,8 @@ const IncidentPage = () => {
     const [incidents, setIncidents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [detailsModalVisible, setDetailsModalVisible] = useState(false);
+    const [viewingIncident, setViewingIncident] = useState(null);
     const location = useLocation();
     const navigate = useNavigate();
     
@@ -60,11 +62,14 @@ const IncidentPage = () => {
                 });
                 
                 const formattedData = myIncidents.map(inc => ({
+                    ...inc,
                     id: inc.incidentId || inc.id,
                     date: new Date(inc.createdAt || inc.date).toLocaleDateString(),
+                    createdAt: inc.createdAt || inc.date,
                     title: inc.incidentType || inc.title,
                     status: String(inc.status || 'PENDING').toUpperCase(),
-                    description: inc.description
+                    description: inc.description,
+                    evidenceImage: inc.incidentImage || inc.evidenceImage || inc.imageUrl
                 }));
                 
                 // Sort by newest first
@@ -124,6 +129,18 @@ const IncidentPage = () => {
                 let displayStatus = status === 'IN_PROGRESS' ? 'IN PROGRESS' : status;
                 return <Tag color={color}>{displayStatus}</Tag>
             }
+        },
+        {
+            title: 'Actions',
+            key: 'actions',
+            render: (_, record) => (
+                <Button type="link" size="small" onClick={() => {
+                    setViewingIncident(record);
+                    setDetailsModalVisible(true);
+                }}>
+                    Details
+                </Button>
+            )
         }
     ];
 
@@ -236,6 +253,52 @@ const IncidentPage = () => {
                     <Table columns={columns} dataSource={incidents} pagination={{ pageSize: 10 }} />
                 )}
             </Card>
+
+            <Modal
+                title={<Title level={4} style={{ margin: 0 }}>Incident Details</Title>}
+                open={detailsModalVisible}
+                onCancel={() => setDetailsModalVisible(false)}
+                footer={[
+                    <Button key="close" onClick={() => setDetailsModalVisible(false)}>
+                        Close
+                    </Button>
+                ]}
+            >
+                {viewingIncident && (
+                    <div style={{ padding: '16px 0' }}>
+                        <div style={{ marginBottom: 16 }}>
+                            <Text type="secondary">Incident ID</Text>
+                            <div><Text strong>#{viewingIncident.id}</Text></div>
+                        </div>
+                        <div style={{ marginBottom: 16 }}>
+                            <Text type="secondary">Created At</Text>
+                            <div><Text strong>{viewingIncident.createdAt ? new Date(viewingIncident.createdAt).toLocaleString() : viewingIncident.date}</Text></div>
+                        </div>
+                        <div style={{ marginBottom: 16 }}>
+                            <Text type="secondary">Type</Text>
+                            <div><Text strong>{getIncidentLabel(viewingIncident.title)}</Text></div>
+                        </div>
+                        <div style={{ marginBottom: 16 }}>
+                            <Text type="secondary">Status</Text>
+                            <div><Tag color={(viewingIncident.status === 'RESOLVED' || viewingIncident.status === 'CLOSED') ? 'green' : (viewingIncident.status === 'IN_PROGRESS' || viewingIncident.status === 'IN PROGRESS' ? 'blue' : 'orange')}>{viewingIncident.status === 'IN_PROGRESS' ? 'IN PROGRESS' : viewingIncident.status}</Tag></div>
+                        </div>
+                        <div style={{ marginBottom: 16 }}>
+                            <Text type="secondary">Description</Text>
+                            <div style={{ padding: 12, background: token.colorFillAlter, borderRadius: 8, marginTop: 8 }}>
+                                <Text>{viewingIncident.description || 'No description provided.'}</Text>
+                            </div>
+                        </div>
+                        {viewingIncident.evidenceImage && (
+                            <div>
+                                <Text type="secondary">Evidence Image</Text>
+                                <div style={{ marginTop: 8, textAlign: 'center' }}>
+                                    <img src={viewingIncident.evidenceImage} alt="Evidence" style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: 8, border: `1px solid ${token.colorBorder}` }} />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </Modal>
 
             <Modal
                 title={<Title level={4} style={{ margin: 0, color: token.colorError }}><AlertOutlined /> Report an Incident</Title>}

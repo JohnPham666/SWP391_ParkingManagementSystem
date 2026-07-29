@@ -150,7 +150,6 @@ const ReservationPage = () => {
                 const pStatus = String(currentRes.paymentStatus || '').toUpperCase();
                 if (pStatus === 'PAID' || pStatus === 'COMPLETED') {
                     setPaymentSuccess(true);
-                    setPayingReservationId(null);
                     message.success({ content: 'Payment completed successfully! Your reservation is confirmed.', key: 'payment_success', duration: 4 });
                     if (viewingReservation && (viewingReservation.reservationId || viewingReservation.id) === payingReservationId) {
                         setViewingReservation(currentRes);
@@ -704,6 +703,9 @@ const ReservationPage = () => {
                             <Descriptions.Item label="Estimated Fee">
                                 {viewingReservation.estimatedFee ? `${viewingReservation.estimatedFee.toLocaleString()} VND` : 'N/A'}
                             </Descriptions.Item>
+                            <Descriptions.Item label="Created At">
+                                {viewingReservation.createdAt ? new Date(viewingReservation.createdAt).toLocaleString() : 'N/A'}
+                            </Descriptions.Item>
                         </Descriptions>
                     </div>
                 )}
@@ -730,9 +732,17 @@ const ReservationPage = () => {
                             <CheckCircleOutlined style={{ fontSize: 40, color: token.colorSuccess }} />
                         </div>
                         <Title level={4} style={{ color: token.colorSuccess }}>Payment Successful!</Title>
-                        <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
-                            Your transaction has been securely completed.<br />
-                            Your reservation is now confirmed.
+                        <Text style={{ display: 'block', marginTop: 8, fontSize: '1.05rem', color: '#1f1f1f', fontWeight: 500 }}>
+                            {(() => {
+                                const res = safeReservations.find(r => (r.reservationId || r.id) === payingReservationId);
+                                const timeStr = res?.reservationStart ? dayjs(res.reservationStart).format('DD/MM/YYYY HH:mm') : 'N/A';
+                                return (
+                                    <>
+                                        Your <strong><u>Reservation ID: #{payingReservationId}</u></strong> will be valid 30 minutes before <strong>({timeStr})</strong>.<br />
+                                        Please check-in on time.
+                                    </>
+                                );
+                            })()}
                         </Text>
                         <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
                     </div>
