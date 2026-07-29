@@ -258,13 +258,10 @@ const IncidentPage = () => {
                     <Form.Item name="description" label="Detailed Description" rules={[{ required: true }]}>
                         <TextArea rows={4} placeholder="Please describe exactly what happened and when..." />
                     </Form.Item>
-                    <Form.Item name="incidentImage" label="Photo Evidence (Optional)">
+                    <Form.Item name="incidentImage" label="Photo Evidence (Optional)" extra="You can upload 1 image.">
                         <Upload beforeUpload={() => false} listType="picture" maxCount={1}>
                             <Button icon={<UploadOutlined />}>Click to upload</Button>
                         </Upload>
-                        <div style={{ marginTop: 8 }}>
-                            <Text type="secondary" style={{ fontSize: 12 }}>You can upload 1 image.</Text>
-                        </div>
                     </Form.Item>
                 </Form>
             </Modal>

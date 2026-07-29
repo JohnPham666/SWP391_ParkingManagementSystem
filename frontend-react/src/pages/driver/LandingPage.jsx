@@ -488,7 +488,7 @@ const LandingPage = () => {
             {[
               { icon: <EnvironmentOutlined />, title: 'Real-time Availability', desc: 'Live parking map updated instantly. Track floors, zones, and suitable vehicle types.' },
               { icon: <CarOutlined />, title: 'Advanced Booking', desc: 'Never worry about running out of spots during rush hours. Reserve your spot and drive with peace of mind.' },
-              { icon: <CreditCardOutlined />, title: 'Contactless Payment', desc: 'Automatic fee calculation and e-wallet integration. No more searching for loose change.' },
+              { icon: <CreditCardOutlined />, title: 'Contactless Payment', desc: 'Automatic fee calculation and banking QR integration. No more searching for loose change.' },
               { icon: <HistoryOutlined />, title: 'Transparent History', desc: 'Easily look up past parking sessions and export electronic receipts whenever you need.' },
               { icon: <ThunderboltOutlined />, title: 'Instant Support', desc: 'Report incidents directly from the app. Our support team will arrive within 5 minutes.' },
               { icon: <MobileOutlined />, title: 'Mobile First Design', desc: 'Fully optimized for mobile devices, allowing for ultra-fast operation while driving.' },
@@ -621,17 +621,23 @@ const LandingPage = () => {
           <Col xs={24} md={8}>
             <Title level={4} style={{ color: '#fff', fontWeight: 700, margin: '0 0 24px 0' }}>Contact Us</Title>
             <div style={{ color: '#9ca3af', fontSize: 16, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>📞 <strong>Phone:</strong> 0123 456 789</div>
-              <div>💬 <strong>Zalo:</strong> 0123 456 789</div>
-              <div>✉️ <strong>Email:</strong> contact@parksmart.vn</div>
+              <div>📞 <strong>Phone:</strong> 0947760498</div>
+              <div>💬 <strong>Zalo:</strong> 0947760498</div>
+              <div>✉️ <strong>Email:</strong> smartparking.admin25.noreply@gmail.com</div>
             </div>
           </Col>
           <Col xs={24} md={8}>
             <Title level={4} style={{ color: '#fff', fontWeight: 700, margin: '0 0 24px 0' }}>Address</Title>
-            <Paragraph style={{ color: '#9ca3af', fontSize: 16, lineHeight: 1.8 }}>
-              Hoa Lac Hi-Tech Park, <br />
-              Thach That, Hanoi, Vietnam
-            </Paragraph>
+            <div style={{ color: '#9ca3af', fontSize: 16, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <strong style={{ color: '#e5e7eb' }}>🏢 District 1 Parking Building</strong><br />
+                📍 120 Le Loi, District 1, HCMC
+              </div>
+              <div>
+                <strong style={{ color: '#e5e7eb' }}>🏢 District 7 Parking Building</strong><br />
+                📍 88 Nguyen Thi Thap, District 7, HCMC
+              </div>
+            </div>
           </Col>
         </Row>
         <div style={{ borderTop: '1px solid #374151', marginTop: 40, paddingTop: 20, textAlign: 'center', color: '#6b7280' }}>

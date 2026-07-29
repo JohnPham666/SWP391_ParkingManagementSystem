@@ -53,6 +53,9 @@ public class Vehicle {
     @Column(name = "registrationnumber", length = 50)
     private String registrationNumber;
 
+    @Column(name = "registrationdate")
+    private LocalDate registrationDate;
+
     @Column(name = "registrationexpiry")
     private LocalDate registrationExpiry;
 
@@ -79,4 +82,11 @@ public class Vehicle {
 
     @Column(name = "status", length = 20)
     private String status = "PENDING"; // PENDING, APPROVED, REJECTED
+
+    @PrePersist
+    protected void onCreate() {
+        if (registrationDate == null) {
+            registrationDate = LocalDate.now();
+        }
+    }
 }

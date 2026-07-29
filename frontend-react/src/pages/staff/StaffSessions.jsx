@@ -39,23 +39,39 @@ const StaffSessions = () => {
   const [checkOutSearchForm] = Form.useForm();
   const [checkOutConfirmForm] = Form.useForm();
 
-  // --- Poll VNPay Status ---
+  // =====================================================================
+  // HOOK LẮNG NGHE TRẠNG THÁI THANH TOÁN VNPAY (POLLING)
+  // - Mục đích: Liên tục gọi API lên server để kiểm tra xem khách hàng đã chuyển khoản/quét mã VNPay thành công hay chưa.
+  // - Điều kiện chạy: Chỉ chạy khi đang ở Bước 3 (checkOutStep === 3) VÀ đã có mã giao dịch paymentId.
+  // - Cơ chế hoạt động: Dùng hàm setInterval của JavaScript để tự động lặp lại hành động kiểm tra mỗi 3 giây.
+  // =====================================================================
   useEffect(() => {
     let interval = null;
     if (checkOutStep === 3 && checkoutSessionData?.paymentId) {
+      // Thiết lập vòng lặp thời gian: Cứ mỗi 3 giây (3000ms) sẽ tự động thực thi khối lệnh bên trong
       interval = setInterval(async () => {
         try {
+          // Gọi API để lấy thông tin mới nhất của giao dịch thanh toán
           const res = await paymentApi.getPayment(checkoutSessionData.paymentId);
           const paymentData = res.data?.data || res.data;
+
+          // Nếu Backend trả về trạng thái là 'PAID' (Đã thanh toán thành công)
           if (paymentData.paymentStatus === 'PAID') {
+            // Dừng việc gọi API liên tục
             clearInterval(interval);
+
+            // Chuyển sang Bước 4 (Hiển thị màn hình báo thành công)
             setCheckOutStep(4);
+
+            // Cập nhật lại danh sách xe đang hiển thị trên bảng
             fetchSessions();
+
+            // Đợi 3 giây để người dùng nhìn thấy thông báo thành công, sau đó tự động đóng Modal
             setTimeout(() => {
               setIsCheckOutVisible(false);
-              setCheckOutStep(1);
-              checkOutSearchForm.resetFields();
-              checkOutConfirmForm.resetFields();
+              setCheckOutStep(1); // Reset lại bước về ban đầu
+              checkOutSearchForm.resetFields(); // Xoá trắng form tìm kiếm
+              checkOutConfirmForm.resetFields(); // Xoá trắng form xác nhận
             }, 3000);
           }
         } catch (e) {
@@ -63,6 +79,8 @@ const StaffSessions = () => {
         }
       }, 3000);
     }
+
+    // Cleanup function: Đảm bảo dừng bộ đếm thời gian khi component bị huỷ hoặc khi đổi trạng thái bước
     return () => {
       if (interval) clearInterval(interval);
     };
@@ -193,6 +211,14 @@ const StaffSessions = () => {
     }
   };
 
+  // =====================================================================
+  // HÀM XỬ LÝ BƯỚC 1 CHECK-OUT: TÌM KIẾM THÔNG TIN XE ĐANG ĐỖ TRONG BÃI
+  // - Sự kiện kích hoạt: Nhân viên điền biển số xe, hình ảnh và bấm nút "Search Vehicle".
+  // - Nhiệm vụ chính: 
+  //   1. Kiểm tra xem xe này có đang đỗ hợp lệ trong bãi không.
+  //   2. Lưu giữ hình ảnh xe lúc ra (nếu nhân viên có upload/chụp ảnh).
+  //   3. Tính toán trước số tiền cước phí đỗ xe mà khách hàng cần phải trả.
+  // =====================================================================
   const handleCheckOutSearch = async (values) => {
     try {
       const res = await sessionApi.verifyCheckout({
@@ -215,16 +241,21 @@ const StaffSessions = () => {
 
       let exitImageUrl = null;
       let exitImageFile = null;
+
+      // 2. Xử lý hình ảnh xe lúc đi ra (nếu nhân viên có chụp/tải ảnh lên)
       if (values.exitImage && values.exitImage.fileList.length > 0) {
         exitImageFile = values.exitImage.fileList[0].originFileObj;
-        exitImageUrl = URL.createObjectURL(exitImageFile);
+        exitImageUrl = URL.createObjectURL(exitImageFile); // Tạo đường dẫn tạm để hiển thị preview
       }
 
+      // 3. Lấy thời gian hiện tại làm thời gian xe ra
       const exitTimeIso = new Date().toISOString();
       let calculatedFee = 0;
 
+      // 4. Nếu xe không có vé tháng (hasActiveSubscription = false) thì mới cần tính phí đỗ xe
       if (!targetSession.hasActiveSubscription) {
         try {
+          // Gọi API tính phí dựa vào loại xe, giờ vào và giờ ra
           const feeRes = await pricingApi.calculateFee({
             vehicleTypeId: targetSession.vehicleTypeId,
             entryTime: dayjs(targetSession.entryTime).format('YYYY-MM-DDTHH:mm:ss'),
@@ -237,6 +268,7 @@ const StaffSessions = () => {
         }
       }
 
+      // 5. Lưu trữ tất cả thông tin (gồm thông tin xe, hình ra, giờ ra, phí phải trả) vào state chung
       setCheckoutSessionData({
         ...targetSession, // source of truth for checking out
         matchStatus: resultData.matchStatus,
@@ -248,8 +280,10 @@ const StaffSessions = () => {
         totalFee: calculatedFee
       });
 
+      // 6. Chuyển sang Bước 2 (Hiển thị form xác nhận, hiển thị tiền phí đỗ và chọn cách thanh toán)
       setCheckOutStep(2);
     } catch (error) {
+      // Bắt lỗi nếu xe đang trong quá trình thanh toán dở dang ở một phiên khác
       if (error.response?.data?.message?.includes('already has a PENDING payment')) {
         message.error('Vehicle already in checkout process');
       } else {
@@ -258,42 +292,52 @@ const StaffSessions = () => {
     }
   };
 
+  // =====================================================================
+  // HÀM XỬ LÝ BƯỚC 2 CHECK-OUT: XÁC NHẬN CHO XE RA & TẠO GIAO DỊCH THANH TOÁN
+  // - Sự kiện kích hoạt: Nhân viên chọn phương thức thanh toán (Tiền mặt/VNPay...) và bấm "Confirm Payment".
+  // - Nhiệm vụ chính:
+  //   1. Gọi API chốt thời gian xe ra và tính phí chính thức trên Backend.
+  //   2. Upload ảnh xe lúc ra lên hệ thống lưu trữ (nếu có).
+  //   3. Chuyển hướng thanh toán tùy theo phương thức mà nhân viên đã chọn.
+  // =====================================================================
   const handleCheckOutConfirm = async (values) => {
     try {
       const sessionId = checkoutSessionData.sessionId;
 
-      // 1. Check out to finalize the fee and change status to UNPAID or COMPLETED
+      // Bước 2.1: Gọi API Check-out để thông báo cho Backend cập nhật thời gian xe ra.
+      // Backend sẽ tính phí cuối cùng và đổi trạng thái xe thành UNPAID (nếu có phí) hoặc COMPLETED (nếu miễn phí/đã đóng tiền).
       const checkOutRes = await sessionApi.checkOut(sessionId, { exitGate: 'Gate A' });
       const updatedSession = checkOutRes.data?.data || checkOutRes.data;
 
+      // 2. Upload hình ảnh xe lúc ra lên server (nếu nhân viên có đính kèm ảnh)
       if (checkoutSessionData.exitImageFile) {
         await sessionApi.uploadSessionImage(sessionId, checkoutSessionData.exitImageFile, 'exit');
       }
 
+      // 3. Xử lý trường hợp không cần thanh toán thêm:
+      // (a) Trạng thái đã là COMPLETED (đã thanh toán từ trước)
+      // (b) finalFee bằng 0 (khách sử dụng vé tháng, được miễn phí...)
       if (updatedSession.status === 'COMPLETED' || updatedSession.finalFee === 0) {
         message.success('Check-out Successful (Pre-paid / Zero Fee)');
         // Bắn popup xanh lá báo thành công
 
-        setIsCheckOutVisible(false);
-        // Đóng cửa sổ popup check-out
+        setIsCheckOutVisible(false); // Đóng cửa sổ popup check-out
+        setCheckOutStep(1); // Reset lại bước check-out về ban đầu
+        checkOutSearchForm.resetFields(); // Xóa trắng ô nhập liệu form tìm kiếm
+        checkOutConfirmForm.resetFields(); // Xóa trắng form thanh toán
 
-        setCheckOutStep(1);
-        // Reset lại bước check-out
-
-        checkOutSearchForm.resetFields();
-        // Xóa trắng ô nhập liệu
-
-        checkOutConfirmForm.resetFields();
+        // QUAN TRỌNG: Gọi API lấy lại danh sách xe mới nhất để cập nhật lại giao diện
         fetchSessions();
-        // QUAN TRỌNG: Gọi API lấy lại danh sách xe mới nhất để cập nhật bảng Data Table trên màn hình.
         return;
       }
 
-      // 2. Create Payment
+      // 4. Nếu có phát sinh phí đỗ xe, tiến hành gọi API tạo giao dịch thanh toán trên Backend
       const pRes = await paymentApi.createPayment({ sessionId: sessionId, paymentMethod: values.paymentMethod });
       const paymentId = pRes.data?.data?.paymentId;
 
+      // 5. Xử lý kịch bản dựa theo phương thức thanh toán nhân viên đã chọn
       if (values.paymentMethod === 'CASH' || checkoutSessionData.totalFee === 0) {
+        // Nếu chọn thanh toán tiền mặt (CASH), gọi API báo cáo đã thu tiền mặt luôn
         await paymentApi.confirmCash(paymentId);
         message.success('Check-out & Payment Successful!');
         setIsCheckOutVisible(false);
@@ -302,10 +346,14 @@ const StaffSessions = () => {
         checkOutConfirmForm.resetFields();
         fetchSessions();
       } else {
+        // Nếu chọn VNPay (hoặc online), gọi API sinh ra đường link trỏ tới cổng thanh toán VNPay
         const vnRes = await paymentApi.createVnPayUrl(paymentId);
         if (vnRes.data?.data?.paymentUrl) {
+          // Mở 1 tab mới trên trình duyệt trỏ tới trang thanh toán của VNPay
           window.open(vnRes.data.data.paymentUrl, '_blank');
           message.info('Opened VNPay Payment Gateway');
+
+          // Cập nhật paymentId vào state và chuyển sang Bước 3 (Chờ thanh toán online từ khách hàng)
           setCheckoutSessionData({ ...checkoutSessionData, paymentId });
           setCheckOutStep(3);
         }
@@ -382,7 +430,7 @@ const StaffSessions = () => {
               plate: record.licensePlate,
               type: record.vehicleTypeName || record.vehicleType?.typeName || 'N/A',
               time: record.checkInTime || record.checkinTime || record.entryTime ? dayjs(record.checkInTime || record.checkinTime || record.entryTime).format('HH:mm:ss DD/MM/YYYY') : '-',
-              exitTime: record.checkOutTime ? dayjs(record.checkOutTime).format('HH:mm:ss DD/MM/YYYY') : '-',
+              exitTime: (record.checkOutTime || record.checkoutTime || record.exitTime) ? dayjs(record.checkOutTime || record.checkoutTime || record.exitTime).format('HH:mm:ss DD/MM/YYYY') : '-',
               gate: record.entryGate,
               exitGate: record.exitGate,
               slot: record.slotCode,
@@ -476,7 +524,7 @@ const StaffSessions = () => {
               const currentPlate = (getFieldValue('licensePlate') || '').trim().toUpperCase();
               const subStatus = activeSubPlates.get(currentPlate);
               const hasSub = subStatus === 'ACTIVE';
-              
+
               return (
                 <div style={{ marginBottom: 24 }}>
                   {subStatus === 'ACTIVE' && (
@@ -500,10 +548,10 @@ const StaffSessions = () => {
                       </Tag>
                     </div>
                   )}
-                  
-                  <Form.Item 
-                    name="cardId" 
-                    label="Card ID" 
+
+                  <Form.Item
+                    name="cardId"
+                    label="Card ID"
                     rules={[{ required: !hasSub, message: 'Please select Card ID' }]}
                     style={{ marginBottom: 0 }}
                   >
@@ -678,11 +726,19 @@ const StaffSessions = () => {
         )}
       </Modal>
 
-      {/* CHECK-OUT MODAL */}
+      {/* ============================================================================== */}
+      {/* CHECK-OUT MODAL - POPUP CHÍNH QUẢN LÝ TOÀN BỘ QUY TRÌNH CHO XE RA (CHECK-OUT)   */}
+      {/* Modal này được kiểm soát bởi biến trạng thái 'checkOutStep' để thay đổi nội dung: */}
+      {/* - Bước 1 (checkOutStep = 1): Form Tìm kiếm xe bằng biển số xe.                    */}
+      {/* - Bước 2 (checkOutStep = 2): Form Xác nhận thông tin, tính phí và chọn cách thanh toán. */}
+      {/* - Bước 3 (checkOutStep = 3): Màn hình chờ hệ thống tự động kiểm tra trạng thái VNPay.   */}
+      {/* - Bước 4 (checkOutStep = 4): Màn hình thông báo hoàn tất toàn bộ quy trình.         */}
+      {/* ============================================================================== */}
       <Modal
         title="Check-out & Payment"
         open={isCheckOutVisible}
         onCancel={() => {
+          // Khi người dùng ấn nút X hoặc bấm ra ngoài để thoát, reset toàn bộ state của tiến trình
           setIsCheckOutVisible(false);
           setCheckOutStep(1);
           checkOutSearchForm.resetFields();
@@ -691,6 +747,7 @@ const StaffSessions = () => {
         footer={null}
         width={700}
       >
+        {/* BƯỚC 1: TÌM KIẾM XE MUỐN CHO RA (Nhập biển số & Hình ảnh lúc ra) */}
         {checkOutStep === 1 && (
           <Form form={checkOutSearchForm} layout="vertical" onFinish={handleCheckOutSearch} size="large">
             <Row gutter={16}>
@@ -716,6 +773,7 @@ const StaffSessions = () => {
           </Form>
         )}
 
+        {/* BƯỚC 2: HIỂN THỊ THÔNG TIN XE, CHI TIẾT TÍNH PHÍ VÀ CHỌN CÁCH THANH TOÁN */}
         {checkOutStep === 2 && checkoutSessionData && (
           <Form form={checkOutConfirmForm} layout="vertical" onFinish={handleCheckOutConfirm} size="large">
             {checkoutSessionData.matchStatus === 'MATCH' && (
@@ -741,6 +799,7 @@ const StaffSessions = () => {
               </Col>
               <Col span={12} style={{ textAlign: 'center' }}>
                 <p><strong>Exit Image</strong></p>
+                {/* Hiển thị ảnh biển số xe lúc đi ra mà người dùng vừa tải lên ở Bước 1 */}
                 {checkoutSessionData.exitImageUrl ? (
                   <img src={checkoutSessionData.exitImageUrl} alt="Exit" style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px' }} />
                 ) : (
@@ -794,7 +853,6 @@ const StaffSessions = () => {
               <Select>
                 <Option value="CASH">Cash</Option>
                 <Option value="BANK_TRANSFER">Bank Transfer</Option>
-                <Option value="E_WALLET">E-Wallet</Option>
               </Select>
             </Form.Item>
             <div style={{ display: 'flex', gap: '16px' }}>
@@ -806,9 +864,11 @@ const StaffSessions = () => {
           </Form>
         )}
 
+        {/* BƯỚC 3: MÀN HÌNH CHỜ THANH TOÁN VNPay ONLINE */}
         {checkOutStep === 3 && checkoutSessionData && (
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <Spin size="large" />
+            {/* Note: React hook ở trên (useEffect) đang ngầm tự động gọi API kiểm tra trạng thái thanh toán liên tục ngầm định ở dưới */}
             <Title level={4} style={{ marginTop: 24, color: '#1677ff' }}>Waiting for VNPay payment...</Title>
             <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
               Please complete the payment in the VNPay tab. The system will automatically close this popup upon successful payment.
@@ -816,14 +876,17 @@ const StaffSessions = () => {
 
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
               <Button onClick={() => {
+                // Cho phép nhân viên đóng modal để huỷ giao dịch chờ thanh toán này, đưa xe về lại trạng thái ban đầu
                 setIsCheckOutVisible(false);
                 setCheckOutStep(1);
                 checkOutSearchForm.resetFields();
                 checkOutConfirmForm.resetFields();
                 fetchSessions();
               }}>Close (Cancel Payment)</Button>
+
               <Button type="primary" danger onClick={async () => {
                 try {
+                  // Fallback: Chuyển sang thanh toán bằng tiền mặt nếu khách hàng gặp lỗi hoặc đổi ý không thanh toán online VNPay nữa
                   await paymentApi.confirmCash(checkoutSessionData.paymentId);
                   message.success('Switched to cash payment. Check-out successful!');
                   setIsCheckOutVisible(false);
@@ -841,6 +904,7 @@ const StaffSessions = () => {
           </div>
         )}
 
+        {/* BƯỚC 4: MÀN HÌNH THÔNG BÁO HOÀN TẤT THÀNH CÔNG SAU KHI VNPAY HOẶC CÁC PHƯƠNG THỨC XÁC NHẬN THÀNH CÔNG */}
         {checkOutStep === 4 && (
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <CheckCircleFilled style={{ fontSize: 72, color: '#52c41a' }} />

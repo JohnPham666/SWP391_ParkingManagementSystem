@@ -563,28 +563,43 @@ public class SessionService {
      * 4. Trả về sessionId và thông tin session để checkout/payment
      */
     public SessionResponse getActiveSessionByLicensePlate(String licensePlate) {
+        // 1. Kiểm tra đầu vào không được để rỗng (Fail-fast để tránh lỗi NullPointerException phía sau)
         if (licensePlate == null || licensePlate.trim().isEmpty()) {
             throw new IllegalArgumentException("License plate is required");
         }
 
+        // 2. Cắt khoảng trắng dư thừa (do nhân viên nhập tay hoặc camera OCR quét bị dính dấu cách)
         String normalizedLicensePlate = licensePlate.trim();
 
+        // 3. Chỉ lọc các xe ĐANG HOẠT ĐỘNG trong bãi:
+        // - PARKING: xe đang gửi trong bãi
+        // - UNPAID: xe đã tới cổng và lên hóa đơn nhưng chưa thanh toán
         java.util.List<String> activeStatuses = java.util.Arrays.asList(SessionStatus.PARKING.name(),
                 SessionStatus.UNPAID.name());
 
+        // 4. Tìm trong DB theo Biển số xe:
+        // - IgnoreCase: Không phân biệt chữ hoa/thường (29a với 29A là như nhau)
+        // - OrderBySessionIdDesc + findFirst: Ưu tiên lấy bản ghi mới nhất trong trường hợp 1 xe có nhiều lịch sử hoặc dữ liệu trùng
         java.util.Optional<ParkingSession> sessionOpt = parkingSessionRepository
                 .findFirstByVehicle_LicensePlateIgnoreCaseAndStatusInOrderBySessionIdDesc(
                         normalizedLicensePlate, activeStatuses);
 
+        // 5. Cơ chế Fallback (Dự phòng thông minh):
+        // - Nếu tìm theo "Biển số xe" không ra, tự động dùng chuỗi này để tìm theo "Mã thẻ quẹt RFID" (CardId).
+        // - Xử lý tình huống: Khi camera không đọc được biển xe (do mờ, xước, bẩn), nhân viên chỉ cần quẹt thẻ RFID.
+        // Gộp chung vào một hàm giúp xử lý mượt mà cả quét biển lẫn quẹt thẻ mà không cần tách API riêng.
         if (!sessionOpt.isPresent()) {
             sessionOpt = parkingSessionRepository
                     .findFirstByCard_CardIdIgnoreCaseAndStatusInOrderBySessionIdDesc(
                             normalizedLicensePlate, activeStatuses);
         }
 
+        // 6. Nếu cả biển số và mã thẻ đều không có dữ liệu -> Ném lỗi 404 Not Found để giao diện hiển thị thông báo
         ParkingSession session = sessionOpt.orElseThrow(() -> new ResourceNotFoundException(
                 "No active parking session found for search key: " + normalizedLicensePlate));
 
+        // 7. Chuyển từ Entity (DB) sang DTO (Data Transfer Object):
+        // Giúp ẩn các dữ liệu nhạy cảm trong DB và tránh lỗi lặp vô hạn (Infinite Recursion) của Hibernate
         return mapEntityToResponse(session);
     }
 
@@ -651,41 +666,65 @@ public class SessionService {
         }
     }
 
+    /*
+     * UPLOAD HÌNH ẢNH PHIÊN GỬI XE
+     * Dùng để tải lên và lưu hình ảnh chụp xe vào/ra bãi đỗ phục vụ đối chiếu an ninh.
+     */
     public SessionResponse uploadSessionImage(Integer sessionId, MultipartFile file, String type) {
+        // 1. Kiểm tra session có tồn tại trong DB không, nếu sai ID thì dừng ngay (tránh thao tác ghi đĩa tốn tài nguyên)
         ParkingSession session = parkingSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + sessionId));
 
+        // 2. Đảm bảo file gửi lên hợp lệ và không bị rỗng (0 byte)
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Image file is required");
         }
 
+        // 3. Tách lấy phần đuôi file gốc (VD: .jpg, .png, .webp) để chuẩn hóa định dạng ảnh
         String originalFilename = file.getOriginalFilename();
         String extension = "";
         if (originalFilename != null && originalFilename.contains(".")) {
             extension = originalFilename.substring(originalFilename.lastIndexOf("."));
         }
 
+        // 4. Định hình tiền tố theo sự kiện ("exit_" nếu là xe ra bãi, "entry_" nếu là xe vào bãi) giúp dễ tra soát thư mục bằng mắt thường
         String prefix = "exit".equalsIgnoreCase(type) ? "exit_" : "entry_";
+
+        // 5. Tạo tên file mới độc nhất bằng UUID:
+        // Cú pháp: Tiền_tố + ID_phiên + Mã_UUID + Đuôi_ảnh (VD: entry_10_a1b2c3...jpg)
+        // Dùng UUID ngẫu nhiên để không bị ghi đè file khi nhiều camera hay nhiều xe upload ảnh cùng lúc
         String fileName = prefix + sessionId + "_" + UUID.randomUUID() + extension;
 
         try {
+            // 6. Lấy đường dẫn gốc lưu ảnh (uploadDir) và tự động tạo toàn bộ thư mục nếu folder chưa tồn tại trên đĩa
             Path uploadPath = Paths.get(uploadDir);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
+
+            // 7. Nối thư mục gốc với tên file (.resolve tự động điều chỉnh dấu gạch chéo tương thích Windows hoặc Linux)
             Path filePath = uploadPath.resolve(fileName);
+
+            // 8. Lưu luồng dữ liệu (Input Stream) xuống đĩa với chế độ cho phép ghi đè (REPLACE_EXISTING):
+            // Copy bằng Stream giúp tiết kiệm bộ nhớ RAM, không cần đọc trọn tệp ảnh vài MB vào RAM trước khi lưu xuống đĩa
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
+            // 9. Chỉ lưu đường dẫn tương đối vào DB (VD: /uploads/sessions/entry_10.jpg):
+            // Ngăn lỗi mất ảnh khi thay đổi máy chủ hoặc đổi đường dẫn thư mục vật lý sau này
             String imageUrl = "/uploads/sessions/" + fileName;
 
+            // 10. Gán đường dẫn ảnh mới lưu vào cột Entry hoặc Exit trong DB theo loại sự kiện
             if ("exit".equalsIgnoreCase(type)) {
                 session.setExitImage(imageUrl);
             } else {
                 session.setEntryImage(imageUrl);
             }
 
+            // 11. Lưu cập nhật xuống DB và chuyển sang DTO trả về cho giao diện Frontend có link ảnh hiển thị ngay
             return mapEntityToResponse(parkingSessionRepository.save(session));
         } catch (Exception e) {
+            // 12. Nếu có lỗi về I/O khi chép file, ném ra RuntimeException (Unchecked Exception):
+            // Việc ném RuntimeException giúp Spring Boot nhận diện lỗi và tự động Rollback (hoàn tác) lệnh save trong DB, đảm bảo dữ liệu luôn đồng bộ
             throw new RuntimeException("Could not upload image: " + e.getMessage());
         }
     }

@@ -290,7 +290,7 @@ const SessionManagement = () => {
               plate: record.licensePlate,
               type: record.vehicleTypeName || record.vehicleType?.typeName || 'N/A',
               time: record.checkInTime || record.checkinTime || record.entryTime ? dayjs(record.checkInTime || record.checkinTime || record.entryTime).format('HH:mm:ss DD/MM/YYYY') : '-',
-              exitTime: record.checkOutTime ? dayjs(record.checkOutTime).format('HH:mm:ss DD/MM/YYYY') : '-',
+              exitTime: (record.checkOutTime || record.checkoutTime || record.exitTime) ? dayjs(record.checkOutTime || record.checkoutTime || record.exitTime).format('HH:mm:ss DD/MM/YYYY') : '-',
               gate: record.entryGate,
               exitGate: record.exitGate,
               slot: record.slotCode,
@@ -674,7 +674,6 @@ const SessionManagement = () => {
               <Select>
                 <Option value="CASH">Cash</Option>
                 <Option value="BANK_TRANSFER">Bank Transfer</Option>
-                <Option value="E_WALLET">E-Wallet</Option>
               </Select>
             </Form.Item>
             <div style={{ display: 'flex', gap: '16px' }}>

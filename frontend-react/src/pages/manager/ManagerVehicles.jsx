@@ -120,7 +120,7 @@ const ManagerVehicles = () => {
     { title: 'VEHICLE TYPE', key: 'vehicleType', render: (_, record) => record.vehicleTypeName || record.vehicleType?.typeName || 'Car' },
     { title: 'BRAND', dataIndex: 'brand', key: 'brand' },
     { title: 'REGISTRATION DATE', key: 'registrationDate', render: (_, record) => {
-        const date = record.createdAt || record.registrationDate || record.registrationExpiry || record.createdDate;
+        const date = record.createdAt || record.registrationDate || record.createdDate;
         return date ? new Date(date).toLocaleDateString() : '-';
     }},
     { title: 'STATUS', dataIndex: 'status', key: 'status', render: (status) => {

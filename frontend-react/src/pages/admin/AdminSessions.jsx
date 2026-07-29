@@ -619,7 +619,6 @@ const SessionManagement = () => {
               <Select>
                 <Option value="CASH">Cash</Option>
                 <Option value="BANK_TRANSFER">Bank Transfer</Option>
-                <Option value="E_WALLET">E-Wallet</Option>
               </Select>
             </Form.Item>
             <div style={{ display: 'flex', gap: '16px' }}>
