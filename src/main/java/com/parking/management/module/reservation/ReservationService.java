@@ -228,14 +228,25 @@ public class ReservationService {
     }
 
     private void validateTime(ReservationRequest request) {
+        LocalDateTime now = LocalDateTime.now();
+        
+        if (request.getReservationStart().isBefore(now)) {
+            throw new IllegalArgumentException("Thời gian đặt chỗ không được ở trong quá khứ.");
+        }
+
         if (!request.getReservationEnd().isAfter(request.getReservationStart())) {
-            throw new IllegalArgumentException("Reservation end must be after reservation start");
+            throw new IllegalArgumentException("Thời gian kết thúc phải sau thời gian bắt đầu.");
         }
         
+        int maxAdvanceDays = systemConfigService.getInt("MAX_ADVANCE_RESERVATION_DAYS", 3);
+        if (request.getReservationStart().isAfter(now.plusDays(maxAdvanceDays))) {
+            throw new IllegalArgumentException("Bạn chỉ có thể đặt chỗ trước tối đa " + maxAdvanceDays + " ngày.");
+        }
+
         int maxHours = systemConfigService.getInt("MAX_RESERVATION_HOURS", 24);
         long hours = java.time.Duration.between(request.getReservationStart(), request.getReservationEnd()).toHours();
         if (hours > maxHours) {
-            throw new IllegalArgumentException("Reservation duration exceeds maximum allowed hours: " + maxHours + "h");
+            throw new IllegalArgumentException("Thời gian đỗ xe vượt quá số giờ tối đa cho phép: " + maxHours + "h.");
         }
     }
 
