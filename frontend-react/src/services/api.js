@@ -66,6 +66,7 @@ export const sessionApi = {
   checkIn: (data) => api.post('/sessions/check-in', data),
   walkIn: (data) => api.post('/sessions/walk-in', data),
   checkOut: (sessionId, data) => api.post(`/sessions/${sessionId}/check-out`, data),
+  verifyCheckout: (data) => api.post('/sessions/verify-checkout', data),
   getActiveByPlate: (plate) => api.get(`/sessions/active/by-license-plate?licensePlate=${encodeURIComponent(plate)}`),
   uploadSessionImage: (sessionId, file, type) => {
     const formData = new FormData();

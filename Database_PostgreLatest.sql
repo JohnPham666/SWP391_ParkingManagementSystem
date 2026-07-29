@@ -440,7 +440,12 @@ INSERT INTO ParkingSlots (SlotID, ZoneID, SlotCode, VehicleTypeID, Area, Capacit
 (40, 11, 'Q7-A2-02', 1, 8.00, 20, 10, 'AVAILABLE', TRUE),
 (41, 12, 'Q7-A3-01', 1, 8.00, 30, 15, 'AVAILABLE', TRUE),
 (42, 13, 'Q7-C3-01', 3, 30.00, 1, 0, 'AVAILABLE', TRUE),
-(43, 13, 'Q7-C3-02', 3, 30.00, 1, 1, 'OCCUPIED', TRUE);
+(43, 13, 'Q7-C3-02', 3, 30.00, 1, 1, 'OCCUPIED', TRUE),
+(44, 1, 'BC1-01', 4, 3.00, 20, 5, 'AVAILABLE', TRUE),
+(45, 3, 'BC2-01', 4, 3.00, 20, 0, 'AVAILABLE', TRUE),
+(46, 8, 'LT4-01', 5, 40.00, 1, 0, 'AVAILABLE', TRUE),
+(47, 8, 'LT4-02', 5, 40.00, 1, 0, 'AVAILABLE', TRUE),
+(48, 13, 'Q7-LT3-01', 5, 40.00, 1, 0, 'AVAILABLE', TRUE);
 SELECT setval('parkingslots_slotid_seq', (SELECT MAX(SlotID) FROM ParkingSlots));
 
 -- 9. VEHICLES
@@ -543,7 +548,11 @@ INSERT INTO Vehicles (VehicleID, LicensePlate, VehicleTypeID, OwnerName, OwnerPh
 (96, '51D-81315', 1, 'Random Owner', '0900003116', NULL, NULL, 'Toyota', 'Black', 'ENG-RND-96', 'CHS-RND-96', 2021, 'REG-96', '2021-01-01', '2030-01-01', 'APPROVED', TRUE),
 (97, '51V-69792', 1, 'Random Owner', '0900003445', NULL, NULL, 'Toyota', 'Black', 'ENG-RND-97', 'CHS-RND-97', 2021, 'REG-97', '2021-01-01', '2030-01-01', 'APPROVED', TRUE),
 (98, '51D-70422', 1, 'Random Owner', '0900008213', NULL, NULL, 'Toyota', 'Black', 'ENG-RND-98', 'CHS-RND-98', 2021, 'REG-98', '2021-01-01', '2030-01-01', 'APPROVED', TRUE),
-(99, '51J-31092', 1, 'Random Owner', '0900004659', NULL, NULL, 'Toyota', 'Black', 'ENG-RND-99', 'CHS-RND-99', 2021, 'REG-99', '2021-01-01', '2030-01-01', 'APPROVED', TRUE);
+(99, '51J-31092', 1, 'Random Owner', '0900004659', NULL, NULL, 'Toyota', 'Black', 'ENG-RND-99', 'CHS-RND-99', 2021, 'REG-99', '2021-01-01', '2030-01-01', 'APPROVED', TRUE),
+(100, 'BIKE-001', 4, 'Bicycle Owner 1', '0912233445', NULL, NULL, 'Giant', 'Blue', NULL, NULL, 2022, NULL, NULL, NULL, 'APPROVED', TRUE),
+(101, 'BIKE-002', 4, 'Bicycle Owner 2', '0912233446', NULL, NULL, 'Trek', 'Red', NULL, NULL, 2023, NULL, NULL, NULL, 'APPROVED', TRUE),
+(102, '51T-99991', 5, 'Heavy Truck Ltd', '0988776655', NULL, NULL, 'Kamaz', 'Yellow', 'ENG-LT-01', 'CHS-LT-01', 2020, 'REG-LT1', '2020-01-01', '2030-01-01', 'APPROVED', TRUE),
+(103, '51T-99992', 5, 'Heavy Cargo Co', '0988776656', NULL, NULL, 'Howo', 'Green', 'ENG-LT-02', 'CHS-LT-02', 2019, 'REG-LT2', '2019-01-01', '2030-01-01', 'APPROVED', TRUE);
 SELECT setval('vehicles_vehicleid_seq', (SELECT MAX(VehicleID) FROM Vehicles));
 
 -- 10. PARKING CARDS

@@ -48,6 +48,13 @@ public class SessionController {
         return ApiResponse.success("Check-out successfully", response);
     }
 
+    @Operation(summary = "Verify Check-out", description = "Cross-check license plate and card ID for security verification before check-out")
+    @PostMapping("/verify-checkout")
+    public ApiResponse<VerifyCheckoutResponse> verifyCheckout(@Valid @RequestBody VerifyCheckoutRequest request) {
+        VerifyCheckoutResponse response = service.verifyCheckout(request);
+        return ApiResponse.success("Verification completed", response);
+    }
+
     @Operation(
             summary = "Get active session by license plate",
             description = "Find the active parking session by vehicle license plate"
