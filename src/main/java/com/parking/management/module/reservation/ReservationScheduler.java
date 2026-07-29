@@ -37,7 +37,7 @@ public class ReservationScheduler {
     @Scheduled(fixedRate = 60000)
     @Transactional
     public void autoCancelStalePendingReservations() {
-        int paymentTimeoutMinutes = systemConfigService.getInt("RESERVATION_PAYMENT_TIMEOUT", 15);
+        int paymentTimeoutMinutes = systemConfigService.getInt("PAYMENT_TIMEOUT_MINUTES", 15);
         LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(paymentTimeoutMinutes);
 
         List<Reservation> staleReservations = reservationRepository

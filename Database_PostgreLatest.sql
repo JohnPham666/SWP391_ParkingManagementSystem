@@ -305,7 +305,7 @@ CREATE TABLE SystemConfigs (
 INSERT INTO SystemConfigs (ConfigKey, ConfigValue, Description, Category) VALUES
 ('EARLY_CHECKIN_BUFFER_MINUTES', '30', 'Allowed time (in minutes) for early check-in before a reservation starts.', 'Operations'),
 ('LATE_CHECKOUT_GRACE_MINUTES', '15', 'Grace period (in minutes) after checkout before additional fees apply.', 'Operations'),
-('RESERVATION_PAYMENT_TIMEOUT', '10', 'Time (in minutes) to wait for reservation payment before it expires.', 'Operations'),
+('PAYMENT_TIMEOUT_MINUTES', '10', 'Thời gian chờ thanh toán trước khi bị huỷ (phút). Áp dụng cho cả đặt chỗ và các thanh toán khác.', 'Operations'),
 ('MAX_RESERVATION_HOURS', '24', 'Maximum allowed hours for a single reservation.', 'Operations'),
 ('JWT_ACCESS_EXPIRATION_MINUTES', '120', 'Expiration time for JWT Access Token (in minutes).', 'Security'),
 ('MAX_VEHICLES_PER_USER', '3', 'Maximum number of vehicles allowed per user account.', 'Restrictions'),

@@ -99,7 +99,7 @@ public class SessionService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        int earlyCheckinBuffer = Integer.parseInt(configService.getConfigValue("EARLY_CHECKIN_BUFFER_MINUTES", "30"));
+        int earlyCheckinBuffer = configService.getInt("EARLY_CHECKIN_BUFFER_MINUTES", 30);
         if (now.isBefore(reservation.getReservationStart().minusMinutes(earlyCheckinBuffer))) {
             throw new IllegalArgumentException(
                     "Too early to check in. You can only check in " + earlyCheckinBuffer + " minutes prior to your reservation time.");

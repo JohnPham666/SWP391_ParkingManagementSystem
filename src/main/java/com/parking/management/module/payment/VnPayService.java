@@ -16,9 +16,11 @@ import java.util.*;
 public class VnPayService {
 
     private final VnPayConfig config;
+    private final com.parking.management.module.config.SystemConfigService systemConfigService;
 
-    public VnPayService(VnPayConfig config) {
+    public VnPayService(VnPayConfig config, com.parking.management.module.config.SystemConfigService systemConfigService) {
         this.config = config;
+        this.systemConfigService = systemConfigService;
     }
 
     public String buildPaymentUrl(Payment payment, String transactionRef, jakarta.servlet.http.HttpServletRequest request) {
@@ -27,7 +29,8 @@ public class VnPayService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
         String createDate = now.format(formatter);
-        String expireDate = now.plusMinutes(15).format(formatter);
+        int timeoutMinutes = systemConfigService.getInt("PAYMENT_TIMEOUT_MINUTES", 15);
+        String expireDate = now.plusMinutes(timeoutMinutes).format(formatter);
 
         String vnpAmount = payment.getAmount()
                 .multiply(BigDecimal.valueOf(100))
