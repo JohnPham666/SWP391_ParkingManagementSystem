@@ -21,6 +21,7 @@ public class VehicleRequest {
     private String chassisNumber;
     private Integer manufactureYear;
     private String registrationNumber;   // Số đăng ký (trên cà vẹt xe)
+    private String registrationDate;     // Ngày đăng ký (yyyy-MM-dd)
     private String registrationExpiry;   // Ngày hết hạn đăng kiểm (yyyy-MM-dd)
     private String vehicleImage;
     private String ownerPortrait;
