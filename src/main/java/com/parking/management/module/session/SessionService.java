@@ -588,6 +588,69 @@ public class SessionService {
         return mapEntityToResponse(session);
     }
 
+    public VerifyCheckoutResponse verifyCheckout(VerifyCheckoutRequest request) {
+        if (request.getCardId() == null || request.getCardId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Card ID is required for verification");
+        }
+
+        java.util.List<String> activeStatuses = java.util.Arrays.asList(SessionStatus.PARKING.name(), SessionStatus.UNPAID.name());
+
+        // 1. Tìm Session qua CardID
+        java.util.Optional<ParkingSession> sessionCardOpt = parkingSessionRepository
+                .findFirstByCard_CardIdIgnoreCaseAndStatusInOrderBySessionIdDesc(
+                        request.getCardId().trim(), activeStatuses);
+                        
+        if (sessionCardOpt.isEmpty()) {
+             throw new ResourceNotFoundException("No active parking session found for card: " + request.getCardId());
+        }
+        ParkingSession sessionCard = sessionCardOpt.get();
+        SessionResponse responseCard = mapEntityToResponse(sessionCard);
+
+        // 2. Nếu không có biển số (xe đạp, camera lỗi) -> MANUAL VERIFICATION
+        if (request.getLicensePlate() == null || request.getLicensePlate().trim().isEmpty()) {
+            return VerifyCheckoutResponse.builder()
+                    .matchStatus("MANUAL_VERIFICATION")
+                    .message("No license plate provided. Manual verification required via Entry Image.")
+                    .sessionFromCard(responseCard)
+                    .sessionFromPlate(null)
+                    .build();
+        }
+
+        // 3. Tìm Session qua Biển số
+        java.util.Optional<ParkingSession> sessionPlateOpt = parkingSessionRepository
+                .findFirstByVehicle_LicensePlateIgnoreCaseAndStatusInOrderBySessionIdDesc(
+                        request.getLicensePlate().trim(), activeStatuses);
+
+        if (sessionPlateOpt.isEmpty()) {
+             return VerifyCheckoutResponse.builder()
+                    .matchStatus("MISMATCH")
+                    .message("No active session found for license plate: " + request.getLicensePlate())
+                    .sessionFromCard(responseCard)
+                    .sessionFromPlate(null)
+                    .build();
+        }
+
+        ParkingSession sessionPlate = sessionPlateOpt.get();
+        SessionResponse responsePlate = mapEntityToResponse(sessionPlate);
+
+        // 4. So sánh
+        if (sessionCard.getSessionId().equals(sessionPlate.getSessionId())) {
+             return VerifyCheckoutResponse.builder()
+                    .matchStatus("MATCH")
+                    .message("License plate and card match perfectly.")
+                    .sessionFromCard(responseCard)
+                    .sessionFromPlate(responsePlate)
+                    .build();
+        } else {
+             return VerifyCheckoutResponse.builder()
+                    .matchStatus("MISMATCH")
+                    .message("WARNING: The card does not match the scanned license plate!")
+                    .sessionFromCard(responseCard)
+                    .sessionFromPlate(responsePlate)
+                    .build();
+        }
+    }
+
     public SessionResponse uploadSessionImage(Integer sessionId, MultipartFile file, String type) {
         ParkingSession session = parkingSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + sessionId));

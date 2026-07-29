@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Upload, Row, Col, Typography, Divider, DatePicker } from 'antd';
-import { SearchOutlined, CarOutlined, CreditCardOutlined, UploadOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Upload, Row, Col, Typography, Divider, DatePicker, Alert, Spin } from 'antd';
+import { SearchOutlined, CarOutlined, CreditCardOutlined, UploadOutlined, SafetyCertificateOutlined, CheckCircleFilled } from '@ant-design/icons';
 import { sessionApi, paymentApi, vehicleApi, pricingApi } from '../../services/api';
 import { getImageUrl } from '../../utils/helpers';
 import dayjs from 'dayjs';
@@ -129,13 +129,23 @@ const SessionManagement = () => {
 
   const handleCheckOutSearch = async (values) => {
     try {
-      const res = await sessionApi.getActiveByPlate(values.licensePlate);
-      if (!res.data || !res.data.data) {
-        message.error('No active session found for this license plate');
+      const res = await sessionApi.verifyCheckout({
+        licensePlate: values.licensePlate,
+        cardId: values.cardId
+      });
+      
+      const resultData = res.data?.data;
+      if (!resultData) {
+        message.error('Verification failed: No data returned');
         return;
       }
-      
-      const targetSession = res.data.data;
+
+      // Nguồn sự thật để thanh toán là thẻ từ
+      const targetSession = resultData.sessionFromCard;
+      if (!targetSession) {
+         message.error('No session found from Card ID');
+         return;
+      }
       
       let exitImageUrl = null;
       let exitImageFile = null;
@@ -163,6 +173,9 @@ const SessionManagement = () => {
 
       setCheckoutSessionData({
         ...targetSession,
+        matchStatus: resultData.matchStatus,
+        messageStatus: resultData.message,
+        sessionFromPlate: resultData.sessionFromPlate,
         exitImageFile,
         exitImageUrl,
         exitTime: exitTimeIso,
@@ -174,7 +187,7 @@ const SessionManagement = () => {
       if (error.response?.data?.message?.includes('already has a PENDING payment')) {
          message.error('Vehicle already in checkout process');
       } else {
-         message.error(error.response?.data?.message || 'Error finding vehicle');
+         message.error(error.response?.data?.message || 'Error verifying check-out');
       }
     }
   };
@@ -569,8 +582,11 @@ const SessionManagement = () => {
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="licensePlate" label="License Plate" rules={[{ required: true, message: 'Enter plate' }]}>
+                <Form.Item name="licensePlate" label="License Plate (Optional for Bicycle)" rules={[{ required: false }]}>
                   <Input placeholder="e.g. 29A-12345" style={{ textTransform: 'uppercase' }} />
+                </Form.Item>
+                <Form.Item name="cardId" label="Card ID" rules={[{ required: true, message: 'Enter Card ID' }]}>
+                  <Input placeholder="e.g. 001" style={{ textTransform: 'uppercase' }} />
                 </Form.Item>
               </Col>
             </Row>
@@ -582,38 +598,76 @@ const SessionManagement = () => {
 
         {checkOutStep === 2 && checkoutSessionData && (
           <Form form={checkOutConfirmForm} layout="vertical" onFinish={handleCheckOutConfirm} size="large">
+            {checkoutSessionData.matchStatus === 'MATCH' && (
+              <Alert message="Verification Match" description={checkoutSessionData.messageStatus} type="success" showIcon style={{ marginBottom: 16 }} />
+            )}
+            {checkoutSessionData.matchStatus === 'MISMATCH' && (
+              <Alert message="SECURITY WARNING" description={checkoutSessionData.messageStatus} type="error" showIcon style={{ marginBottom: 16 }} />
+            )}
+            {checkoutSessionData.matchStatus === 'MANUAL_VERIFICATION' && (
+              <Alert message="Manual Verification Required" description={checkoutSessionData.messageStatus} type="warning" showIcon style={{ marginBottom: 16 }} />
+            )}
+
             <Row gutter={16} style={{ marginBottom: '20px' }}>
               <Col span={12} style={{ textAlign: 'center' }}>
                 <p><strong>Entry Image</strong></p>
-                <div style={{ height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
-                  <Text type="secondary">No Image</Text>
-                </div>
+                {checkoutSessionData.entryImage ? (
+                  <img src={getImageUrl(checkoutSessionData.entryImage)} alt="Entry" style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px' }} />
+                ) : (
+                  <div style={{ height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                    <Text type="secondary">No Image</Text>
+                  </div>
+                )}
               </Col>
               <Col span={12} style={{ textAlign: 'center' }}>
                 <p><strong>Exit Image</strong></p>
                 {checkoutSessionData.exitImageUrl ? (
-                   <img src={checkoutSessionData.exitImageUrl} alt="Exit" style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px' }} />
+                  <img src={checkoutSessionData.exitImageUrl} alt="Exit" style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px' }} />
                 ) : (
-                   <div style={{ height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
+                  <div style={{ height: '150px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
                     <Text type="secondary">No Image</Text>
                   </div>
                 )}
               </Col>
             </Row>
 
-            <Card style={{ backgroundColor: '#f8fafc', marginBottom: '20px' }} bodyStyle={{ padding: '16px' }}>
-              <Row>
-                <Col span={12}>
-                  <p><strong>Plate:</strong> <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>{checkoutSessionData.licensePlate}</Text></p>
-                  <p><strong>Entry:</strong> {dayjs(checkoutSessionData.checkInTime).format('DD/MM/YYYY HH:mm:ss')}</p>
-                </Col>
-                <Col span={12}>
-                  <p><strong>Exit:</strong> {dayjs(checkoutSessionData.exitTime).format('DD/MM/YYYY HH:mm:ss')}</p>
-                  <div style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold', marginTop: '10px' }}>
-                    Fee: {checkoutSessionData.totalFee.toLocaleString()} ₫
-                  </div>
-                </Col>
-              </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Card title="Card ID Info (Source of Truth)" style={{ backgroundColor: '#f8fafc', marginBottom: '20px', height: '100%' }} bodyStyle={{ padding: '16px' }}>
+                  <p><strong>Card ID:</strong> <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>{checkoutSessionData.cardId}</Text></p>
+                  <p><strong>Associated Plate:</strong> <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>{checkoutSessionData.licensePlate}</Text></p>
+                  <p><strong>Slot:</strong> <Text strong>{checkoutSessionData.slotCode || '-'}</Text></p>
+                  {checkoutSessionData.hasActiveSubscription && (
+                    <div style={{ marginTop: '4px', marginBottom: '4px' }}>
+                      <Tag color="success" style={{ padding: '2px 8px', fontSize: '12px', borderRadius: '4px' }}>
+                        <CheckCircleFilled style={{ marginRight: '4px' }} />
+                        Active Monthly Subscription
+                      </Tag>
+                    </div>
+                  )}
+                  <p><strong>Entry:</strong> {dayjs(checkoutSessionData.entryTime).format('DD/MM/YYYY HH:mm:ss')}</p>
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card title="License Plate Info" style={{ backgroundColor: '#f8fafc', marginBottom: '20px', height: '100%' }} bodyStyle={{ padding: '16px' }}>
+                  {checkoutSessionData.sessionFromPlate ? (
+                     <>
+                        <p><strong>Plate:</strong> <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>{checkoutSessionData.sessionFromPlate.licensePlate}</Text></p>
+                        <p><strong>Slot:</strong> <Text strong>{checkoutSessionData.sessionFromPlate.slotCode || '-'}</Text></p>
+                        <p><strong>Entry:</strong> {dayjs(checkoutSessionData.sessionFromPlate.entryTime).format('DD/MM/YYYY HH:mm:ss')}</p>
+                     </>
+                  ) : (
+                     <Text type="secondary">No plate session found or missing plate input.</Text>
+                  )}
+                </Card>
+              </Col>
+            </Row>
+
+            <Card style={{ backgroundColor: '#f8fafc', marginBottom: '20px' }} bodyStyle={{ padding: '16px', textAlign: 'center' }}>
+                <p><strong>Exit Time:</strong> {dayjs(checkoutSessionData.exitTime).format('DD/MM/YYYY HH:mm:ss')}</p>
+                <div style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold', marginTop: '10px' }}>
+                  Fee: {checkoutSessionData.totalFee.toLocaleString()} ₫
+                </div>
             </Card>
 
             <Form.Item name="paymentMethod" label="Payment Method" initialValue="CASH" rules={[{ required: true }]}>
