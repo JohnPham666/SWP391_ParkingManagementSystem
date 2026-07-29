@@ -50,14 +50,14 @@ public class ReservationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + request.getVehicleId()));
 
         if (!"APPROVED".equals(vehicle.getStatus())) {
-            throw new IllegalArgumentException("Phương tiện chưa được duyệt (APPROVED), không thể đặt chỗ.");
+            throw new IllegalArgumentException("Vehicle is not APPROVED, cannot make a reservation.");
         }
 
         VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle type not found with id: " + request.getVehicleTypeId()));
 
         if (!vehicleType.getIsReservable()) {
-            throw new IllegalArgumentException("Loại xe này không hỗ trợ đặt chỗ trước.");
+            throw new IllegalArgumentException("This vehicle type does not support reservations.");
         }
 
         ParkingSlot slot;
@@ -67,19 +67,19 @@ public class ReservationService {
                     .findFirstAvailableSlot(
                             request.getVehicleTypeId()
                     )
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chỗ trống phù hợp cho loại xe này."));
+                    .orElseThrow(() -> new ResourceNotFoundException("No available slots found for this vehicle type."));
         } else {
             // Chọn thủ công
             slot = parkingSlotRepository.findById(request.getSlotId())
                     .orElseThrow(() -> new ResourceNotFoundException("Parking slot not found with id: " + request.getSlotId()));
             
             if (slot.getStatus() != SlotStatus.AVAILABLE) {
-                throw new IllegalArgumentException("Ô đỗ này hiện không trống, vui lòng chọn ô khác.");
+                throw new IllegalArgumentException("This slot is not currently available, please choose another one.");
             }
         }
 
         if (!slot.getVehicleType().getIsReservable()) {
-            throw new IllegalArgumentException("Slot dành cho loại xe này không hỗ trợ đặt trước.");
+            throw new IllegalArgumentException("This slot does not support reservations for this vehicle type.");
         }
 
         // Kiểm tra Double Booking (Overlap)
@@ -87,7 +87,7 @@ public class ReservationService {
                 slot.getSlotId(), request.getReservationStart(), request.getReservationEnd()
         );
         if (!overlaps.isEmpty()) {
-            throw new IllegalArgumentException("Rất tiếc, ô đỗ này đã có người đặt trong khoảng thời gian bạn chọn.");
+            throw new IllegalArgumentException("Sorry, this slot is already reserved during the selected time period.");
         }
 
         Reservation reservation = new Reservation();
@@ -151,7 +151,7 @@ public class ReservationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + request.getVehicleId()));
 
         if (!"APPROVED".equals(vehicle.getStatus())) {
-            throw new IllegalArgumentException("Phương tiện chưa được duyệt (APPROVED), không thể đặt chỗ.");
+            throw new IllegalArgumentException("Vehicle is not APPROVED, cannot make a reservation.");
         }
 
         VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleTypeId())
@@ -161,10 +161,10 @@ public class ReservationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Parking slot not found with id: " + request.getSlotId()));
 
         if (!vehicleType.getIsReservable()) {
-            throw new IllegalArgumentException("Loại xe này không hỗ trợ đặt chỗ trước.");
+            throw new IllegalArgumentException("This vehicle type does not support reservations.");
         }
         if (!slot.getVehicleType().getIsReservable()) {
-            throw new IllegalArgumentException("Slot dành cho loại xe này không hỗ trợ đặt trước.");
+            throw new IllegalArgumentException("This slot does not support reservations for this vehicle type.");
         }
 
         // Kiểm tra Double Booking (Overlap)
@@ -177,7 +177,7 @@ public class ReservationService {
                 .toList();
 
         if (!overlaps.isEmpty()) {
-            throw new IllegalArgumentException("Rất tiếc, ô đỗ này đã có người đặt trong khoảng thời gian bạn chọn.");
+            throw new IllegalArgumentException("Sorry, this slot is already reserved during the selected time period.");
         }
 
         reservation.setUser(user);
@@ -231,22 +231,22 @@ public class ReservationService {
         LocalDateTime now = LocalDateTime.now();
         
         if (request.getReservationStart().isBefore(now)) {
-            throw new IllegalArgumentException("Thời gian đặt chỗ không được ở trong quá khứ.");
+            throw new IllegalArgumentException("Reservation start time cannot be in the past.");
         }
 
         if (!request.getReservationEnd().isAfter(request.getReservationStart())) {
-            throw new IllegalArgumentException("Thời gian kết thúc phải sau thời gian bắt đầu.");
+            throw new IllegalArgumentException("Reservation end time must be after start time.");
         }
         
         int maxAdvanceDays = systemConfigService.getInt("MAX_ADVANCE_RESERVATION_DAYS", 3);
         if (request.getReservationStart().isAfter(now.plusDays(maxAdvanceDays))) {
-            throw new IllegalArgumentException("Bạn chỉ có thể đặt chỗ trước tối đa " + maxAdvanceDays + " ngày.");
+            throw new IllegalArgumentException("You can only reserve up to " + maxAdvanceDays + " days in advance.");
         }
 
         int maxHours = systemConfigService.getInt("MAX_RESERVATION_HOURS", 24);
         long hours = java.time.Duration.between(request.getReservationStart(), request.getReservationEnd()).toHours();
         if (hours > maxHours) {
-            throw new IllegalArgumentException("Thời gian đỗ xe vượt quá số giờ tối đa cho phép: " + maxHours + "h.");
+            throw new IllegalArgumentException("Reservation duration exceeds maximum allowed hours: " + maxHours + "h.");
         }
     }
 

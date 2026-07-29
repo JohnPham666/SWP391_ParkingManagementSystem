@@ -75,10 +75,10 @@ public class SystemConfigService {
             try {
                 int intValue = Integer.parseInt(value.trim());
                 if (intValue <= 0) {
-                    throw new IllegalArgumentException(key + " phải là một số nguyên dương (> 0).");
+                    throw new IllegalArgumentException(key + " must be a positive integer (> 0).");
                 }
             } catch (NumberFormatException e) {
-                throw new IllegalArgumentException(key + " phải là một số nguyên hợp lệ.");
+                throw new IllegalArgumentException(key + " must be a valid integer.");
             }
         }
 
