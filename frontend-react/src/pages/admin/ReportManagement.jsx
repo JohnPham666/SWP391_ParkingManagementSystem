@@ -17,23 +17,8 @@ const ReportManagement = () => {
   const [loading, setLoading] = useState(false);
   const [dateRange, setDateRange] = useState([dayjs().subtract(7, 'days'), dayjs()]);
   
-  // Dummy data for visualization until API returns actual data structure
-  const [revenueData, setRevenueData] = useState([
-    { date: '2023-11-14', revenue: 4000 },
-    { date: '2023-11-15', revenue: 3000 },
-    { date: '2023-11-16', revenue: 2000 },
-    { date: '2023-11-17', revenue: 2780 },
-    { date: '2023-11-18', revenue: 1890 },
-    { date: '2023-11-19', revenue: 2390 },
-    { date: '2023-11-20', revenue: 3490 },
-  ]);
-
-  const [occupancyData, setOccupancyData] = useState([
-    { name: 'Floor 1', value: 400 },
-    { name: 'Floor 2', value: 300 },
-    { name: 'Floor 3', value: 300 },
-    { name: 'VIP Zone', value: 200 },
-  ]);
+  const [revenueData, setRevenueData] = useState([]);
+  const [occupancyData, setOccupancyData] = useState([]);
 
   useEffect(() => {
     fetchReportData();
@@ -46,15 +31,27 @@ const ReportManagement = () => {
       const end = dateRange[1].format('YYYY-MM-DD');
       
       // Fetch from API
-      // const revRes = await reportApi.getRevenueSummary(start, end);
-      // const occRes = await reportApi.getOccupancyRate();
+      const [revRes, occRes] = await Promise.all([
+        reportApi.getRevenueTrend(start, end).catch(() => ({ data: { data: [] } })),
+        reportApi.getFloorOccupancyBreakdown().catch(() => ({ data: { data: [] } }))
+      ]);
       
-      // If API returns success, map to state
-      // setRevenueData(revRes.data.data);
-      // setOccupancyData(occRes.data.data);
+      const revData = revRes.data?.data || [];
+      const occData = occRes.data?.data || [];
+
+      // Map to state format
+      setRevenueData(revData.map(item => ({
+        date: item.date,
+        revenue: item.revenue || 0
+      })));
+
+      setOccupancyData(occData.map(item => ({
+        name: item.zoneName || item.floorName || 'Unknown',
+        value: item.occupiedSlots || 0
+      })));
       
     } catch (error) {
-      // message.error('Failed to load report data');
+      message.error('Failed to load report data');
     } finally {
       setLoading(false);
     }

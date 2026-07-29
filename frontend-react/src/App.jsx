@@ -57,6 +57,7 @@ import VehicleManagement from './pages/admin/VehicleManagement';
 import ReservationManagement from './pages/admin/ReservationManagement';
 import PaymentManagement from './pages/admin/PaymentManagement';
 import SlotManagement from './pages/admin/SlotManagement';
+import ProfilePage from './modules/driver/pages/ProfilePage';
 
 // Component kiểm tra đăng nhập cho Admin/Staff
 const PrivateRoute = ({ children, allowedRoles }) => {
@@ -115,6 +116,7 @@ function App() {
           {/* Nhánh 3: Quản trị (Admin) */}
           <Route path="/admin" element={<PrivateRoute allowedRoles={['ADMIN']}><MainLayout /></PrivateRoute>}>
             <Route index element={<AdminDashboard />} />
+            <Route path="profile" element={<ProfilePage />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="settings" element={<SystemSettings />} />
             <Route path="sessions" element={<AdminSessions />} />
@@ -130,6 +132,7 @@ function App() {
           {/* Nhánh 4: Quản trị (Manager) */}
           <Route path="/manager" element={<PrivateRoute allowedRoles={['PARKINGMANAGER', 'PARKING_MANAGER', 'ADMIN']}><MainLayout /></PrivateRoute>}>
             <Route index element={<ManagerDashboard />} />
+            <Route path="profile" element={<ProfilePage />} />
             <Route path="users" element={<ManagerUsers />} />
             <Route path="sessions" element={<ManagerSessions />} />
             <Route path="slots" element={<ManagerSlots />} />
@@ -146,6 +149,7 @@ function App() {
           {/* Nhánh 5: Quản trị (Staff) */}
           <Route path="/staff" element={<PrivateRoute allowedRoles={['PARKINGSTAFF', 'PARKING_STAFF', 'ADMIN']}><MainLayout /></PrivateRoute>}>
             <Route index element={<StaffDashboard />} />
+            <Route path="profile" element={<ProfilePage />} />
             <Route path="sessions" element={<StaffSessions />} />
             <Route path="slots" element={<StaffSlots />} />
             <Route path="reservations" element={<StaffReservations />} />

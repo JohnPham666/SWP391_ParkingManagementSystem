@@ -20,9 +20,10 @@ public interface IncidentReportRepository extends JpaRepository<IncidentReport, 
      * Logic:
      * - Nếu buildingId IS NULL (Admin) → trả về TẤT CẢ incident.
      * - Nếu buildingId IS NOT NULL (Manager) → trả về:
-     *     + Incident từ reporter KHÔNG có building (Driver) → luôn hiện
-     *     + Incident từ reporter CÓ building trùng với Manager
-     *     + Incident có session thuộc building của Manager
+     *     + Incident CÓ gắn với Session: Chỉ hiện cho Manager của Building chứa Session đó.
+     *     + Incident KHÔNG gắn với Session: 
+     *           - Từ Driver (không có building) → Hiện cho TẤT CẢ Manager
+     *           - Từ Staff (có building) → Hiện cho Manager cùng Building
      */
     @org.springframework.data.jpa.repository.Query("SELECT i FROM IncidentReport i " +
        "LEFT JOIN i.reportedBy u " +
@@ -33,9 +34,8 @@ public interface IncidentReportRepository extends JpaRepository<IncidentReport, 
        "LEFT JOIN z.floor f " +
        "LEFT JOIN f.building sb " +
        "WHERE :buildingId IS NULL " +
-       "OR ub.buildingId IS NULL " +
-       "OR ub.buildingId = :buildingId " +
-       "OR sb.buildingId = :buildingId " +
+       "OR (s.sessionId IS NOT NULL AND sb.buildingId = :buildingId) " +
+       "OR (s.sessionId IS NULL AND (ub.buildingId IS NULL OR ub.buildingId = :buildingId)) " +
        "ORDER BY i.createdAt DESC")
     List<IncidentReport> findAllWithBuildingFilter(@org.springframework.data.repository.query.Param("buildingId") Integer buildingId);
 }

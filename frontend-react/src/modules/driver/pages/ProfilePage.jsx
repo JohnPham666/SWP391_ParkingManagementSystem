@@ -150,9 +150,9 @@ const ProfilePage = () => {
                                 />
                             </Upload>
                         </div>
-                        <Title level={3} style={{ margin: 0 }}>{user?.fullName || 'Driver User'}</Title>
-                        <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>{user?.email || 'driver@example.com'}</Text>
-                        <Tag color="orange" style={{ padding: '4px 16px', borderRadius: 16, fontSize: 14 }}>DRIVER</Tag>
+                        <Title level={3} style={{ margin: 0 }}>{user?.fullName || 'User'}</Title>
+                        <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>{user?.email || ''}</Text>
+                        <Tag color="orange" style={{ padding: '4px 16px', borderRadius: 16, fontSize: 14 }}>{user?.role?.replace('ROLE_', '') || 'USER'}</Tag>
                         
                         <Divider />
                         
@@ -162,7 +162,7 @@ const ProfilePage = () => {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Text type="secondary">Member Since</Text>
-                            <Text strong>Jan 2024</Text>
+                            <Text strong>{user?.createdAt ? dayjs(user.createdAt).format('MMM YYYY') : 'N/A'}</Text>
                         </div>
                     </Card>
                 </Col>
