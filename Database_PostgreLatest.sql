@@ -307,6 +307,7 @@ INSERT INTO SystemConfigs (ConfigKey, ConfigValue, Description, Category) VALUES
 ('LATE_CHECKOUT_GRACE_MINUTES', '15', 'Grace period (in minutes) after checkout before additional fees apply.', 'Operations'),
 ('PAYMENT_TIMEOUT_MINUTES', '10', 'Thời gian chờ thanh toán trước khi bị huỷ (phút). Áp dụng cho cả đặt chỗ và các thanh toán khác.', 'Operations'),
 ('MAX_RESERVATION_HOURS', '24', 'Maximum allowed hours for a single reservation.', 'Operations'),
+('MAX_ADVANCE_RESERVATION_DAYS', '3', 'Số ngày tối đa được phép đặt chỗ trước tính từ thời điểm hiện tại.', 'Restrictions'),
 ('JWT_ACCESS_EXPIRATION_MINUTES', '120', 'Expiration time for JWT Access Token (in minutes).', 'Security'),
 ('MAX_VEHICLES_PER_USER', '3', 'Maximum number of vehicles allowed per user account.', 'Restrictions'),
 ('ALLOW_GUEST_PARKING', 'true', 'Enable or disable guest parking (Walk-in without an account).', 'Restrictions');
