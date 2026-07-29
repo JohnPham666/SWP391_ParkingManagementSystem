@@ -71,7 +71,7 @@ const MainLayout = () => {
             if (Array.isArray(data)) {
               const openIncidents = data.filter(i => i.status === 'OPEN');
               openIncidents.sort((a, b) => new Date(b.createdAt || b.reportTime || 0) - new Date(a.createdAt || a.reportTime || 0));
-              
+
               const newItems = openIncidents.filter(i => new Date(i.createdAt || i.reportTime || 0).getTime() > lastCheckedTime);
               setNewIncidentCount(newItems.length);
               setNewIncidentsList(openIncidents.slice(0, 5));
@@ -115,7 +115,7 @@ const MainLayout = () => {
     { key: `${basePath}/incidents`, icon: <WarningOutlined />, label: 'Incidents', roles: ['Admin', 'ParkingManager', 'ParkingStaff'] },
 
     // Manager & Admin
-    { key: `${basePath}/buildings`, icon: <BankOutlined />, label: 'Parking Config (Buildings)', roles: ['Admin', 'ParkingManager'] },
+    { key: `${basePath}/buildings`, icon: <BankOutlined />, label: 'Parking Config (Buildings)', roles: ['Admin'] },
     { key: `${basePath}/pricing`, icon: <DollarOutlined />, label: 'Pricing Policies', roles: ['Admin'] },
 
     // Manager only (Vé tháng)
@@ -143,7 +143,7 @@ const MainLayout = () => {
         size="small"
         dataSource={newIncidentsList}
         renderItem={item => (
-          <List.Item 
+          <List.Item
             style={{ cursor: 'pointer', transition: 'background 0.3s' }}
             onClick={() => navigate('/manager/incidents')}
             className="notification-item"
@@ -180,9 +180,9 @@ const MainLayout = () => {
       >
         <div style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '24px 16px', cursor: 'pointer', borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid #f0f0f0' }} onClick={() => navigate(basePath)}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: collapsed ? 'center' : 'flex-start' }}>
-            <img src={logoImg} alt="ParkSmart Logo" style={{ 
-              height: collapsed ? '36px' : '56px', 
-              objectFit: 'contain', 
+            <img src={logoImg} alt="ParkSmart Logo" style={{
+              height: collapsed ? '36px' : '56px',
+              objectFit: 'contain',
               maxWidth: '100%',
               backgroundColor: '#ffffff',
               borderRadius: '8px',
@@ -221,11 +221,11 @@ const MainLayout = () => {
           })}
           <Space size="large">
             <Switch
-                checked={isDarkMode}
-                onChange={toggleTheme}
-                checkedChildren={<span>🌙</span>}
-                unCheckedChildren={<span>☀️</span>}
-                style={{ marginRight: 16 }}
+              checked={isDarkMode}
+              onChange={toggleTheme}
+              checkedChildren={<span>🌙</span>}
+              unCheckedChildren={<span>☀️</span>}
+              style={{ marginRight: 16 }}
             />
             {userRole === 'ParkingManager' && (
               <Popover

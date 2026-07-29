@@ -11,7 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 
 @RestController
-@PreAuthorize("hasAnyRole('Admin', 'ParkingManager')")
+@PreAuthorize("hasRole('Admin')")
 @RequestMapping("/api/buildings")
 @RequiredArgsConstructor
 @Tag(name = "Building", description = "APIs for managing parking buildings")
