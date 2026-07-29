@@ -61,7 +61,28 @@ public class SystemConfigService {
         SystemConfig config = repository.findById(key)
                 .orElseThrow(() -> new IllegalArgumentException("Configuration key not found: " + key));
         
-        config.setConfigValue(value);
+        // Validate that specific keys must be positive integers
+        List<String> positiveIntegerKeys = List.of(
+                "MAX_ADVANCE_RESERVATION_DAYS",
+                "MAX_VEHICLES_PER_USER",
+                "MAX_RESERVATION_HOURS",
+                "EARLY_CHECKIN_BUFFER_MINUTES",
+                "LATE_CHECKOUT_GRACE_MINUTES",
+                "PAYMENT_TIMEOUT_MINUTES"
+        );
+
+        if (positiveIntegerKeys.contains(key)) {
+            try {
+                int intValue = Integer.parseInt(value.trim());
+                if (intValue <= 0) {
+                    throw new IllegalArgumentException(key + " must be a positive integer (> 0).");
+                }
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(key + " must be a valid integer.");
+            }
+        }
+
+        config.setConfigValue(value.trim());
         SystemConfig updated = repository.save(config);
         
         // Update cache
