@@ -24,5 +24,8 @@ public class FeeCalculationRequest {
     // Thời gian xe ra bãi
     @NotNull(message = "Exit time is required")
     private LocalDateTime exitTime;
+
+    private Integer vehicleId;
+    private LocalDateTime overtimeStart;
 }
 

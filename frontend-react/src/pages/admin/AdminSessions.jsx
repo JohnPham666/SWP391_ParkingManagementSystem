@@ -171,19 +171,23 @@ const SessionManagement = () => {
       }
 
       const exitTimeIso = new Date().toISOString();
-      let calculatedFee = 0;
+      let calculatedFee = targetSession.finalFee !== null && targetSession.finalFee !== undefined
+          ? targetSession.finalFee
+          : (targetSession.estimatedFee !== null && targetSession.estimatedFee !== undefined
+              ? targetSession.estimatedFee
+              : 0);
       
-      if (!targetSession.hasActiveSubscription) {
+      if (!targetSession.hasActiveSubscription && targetSession.finalFee === null && targetSession.estimatedFee === null) {
          try {
              const feeRes = await pricingApi.calculateFee({
                 vehicleTypeId: targetSession.vehicleTypeId,
+                vehicleId: targetSession.vehicleId || targetSession.vehicle?.vehicleId,
                 entryTime: dayjs(targetSession.entryTime).format('YYYY-MM-DDTHH:mm:ss'),
                 exitTime: dayjs(exitTimeIso).format('YYYY-MM-DDTHH:mm:ss')
              });
              calculatedFee = feeRes.data.data.finalFee;
          } catch (e) {
              console.error("Fee calculation failed", e);
-             message.error("Lỗi tính phí từ Backend: " + (e.response?.data?.message || e.message));
          }
       }
 
