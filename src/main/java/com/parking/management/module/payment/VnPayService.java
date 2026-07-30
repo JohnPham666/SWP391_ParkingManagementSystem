@@ -48,7 +48,8 @@ public class VnPayService {
         params.put("vnp_OrderType", "other");
         params.put("vnp_Locale", "vn");
         params.put("vnp_ReturnUrl", config.getReturnUrl().trim());
-        params.put("vnp_IpAddr", "127.0.0.1");
+        String vnpIpAddr = request != null ? getIpAddress(request) : "127.0.0.1";
+        params.put("vnp_IpAddr", vnpIpAddr);
         params.put("vnp_CreateDate", createDate);
         params.put("vnp_ExpireDate", expireDate);
 
