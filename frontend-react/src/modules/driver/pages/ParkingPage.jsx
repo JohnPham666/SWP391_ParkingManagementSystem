@@ -329,7 +329,11 @@ const ParkingPage = () => {
                                                     display: 'flex', justifyContent: 'center', alignItems: 'center',
                                                     color: statusInfo.hex, marginBottom: 12
                                                 }}>
-                                                    {String(slot.vehicleTypeName || '').toLowerCase().includes('motor') || String(slot.vehicleTypeName || '').toLowerCase().includes('xe máy') ? <MotorbikeIcon style={{ fontSize: 28 }} /> : <CarOutlined style={{ fontSize: 28 }} />}
+                                                    {(() => {
+                                                        const vType = String(slot.vehicleTypeName || '').toLowerCase();
+                                                        const isMotorbikeOrBike = vType.includes('motor') || vType.includes('xe máy') || vType.includes('bicycle') || vType.includes('xe đạp') || vType.includes('bike');
+                                                        return isMotorbikeOrBike ? <MotorbikeIcon style={{ fontSize: 28 }} /> : <CarOutlined style={{ fontSize: 28 }} />;
+                                                    })()}
                                                 </div>
 
                                                 <Title level={3} style={{ margin: 0, fontWeight: 800, color: statusInfo.hex }}>
