@@ -5,9 +5,9 @@ import lombok.Data;
 
 @Data
 public class ResetPasswordRequest {
-    @NotBlank(message = "Token không được để trống")
+    @NotBlank(message = "Token cannot be empty")
     private String token;
 
-    @NotBlank(message = "Mật khẩu mới không được để trống")
+    @NotBlank(message = "New password cannot be empty")
     private String newPassword;
 }
