@@ -168,7 +168,7 @@ const SubscriptionRegistrationModal = ({ visible, onCancel, onSuccess, initialVe
                     
                     {vehicles.length === 0 && !loading && (
                         <div style={{ marginBottom: 16 }}>
-                            <Text type="danger">You don't have any verified vehicles yet. Please add a vehicle first in the Vehicles page and wait for manager approval.</Text>
+                            <Text type="danger">You don't have any vehicles yet. Please add a vehicle first in the Vehicles page.</Text>
                         </div>
                     )}
 

@@ -53,10 +53,7 @@ public class SubscriptionService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Vehicle not found with id: " + request.getVehicleId()));
 
-        // 4. KIỂM TRA ĐIỀU KIỆN TIÊN QUYẾT: Xe phải được Manager duyệt (APPROVED) mới được mua vé tháng
-        if (!"APPROVED".equals(vehicle.getStatus())) {
-            throw new IllegalArgumentException("Phương tiện chưa được duyệt (APPROVED), không thể đăng ký vé tháng.");
-        }
+        // 4. KIỂM TRA ĐIỀU KIỆN TIÊN QUYẾT: (Đã bỏ yêu cầu duyệt xe theo yêu cầu nghiệp vụ mới)
 
         // 5. Kiểm tra xem xe này đã có vé tháng ACTIVE (đang dùng) hoặc PENDING (đang chờ thanh toán) chưa
         // Mỗi xe chỉ được phép có tối đa 1 vé tháng đang hoạt động tại 1 thời điểm
