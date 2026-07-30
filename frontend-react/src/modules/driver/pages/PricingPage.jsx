@@ -71,8 +71,8 @@ const PricingPage = () => {
                         id: p.pricingPolicyId || p.id,
                         type: vTypeName,
                         name: p.policyName,
-                        price: p.basePrice != null ? p.basePrice.toLocaleString() : '0',
-                        unit: 'VND / hour',
+                        price: p.monthlyPrice != null ? p.monthlyPrice.toLocaleString() : 'N/A',
+                        unit: 'VND / month',
                         color: color,
                         bg: bg,
                         features: features
