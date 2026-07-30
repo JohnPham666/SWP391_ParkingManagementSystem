@@ -484,11 +484,11 @@ const StaffDashboard = () => {
     const t = type.toLowerCase();
     if (t.includes('car')) return <CarOutlined />;
     if (t.includes('motor')) return <span>🏍️</span>;
-    if (t.includes('bicycle') || t.includes('bike')) return <span>🚲</span>;
+    if (t.includes('bicycle') || t.includes('bike')) return <span>🏍️</span>;
     if (t.includes('truck')) return <span>🚚</span>;
     return <CarOutlined />;
     if (t.includes('motor') || t.includes('mÃ¡y')) return <span>ðŸï¸</span>;
-    if (t.includes('bicycle') || t.includes('bike') || t.includes('Ä‘áº¡p')) return <span>ðŸš²</span>;
+    if (t.includes('bicycle') || t.includes('bike') || t.includes('Ä‘áº¡p')) return <span>🏍️</span>;
     if (t.includes('táº£i') || t.includes('truck')) return <span>ðŸšš</span>;
     return <CarOutlined />;
   };

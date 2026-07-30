@@ -83,7 +83,7 @@ const StaffSlots = () => {
     const lowerType = type.toLowerCase();
     
     if (lowerType.includes('motor') || lowerType.includes('máy')) return '🏍️';
-    if (lowerType.includes('bike') || lowerType.includes('đạp')) return '🚲';
+    if (lowerType.includes('bike') || lowerType.includes('đạp')) return '🏍️';
     if (lowerType.includes('bus') || lowerType.includes('khách')) return '🚌';
     if (lowerType.includes('truck') || lowerType.includes('tải')) return '🚚';
     
