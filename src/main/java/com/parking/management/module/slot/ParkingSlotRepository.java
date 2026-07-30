@@ -24,7 +24,7 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM ParkingSlot s WHERE s.vehicleType.vehicleTypeId = :vehicleTypeId " +
-           "AND s.status = com.parking.management.module.slot.SlotStatus.AVAILABLE " +
+           "AND s.status = 'AVAILABLE' " +
            "AND s.isActive = true " +
            "AND s.currentOccupancy < s.capacity " +
            "ORDER BY s.zone.floor.floorNumber DESC, LENGTH(s.slotCode) ASC, s.slotCode ASC LIMIT 1")
@@ -59,7 +59,7 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
     @Query("""
             select slot
             from ParkingSlot slot
-            where slot.status = com.parking.management.module.slot.SlotStatus.AVAILABLE
+            where slot.status = 'AVAILABLE'
               and slot.isActive = true
               and slot.currentOccupancy < slot.capacity
               and (:buildingId is null or slot.zone.floor.building.buildingId = :buildingId)
@@ -100,7 +100,7 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
            )
            FROM ParkingSlot s
            JOIN s.zone z
-           WHERE s.status IN (com.parking.management.module.slot.SlotStatus.OCCUPIED, com.parking.management.module.slot.SlotStatus.RESERVED)
+           WHERE s.status IN ('OCCUPIED', 'RESERVED')
              AND s.isActive = true
              AND (:buildingId IS NULL OR z.floor.building.buildingId = :buildingId)
            GROUP BY z.zoneName
@@ -115,7 +115,7 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
            FROM ParkingSlot s
            JOIN s.zone z
            JOIN z.floor f
-           WHERE s.status IN (com.parking.management.module.slot.SlotStatus.OCCUPIED, com.parking.management.module.slot.SlotStatus.RESERVED)
+           WHERE s.status IN ('OCCUPIED', 'RESERVED')
              AND s.isActive = true
              AND (:buildingId IS NULL OR f.building.buildingId = :buildingId)
            GROUP BY f.floorName
@@ -131,7 +131,7 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
             join fetch floor.building building
             join fetch slot.vehicleType vehicleType
             where slot.isActive = true
-              and slot.status NOT IN (com.parking.management.module.slot.SlotStatus.MAINTENANCE, com.parking.management.module.slot.SlotStatus.LOCKED, com.parking.management.module.slot.SlotStatus.DISABLED)
+              and slot.status NOT IN ('MAINTENANCE', 'LOCKED', 'DISABLED')
               and (:buildingId is null or building.buildingId = :buildingId)
               and not exists (
                   select r from Reservation r
