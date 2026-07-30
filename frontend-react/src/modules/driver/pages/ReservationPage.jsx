@@ -515,9 +515,16 @@ const ReservationPage = () => {
                 const isValidSlot = currentSlotId && filteredSlots.some(s => (s.slotId || s.id) === currentSlotId);
                 
                 if (!isValidSlot) {
-                    const firstAvailable = filteredSlots.find(s => s.status === 'AVAILABLE');
-                    if (firstAvailable) {
-                        form.setFieldsValue({ slotId: firstAvailable.slotId || firstAvailable.id });
+                    const availableSlots = filteredSlots.filter(s => s.status === 'AVAILABLE');
+                    if (availableSlots.length > 0) {
+                        const highestFloorSlot = availableSlots.reduce((prev, current) => {
+                            const nameComparison = (current.floorName || '').localeCompare(prev.floorName || '');
+                            if (nameComparison !== 0) return nameComparison > 0 ? current : prev;
+                            
+                            const codeComparison = (current.slotCode || current.slotName || '').localeCompare(prev.slotCode || prev.slotName || '');
+                            return codeComparison > 0 ? current : prev;
+                        });
+                        form.setFieldsValue({ slotId: highestFloorSlot.slotId || highestFloorSlot.id });
                     } else {
                         form.setFieldsValue({ slotId: undefined });
                     }

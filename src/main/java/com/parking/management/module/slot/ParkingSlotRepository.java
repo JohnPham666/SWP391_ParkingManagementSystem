@@ -27,7 +27,7 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
            "AND s.status = 'AVAILABLE' " +
            "AND s.isActive = true " +
            "AND s.currentOccupancy < s.capacity " +
-           "ORDER BY s.zone.floor.floorNumber DESC, LENGTH(s.slotCode) ASC, s.slotCode ASC LIMIT 1")
+           "ORDER BY s.zone.floor.floorName DESC, LENGTH(s.slotCode) DESC, s.slotCode DESC LIMIT 1")
     Optional<ParkingSlot> findFirstAvailableSlot(
             @Param("vehicleTypeId") Integer vehicleTypeId
     );

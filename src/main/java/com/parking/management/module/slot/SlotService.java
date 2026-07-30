@@ -174,6 +174,7 @@ public class SlotService {
         response.setZoneName(slot.getZone().getZoneName());
         response.setFloorId(slot.getZone().getFloor().getFloorId());
         response.setFloorName(slot.getZone().getFloor().getFloorName());
+        response.setFloorNumber(slot.getZone().getFloor().getFloorNumber());
         response.setBuildingId(slot.getZone().getFloor().getBuilding().getBuildingId());
         response.setBuildingName(slot.getZone().getFloor().getBuilding().getBuildingName());
         response.setSlotCode(slot.getSlotCode());
