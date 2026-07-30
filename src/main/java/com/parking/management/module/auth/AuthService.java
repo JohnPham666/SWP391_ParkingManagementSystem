@@ -93,7 +93,7 @@ public class AuthService {
             // No account -> Return requirement for Frontend to display phone number form
             String name = (String) payload.get("name");
             return java.util.Map.of(
-                    "requirePhone", true,
+                    "status", "REQUIRE_PHONE",
                     "email", email,
                     "fullName", name,
                     "message", "Please provide phone number to complete registration."
