@@ -27,6 +27,15 @@ const PaymentPage = () => {
     const [stats, setStats] = useState({ totalPaid: '0 VND', pending: '0', monthly: '0 VND' });
     const [isPendingModalVisible, setIsPendingModalVisible] = useState(false);
 
+    // Detail Modal State
+    const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+    const [detailRecord, setDetailRecord] = useState(null);
+
+    const handleViewDetail = (record) => {
+        setDetailRecord(record);
+        setIsDetailModalVisible(true);
+    };
+
     // Payment State
     const [payingReservationId, setPayingReservationId] = useState(null);
     const [paymentModalVisible, setPaymentModalVisible] = useState(false);
@@ -77,8 +86,11 @@ const PaymentPage = () => {
                 driverService.loadSubscriptions().catch(() => ({ data: [] }))
             ]);
             
-            const rData = resData?.data || resData;
-            const sData = subData?.data || subData;
+            let rData = resData?.success ? resData.data : (resData?.data || resData);
+            if (!Array.isArray(rData) && rData?.content) rData = rData.content;
+            
+            let sData = subData?.success ? subData.data : (subData?.data || subData);
+            if (!Array.isArray(sData) && sData?.content) sData = sData.content;
             
             let tPaid = 0;
             let pendingCount = 0;
@@ -290,11 +302,9 @@ const PaymentPage = () => {
             }
         },
         {
-            title: 'Action',
-            key: 'action',
+            title: 'Detail',
+            key: 'detail',
             render: (_, record) => {
-                if (record.reservationStatus === 'CANCELLED') return <Text type="secondary">Cancelled</Text>;
-                
                 let showPayNow = false;
                 if (record.type === 'RESERVATION' && canPayReservation(record.rawReservation)) {
                     showPayNow = true;
@@ -302,16 +312,22 @@ const PaymentPage = () => {
                     showPayNow = true;
                 }
 
-                if (showPayNow) {
-                    return (
-                        <Space>
-                            <Button type="primary" size="small" onClick={() => handlePayment(record)}>Pay Now</Button>
-                            <Button danger size="small" onClick={() => handleCancel(record)}>Cancel</Button>
-                        </Space>
-                    );
-                }
-                
-                return null;
+                return (
+                    <Space size="small" wrap>
+                        <Button type="default" size="small" onClick={() => handleViewDetail(record)}>
+                            View Detail
+                        </Button>
+                        {showPayNow && (
+                            <>
+                                <Button type="primary" size="small" onClick={() => handlePayment(record)}>Pay Now</Button>
+                                <Button danger size="small" onClick={() => handleCancel(record)}>Cancel</Button>
+                            </>
+                        )}
+                        {!showPayNow && record.reservationStatus === 'CANCELLED' && (
+                            <Text type="secondary">Cancelled</Text>
+                        )}
+                    </Space>
+                );
             }
         }
     ];
@@ -427,6 +443,64 @@ const PaymentPage = () => {
                     </Text>
                     <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
                 </div>
+            <Modal
+                title={<Title level={4} style={{ margin: 0 }}>Transaction Details</Title>}
+                open={isDetailModalVisible}
+                onOk={() => setIsDetailModalVisible(false)}
+                onCancel={() => setIsDetailModalVisible(false)}
+                footer={<Button onClick={() => setIsDetailModalVisible(false)}>Close</Button>}
+                destroyOnHidden
+            >
+                {detailRecord && (
+                    <div style={{ padding: '16px 0' }}>
+                        <Row gutter={[16, 16]}>
+                            <Col span={8}><Text type="secondary">Transaction ID:</Text></Col>
+                            <Col span={16}><Text strong>#{detailRecord.id}</Text></Col>
+                            
+                            <Col span={8}><Text type="secondary">Type:</Text></Col>
+                            <Col span={16}><Tag color="blue">{detailRecord.type}</Tag></Col>
+
+                            <Col span={8}><Text type="secondary">Date:</Text></Col>
+                            <Col span={16}><Text>{new Date(detailRecord.date).toLocaleString()}</Text></Col>
+
+                            <Col span={8}><Text type="secondary">Description:</Text></Col>
+                            <Col span={16}><Text>{detailRecord.description}</Text></Col>
+
+                            <Col span={8}><Text type="secondary">Amount:</Text></Col>
+                            <Col span={16}>
+                                <Text strong style={{ color: '#faad14' }}>
+                                    {detailRecord.amount ? `${detailRecord.amount.toLocaleString()} VND` : '0 VND'}
+                                </Text>
+                            </Col>
+
+                            <Col span={8}><Text type="secondary">Payment Status:</Text></Col>
+                            <Col span={16}>
+                                <Tag color={detailRecord.status === 'PAID' ? 'green' : (detailRecord.status === 'FAILED' ? 'red' : 'gold')}>
+                                    {detailRecord.status}
+                                </Tag>
+                            </Col>
+
+                            <Col span={8}><Text type="secondary">System Status:</Text></Col>
+                            <Col span={16}>
+                                <Tag>
+                                    {detailRecord.reservationStatus}
+                                </Tag>
+                            </Col>
+
+                            {detailRecord.type === 'RESERVATION' && detailRecord.rawReservation?.slot && (
+                                <>
+                                    <Col span={8}><Text type="secondary">Slot Info:</Text></Col>
+                                    <Col span={16}>
+                                        <Text>
+                                            {detailRecord.rawReservation.slot.name} 
+                                            ({detailRecord.rawReservation.slot.zone?.name}, {detailRecord.rawReservation.slot.zone?.floor?.name})
+                                        </Text>
+                                    </Col>
+                                </>
+                            )}
+                        </Row>
+                    </div>
+                )}
             </Modal>
         </div>
     );
