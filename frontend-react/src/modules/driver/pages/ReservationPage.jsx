@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useState } from 'react';
-import { Card, Table, Modal, Form, DatePicker, Select, Button, Tag, Space, Popconfirm, Alert, message, Row, Col, Typography, Skeleton, Empty, theme, Descriptions } from 'antd';
+import { Card, Table, Modal, Form, DatePicker, Select, Button, Tag, Space, Popconfirm, Alert, message, Row, Col, Typography, Skeleton, Empty, theme, Descriptions, Tooltip } from 'antd';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CalendarOutlined, PlusOutlined, DeleteOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, AlertOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -150,7 +150,6 @@ const ReservationPage = () => {
                 const pStatus = String(currentRes.paymentStatus || '').toUpperCase();
                 if (pStatus === 'PAID' || pStatus === 'COMPLETED') {
                     setPaymentSuccess(true);
-                    setPayingReservationId(null);
                     message.success({ content: 'Payment completed successfully! Your reservation is confirmed.', key: 'payment_success', duration: 4 });
                     if (viewingReservation && (viewingReservation.reservationId || viewingReservation.id) === payingReservationId) {
                         setViewingReservation(currentRes);
@@ -427,7 +426,7 @@ const ReservationPage = () => {
                 }
                 
                 let color = 'default';
-                if (s === 'CONFIRMED' || s === 'COMPLETED') color = 'success';
+                if (s === 'CONFIRMED' || s === 'COMPLETED' || s === 'CHECKED_IN') color = 'success';
                 else if (s === 'PENDING') color = 'warning';
                 else if (s === 'CANCELLED' || s === 'EXPIRED') color = 'error';
                 return (
@@ -457,7 +456,8 @@ const ReservationPage = () => {
             render: (_, record) => {
                 const s = String(record.status).toUpperCase();
                 const expired = isReservationExpired(record);
-                const canCancel = (s === 'PENDING' || s === 'CONFIRMED') && !expired;
+                const canCancel = (s === 'PENDING' || s === 'CONFIRMED' || s === 'CHECKED_IN') && !expired;
+                const isCheckedIn = s === 'CHECKED_IN';
                 
                 return (
                     <Space size="middle">
@@ -467,11 +467,19 @@ const ReservationPage = () => {
                         <Button type="default" ghost={false} size="small" style={{ borderRadius: 4 }} onClick={() => handleViewDetails(record)}>Details</Button>
                         {canCancel && (
                             (getPaymentStatus(record) === 'PAID' || getPaymentStatus(record) === 'COMPLETED') ? (
-                                <Button type="text" danger icon={<DeleteOutlined />} size="small" onClick={() => handleCancelPaidClick(record)} />
+                                <Tooltip title={isCheckedIn ? "Can not cancel reservation after the vehicle has checked in!" : "Cancel Reservation"}>
+                                    <span style={{ display: 'inline-block' }}>
+                                        <Button type="text" danger icon={<DeleteOutlined />} size="small" onClick={() => handleCancelPaidClick(record)} disabled={isCheckedIn} />
+                                    </span>
+                                </Tooltip>
                             ) : (
-                                <Popconfirm title="Cancel this reservation?" onConfirm={() => handleDelete(record.reservationId || record.id)}>
-                                    <Button type="text" danger icon={<DeleteOutlined />} size="small" />
-                                </Popconfirm>
+                                <Tooltip title={isCheckedIn ? "Can not cancel reservation after the vehicle has checked in!" : "Cancel Reservation"}>
+                                    <span style={{ display: 'inline-block' }}>
+                                        <Popconfirm title="Cancel this reservation?" onConfirm={() => handleDelete(record.reservationId || record.id)} disabled={isCheckedIn}>
+                                            <Button type="text" danger icon={<DeleteOutlined />} size="small" disabled={isCheckedIn} />
+                                        </Popconfirm>
+                                    </span>
+                                </Tooltip>
                             )
                         )}
                     </Space>
@@ -692,7 +700,7 @@ const ReservationPage = () => {
                             <Descriptions.Item label="Start Time">{viewingReservation.reservationStart || viewingReservation.startTime ? new Date(viewingReservation.reservationStart || viewingReservation.startTime).toLocaleString() : 'N/A'}</Descriptions.Item>
                             <Descriptions.Item label="End Time">{viewingReservation.reservationEnd || viewingReservation.endTime ? new Date(viewingReservation.reservationEnd || viewingReservation.endTime).toLocaleString() : 'N/A'}</Descriptions.Item>
                             <Descriptions.Item label="Status">
-                                <Tag color={String(viewingReservation.status).toUpperCase() === 'CONFIRMED' || String(viewingReservation.status).toUpperCase() === 'COMPLETED' ? 'success' : String(viewingReservation.status).toUpperCase() === 'CANCELLED' || isReservationExpired(viewingReservation) ? 'error' : 'warning'}>
+                                <Tag color={String(viewingReservation.status).toUpperCase() === 'CONFIRMED' || String(viewingReservation.status).toUpperCase() === 'COMPLETED' || String(viewingReservation.status).toUpperCase() === 'CHECKED_IN' ? 'success' : String(viewingReservation.status).toUpperCase() === 'CANCELLED' || isReservationExpired(viewingReservation) ? 'error' : 'warning'}>
                                     {isReservationExpired(viewingReservation) ? 'EXPIRED' : String(viewingReservation.status).toUpperCase()}
                                 </Tag>
                             </Descriptions.Item>
@@ -703,6 +711,9 @@ const ReservationPage = () => {
                             </Descriptions.Item>
                             <Descriptions.Item label="Estimated Fee">
                                 {viewingReservation.estimatedFee ? `${viewingReservation.estimatedFee.toLocaleString()} VND` : 'N/A'}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Created At">
+                                {viewingReservation.createdAt ? new Date(viewingReservation.createdAt).toLocaleString() : 'N/A'}
                             </Descriptions.Item>
                         </Descriptions>
                     </div>
@@ -730,9 +741,17 @@ const ReservationPage = () => {
                             <CheckCircleOutlined style={{ fontSize: 40, color: token.colorSuccess }} />
                         </div>
                         <Title level={4} style={{ color: token.colorSuccess }}>Payment Successful!</Title>
-                        <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
-                            Your transaction has been securely completed.<br />
-                            Your reservation is now confirmed.
+                        <Text style={{ display: 'block', marginTop: 8, fontSize: '1.05rem', color: '#1f1f1f', fontWeight: 500 }}>
+                            {(() => {
+                                const res = safeReservations.find(r => (r.reservationId || r.id) === payingReservationId);
+                                const timeStr = res?.reservationStart ? dayjs(res.reservationStart).format('DD/MM/YYYY HH:mm') : 'N/A';
+                                return (
+                                    <>
+                                        Your <strong><u>Reservation ID: #{payingReservationId}</u></strong> will be valid 30 minutes before <strong>({timeStr})</strong>.<br />
+                                        Please check-in on time.
+                                    </>
+                                );
+                            })()}
                         </Text>
                         <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
                     </div>

@@ -37,25 +37,29 @@ public class SubscriptionService {
     private final SecurityUtils securityUtils;
 
     //================================================================================================================
-    // C: CREATE - Tạo vé tháng mới
+    // C: CREATE - Tạo vé tháng mới (Luồng Đăng ký Vé Tháng)
     //================================================================================================================
     public SubscriptionResponse createSubscription(SubscriptionRequest request) {
+        // 1. Kiểm tra xem user có quyền truy cập dữ liệu của userId này không (Bảo mật)
         securityUtils.checkDataOwnership(request.getUserId());
-        // Tìm User theo userId, nếu không tìm thấy thì ném exception
+        
+        // 2. Tìm User theo userId, nếu không tìm thấy thì ném exception
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "User not found with id: " + request.getUserId()));
 
-        // Tìm Vehicle theo vehicleId
+        // 3. Tìm Vehicle theo vehicleId
         Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Vehicle not found with id: " + request.getVehicleId()));
 
+        // 4. KIỂM TRA ĐIỀU KIỆN TIÊN QUYẾT: Xe phải được Manager duyệt (APPROVED) mới được mua vé tháng
         if (!"APPROVED".equals(vehicle.getStatus())) {
             throw new IllegalArgumentException("Phương tiện chưa được duyệt (APPROVED), không thể đăng ký vé tháng.");
         }
 
-        // Kiểm tra xem xe này đã có vé tháng ACTIVE hoặc PENDING chưa
+        // 5. Kiểm tra xem xe này đã có vé tháng ACTIVE (đang dùng) hoặc PENDING (đang chờ thanh toán) chưa
+        // Mỗi xe chỉ được phép có tối đa 1 vé tháng đang hoạt động tại 1 thời điểm
         List<MonthlySubscription> existingSubs = repository.findByVehicle_VehicleId(request.getVehicleId());
         boolean hasActiveOrPendingSub = existingSubs.stream()
                 .anyMatch(sub -> SubscriptionStatus.ACTIVE.name().equals(sub.getStatus()) 
@@ -90,31 +94,34 @@ public class SubscriptionService {
         subscription.setStartDate(request.getStartDate());
         subscription.setEndDate(request.getStartDate().plusDays(30));
 
-        // Lấy giá MonthlyPrice từ PricingPolicy đang active (ghi đè request.getMonthlyFee() để bảo mật)
+        // 7. Lấy giá MonthlyPrice từ PricingPolicy đang active
+        // Lưu ý: Không tin tưởng monthlyFee gửi từ Frontend (request.getMonthlyFee()) để chống hack đổi giá
+        // Thay vào đó, query DB để lấy giá chuẩn theo loại xe (Xe máy/Ô tô) tại thời điểm hiện tại
         PricingPolicy policy = pricingPolicyRepository.findActivePolicyByVehicleTypeId(
                 Long.valueOf(vehicle.getVehicleType().getVehicleTypeId()), LocalDateTime.now())
                 .orElseThrow(() -> new IllegalArgumentException("No active pricing policy for this vehicle type."));
         
         if (policy.getMonthlyPrice() == null) {
-            subscription.setMonthlyFee(request.getMonthlyFee()); // Fallback
+            subscription.setMonthlyFee(request.getMonthlyFee()); // Fallback nếu không có cấu hình giá
         } else {
             subscription.setMonthlyFee(policy.getMonthlyPrice());
         }
 
-        // Vé mới tạo -> trạng thái = PENDING (chờ duyệt)
+        // 8. Vé mới tạo sẽ có trạng thái là PENDING (chờ thanh toán qua VNPay)
         subscription.setStatus(SubscriptionStatus.PENDING.name());
 
         // Set thời gian tạo
         subscription.setCreatedAt(LocalDateTime.now());
 
-        // Lưu vào database
+        // 9. Lưu vé tháng vào database
         MonthlySubscription saved = repository.save(subscription);
 
-        // Tự động tạo Payment với trạng thái PENDING
+        // 10. Tự động sinh ra 1 Hóa Đơn (Payment) với trạng thái PENDING
+        // Khi user thanh toán VNPay, PaymentStatus sẽ thành PAID, và lúc đó SubscriptionStatus mới thành ACTIVE
         Payment payment = new Payment();
         payment.setSubscription(saved);
         payment.setAmount(saved.getMonthlyFee());
-        payment.setPaymentMethod("VNPAY"); // Hoặc mặc định tùy ý
+        payment.setPaymentMethod("VNPAY"); // Phương thức thanh toán mặc định
         payment.setPaymentStatus(PaymentStatus.PENDING.name());
         Payment savedPayment = paymentRepository.save(payment);
 
@@ -270,7 +277,8 @@ public class SubscriptionService {
     }
 
     //================================================================================================================
-    // CANCEL - Người dùng tự hủy vé tháng (Tính phí Prorated)
+    // CANCEL - Người dùng tự hủy vé tháng (Tính phí Prorated - Tính tiền theo ngày)
+    // Luồng này xảy ra khi User nhấn nút "Hủy vé tháng" trên giao diện
     //================================================================================================================
     public SubscriptionResponse cancelSubscriptionByUser(Integer id) {
         MonthlySubscription subscription = repository.findById(id)
@@ -280,6 +288,8 @@ public class SubscriptionService {
             securityUtils.checkDataOwnership(subscription.getUser().getUserId());
         }
 
+        // Nếu vé tháng đang PENDING (Chưa thanh toán)
+        // -> Hủy luôn vé tháng và đánh dấu Hóa Đơn (Payment) là FAILED
         if (SubscriptionStatus.PENDING.name().equals(subscription.getStatus())) {
             subscription.setStatus(SubscriptionStatus.CANCELLED.name());
             repository.save(subscription);
@@ -296,25 +306,28 @@ public class SubscriptionService {
             throw new IllegalArgumentException("Chỉ có thể hủy vé tháng đang hoạt động (ACTIVE) hoặc chờ duyệt (PENDING).");
         }
 
-        // 1. Chốt ngày kết thúc là hôm nay
+        // 1. Chốt ngày kết thúc là hôm nay (User hủy ngày nào thì hết hạn ngày đó)
         java.time.LocalDate today = java.time.LocalDate.now();
         subscription.setEndDate(today);
         subscription.setStatus(SubscriptionStatus.CANCELLED.name());
         
-        // 2. Tính tiền theo ngày sử dụng trong tháng hiện tại
+        // 2. Tính tiền theo số ngày ĐÃ SỬ DỤNG trong tháng hiện tại (Prorated Fee)
         java.time.YearMonth currentMonth = java.time.YearMonth.from(today);
-        int daysInMonth = currentMonth.lengthOfMonth();
+        int daysInMonth = currentMonth.lengthOfMonth(); // Lấy tổng số ngày của tháng (28, 29, 30 hoặc 31)
         
         java.time.LocalDate billingStartDate = subscription.getStartDate();
         if (billingStartDate.isBefore(currentMonth.atDay(1))) {
-            billingStartDate = currentMonth.atDay(1); // Nếu vé bắt đầu từ tháng trước, chỉ tính từ đầu tháng này
+            billingStartDate = currentMonth.atDay(1); // Nếu vé bắt đầu từ tháng trước, tháng này chỉ tính từ ngày 1
         }
 
+        // Số ngày đã dùng = (Hôm nay) - (Ngày bắt đầu tính) + 1
         long usedDays = java.time.temporal.ChronoUnit.DAYS.between(billingStartDate, today) + 1;
         if (usedDays < 0) usedDays = 0;
 
         java.math.BigDecimal monthlyFee = subscription.getMonthlyFee();
+        // Giá 1 ngày = Phí tháng / Số ngày trong tháng
         java.math.BigDecimal dailyRate = monthlyFee.divide(java.math.BigDecimal.valueOf(daysInMonth), 2, java.math.RoundingMode.HALF_UP);
+        // Số tiền phải trả = Giá 1 ngày * Số ngày đã dùng
         java.math.BigDecimal proratedFee = dailyRate.multiply(java.math.BigDecimal.valueOf(usedDays));
 
         repository.save(subscription);

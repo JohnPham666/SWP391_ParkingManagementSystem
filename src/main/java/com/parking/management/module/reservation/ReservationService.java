@@ -201,6 +201,11 @@ public class ReservationService {
             securityUtils.checkDataOwnership(reservation.getUser().getUserId());
         }
 
+        String currentStatus = reservation.getStatus();
+        if (!"PENDING".equals(currentStatus) && !"CONFIRMED".equals(currentStatus)) {
+            throw new IllegalArgumentException("Cannot cancel this reservation because it is already " + currentStatus);
+        }
+
         reservation.setStatus("CANCELLED");
 
         ParkingSlot slot = reservation.getSlot();
@@ -212,12 +217,12 @@ public class ReservationService {
         // Cập nhật trạng thái Payment liên quan
         paymentRepository.findFirstByReservation_ReservationIdOrderByPaymentIdDesc(reservation.getReservationId())
                 .ifPresent(payment -> {
-                    String currentStatus = payment.getPaymentStatus();
-                    if (PaymentStatus.PAID.name().equals(currentStatus)) {
+                    String paymentStatus = payment.getPaymentStatus();
+                    if (PaymentStatus.PAID.name().equals(paymentStatus)) {
                         // Đã thanh toán rồi -> cần hoàn tiền, Staff/Admin xử lý thủ công
                         payment.setPaymentStatus(PaymentStatus.REFUND_PENDING.name());
                         paymentRepository.save(payment);
-                    } else if (PaymentStatus.PENDING.name().equals(currentStatus)) {
+                    } else if (PaymentStatus.PENDING.name().equals(paymentStatus)) {
                         // Chưa thanh toán -> hủy luôn
                         payment.setPaymentStatus(PaymentStatus.FAILED.name());
                         paymentRepository.save(payment);
