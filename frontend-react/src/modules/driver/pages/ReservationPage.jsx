@@ -497,7 +497,7 @@ const ReservationPage = () => {
 
     const filteredSlots = safeSlots.filter(s => {
         const sType = (s.vehicleTypeName || '').toLowerCase();
-        return !sType.includes('motor') && !sType.includes('xe máy') && String(s.status).toUpperCase() === 'AVAILABLE';
+        return !sType.includes('motor') && !sType.includes('xe máy') && !sType.includes('bicycle') && !sType.includes('xe đạp') && !sType.includes('bike') && String(s.status).toUpperCase() === 'AVAILABLE';
     });
 
     // Xử lý logic tự động gán slot hoặc vô hiệu hóa chọn slot dựa vào loại xe (Xe máy không cần chọn slot cụ thể)
@@ -508,7 +508,9 @@ const ReservationPage = () => {
             setSelectedVehicleType(vTypeName);
             
             const isMotorbike = vTypeName.includes('motor') || vTypeName.includes('xe máy');
-            if (!isMotorbike) {
+            const isBicycle = vTypeName.includes('bicycle') || vTypeName.includes('xe đạp') || vTypeName.includes('bike');
+            
+            if (!isMotorbike && !isBicycle) {
                 const currentSlotId = form.getFieldValue('slotId');
                 const isValidSlot = currentSlotId && filteredSlots.some(s => (s.slotId || s.id) === currentSlotId);
                 
@@ -621,14 +623,16 @@ const ReservationPage = () => {
                         <Select size="large" placeholder="Choose your vehicle" onChange={handleVehicleChange}>
                             {safeVehicles.map(v => {
                                 const vId = v.vehicleId || v.id;
+                                const vTypeName = (v.vehicleType?.typeName || v.vehicleType?.name || v.vehicleTypeName || '').toLowerCase();
+                                const isBicycle = vTypeName.includes('bicycle') || vTypeName.includes('xe đạp') || vTypeName.includes('bike');
                                 const hasSub = subscriptions.some(s => {
                                     const subVid = s.vehicle?.vehicleId || s.vehicle?.id || s.vehicleId;
                                     const status = String(s.status).toUpperCase();
                                     return subVid === vId && (status === 'ACTIVE' || status === 'PENDING');
                                 });
                                 return (
-                                    <Select.Option key={vId} value={vId} disabled={hasSub}>
-                                        {v.licensePlate} ({v.brand || 'N/A'}) {hasSub ? ' (Has Monthly Pass)' : ''}
+                                    <Select.Option key={vId} value={vId} disabled={hasSub || isBicycle}>
+                                        {v.licensePlate} ({v.brand || 'N/A'}) {hasSub ? ' (Has Monthly Pass)' : isBicycle ? ' (Bicycles cannot be reserved)' : ''}
                                     </Select.Option>
                                 );
                             })}
@@ -639,14 +643,14 @@ const ReservationPage = () => {
                         name="slotId" 
                         label="Select Slot" 
                         rules={[{ 
-                            required: selectedVehicleType && !selectedVehicleType.includes('motor') && !selectedVehicleType.includes('xe máy'), 
+                            required: selectedVehicleType && !selectedVehicleType.includes('motor') && !selectedVehicleType.includes('xe máy') && !selectedVehicleType.includes('bicycle') && !selectedVehicleType.includes('xe đạp') && !selectedVehicleType.includes('bike'), 
                             message: 'Please select a parking slot' 
                         }]}
                     >
                         <Select 
                             size="large" 
-                            placeholder={selectedVehicleType && (selectedVehicleType.includes('motor') || selectedVehicleType.includes('xe máy')) ? "Motorbikes do not require a specific slot" : "Choose a parking slot"}
-                            disabled={selectedVehicleType && (selectedVehicleType.includes('motor') || selectedVehicleType.includes('xe máy'))}
+                            placeholder={selectedVehicleType && (selectedVehicleType.includes('motor') || selectedVehicleType.includes('xe máy')) ? "Motorbikes do not require a specific slot" : selectedVehicleType && (selectedVehicleType.includes('bicycle') || selectedVehicleType.includes('xe đạp') || selectedVehicleType.includes('bike')) ? "Bicycles cannot be reserved" : "Choose a parking slot"}
+                            disabled={selectedVehicleType && (selectedVehicleType.includes('motor') || selectedVehicleType.includes('xe máy') || selectedVehicleType.includes('bicycle') || selectedVehicleType.includes('xe đạp') || selectedVehicleType.includes('bike'))}
                         >
                             <Select.Option value="">-- Auto-assign (Any available) --</Select.Option>
                             {filteredSlots.map(s => (
