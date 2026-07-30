@@ -18,9 +18,11 @@ public class SubscriptionJob {
     private final EmailService emailService;
 
     /**
-     * Chạy mỗi ngày vào lúc 08:00 sáng.
-     * Tìm tất cả các vé tháng đang ACTIVE và hết hạn vào ngày hôm nay.
-     * Gửi email thông báo hết hạn và hướng dẫn gia hạn.
+     * TỰ ĐỘNG CHẠY (CRON JOB): Mỗi ngày vào lúc 08:00 sáng.
+     * Mục đích:
+     * 1. Tìm tất cả các vé tháng đang ACTIVE và hết hạn vào ngày hôm nay.
+     * 2. Đổi trạng thái vé từ ACTIVE sang EXPIRED (để chặn cổng ra vào bãi xe đối với xe này).
+     * 3. Gửi email thông báo hết hạn và hướng dẫn gia hạn cho khách hàng.
      */
     @Scheduled(cron = "0 0 8 * * ?")
     public void sendExpirationEmails() {

@@ -24,8 +24,10 @@ public class SubscriptionBillingJob {
     private final PaymentRepository paymentRepository;
 
     /**
-     * Chạy vào lúc 00:00:00 ngày 1 hàng tháng.
-     * Quét tất cả vé tháng đang ACTIVE và xuất hóa đơn cho tháng trước.
+     * TỰ ĐỘNG CHẠY (CRON JOB): Vào lúc 00:00:00 ngày mùng 1 hàng tháng.
+     * Mục đích (Chốt cước kế toán): 
+     * Quét tất cả vé tháng đang ACTIVE và tính xem trong tháng vừa rồi user đã sử dụng bao nhiêu ngày,
+     * từ đó sinh ra một Hóa Đơn (Payment) nội bộ cho tháng trước để lưu trữ doanh thu/đối soát.
      */
     @Scheduled(cron = "0 0 0 1 * ?")
     public void generateMonthlyInvoices() {
