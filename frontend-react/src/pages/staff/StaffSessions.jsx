@@ -251,21 +251,25 @@ const StaffSessions = () => {
 
       // 3. Lấy thời gian hiện tại làm thời gian xe ra
       const exitTimeIso = new Date().toISOString();
-      let calculatedFee = 0;
+      let calculatedFee = targetSession.finalFee !== null && targetSession.finalFee !== undefined
+          ? targetSession.finalFee
+          : (targetSession.estimatedFee !== null && targetSession.estimatedFee !== undefined
+              ? targetSession.estimatedFee
+              : 0);
 
-      // 4. Nếu xe không có vé tháng (hasActiveSubscription = false) thì mới cần tính phí đỗ xe
-      if (!targetSession.hasActiveSubscription) {
+      // 4. Nếu xe không có vé tháng (hasActiveSubscription = false) và backend chưa trả về giá thì mới tính phí
+      if (!targetSession.hasActiveSubscription && targetSession.finalFee === null && targetSession.estimatedFee === null) {
         try {
           // Gọi API tính phí dựa vào loại xe, giờ vào và giờ ra
           const feeRes = await pricingApi.calculateFee({
             vehicleTypeId: targetSession.vehicleTypeId,
+            vehicleId: targetSession.vehicleId || targetSession.vehicle?.vehicleId,
             entryTime: dayjs(targetSession.entryTime).format('YYYY-MM-DDTHH:mm:ss'),
             exitTime: dayjs(exitTimeIso).format('YYYY-MM-DDTHH:mm:ss')
           });
           calculatedFee = feeRes.data.data.finalFee;
         } catch (e) {
           console.error("Fee calculation failed", e);
-          message.error("Lỗi tính phí từ Backend: " + (e.response?.data?.message || e.message));
         }
       }
 

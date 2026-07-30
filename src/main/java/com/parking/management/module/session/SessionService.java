@@ -46,6 +46,7 @@ public class SessionService {
     private final SecurityUtils securityUtils;
     private final S3Service s3Service;
     private final com.parking.management.module.config.SystemConfigService configService;
+    private final com.parking.management.module.payment.PaymentRepository paymentRepository;
 
     @Value("${file.upload-dir.sessions:uploads/sessions}")
     private String uploadDir;
@@ -303,142 +304,20 @@ public class SessionService {
         //Lấy vehicleTypeId từ vehicle của session, phục vụ cho việc thanh toán dựa theo loại xe
         Long vehicleTypeId = Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId());
 
-        // Kiểm tra xem session này có reservation đi kèm không
+        // Khởi tạo FinalFee bẳng hàm tính toán tập trung (hỗ trợ cả vé tháng, reservation, walk-in)
+        BigDecimal calculatedFinalFee = calculateExpectedFee(session, exitTime);
+
+        // Dọn dẹp dữ liệu (Clean-up): Nếu khách dùng tính năng Đặt chỗ (Reservation) để giữ slot, 
+        // ta bắt buộc phải "đóng" đơn đặt chỗ đó lại (chuyển sang COMPLETED) khi khách đi ra.
         java.util.Optional<Reservation> resOpt = reservationRepository
                 .findFirstByVehicle_VehicleIdAndSlot_SlotIdAndStatus(
                         session.getVehicle().getVehicleId(),
                         slot.getSlotId(),
                         "CHECKED_IN");
-
-        //Khởi tạo FinalFee
-        BigDecimal calculatedFinalFee;
-
-        //Chia thành 3 trường hợp: có vé tháng, có reservation, không có vé tháng không có reservation
-        //1. Xử lý vé tháng (Subscription)
-        //Tìm vé tháng của vehicle id trên
-        List<MonthlySubscription> activeSubs = subscriptionRepository.findByVehicle_VehicleId(session.getVehicle().getVehicleId())
-                .stream()
-                .filter(sub -> "ACTIVE".equals(sub.getStatus()) || "EXPIRED".equals(sub.getStatus()))
-                .filter(sub -> {
-                    java.time.LocalDate entryDate = session.getEntryTime().toLocalDate();
-                    if (entryDate.isBefore(sub.getStartDate())) return false;
-                    if (!entryDate.isAfter(sub.getEndDate())) return true; // Trong hạn lúc check-in
-                    return false;
-                })
-                .toList();
-
-        //Nếu có tồn tại vé tháng
-        if (!activeSubs.isEmpty()) {
-            // Khách có vé tháng hợp lệ -> Không tính phí đỗ xe vì họ đã thanh toán vé tháng đó rồi
-            calculatedFinalFee = BigDecimal.ZERO;
-
-            // Dọn dẹp dữ liệu (Clean-up): Nếu khách dùng tính năng Đặt chỗ (Reservation) để giữ slot, 
-            // ta bắt buộc phải "đóng" đơn đặt chỗ đó lại (chuyển sang COMPLETED) khi khách đi ra.
-            // Nếu không, đơn sẽ bị treo mãi mãi ở trạng thái CONFIRMED gây kẹt dữ liệu, mặc dù khách không phải trả thêm tiền.
-            if (resOpt.isPresent()) {
-                Reservation r = resOpt.get();
-                r.setStatus("COMPLETED");
-                reservationRepository.save(r);
-            }
-        } else {
-            // Exceptional Case 2: Khách huỷ vé tháng trong khi xe đang đỗ trong bãi
-            List<MonthlySubscription> cancelledSubsDuringSession = subscriptionRepository.findByVehicle_VehicleId(session.getVehicle().getVehicleId())
-                    .stream()
-                    .filter(sub -> "CANCELLED".equals(sub.getStatus()))
-                    .filter(sub -> sub.getEndDate() != null && !sub.getEndDate().isBefore(session.getEntryTime().toLocalDate()))
-                    .toList();
-            
-            if (!cancelledSubsDuringSession.isEmpty()) {
-                // Khách có vé tháng hợp lệ lúc check-in nhưng đã huỷ.
-                // Vé tháng đã tính tiền prorated đến hết ngày EndDate.
-                // Nếu khách ra sau ngày EndDate, tính phí walk-in từ đầu ngày hôm sau.
-                MonthlySubscription cancelledSub = cancelledSubsDuringSession.get(0);
-                LocalDateTime feeStartTime = cancelledSub.getEndDate().plusDays(1).atStartOfDay();
-                
-                if (exitTime.isAfter(feeStartTime)) {
-                    FeeCalculationResponse feeResponse = pricingService.calculateFee(
-                            vehicleTypeId,
-                            feeStartTime,
-                            exitTime,
-                            null,
-                            session.getVehicle() != null ? session.getVehicle().getVehicleId() : null);
-                    calculatedFinalFee = feeResponse.getFinalFee();
-                } else {
-                    calculatedFinalFee = BigDecimal.ZERO;
-                }
-                
-                if (resOpt.isPresent()) {
-                    Reservation r = resOpt.get();
-                    r.setStatus("COMPLETED");
-                    reservationRepository.save(r);
-                }
-            } else if (resOpt.isPresent()) {//nếu vé tháng ko tồn tại thì sẽ kiểm tra tới reservation
-                Reservation r = resOpt.get();
-                r.setStatus("COMPLETED");
-                reservationRepository.save(r);
-
-                /*
-                 * Có reservation -> Tính phí 2 giai đoạn:
-                 *
-                 * Giai đoạn 1 (normal): entryTime -> ReservationEnd
-                 * rush/offpeak rate + BasePrice
-                 *
-                 * Giai đoạn 2 (overtime): ReservationEnd -> exitTime (nếu xe ra trễ)
-                 * OvertimeFeePerHour x số giờ quá
-                 *
-                 * Sau đó trừ đi phần đã thanh toán khi đặt chỗ.
-                 */
-                // Bước 1: Tính tổng chi phí thực tế mà khách phải chịu từ lúc Vào cổng đến lúc Ra cổng.
-                // Nếu khách ra trễ hơn ReservationEnd, hàm này sẽ tự động tính thêm tiền phạt quá giờ (overtime).
-                // Grace period: Miễn phí nếu ra trễ trong khoảng thời gian cho phép
-                LocalDateTime effectiveExitTime = exitTime;
-                int graceMinutes = configService.getInt("LATE_CHECKOUT_GRACE_MINUTES", 15);
-                if (exitTime.isAfter(r.getReservationEnd()) && exitTime.isBefore(r.getReservationEnd().plusMinutes(graceMinutes))) {
-                    effectiveExitTime = r.getReservationEnd();
-                }
-
-                FeeCalculationResponse feeResponse = pricingService.calculateFee(
-                        vehicleTypeId,
-                        session.getEntryTime(),
-                        effectiveExitTime,
-                        r.getReservationEnd(), // overtimeStart = hết giờ đặt chỗ
-                        session.getVehicle() != null ? session.getVehicle().getVehicleId() : null
-                );
-
-                // Bước 2: Tính lại số tiền khách ĐÃ TRẢ (hoặc đã cọc) lúc tạo đơn Đặt chỗ trước đó.
-                // Bằng cách chạy lại hàm tính tiền cho đúng khoảng thời gian đặt giữ chỗ (Start -> End).
-                // Phần phí reservation đã thu trước đó (để trừ ra, tránh tính 2 lần)
-                FeeCalculationResponse reservationFeeResponse = pricingService.calculateFee(
-                        vehicleTypeId,
-                        r.getReservationStart(),
-                        r.getReservationEnd(),
-                        null,
-                        session.getVehicle() != null ? session.getVehicle().getVehicleId() : null);
-                BigDecimal reservationAlreadyPaid = reservationFeeResponse.getFinalFee();
-
-                // Bước 3: Cấn trừ tiền (Số tiền cần trả thêm = Tổng phí đỗ xe thực tế - Tiền đã cọc lúc đặt chỗ)
-                calculatedFinalFee = feeResponse.getFinalFee().subtract(reservationAlreadyPaid);
-                
-                // Bước 4: Xử lý trường hợp khách về sớm (Tiền trả thêm bị ÂM)
-                // Nếu khách về sớm hơn giờ đặt, hệ thống ép tiền trả thêm về 0 đồng (Cho qua cổng luôn, KHÔNG HOÀN LẠI tiền thừa)
-                if (calculatedFinalFee.compareTo(BigDecimal.ZERO) < 0) {
-                    calculatedFinalFee = BigDecimal.ZERO;
-                }
-
-            } else {
-                //3. Không có reservation và không có subscription
-                /*
-                 * Walk-in hoặc không có reservation
-                 * FinalFee = BasePrice + HourlyFee (capped by MaxDailyRate)
-                 */
-                FeeCalculationResponse feeResponse = pricingService.calculateFee(
-                        vehicleTypeId,
-                        session.getEntryTime(),
-                        exitTime,
-                        null,
-                        session.getVehicle() != null ? session.getVehicle().getVehicleId() : null);
-                calculatedFinalFee = feeResponse.getFinalFee();
-            }
+        if (resOpt.isPresent()) {
+            Reservation r = resOpt.get();
+            r.setStatus("COMPLETED");
+            reservationRepository.save(r);
         }
 
         session.setFinalFee(calculatedFinalFee);
@@ -472,6 +351,20 @@ public class SessionService {
 
         //Lưu updated session
         ParkingSession updatedSession = parkingSessionRepository.save(session);
+
+        // Nếu phí đỗ xe là 0đ (khách dùng vé tháng hợp lệ hoặc đã cọc đủ bằng reservation), 
+        // tự động lưu 1 bản ghi Payment 0đ trạng thái PAID để lưu vết lịch sử cho báo cáo và hóa đơn.
+        if (calculatedFinalFee.compareTo(BigDecimal.ZERO) == 0) {
+            if (paymentRepository.findFirstBySession_SessionIdOrderByPaymentIdDesc(updatedSession.getSessionId()).isEmpty()) {
+                com.parking.management.module.payment.Payment zeroPayment = new com.parking.management.module.payment.Payment();
+                zeroPayment.setSession(updatedSession);
+                zeroPayment.setAmount(BigDecimal.ZERO);
+                zeroPayment.setPaymentMethod(com.parking.management.module.payment.PaymentMethod.CASH.name());
+                zeroPayment.setPaymentStatus(com.parking.management.module.payment.PaymentStatus.PAID.name());
+                zeroPayment.setPaidAt(LocalDateTime.now());
+                paymentRepository.save(zeroPayment);
+            }
+        }
 
         //Convert/map to response and return to front end/ swagger
         return mapEntityToResponse(updatedSession);
@@ -715,6 +608,75 @@ public class SessionService {
         }
     }
 
+    public BigDecimal calculateExpectedFee(ParkingSession session, LocalDateTime exitTime) {
+        if (session.getSlot() == null || session.getVehicle() == null || session.getEntryTime() == null) {
+            return BigDecimal.ZERO;
+        }
+        Long vehicleTypeId = Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId());
+        Integer vehicleId = session.getVehicle().getVehicleId();
+
+        // 1. Xử lý vé tháng
+        List<MonthlySubscription> activeSubs = subscriptionRepository.findByVehicle_VehicleId(vehicleId)
+                .stream()
+                .filter(sub -> "ACTIVE".equals(sub.getStatus()) || "EXPIRED".equals(sub.getStatus()))
+                .filter(sub -> {
+                    java.time.LocalDate entryDate = session.getEntryTime().toLocalDate();
+                    if (entryDate.isBefore(sub.getStartDate())) return false;
+                    return !entryDate.isAfter(sub.getEndDate());
+                })
+                .toList();
+
+        if (!activeSubs.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        // Exceptional Case: Khách huỷ vé tháng trong khi xe đang đỗ trong bãi
+        List<MonthlySubscription> cancelledSubsDuringSession = subscriptionRepository.findByVehicle_VehicleId(vehicleId)
+                .stream()
+                .filter(sub -> "CANCELLED".equals(sub.getStatus()))
+                .filter(sub -> sub.getEndDate() != null && !sub.getEndDate().isBefore(session.getEntryTime().toLocalDate()))
+                .toList();
+        
+        java.util.Optional<Reservation> resOpt = reservationRepository
+                .findFirstByVehicle_VehicleIdAndSlot_SlotIdAndStatus(
+                        vehicleId,
+                        session.getSlot().getSlotId(),
+                        "CHECKED_IN");
+
+        if (!cancelledSubsDuringSession.isEmpty()) {
+            MonthlySubscription cancelledSub = cancelledSubsDuringSession.get(0);
+            LocalDateTime feeStartTime = cancelledSub.getEndDate().plusDays(1).atStartOfDay();
+            if (exitTime.isAfter(feeStartTime)) {
+                FeeCalculationResponse feeResponse = pricingService.calculateFee(
+                        vehicleTypeId, feeStartTime, exitTime, null, vehicleId);
+                return feeResponse.getFinalFee();
+            } else {
+                return BigDecimal.ZERO;
+            }
+        } else if (resOpt.isPresent()) {
+            Reservation r = resOpt.get();
+            LocalDateTime effectiveExitTime = exitTime;
+            int graceMinutes = configService.getInt("LATE_CHECKOUT_GRACE_MINUTES", 15);
+            if (exitTime.isAfter(r.getReservationEnd()) && exitTime.isBefore(r.getReservationEnd().plusMinutes(graceMinutes))) {
+                effectiveExitTime = r.getReservationEnd();
+            }
+
+            FeeCalculationResponse feeResponse = pricingService.calculateFee(
+                    vehicleTypeId, session.getEntryTime(), effectiveExitTime, r.getReservationEnd(), vehicleId);
+            FeeCalculationResponse reservationFeeResponse = pricingService.calculateFee(
+                    vehicleTypeId, r.getReservationStart(), r.getReservationEnd(), null, vehicleId);
+            BigDecimal calculatedFinalFee = feeResponse.getFinalFee().subtract(reservationFeeResponse.getFinalFee());
+            if (calculatedFinalFee.compareTo(BigDecimal.ZERO) < 0) {
+                calculatedFinalFee = BigDecimal.ZERO;
+            }
+            return calculatedFinalFee;
+        } else {
+            FeeCalculationResponse feeResponse = pricingService.calculateFee(
+                    vehicleTypeId, session.getEntryTime(), exitTime, null, vehicleId);
+            return feeResponse.getFinalFee();
+        }
+    }
+
     // SUPPORTIVE FUNCTION: map entity to response
     private SessionResponse mapEntityToResponse(ParkingSession session) {
         SessionResponse response = new SessionResponse();
@@ -752,8 +714,20 @@ public class SessionService {
         response.setEntryImage(session.getEntryImage());
         response.setExitImage(session.getExitImage());
         response.setStatus(session.getStatus());
-        response.setEstimatedFee(session.getEstimatedFee());
-        response.setFinalFee(session.getFinalFee());
+
+        if (SessionStatus.PARKING.name().equals(session.getStatus())) {
+            try {
+                BigDecimal currentExpectedFee = calculateExpectedFee(session, java.time.LocalDateTime.now());
+                response.setEstimatedFee(currentExpectedFee);
+                response.setFinalFee(currentExpectedFee);
+            } catch (Exception e) {
+                response.setEstimatedFee(session.getEstimatedFee() != null ? session.getEstimatedFee() : BigDecimal.ZERO);
+                response.setFinalFee(session.getFinalFee() != null ? session.getFinalFee() : BigDecimal.ZERO);
+            }
+        } else {
+            response.setEstimatedFee(session.getEstimatedFee());
+            response.setFinalFee(session.getFinalFee());
+        }
 
         if (session.getCreatedBy() != null) {
             response.setCreatedBy(session.getCreatedBy().getFullName());
@@ -766,14 +740,13 @@ public class SessionService {
         // Kiểm tra vé tháng (Monthly Subscription)
         // Giúp staff/driver biết ngay lúc check-in rằng xe có vé tháng
         if (session.getVehicle() != null) {
+            java.time.LocalDate checkDate = session.getEntryTime() != null ? session.getEntryTime().toLocalDate() : java.time.LocalDate.now();
             boolean hasActiveSubscription = subscriptionRepository.findByVehicle_VehicleId(session.getVehicle().getVehicleId())
                     .stream()
-                    .filter(sub -> "ACTIVE".equals(sub.getStatus()))
+                    .filter(sub -> "ACTIVE".equals(sub.getStatus()) || ("EXPIRED".equals(sub.getStatus()) && session.getEntryTime() != null))
                     .anyMatch(sub -> {
-                        java.time.LocalDate now = java.time.LocalDate.now();
-                        if (now.isBefore(sub.getStartDate())) return false;
-                        if (!now.isAfter(sub.getEndDate())) return true;
-                        return false;
+                        if (checkDate.isBefore(sub.getStartDate())) return false;
+                        return !checkDate.isAfter(sub.getEndDate());
                     });
             
             // Exceptional case: Cancelled during session

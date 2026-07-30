@@ -86,7 +86,9 @@ public class PricingController {
         FeeCalculationResponse response = service.calculateFee(
                 request.getVehicleTypeId(),
                 request.getEntryTime(),
-                request.getExitTime());
+                request.getExitTime(),
+                request.getOvertimeStart(),
+                request.getVehicleId());
         return ApiResponse.success("Fee calculated successfully", response);
     }
 }

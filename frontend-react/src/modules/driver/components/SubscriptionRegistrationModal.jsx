@@ -57,7 +57,13 @@ const SubscriptionRegistrationModal = ({ visible, onCancel, onSuccess, initialVe
                 const res = await pricingApi.getPricingPoliciesByVehicleType(vehicle.vehicleTypeId);
                 const policies = res.data?.data || res.data || [];
                 if (policies.length > 0) {
-                    setMonthlyFee(policies[0].monthlyPrice);
+                    const now = new Date();
+                    const activePolicy = policies.find(p => {
+                        const from = p.effectiveFrom ? new Date(p.effectiveFrom) : null;
+                        const to = p.effectiveTo ? new Date(p.effectiveTo) : null;
+                        return (!from || from <= now) && (!to || to >= now);
+                    }) || policies[policies.length - 1];
+                    setMonthlyFee(activePolicy.monthlyPrice);
                 } else {
                     setMonthlyFee(null);
                 }

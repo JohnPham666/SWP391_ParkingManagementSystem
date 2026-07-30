@@ -138,7 +138,13 @@ public class PaymentService {
         payment.setSession(session);
         payment.setAmount(amountToPay);
         payment.setPaymentMethod(request.getPaymentMethod().name());
-        payment.setPaymentStatus(PaymentStatus.PENDING.name());
+        if (amountToPay.compareTo(BigDecimal.ZERO) == 0) {
+            payment.setPaymentStatus(PaymentStatus.PAID.name());
+            payment.setPaidAt(LocalDateTime.now());
+            sessionService.completeSession(session.getSessionId());
+        } else {
+            payment.setPaymentStatus(PaymentStatus.PENDING.name());
+        }
         return mapEntityToResponse(paymentRepository.save(payment));
     }
 
