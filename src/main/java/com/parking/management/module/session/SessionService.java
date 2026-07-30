@@ -496,25 +496,49 @@ public class SessionService {
         return mapEntityToResponse(session);
     }
 
+
+    /**
+     * XÁC MINH AN NINH KÉP TẠI TRẠM XUẤT BÃI (DUAL VERIFICATION)
+     *
+     * Mục tiêu nghiệp vụ (BA & Security):
+     * Trước khi cho xe ra hoặc thanh toán, hệ thống bắt buộc phải đối chiếu (cross-check) giữa:
+     * 1. Mã thẻ từ (RFID Card ID) do nhân viên bảo vệ quẹt.
+     * 2. Biển số xe do Camera OCR tại barrier quét được (hoặc nhập tay).
+     * -> Nhằm ngăn chặn tuyệt đối hiện tượng gian lận, đánh tráo xe (dùng thẻ của xe này đi lấy xe khác).
+     */
     public VerifyCheckoutResponse verifyCheckout(VerifyCheckoutRequest request) {
+        // 0. Kiểm tra đầu vào: Mã thẻ từ RFID là trường dữ liệu bắt buộc phải có để bắt đầu định danh
         if (request.getCardId() == null || request.getCardId().trim().isEmpty()) {
             throw new IllegalArgumentException("Card ID is required for verification");
         }
 
+        // Danh sách các trạng thái phiên đỗ xe hợp lệ tại cổng ra:
+        // - PARKING: Xe đang đỗ, chuẩn bị chốt giờ ra
+        // - UNPAID: Xe đã tạo hóa đơn ở bước check-out trước đó nhưng chưa hoàn tất thanh toán
         java.util.List<String> activeStatuses = java.util.Arrays.asList(SessionStatus.PARKING.name(), SessionStatus.UNPAID.name());
 
-        // 1. Tìm Session qua CardID
+        // ==========================================
+        // BƯỚC 1: TIẾP CẬN DỮ LIỆU TỪ MÃ THẺ TỪ (CARD ID)
+        // ==========================================
+        // Tìm phiên đỗ xe đang hoạt động mới nhất gắn với thẻ quẹt này (không phân biệt hoa/thường)
         java.util.Optional<ParkingSession> sessionCardOpt = parkingSessionRepository
                 .findFirstByCard_CardIdIgnoreCaseAndStatusInOrderBySessionIdDesc(
                         request.getCardId().trim(), activeStatuses);
                         
+        // Nếu quẹt một chiếc thẻ không hề có phiên đỗ xe nào trong bãi -> Báo lỗi 404 để chặn ngay từ đầu
         if (sessionCardOpt.isEmpty()) {
              throw new ResourceNotFoundException("No active parking session found for card: " + request.getCardId());
         }
         ParkingSession sessionCard = sessionCardOpt.get();
         SessionResponse responseCard = mapEntityToResponse(sessionCard);
 
-        // 2. Nếu không có biển số (xe đạp, camera lỗi) -> MANUAL VERIFICATION
+        // ==========================================
+        // BƯỚC 2: XỬ LÝ NHÁNH ĐẶC THÙ (XE ĐẠP HOẶC CAMERA LỖI) -> XÁC THỰC THỦ CÔNG
+        // ==========================================
+        // Thiết kế UX/BA linh hoạt: Đối với Xe Đạp (phương tiện không có biển số hợp lệ) hoặc khi Camera OCR cổng ra
+        // bị chói sáng/mờ không đọc được biển số (LicensePlate rỗng/null), hệ thống KHÔNG chặn hoặc báo lỗi hệ thống.
+        // -> Thay vào đó, trả về trạng thái MANUAL_VERIFICATION cùng thông tin ảnh chụp lúc vào bãi (Entry Image) 
+        // để nhân viên bảo vệ nhìn mắt thường và bấm xác nhận thủ công trên màn hình Frontend.
         if (request.getLicensePlate() == null || request.getLicensePlate().trim().isEmpty()) {
             return VerifyCheckoutResponse.builder()
                     .matchStatus("MANUAL_VERIFICATION")
@@ -524,11 +548,16 @@ public class SessionService {
                     .build();
         }
 
-        // 3. Tìm Session qua Biển số
+        // ==========================================
+        // BƯỚC 3: TIẾP CẬN DỮ LIỆU TỪ BIỂN SỐ XE (LICENSE PLATE)
+        // ==========================================
+        // Tìm phiên đỗ xe đang hoạt động tương ứng với biển số do Camera quét được
         java.util.Optional<ParkingSession> sessionPlateOpt = parkingSessionRepository
                 .findFirstByVehicle_LicensePlateIgnoreCaseAndStatusInOrderBySessionIdDesc(
                         request.getLicensePlate().trim(), activeStatuses);
 
+        // Nếu Camera quét được một biển số nhưng trong DB lại không có xe nào mang biển này đang ở trong bãi
+        // -> Báo động MISMATCH (lệch dữ liệu), nghi vấn xe sử dụng biển số giả hoặc thẻ của xe khác
         if (sessionPlateOpt.isEmpty()) {
              return VerifyCheckoutResponse.builder()
                     .matchStatus("MISMATCH")
@@ -541,7 +570,11 @@ public class SessionService {
         ParkingSession sessionPlate = sessionPlateOpt.get();
         SessionResponse responsePlate = mapEntityToResponse(sessionPlate);
 
-        // 4. So sánh
+        // ==========================================
+        // BƯỚC 4: ĐỐI CHIẾU AN NINH CHIỀU SÂU (CROSS-COMPARISON)
+        // ==========================================
+        // So sánh khóa chính Session ID tìm được từ "Thẻ quẹt" và từ "Biển số xe".
+        // Nếu 2 Session ID trùng khớp tuyệt đối -> Khách đúng xe, đúng thẻ -> Hợp lệ (MATCH)
         if (sessionCard.getSessionId().equals(sessionPlate.getSessionId())) {
              return VerifyCheckoutResponse.builder()
                     .matchStatus("MATCH")
@@ -549,6 +582,8 @@ public class SessionService {
                     .sessionFromCard(responseCard)
                     .sessionFromPlate(responsePlate)
                     .build();
+        // Nếu 2 Session ID khác nhau -> Báo động đỏ (MISMATCH)!
+        // (Ví dụ: Khách lấy thẻ của xe A máy mang quẹt để cố tình đưa xe B ô tô ra khỏi bãi)
         } else {
              return VerifyCheckoutResponse.builder()
                     .matchStatus("MISMATCH")
@@ -608,69 +643,112 @@ public class SessionService {
         }
     }
 
+
+    /**
+     * Hàm tính toán mức phí dự kiến phải trả tại thời điểm xe lấy ra (exitTime).
+     * Hàm này xử lý toàn bộ các nhánh logic của hệ thống: Vé tháng, Huỷ vé giữa chừng, Đặt chỗ trước (Reservation), và Khách vãng lai (Walk-in).
+     */
     public BigDecimal calculateExpectedFee(ParkingSession session, LocalDateTime exitTime) {
+        // 0. Kiểm tra tính hợp lệ của dữ liệu phiên đỗ xe (tránh lỗi NullPointerException)
         if (session.getSlot() == null || session.getVehicle() == null || session.getEntryTime() == null) {
             return BigDecimal.ZERO;
         }
         Long vehicleTypeId = Long.valueOf(session.getVehicle().getVehicleType().getVehicleTypeId());
         Integer vehicleId = session.getVehicle().getVehicleId();
 
-        // 1. Xử lý vé tháng
+        // ==========================================
+        // 1. KIỂM TRA TRƯỜNG HỢP XE CÓ VÉ THÁNG (MONTHLY SUBSCRIPTION)
+        // ==========================================
+        // Tìm tất cả các vé tháng của xe này đang ở trạng thái ACTIVE hoặc EXPIRED
         List<MonthlySubscription> activeSubs = subscriptionRepository.findByVehicle_VehicleId(vehicleId)
                 .stream()
                 .filter(sub -> "ACTIVE".equals(sub.getStatus()) || "EXPIRED".equals(sub.getStatus()))
                 .filter(sub -> {
+                    // Kiểm tra xem ngày xe vào bãi (entryDate) có nằm trong chu kỳ hiệu lực của vé tháng hay không
                     java.time.LocalDate entryDate = session.getEntryTime().toLocalDate();
-                    if (entryDate.isBefore(sub.getStartDate())) return false;
-                    return !entryDate.isAfter(sub.getEndDate());
+                    if (entryDate.isBefore(sub.getStartDate())) return false; // Vào bãi trước ngày có hiệu lực -> Không hợp lệ
+                    return !entryDate.isAfter(sub.getEndDate()); // Vào bãi trong hoặc đúng ngày hết hạn -> Hợp lệ
                 })
                 .toList();
 
+        // Nếu lúc vào bãi xe có vé tháng hợp lệ -> Miễn phí hoàn toàn (0đ), bất kể lúc ra là khi nào
         if (!activeSubs.isEmpty()) {
             return BigDecimal.ZERO;
         }
 
-        // Exceptional Case: Khách huỷ vé tháng trong khi xe đang đỗ trong bãi
+        // ==========================================
+        // 2. TRƯỜNG HỢP ĐẶC BIỆT: KHÁCH HUY VÉ THÁNG TRONG KHI XE ĐANG ĐỖ TRONG BÃI
+        // ==========================================
+        // Tìm các vé tháng của xe đã chuyển sang trạng thái CANCELLED
         List<MonthlySubscription> cancelledSubsDuringSession = subscriptionRepository.findByVehicle_VehicleId(vehicleId)
                 .stream()
                 .filter(sub -> "CANCELLED".equals(sub.getStatus()))
+                // Chỉ xét các vé bị hủy nhưng ngày kết thúc (endDate) từ ngày xe vào bãi trở đi
                 .filter(sub -> sub.getEndDate() != null && !sub.getEndDate().isBefore(session.getEntryTime().toLocalDate()))
                 .toList();
         
+        // Kiểm tra xem xe này có đang đỗ theo một thông tin Đặt chỗ trước (Reservation) hay không
         java.util.Optional<Reservation> resOpt = reservationRepository
                 .findFirstByVehicle_VehicleIdAndSlot_SlotIdAndStatus(
                         vehicleId,
                         session.getSlot().getSlotId(),
                         "CHECKED_IN");
 
+        // Nhánh 2: Xử lý thu phí khi khách hủy vé tháng lúc xe chưa xuất bãi
         if (!cancelledSubsDuringSession.isEmpty()) {
             MonthlySubscription cancelledSub = cancelledSubsDuringSession.get(0);
+            // Vé tháng bị hủy vẫn được miễn phí hết ngày endDate. 
+            // Bắt đầu tính phí như khách vãng lai từ 00:00:00 của ngày hôm sau (plusDays(1).atStartOfDay).
             LocalDateTime feeStartTime = cancelledSub.getEndDate().plusDays(1).atStartOfDay();
+            
             if (exitTime.isAfter(feeStartTime)) {
+                // Nếu khách lấy xe ra sau ngày hết hạn -> Tính phí vãng lai cho khoảng thời gian từ 00:00 ngày hôm sau đến lúc ra
                 FeeCalculationResponse feeResponse = pricingService.calculateFee(
                         vehicleTypeId, feeStartTime, exitTime, null, vehicleId);
                 return feeResponse.getFinalFee();
             } else {
+                // Nếu khách lấy xe ra trước mốc 00:00 của ngày hôm sau -> Vẫn nằm trong hạn miễn phí (0đ)
                 return BigDecimal.ZERO;
             }
+
+        // ==========================================
+        // 3. TRƯỜNG HỢP XE ĐÃ ĐẶT CHỖ TRƯỚC (RESERVATION)
+        // ==========================================
         } else if (resOpt.isPresent()) {
             Reservation r = resOpt.get();
             LocalDateTime effectiveExitTime = exitTime;
+            
+            // Lấy thời gian ân hạn (Grace Period) từ cấu hình hệ thống (mặc định cho phép trễ 15 phút)
             int graceMinutes = configService.getInt("LATE_CHECKOUT_GRACE_MINUTES", 15);
+            
+            // Nếu khách ra sau giờ hết hạn của reservation, nhưng VẪN NẰM TRONG khoảng ân hạn (<= 15 phút)
+            // -> Hệ thống coi như ra đúng giờ (effectiveExitTime = reservationEnd) để không phạt phí Overtime
             if (exitTime.isAfter(r.getReservationEnd()) && exitTime.isBefore(r.getReservationEnd().plusMinutes(graceMinutes))) {
                 effectiveExitTime = r.getReservationEnd();
             }
 
+            // Bước 3.1: Tính tổng chi phí phát sinh cho toàn bộ quá trình đỗ xe thực tế (sẽ có cộng phí Overtime nếu quá hạn)
             FeeCalculationResponse feeResponse = pricingService.calculateFee(
                     vehicleTypeId, session.getEntryTime(), effectiveExitTime, r.getReservationEnd(), vehicleId);
+            
+            // Bước 3.2: Tính số tiền mà khách ĐÃ THANH TOÁN TRƯỚC lúc tạo reservation (tính từ Start đến End của Reservation)
             FeeCalculationResponse reservationFeeResponse = pricingService.calculateFee(
                     vehicleTypeId, r.getReservationStart(), r.getReservationEnd(), null, vehicleId);
+            
+            // Bước 3.3: Số tiền thực tế còn phải thanh toán = Tổng chi phí thực tế - Số tiền đã trả trước
             BigDecimal calculatedFinalFee = feeResponse.getFinalFee().subtract(reservationFeeResponse.getFinalFee());
+            
+            // Nếu khách về sớm hơn hoặc về đúng giờ (tổng chi phí thực tế <= tiền đã trả) -> Không thu thêm tiền (0đ)
             if (calculatedFinalFee.compareTo(BigDecimal.ZERO) < 0) {
                 calculatedFinalFee = BigDecimal.ZERO;
             }
             return calculatedFinalFee;
+
+        // ==========================================
+        // 4. TRƯỜNG HỢP KHÁCH VÃNG LAI BÌNH THƯỜNG (WALK-IN)
+        // ==========================================
         } else {
+            // Không có vé tháng, không có đặt chỗ -> Tính phí vãng lai trọn gói từ lúc vào (entryTime) đến lúc ra (exitTime)
             FeeCalculationResponse feeResponse = pricingService.calculateFee(
                     vehicleTypeId, session.getEntryTime(), exitTime, null, vehicleId);
             return feeResponse.getFinalFee();
