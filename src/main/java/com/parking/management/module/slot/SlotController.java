@@ -53,6 +53,17 @@ public class SlotController {
                 service.getAvailableSlots(buildingId, floorId, zoneId, vehicleTypeId));
     }
 
+    @Operation(summary = "Search available slots by time", description = "Retrieve slots available in a specific time range")
+    @PreAuthorize("permitAll()")
+    @GetMapping("/search-available")
+    public ApiResponse<List<SlotResponse>> searchAvailableSlots(
+            @RequestParam(required = false) Integer buildingId,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime startTime,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime endTime) {
+        return ApiResponse.success("Searched available slots successfully",
+                service.searchAvailableSlots(buildingId, startTime, endTime));
+    }
+
     @Operation(summary = "Update a slot", description = "Update an existing parking slot by its ID")
     @PutMapping("/{id}")
     public ApiResponse<SlotResponse> update(@PathVariable Integer id, @Valid @RequestBody SlotRequest request) {

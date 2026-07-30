@@ -19,7 +19,12 @@ public class SubscriptionController {
 
     private final SubscriptionService service;
 
-    // CREATE: Tạo vé tháng mới
+    //================================================================================================================
+    // CREATE: Tạo vé tháng mới (Được gọi từ giao diện Đăng ký vé tháng của Driver)
+    // - Yêu cầu gửi lên: userId, vehicleId, startDate.
+    // - Hệ thống tự tính phí (dựa trên loại xe) và ngày hết hạn.
+    // - Trả về một hóa đơn (Payment) PENDING để Driver sang trang thanh toán VNPay.
+    //================================================================================================================
     @Operation(summary = "Create a new monthly subscription",
                description = "Register a monthly parking pass for a user and vehicle. " +
                              "End date is auto-calculated as start date + 1 month. Status defaults to ACTIVE.")

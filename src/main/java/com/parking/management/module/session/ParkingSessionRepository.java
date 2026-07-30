@@ -16,6 +16,8 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
 
     boolean existsByVehicle_VehicleId(Integer vehicleId);
 
+    boolean existsByVehicle_VehicleIdAndStatusIn(Integer vehicleId, java.util.List<String> statuses);
+
     /*
      * Tìm active parking session theo license plate.
      * Dùng cho flow exit/payment: staff nhập license plate number-> lấy sessionId.
@@ -41,6 +43,14 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
      */
     java.util.List<ParkingSession> findByVehicle_User_UserIdAndStatus(Integer userId, String status);
 
-    @org.springframework.data.jpa.repository.Query("SELECT s FROM ParkingSession s WHERE :buildingId IS NULL OR s.slot.zone.floor.building.buildingId = :buildingId ORDER BY s.sessionId DESC")
+    @org.springframework.data.jpa.repository.Query("SELECT s FROM ParkingSession s " +
+            "LEFT JOIN FETCH s.vehicle v " +
+            "LEFT JOIN FETCH v.user u " +
+            "LEFT JOIN FETCH v.vehicleType vt " +
+            "LEFT JOIN FETCH s.slot sl " +
+            "LEFT JOIN FETCH sl.zone z " +
+            "LEFT JOIN FETCH z.floor f " +
+            "LEFT JOIN FETCH f.building b " +
+            "WHERE :buildingId IS NULL OR b.buildingId = :buildingId ORDER BY s.sessionId DESC")
     java.util.List<ParkingSession> findAllWithBuildingFilter(@org.springframework.data.repository.query.Param("buildingId") Integer buildingId);
 }

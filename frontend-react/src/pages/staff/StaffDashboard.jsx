@@ -259,6 +259,7 @@ const StaffDashboard = () => {
         const payload = {
           reservationId: matchedReservation.reservationId,
           entryGate: values.entryGate,
+          cardId: values.cardId,
         };
         const res = await sessionApi.checkIn(payload); // Ensure checkIn matches Reservation checkin endpoint
         sessionData = res.data?.data || { sessionId: matchedReservation.reservationId }; // Mock fallback if API differs
