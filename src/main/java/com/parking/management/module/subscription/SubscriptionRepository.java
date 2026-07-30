@@ -19,6 +19,8 @@ public interface SubscriptionRepository extends JpaRepository<MonthlySubscriptio
 
     boolean existsByVehicle_VehicleId(Integer vehicleId);
 
+    boolean existsByVehicle_VehicleIdAndStatusIn(Integer vehicleId, java.util.List<String> statuses);
+
     @org.springframework.data.jpa.repository.Query("SELECT s FROM MonthlySubscription s WHERE s.vehicle.vehicleId = :vehicleId AND s.status = 'ACTIVE' AND s.startDate <= CURRENT_DATE AND s.endDate >= CURRENT_DATE")
     List<MonthlySubscription> findActiveSubscriptionsByVehicleId(@org.springframework.data.repository.query.Param("vehicleId") Integer vehicleId);
 }
