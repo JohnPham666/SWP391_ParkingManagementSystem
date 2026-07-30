@@ -443,6 +443,8 @@ const PaymentPage = () => {
                     </Text>
                     <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
                 </div>
+            </Modal>
+
             <Modal
                 title={<Title level={4} style={{ margin: 0 }}>Transaction Details</Title>}
                 open={isDetailModalVisible}
