@@ -11,6 +11,7 @@ public class SlotResponse {
     private String zoneName;
     private Integer floorId;
     private String floorName;
+    private Integer floorNumber;
     private Integer buildingId;
     private String buildingName;
     private String slotCode;
