@@ -129,7 +129,7 @@ const ParkingPage = () => {
 
         const canReserveSlot = (slot) => {
             const vType = String(slot.vehicleTypeName || '').toLowerCase();
-            return slot && slot.status === 'AVAILABLE' && (vType.includes('car') || vType.includes('truck'));
+            return slot && slot.status === 'AVAILABLE' && !vType.includes('motor') && !vType.includes('xe máy') && !vType.includes('bicycle') && !vType.includes('xe đạp') && !vType.includes('bike');
         };
 
         const sortAndRecommendSlots = (slotsToProcess) => {
@@ -394,9 +394,9 @@ const ParkingPage = () => {
                             <div style={{ marginBottom: 12, fontSize: '0.85rem', textAlign: 'center', color: '#f59e0b', background: '#fffbeb', padding: 10, borderRadius: 6 }}>
                                 This slot is currently unavailable for booking.
                             </div>
-                        ) : String(parkingStore.selectedSlot.vehicleTypeName || '').toLowerCase().includes('motor') || String(parkingStore.selectedSlot.vehicleTypeName || '').toLowerCase().includes('xe máy') ? (
+                        ) : String(parkingStore.selectedSlot.vehicleTypeName || '').toLowerCase().includes('motor') || String(parkingStore.selectedSlot.vehicleTypeName || '').toLowerCase().includes('xe máy') || String(parkingStore.selectedSlot.vehicleTypeName || '').toLowerCase().includes('bicycle') || String(parkingStore.selectedSlot.vehicleTypeName || '').toLowerCase().includes('xe đạp') || String(parkingStore.selectedSlot.vehicleTypeName || '').toLowerCase().includes('bike') ? (
                             <div style={{ marginBottom: 12, fontSize: '0.85rem', textAlign: 'center', color: '#f59e0b', background: '#fffbeb', padding: 10, borderRadius: 6 }}>
-                                Motorbike slots do not support advance booking. Please book a car slot or just drive in.
+                                Motorbike and Bicycle slots do not support advance booking. Please book a car slot or just drive in.
                             </div>
                         ) : (
                             <Button type="primary" size="large" onClick={() => navigate('/driver/reservations', { state: { prefilledSlot: parkingStore.selectedSlot } })} style={{ marginTop: 16, height: 48, borderRadius: 8, fontSize: 16, fontWeight: 600 }}>
