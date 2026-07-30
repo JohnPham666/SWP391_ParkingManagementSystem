@@ -100,10 +100,10 @@ const StaffReservations = () => {
       render: (status) => {
         let color = 'default';
         let label = status || '-';
-        if (status === 'CONFIRMED') { color = 'success'; label = 'Đã xác nhận'; }
-        if (status === 'COMPLETED') { color = 'processing'; label = 'Hoàn thành'; }
-        if (status === 'CANCELLED') { color = 'error'; label = 'Đã hủy'; }
-        if (status === 'PENDING') { color = 'warning'; label = 'Chờ duyệt'; }
+        if (status === 'CONFIRMED') { color = 'success'; label = 'Confirmed'; }
+        if (status === 'COMPLETED') { color = 'processing'; label = 'Completed'; }
+        if (status === 'CANCELLED') { color = 'error'; label = 'Cancelled'; }
+        if (status === 'PENDING') { color = 'warning'; label = 'Pending'; }
         return <Tag color={color}>{label}</Tag>;
       }
     }
@@ -115,14 +115,14 @@ const StaffReservations = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <span>
             <CalendarOutlined style={{ marginRight: 8 }} />
-            Đặt chỗ — {selectedDate ? selectedDate.format('DD/MM/YYYY') : 'Tất cả'}
+            Reservations — {selectedDate ? selectedDate.format('DD/MM/YYYY') : 'All'}
           </span>
           <DatePicker
             value={selectedDate}
             onChange={(date) => setSelectedDate(date)}
             format="DD/MM/YYYY"
             allowClear
-            placeholder="Chọn ngày"
+            placeholder="Select date"
             style={{ width: 160 }}
           />
         </div>
@@ -130,21 +130,21 @@ const StaffReservations = () => {
     >
       <Space style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap' }}>
         <Input 
-          placeholder="Tìm theo ID, tên, SĐT, biển số..." 
+          placeholder="Search by ID, name, phone, plate..." 
           prefix={<SearchOutlined />} 
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           style={{ width: 300 }}
         />
         <Select 
-          placeholder="Tất cả trạng thái" 
+          placeholder="All statuses" 
           style={{ width: 160 }} 
           allowClear 
           onChange={(val) => setFilters({ ...filters, status: val })}
         >
-          <Option value="CONFIRMED">Đã xác nhận</Option>
-          <Option value="COMPLETED">Hoàn thành</Option>
-          <Option value="PENDING">Chờ duyệt</Option>
-          <Option value="CANCELLED">Đã hủy</Option>
+          <Option value="CONFIRMED">Confirmed</Option>
+          <Option value="COMPLETED">Completed</Option>
+          <Option value="PENDING">Pending</Option>
+          <Option value="CANCELLED">Cancelled</Option>
         </Select>
       </Space>
 

@@ -234,11 +234,11 @@ const VehiclePage = () => {
     const handleCancelSub = async (subId) => {
         try {
             await subscriptionApi.cancelSubscriptionByUser(subId);
-            message.success('Đã hủy vé tháng thành công. Hệ thống đã chốt cước sử dụng.');
+            message.success('Monthly pass cancelled successfully. Billing has been finalized.');
             fetchData();
         } catch (error) {
             console.error(error);
-            message.error('Hủy vé tháng thất bại');
+            message.error('Failed to cancel monthly pass');
         }
     };
 
@@ -425,13 +425,13 @@ const VehiclePage = () => {
                                                         {sub.status === 'ACTIVE' && (
                                                             <>
                                                                 <Popconfirm 
-                                                                    title="Xác nhận hủy vé tháng?" 
-                                                                    description="Hệ thống sẽ chốt hóa đơn dựa trên số ngày bạn đã sử dụng trong tháng. Hóa đơn sẽ xuất hiện trong mục Payments." 
+                                                                    title="Confirm Monthly Pass Cancellation?" 
+                                                                    description="The system will finalize the invoice based on the days used this month. The invoice will appear in Payments." 
                                                                     onConfirm={(e) => { e.stopPropagation(); handleCancelSub(sub.subscriptionId || sub.id); }} 
                                                                     onCancel={(e) => e.stopPropagation()}
                                                                 >
                                                                     <Button size="small" type="primary" danger block style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
-                                                                        Hủy vé tháng
+                                                                        Cancel Pass
                                                                     </Button>
                                                                 </Popconfirm>
                                                             </>
