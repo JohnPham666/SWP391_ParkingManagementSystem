@@ -144,7 +144,7 @@ const StaffPayments = () => {
 
   return (
     <Card 
-      title={<span style={{ fontSize: '18px' }}>Transactions History (Read-only)</span>}
+      title={<span style={{ fontSize: '18px' }}>Transactions History</span>}
     >
       <Space style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap' }}>
         <Input 

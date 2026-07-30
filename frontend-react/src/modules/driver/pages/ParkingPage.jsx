@@ -283,15 +283,20 @@ const ParkingPage = () => {
                     {Object.entries(
                         filteredSlots.reduce((acc, slot) => {
                             const b = slot.buildingName || 'General Area';
-                            if (!acc[b]) acc[b] = [];
-                            acc[b].push(slot);
+                            const f = slot.floorName || 'General Floor';
+                            const groupKey = `${b} — ${f}`;
+                            if (!acc[groupKey]) acc[groupKey] = [];
+                            acc[groupKey].push(slot);
                             return acc;
                         }, {})
-                    ).map(([buildingName, buildingSlots]) => (
-                        <div key={buildingName} style={{ marginBottom: 40 }}>
-                            <Title level={4} style={{ marginBottom: 16, color: token.colorTextHeading }}>{buildingName}</Title>
+                    ).sort((a, b) => a[0].localeCompare(b[0])).map(([groupName, groupSlots]) => (
+                        <div key={groupName} style={{ marginBottom: 40 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16, gap: 12 }}>
+                                <Title level={4} style={{ margin: 0, color: token.colorTextHeading }}>{groupName}</Title>
+                                <Tag color="blue" style={{ borderRadius: 12, padding: '2px 10px', fontWeight: 600 }}>{groupSlots.length} slots</Tag>
+                            </div>
                             <Row gutter={[20, 20]}>
-                                {buildingSlots.map((slot) => {
+                                {groupSlots.map((slot) => {
                                     const statusInfo = getStatusInfo(slot.status);
 
                                     return (

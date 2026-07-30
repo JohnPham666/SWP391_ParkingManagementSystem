@@ -166,7 +166,7 @@ const VehiclePage = () => {
             setIsSubmitting(true);
             setRegisterSuccess(false);
             setIsRegistering(true);
-            setRegisteringStep(editingVehicle ? 'Đang cập nhật thông tin xe...' : 'Đang đăng ký xe...');
+            setRegisteringStep(editingVehicle ? 'Updating vehicle info...' : 'Submitting vehicle registration...');
 
             let vehicleId;
             
@@ -185,7 +185,7 @@ const VehiclePage = () => {
                 let uploadedCount = 0;
                 for (const [key, file] of imageEntries) {
                     uploadedCount++;
-                    setRegisteringStep(`Đang upload ảnh (${uploadedCount}/${totalImages})...`);
+                    setRegisteringStep(`Uploading images (${uploadedCount}/${totalImages})...`);
                     try {
                         await driverService.uploadVehicleImage(vehicleId, file, key);
                     } catch (e) {
@@ -196,7 +196,7 @@ const VehiclePage = () => {
 
             // Show success state
             setRegisterSuccess(true);
-            setRegisteringStep(editingVehicle ? 'Cập nhật xe thành công!' : 'Đăng ký xe thành công!');
+            setRegisteringStep(editingVehicle ? 'Vehicle info updated!' : 'Registration submitted! Pending approval.');
             
             // Auto close after 1.5 seconds
             setTimeout(() => {
@@ -617,7 +617,7 @@ const VehiclePage = () => {
                     <div>
                         <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} />
                         <Title level={4} style={{ margin: '16px 0 8px 0' }}>{registeringStep}</Title>
-                        <Text type="secondary">Vui lòng không tắt trang...</Text>
+                        <Text type="secondary">Please do not close this page...</Text>
                     </div>
                 )}
             </Modal>
