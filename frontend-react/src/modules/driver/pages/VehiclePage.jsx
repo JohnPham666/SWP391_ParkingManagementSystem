@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useReducer, useMemo } from 'react';
-import { Card, Row, Col, Button, Modal, Form, Input, Select, Popconfirm, Tag, Space, message, Descriptions, Typography, Divider, Empty, Skeleton, Upload, theme, Checkbox } from 'antd';
-import { CarOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
+import { Card, Row, Col, Button, Modal, Form, Input, Select, Popconfirm, Tag, Space, message, Descriptions, Typography, Divider, Empty, Skeleton, Upload, theme, Checkbox, Spin, Result } from 'antd';
+import { CarOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, FilterOutlined, ReloadOutlined, CheckCircleOutlined, LoadingOutlined } from '@ant-design/icons';
 import { driverService } from '../services/driverService';
 import { vehicleStore } from '../store/vehicleStore';
 import { subscriptionApi, paymentApi } from '../../../services/api';
@@ -15,6 +15,10 @@ const VehiclePage = () => {
     const { token } = theme.useToken();
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // Loading popup states for vehicle registration
+    const [isRegistering, setIsRegistering] = useState(false);
+    const [registeringStep, setRegisteringStep] = useState('');
+    const [registerSuccess, setRegisterSuccess] = useState(false);
     const [isViewModalVisible, setIsViewModalVisible] = useState(false);
     const [editingVehicle, setEditingVehicle] = useState(null);
     const [viewingVehicle, setViewingVehicle] = useState(null);
@@ -146,7 +150,6 @@ const VehiclePage = () => {
 
     // Xử lý logic khi bấm "Lưu" (Đăng ký xe mới hoặc Cập nhật thông tin xe), đồng thời upload từng ảnh chứng từ lên server
     const handleModalOk = async () => {
-        setIsSubmitting(true);
         try {
             const { images, ...values } = await form.validateFields();
             const payload = { ...values, vehicleColor: values.color };
@@ -155,41 +158,59 @@ const VehiclePage = () => {
             if (!payload.engineNumber || payload.engineNumber.trim() === '') payload.engineNumber = null;
             if (!payload.chassisNumber || payload.chassisNumber.trim() === '') payload.chassisNumber = null;
 
+            // Close the form modal and show loading popup immediately
+            setIsModalVisible(false);
+            setIsSubmitting(true);
+            setRegisterSuccess(false);
+            setIsRegistering(true);
+            setRegisteringStep(editingVehicle ? 'Đang cập nhật thông tin xe...' : 'Đang đăng ký xe...');
+
             let vehicleId;
             
             if (editingVehicle) {
                 vehicleId = editingVehicle.vehicleId || editingVehicle.id;
                 await driverService.updateVehicle(vehicleId, payload);
-                message.success('Vehicle updated successfully');
             } else {
                 const res = await driverService.registerVehicle(payload);
                 vehicleId = res.data?.vehicleId || res.data?.id || res.vehicleId || res.id || res.data?.content?.vehicleId;
-                message.success('Vehicle registered successfully');
             }
 
             // Upload new images sequentially to avoid backend DB concurrent overwrite issues
             if (images && vehicleId) {
+                const imageEntries = Object.entries(images).filter(([, file]) => file instanceof File || file instanceof Blob);
+                const totalImages = imageEntries.length;
                 let uploadedCount = 0;
-                for (const [key, file] of Object.entries(images)) {
-                    if (file instanceof File || file instanceof Blob) {
-                        try {
-                            await driverService.uploadVehicleImage(vehicleId, file, key);
-                            uploadedCount++;
-                        } catch (e) {
-                            console.error(`Failed to upload ${key}`, e);
-                            message.error(`Failed to upload ${key}`);
-                        }
+                for (const [key, file] of imageEntries) {
+                    uploadedCount++;
+                    setRegisteringStep(`Đang upload ảnh (${uploadedCount}/${totalImages})...`);
+                    try {
+                        await driverService.uploadVehicleImage(vehicleId, file, key);
+                    } catch (e) {
+                        console.error(`Failed to upload ${key}`, e);
                     }
-                }
-                if (uploadedCount > 0) {
-                    message.success('Images uploaded/updated successfully');
                 }
             }
 
-            setIsModalVisible(false);
-            fetchData();
+            // Show success state
+            setRegisterSuccess(true);
+            setRegisteringStep(editingVehicle ? 'Cập nhật xe thành công!' : 'Đăng ký xe thành công!');
+            
+            // Auto close after 1.5 seconds
+            setTimeout(() => {
+                setIsRegistering(false);
+                setRegisterSuccess(false);
+                setIsSubmitting(false);
+                fetchData();
+            }, 1500);
         } catch (error) {
-            if (error.errorFields) return; // Validation error
+            setIsRegistering(false);
+            setRegisterSuccess(false);
+            setIsSubmitting(false);
+            if (error.errorFields) {
+                // Validation error — re-open the form modal
+                setIsModalVisible(true);
+                return;
+            }
             console.error(error);
             const errData = error.response?.data?.data;
             if (errData && typeof errData === 'object' && !Array.isArray(errData)) {
@@ -198,14 +219,13 @@ const VehiclePage = () => {
                     errors: [errMessage]
                 }));
                 form.setFields(fieldErrors);
+                setIsModalVisible(true); // Re-open form to show field errors
             } else {
                 const errMsg = typeof error.response?.data === 'string' 
                     ? error.response.data 
                     : (error.response?.data?.message || error.response?.data?.error || error.message || 'Operation failed');
                 message.error(errMsg);
             }
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
@@ -302,9 +322,14 @@ const VehiclePage = () => {
                             ))}
                         </Select>
                     </div>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd} size="large" style={{ borderRadius: '8px' }}>
-                        Register Vehicle
-                    </Button>
+                    <Space>
+                        <Button icon={<ReloadOutlined />} onClick={fetchData} size="large" style={{ borderRadius: '8px' }}>
+                            Reload
+                        </Button>
+                        <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd} size="large" style={{ borderRadius: '8px' }}>
+                            Register Vehicle
+                        </Button>
+                    </Space>
                 </div>
 
                 {/* Cards View */}
@@ -384,6 +409,19 @@ const VehiclePage = () => {
                                                                 {sub.status}
                                                             </Tag>
                                                         </div>
+                                                        {/* Hiển thị thời gian hết hạn vé tháng */}
+                                                        {sub.endDate && (
+                                                            <div style={{ marginTop: 4 }}>
+                                                                <Text type="secondary" style={{ fontSize: '11px' }}>
+                                                                    Expires: {sub.endDate}
+                                                                </Text>
+                                                                {sub.remainingDays != null && sub.remainingDays >= 0 && (
+                                                                    <Text type={sub.remainingDays <= 7 ? 'danger' : 'secondary'} style={{ fontSize: '11px', marginLeft: 6 }}>
+                                                                        ({sub.remainingDays} days left)
+                                                                    </Text>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                         {sub.status === 'ACTIVE' && (
                                                             <>
                                                                 <Popconfirm 
@@ -553,6 +591,30 @@ const VehiclePage = () => {
                     fetchData();
                 }}
             />
+
+            {/* Loading popup khi đăng ký/cập nhật xe — chặn user nhấn nhiều lần */}
+            <Modal
+                open={isRegistering}
+                closable={false}
+                footer={null}
+                centered
+                width={360}
+                maskClosable={false}
+                styles={{ body: { textAlign: 'center', padding: '40px 24px' } }}
+            >
+                {registerSuccess ? (
+                    <div>
+                        <CheckCircleOutlined style={{ fontSize: 56, color: '#52c41a', marginBottom: 16 }} />
+                        <Title level={4} style={{ margin: 0, color: '#52c41a' }}>{registeringStep}</Title>
+                    </div>
+                ) : (
+                    <div>
+                        <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} />
+                        <Title level={4} style={{ margin: '16px 0 8px 0' }}>{registeringStep}</Title>
+                        <Text type="secondary">Vui lòng không tắt trang...</Text>
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 };
