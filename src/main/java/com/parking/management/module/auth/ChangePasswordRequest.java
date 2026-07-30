@@ -6,10 +6,10 @@ import jakarta.validation.constraints.Size;
 
 @Data
 public class ChangePasswordRequest {
-    @NotBlank(message = "Mật khẩu cũ không được để trống")
+    @NotBlank(message = "Old password cannot be empty")
     private String oldPassword;
 
-    @NotBlank(message = "Mật khẩu mới không được để trống")
-    @Size(min = 6, message = "Mật khẩu mới phải có ít nhất 6 ký tự")
+    @NotBlank(message = "New password cannot be empty")
+    @Size(min = 6, message = "New password must be at least 6 characters")
     private String newPassword;
 }

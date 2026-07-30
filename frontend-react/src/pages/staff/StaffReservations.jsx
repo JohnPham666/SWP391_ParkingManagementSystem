@@ -67,7 +67,7 @@ const StaffReservations = () => {
       render: (text) => <strong>#{text}</strong>
     },
     {
-      title: 'Khách hàng',
+      title: 'Customer',
       key: 'customer',
       render: (_, record) => (
         <div>
@@ -76,16 +76,16 @@ const StaffReservations = () => {
       )
     },
     {
-      title: 'Biển số',
+      title: 'License Plate',
       dataIndex: 'licensePlate',
       key: 'licensePlate',
       render: (text) => <strong style={{ color: '#ea580c' }}>{text || '-'}</strong>
     },
     {
-      title: 'Chỗ đỗ',
+      title: 'Slot',
       dataIndex: 'slotCode',
       key: 'slotCode',
-      render: (text) => text || 'Bất kỳ'
+      render: (text) => text || 'Any'
     },
     {
       title: 'Expected Arrival',
@@ -94,7 +94,7 @@ const StaffReservations = () => {
       render: (date) => date ? dayjs(date).format('DD/MM/YYYY HH:mm') : '-'
     },
     {
-      title: 'Trạng thái',
+      title: 'Status',
       dataIndex: 'status',
       key: 'status',
       render: (status) => {

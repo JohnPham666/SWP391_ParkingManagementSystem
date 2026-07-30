@@ -76,7 +76,7 @@ public class AuthService {
             // Đã có tài khoản -> Đăng nhập
             User user = optionalUser.get();
             if (user.getIsActive() != null && !user.getIsActive()) {
-                throw new RuntimeException("Tài khoản đã bị khóa");
+                throw new RuntimeException("Account is locked");
             }
             String token = jwtUtil.generateToken(user.getEmail());
             return JwtResponse.builder()
@@ -90,19 +90,19 @@ public class AuthService {
                     .role(user.getRole().getRoleName())
                     .build();
         } else {
-            // Chưa có tài khoản -> Trả về requirement để Frontend hiển thị form số điện thoại
+            // No account -> Return requirement for Frontend to display phone number form
             String name = (String) payload.get("name");
             return java.util.Map.of(
-                    "status", "REQUIRE_PHONE",
+                    "requirePhone", true,
                     "email", email,
                     "fullName", name,
-                    "message", "Vui lòng cung cấp số điện thoại để hoàn tất đăng ký."
+                    "message", "Please provide phone number to complete registration."
             );
         }
     }
 
     /**
-     * Xử lý đăng ký Google (Bước 2)
+     * Handle Google registration (Step 2)
      */
     public JwtResponse googleRegister(String credential, String phoneNumber) {
         GoogleIdToken.Payload payload = verifyGoogleToken(credential);
@@ -110,14 +110,14 @@ public class AuthService {
         String name = (String) payload.get("name");
 
         if (userRepository.existsByEmail(email)) {
-            throw new RuntimeException("Email đã được sử dụng");
+            throw new RuntimeException("Email is already in use");
         }
         if (userRepository.existsByPhoneNumber(phoneNumber)) {
-            throw new RuntimeException("Số điện thoại đã được sử dụng");
+            throw new RuntimeException("Phone number is already in use");
         }
 
         Role driverRole = roleRepository.findByRoleNameIgnoreCase("DRIVER")
-                .orElseThrow(() -> new RuntimeException("Role DRIVER chưa được tạo trong Database. Hãy tạo Role trước."));
+                .orElseThrow(() -> new RuntimeException("Role DRIVER is not created in Database. Please create Role first."));
 
         User user = new User();
         user.setFullName(name);
@@ -152,7 +152,7 @@ public class AuthService {
     public JwtResponse login(LoginRequest request) {
         // 1. Tìm user theo email
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("Email không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Email does not exist"));
 
         // 2. So sánh password (Hỗ trợ cả BCrypt và so sánh chuỗi trực tiếp cho Seed Data)
         // 2. So sánh password (Hỗ trợ cả BCrypt và so sánh chuỗi trực tiếp cho Seed Data)
@@ -160,12 +160,12 @@ public class AuthService {
             || ("$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.".equals(user.getPasswordHash()) && "password".equals(request.getPassword()));
 
         if (!isMatch) {
-            throw new IllegalArgumentException("Mật khẩu không chính xác");
+            throw new IllegalArgumentException("Incorrect password");
         }
 
         // 3. Kiểm tra tài khoản có bị khóa không
         if (user.getIsActive() != null && !user.getIsActive()) {
-            throw new IllegalArgumentException("Tài khoản đã bị khóa");
+            throw new IllegalArgumentException("Account is locked");
         }
 
         // 4. Tạo JWT token
@@ -193,15 +193,15 @@ public class AuthService {
     public JwtResponse register(RegisterRequest request) {
         // 1. Kiểm tra email và số điện thoại đã tồn tại chưa
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email đã được sử dụng");
+            throw new RuntimeException("Email is already in use");
         }
         if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
-            throw new RuntimeException("Số điện thoại đã được sử dụng");
+            throw new RuntimeException("Phone number is already in use");
         }
 
         // 2. Tìm role mặc định cho người dùng mới = DRIVER
         Role driverRole = roleRepository.findByRoleNameIgnoreCase("DRIVER")
-                .orElseThrow(() -> new RuntimeException("Role DRIVER chưa được tạo trong Database. Hãy tạo Role trước."));
+                .orElseThrow(() -> new RuntimeException("Role DRIVER is not created in Database. Please create Role first."));
 
         // 3. Tạo User entity mới
         User user = new User();
@@ -238,7 +238,7 @@ public class AuthService {
      */
     public void forgotPassword(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Email không tồn tại"));
+                .orElseThrow(() -> new RuntimeException("Email does not exist"));
 
         long expirationMillis = 15 * 60 * 1000; // 15 mins
         Date now = new Date();
@@ -274,7 +274,7 @@ public class AuthService {
             // Parse token string để lấy payload (Base64 decode)
             String[] splitToken = token.split("\\.");
             if (splitToken.length < 2) {
-                throw new RuntimeException("Token không hợp lệ");
+                throw new RuntimeException("Invalid token");
             }
             
             String payloadStr = new String(java.util.Base64.getUrlDecoder().decode(splitToken[1]), StandardCharsets.UTF_8);
@@ -284,7 +284,7 @@ public class AuthService {
             String email = (String) payloadMap.get("sub");
 
             User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Email trong token không tồn tại"));
+                    .orElseThrow(() -> new RuntimeException("Email in token does not exist"));
 
             // Verify chữ ký
             String secretString = jwtSecret + user.getPasswordHash();
@@ -300,7 +300,7 @@ public class AuthService {
             userRepository.save(user);
 
         } catch (Exception e) {
-            throw new RuntimeException("Token không hợp lệ hoặc đã hết hạn", e);
+            throw new RuntimeException("Invalid or expired token", e);
         }
     }
 
@@ -309,10 +309,10 @@ public class AuthService {
      */
     public void changePassword(String email, String oldPassword, String newPassword) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
-            throw new RuntimeException("Mật khẩu cũ không chính xác");
+            throw new RuntimeException("Incorrect old password");
         }
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
