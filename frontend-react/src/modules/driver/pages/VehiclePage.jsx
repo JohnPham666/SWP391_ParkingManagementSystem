@@ -144,7 +144,10 @@ const VehiclePage = () => {
             message.success('Vehicle deleted successfully');
             fetchData();
         } catch (error) {
-            message.error('Failed to delete vehicle');
+            const errMsg = typeof error.response?.data === 'string' 
+                ? error.response.data 
+                : (error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to delete vehicle');
+            message.error(errMsg);
         }
     };
 
@@ -163,7 +166,7 @@ const VehiclePage = () => {
             setIsSubmitting(true);
             setRegisterSuccess(false);
             setIsRegistering(true);
-            setRegisteringStep(editingVehicle ? 'Đang cập nhật thông tin xe...' : 'Đang đăng ký xe...');
+            setRegisteringStep(editingVehicle ? 'Updating vehicle info...' : 'Submitting vehicle registration...');
 
             let vehicleId;
             
@@ -182,7 +185,7 @@ const VehiclePage = () => {
                 let uploadedCount = 0;
                 for (const [key, file] of imageEntries) {
                     uploadedCount++;
-                    setRegisteringStep(`Đang upload ảnh (${uploadedCount}/${totalImages})...`);
+                    setRegisteringStep(`Uploading images (${uploadedCount}/${totalImages})...`);
                     try {
                         await driverService.uploadVehicleImage(vehicleId, file, key);
                     } catch (e) {
@@ -193,7 +196,7 @@ const VehiclePage = () => {
 
             // Show success state
             setRegisterSuccess(true);
-            setRegisteringStep(editingVehicle ? 'Cập nhật xe thành công!' : 'Đăng ký xe thành công!');
+            setRegisteringStep(editingVehicle ? 'Vehicle info updated!' : 'Registration submitted! Pending approval.');
             
             // Auto close after 1.5 seconds
             setTimeout(() => {
@@ -234,11 +237,11 @@ const VehiclePage = () => {
     const handleCancelSub = async (subId) => {
         try {
             await subscriptionApi.cancelSubscriptionByUser(subId);
-            message.success('Đã hủy vé tháng thành công. Hệ thống đã chốt cước sử dụng.');
+            message.success('Monthly pass cancelled successfully. Billing has been finalized.');
             fetchData();
         } catch (error) {
             console.error(error);
-            message.error('Hủy vé tháng thất bại');
+            message.error('Failed to cancel monthly pass');
         }
     };
 
@@ -425,13 +428,13 @@ const VehiclePage = () => {
                                                         {sub.status === 'ACTIVE' && (
                                                             <>
                                                                 <Popconfirm 
-                                                                    title="Xác nhận hủy vé tháng?" 
-                                                                    description="Hệ thống sẽ chốt hóa đơn dựa trên số ngày bạn đã sử dụng trong tháng. Hóa đơn sẽ xuất hiện trong mục Payments." 
+                                                                    title="Confirm Monthly Pass Cancellation?" 
+                                                                    description="The system will finalize the invoice based on the days used this month. The invoice will appear in Payments." 
                                                                     onConfirm={(e) => { e.stopPropagation(); handleCancelSub(sub.subscriptionId || sub.id); }} 
                                                                     onCancel={(e) => e.stopPropagation()}
                                                                 >
                                                                     <Button size="small" type="primary" danger block style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
-                                                                        Hủy vé tháng
+                                                                        Cancel Pass
                                                                     </Button>
                                                                 </Popconfirm>
                                                             </>
@@ -614,7 +617,7 @@ const VehiclePage = () => {
                     <div>
                         <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} />
                         <Title level={4} style={{ margin: '16px 0 8px 0' }}>{registeringStep}</Title>
-                        <Text type="secondary">Vui lòng không tắt trang...</Text>
+                        <Text type="secondary">Please do not close this page...</Text>
                     </div>
                 )}
             </Modal>
