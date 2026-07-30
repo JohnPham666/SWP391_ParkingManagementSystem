@@ -200,7 +200,7 @@ const StaffSessions = () => {
         entryGate: values.entryGate,
         cardId: values.cardId,
       };
-      const res = await sessionApi.checkIn(payload);
+      const res = await sessionApi.checkIn(payload); // Usually walkIn maps to check-in
       const sessionData = res.data.data;
 
       message.success('Reservation Check-in Successful!');
@@ -226,7 +226,7 @@ const StaffSessions = () => {
         licensePlate: values.licensePlate,
         cardId: values.cardId
       });
-      
+
       const resultData = res.data?.data;
       if (!resultData) {
         message.error('Verification failed: No data returned');
@@ -236,8 +236,8 @@ const StaffSessions = () => {
       // Nguồn sự thật để thanh toán là thẻ từ
       const targetSession = resultData.sessionFromCard;
       if (!targetSession) {
-         message.error('No session found from Card ID');
-         return;
+        message.error('No session found from Card ID');
+        return;
       }
 
       let exitImageUrl = null;
@@ -834,23 +834,23 @@ const StaffSessions = () => {
               <Col span={12}>
                 <Card title="License Plate Info" style={{ backgroundColor: '#f8fafc', marginBottom: '20px', height: '100%' }} bodyStyle={{ padding: '16px' }}>
                   {checkoutSessionData.sessionFromPlate ? (
-                     <>
-                        <p><strong>Plate:</strong> <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>{checkoutSessionData.sessionFromPlate.licensePlate}</Text></p>
-                        <p><strong>Slot:</strong> <Text strong>{checkoutSessionData.sessionFromPlate.slotCode || '-'}</Text></p>
-                        <p><strong>Entry:</strong> {dayjs(checkoutSessionData.sessionFromPlate.entryTime).format('DD/MM/YYYY HH:mm:ss')}</p>
-                     </>
+                    <>
+                      <p><strong>Plate:</strong> <Text strong style={{ color: '#1677ff', fontSize: '16px' }}>{checkoutSessionData.sessionFromPlate.licensePlate}</Text></p>
+                      <p><strong>Slot:</strong> <Text strong>{checkoutSessionData.sessionFromPlate.slotCode || '-'}</Text></p>
+                      <p><strong>Entry:</strong> {dayjs(checkoutSessionData.sessionFromPlate.entryTime).format('DD/MM/YYYY HH:mm:ss')}</p>
+                    </>
                   ) : (
-                     <Text type="secondary">No plate session found or missing plate input.</Text>
+                    <Text type="secondary">No plate session found or missing plate input.</Text>
                   )}
                 </Card>
               </Col>
             </Row>
 
             <Card style={{ backgroundColor: '#f8fafc', marginBottom: '20px' }} bodyStyle={{ padding: '16px', textAlign: 'center' }}>
-                <p><strong>Exit Time:</strong> {dayjs(checkoutSessionData.exitTime).format('DD/MM/YYYY HH:mm:ss')}</p>
-                <div style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold', marginTop: '10px' }}>
-                  Fee: {checkoutSessionData.totalFee.toLocaleString()} VNĐ
-                </div>
+              <p><strong>Exit Time:</strong> {dayjs(checkoutSessionData.exitTime).format('DD/MM/YYYY HH:mm:ss')}</p>
+              <div style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold', marginTop: '10px' }}>
+                Fee: {checkoutSessionData.totalFee.toLocaleString()} VNĐ
+              </div>
             </Card>
 
             <Form.Item name="paymentMethod" label="Payment Method" initialValue="CASH" rules={[{ required: true }]}>
