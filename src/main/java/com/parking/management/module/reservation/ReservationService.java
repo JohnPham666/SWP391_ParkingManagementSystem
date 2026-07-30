@@ -309,6 +309,7 @@ public class ReservationService {
             );
             response.setEstimatedFee(feeRes.getFinalFee());
         } catch (Exception e) {
+            e.printStackTrace();
             response.setEstimatedFee(null);
         }
 

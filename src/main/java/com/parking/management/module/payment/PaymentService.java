@@ -188,7 +188,17 @@ public class PaymentService {
         payment.setReservation(reservation);
         payment.setAmount(feeResponse.getFinalFee());
         payment.setPaymentMethod(request.getPaymentMethod().name());
-        payment.setPaymentStatus(PaymentStatus.PENDING.name());
+        
+        if (feeResponse.getFinalFee().compareTo(BigDecimal.ZERO) == 0) {
+            payment.setPaymentStatus(PaymentStatus.PAID.name());
+            payment.setPaidAt(LocalDateTime.now());
+            
+            reservation.setStatus("CONFIRMED");
+            reservationRepository.save(reservation);
+        } else {
+            payment.setPaymentStatus(PaymentStatus.PENDING.name());
+        }
+        
         return mapEntityToResponse(paymentRepository.save(payment));
     }
 

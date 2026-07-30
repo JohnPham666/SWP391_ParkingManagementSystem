@@ -358,6 +358,13 @@ const ReservationPage = () => {
             const paymentData = getResponseData(payRes);
             const paymentId = paymentData?.paymentId || paymentData?.id;
 
+            if (paymentData?.paymentStatus === 'PAID') {
+                message.success({ content: 'Payment completed automatically (Zero Fee applied)', key: 'payment' });
+                setIsDetailsVisible(false);
+                fetchData();
+                return;
+            }
+
             if (!paymentId) {
                 message.error({ content: 'Failed to create payment', key: 'payment' });
                 return;
@@ -503,7 +510,7 @@ const ReservationPage = () => {
         if (String(s.status).toUpperCase() !== 'AVAILABLE') return false;
         
         const sType = (s.vehicleTypeName || '').toLowerCase();
-        if (sType.includes('motor') || sType.includes('xe máy') || sType.includes('bicycle') || sType.includes('xe đạp') || sType.includes('bike')) return false;
+        if (sType.includes('motor') || sType.includes('xe máy') || sType.includes('bicycle') || sType.includes('xe đạp') || (sType.includes('bike') && !sType.includes('motorbike'))) return false;
 
         if (selectedVehicleTypeId != null) {
             return s.vehicleTypeId === selectedVehicleTypeId;
@@ -519,7 +526,7 @@ const ReservationPage = () => {
             setSelectedVehicleType(vTypeName);
             
             const isMotorbike = vTypeName.includes('motor') || vTypeName.includes('xe máy');
-            const isBicycle = vTypeName.includes('bicycle') || vTypeName.includes('xe đạp') || vTypeName.includes('bike');
+            const isBicycle = vTypeName.includes('bicycle') || vTypeName.includes('xe đạp') || (vTypeName.includes('bike') && !vTypeName.includes('motorbike'));
             
             if (!isMotorbike && !isBicycle) {
                 const newVehicleTypeId = vehicle.vehicleType?.vehicleTypeId || vehicle.vehicleTypeId || vehicle.vehicleType?.id;
@@ -648,7 +655,7 @@ const ReservationPage = () => {
                             {safeVehicles.map(v => {
                                 const vId = v.vehicleId || v.id;
                                 const vTypeName = (v.vehicleType?.typeName || v.vehicleType?.name || v.vehicleTypeName || '').toLowerCase();
-                                const isBicycle = vTypeName.includes('bicycle') || vTypeName.includes('xe đạp') || vTypeName.includes('bike');
+                                const isBicycle = vTypeName.includes('bicycle') || vTypeName.includes('xe d?p') || (vTypeName.includes('bike') && !vTypeName.includes('motorbike'));
                                 const hasSub = subscriptions.some(s => {
                                     const subVid = s.vehicle?.vehicleId || s.vehicle?.id || s.vehicleId;
                                     const status = String(s.status).toUpperCase();

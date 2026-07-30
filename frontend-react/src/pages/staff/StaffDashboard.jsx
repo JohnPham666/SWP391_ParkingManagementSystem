@@ -10,7 +10,7 @@ import {
   CheckCircleFilled
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { monitoringApi, reservationApi, sessionApi, paymentApi, vehicleApi, pricingApi, cardApi, alprApi, subscriptionApi } from '../../services/api';
+import api, { monitoringApi, reservationApi, sessionApi, paymentApi, vehicleApi, pricingApi, cardApi, alprApi, subscriptionApi } from '../../services/api';
 import { getImageUrl } from '../../utils/helpers';
 import dayjs from 'dayjs';
 
@@ -666,10 +666,7 @@ const StaffDashboard = () => {
           setMatchedReservation(null);
           setSearchFallback('');
         }}
-        footer={[
-          <Button key="cancel" onClick={() => setIsCheckInVisible(false)}>Cancel</Button>,
-          <Button key="submit" type="primary" loading={isCheckInSubmitting} onClick={() => checkInForm.submit()}>Confirm Check-in</Button>
-        ]}
+        footer={null}
         width={500}
       >
         <div style={{ marginBottom: '24px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
@@ -762,10 +759,10 @@ const StaffDashboard = () => {
               <Alert message="Reservation Found" type="success" showIcon style={{ marginBottom: 20 }}
                 description={
                   <div>
-                    <p><strong>Customer:</strong> {matchedReservation.user?.fullName} ({matchedReservation.user?.phoneNumber})</p>
+                    <p><strong>Customer:</strong> {matchedReservation.userFullName || matchedReservation.guestName || 'Unknown'}</p>
                     <p><strong>Time:</strong> {dayjs(matchedReservation.reservationStart).format('DD/MM/YYYY HH:mm')} - {dayjs(matchedReservation.reservationEnd).format('DD/MM/YYYY HH:mm')}</p>
-                    <p><strong>Slot:</strong> {matchedReservation.slot?.slotCode}</p>
-                    <p><strong>Vehicle:</strong> {matchedReservation.vehicle?.licensePlate}</p>
+                    <p><strong>Slot:</strong> {matchedReservation.slotCode || 'N/A'}</p>
+                    <p><strong>Vehicle:</strong> {matchedReservation.licensePlate || 'N/A'} ({matchedReservation.vehicleTypeName || 'N/A'})</p>
                   </div>
                 } 
               />
@@ -805,6 +802,7 @@ const StaffDashboard = () => {
               backgroundColor: matchedReservation ? '#3b82f6' : '#10b981',
               borderColor: matchedReservation ? '#3b82f6' : '#10b981'
             }}
+            loading={isCheckInSubmitting}
           >
             {matchedReservation ? 'Apply Reservation & Check-in' : 'Confirm Walk-in'}
           </Button>
