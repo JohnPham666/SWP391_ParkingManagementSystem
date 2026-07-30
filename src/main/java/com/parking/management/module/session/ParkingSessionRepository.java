@@ -16,6 +16,8 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
 
     boolean existsByVehicle_VehicleId(Integer vehicleId);
 
+    boolean existsByVehicle_VehicleIdAndStatusIn(Integer vehicleId, java.util.List<String> statuses);
+
     /*
      * Tìm active parking session theo license plate.
      * Dùng cho flow exit/payment: staff nhập license plate number-> lấy sessionId.

@@ -9,6 +9,7 @@ import java.util.List;
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Integer> {
     boolean existsByVehicle_VehicleId(Integer vehicleId);
+    boolean existsByVehicle_VehicleIdAndStatusIn(Integer vehicleId, List<String> statuses);
     Optional<Reservation> findFirstByVehicle_VehicleIdAndSlot_SlotIdAndStatus(Integer vehicleId, Integer slotId, String status);
     List<Reservation> findByUser_UserId(Integer userId);
     @org.springframework.data.jpa.repository.Query("SELECT r FROM Reservation r WHERE r.slot.slotId = :slotId AND r.status IN ('PENDING', 'CONFIRMED') AND r.reservationStart < :endTime AND r.reservationEnd > :startTime")
