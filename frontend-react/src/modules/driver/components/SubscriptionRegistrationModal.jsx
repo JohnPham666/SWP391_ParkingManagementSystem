@@ -56,8 +56,19 @@ const SubscriptionRegistrationModal = ({ visible, onCancel, onSuccess, initialVe
             try {
                 const res = await pricingApi.getPricingPoliciesByVehicleType(vehicle.vehicleTypeId);
                 const policies = res.data?.data || res.data || [];
-                if (policies.length > 0) {
-                    setMonthlyFee(policies[0].monthlyPrice);
+                
+                const now = new Date();
+                const activePolicy = policies.find(p => {
+                    if (!p.effectiveFrom) return false;
+                    const from = new Date(p.effectiveFrom);
+                    const to = p.effectiveTo ? new Date(p.effectiveTo) : null;
+                    if (now < from) return false;
+                    if (to && now > to) return false;
+                    return true;
+                });
+
+                if (activePolicy) {
+                    setMonthlyFee(activePolicy.monthlyPrice);
                 } else {
                     setMonthlyFee(null);
                 }
@@ -89,7 +100,7 @@ const SubscriptionRegistrationModal = ({ visible, onCancel, onSuccess, initialVe
                 monthlyFee: 0 // backend will calculate
             });
 
-            message.success("Đăng ký thành công! Đang chuyển hướng đến trang thanh toán...");
+            message.success("Registration successful! Redirecting to payment page...");
 
             // 2. Redirect to VNPay
             const paymentId = subRes.data?.data?.paymentId || subRes.data?.paymentId;
@@ -102,13 +113,13 @@ const SubscriptionRegistrationModal = ({ visible, onCancel, onSuccess, initialVe
                         if (onSuccess) onSuccess();
                         onCancel();
                     } else {
-                        message.warning("Không lấy được đường dẫn thanh toán. Vui lòng thử thanh toán lại trong mục Quản lý Vé tháng.");
+                        message.warning("Could not retrieve payment URL. Please try paying again in Subscription Management.");
                         if (onSuccess) onSuccess();
                         onCancel();
                     }
                 } catch (payErr) {
-                    console.error("Lỗi khi tạo payment URL:", payErr);
-                    message.error("Không thể kết nối đến VNPay. Vui lòng thử thanh toán lại sau.");
+                    console.error("Error creating payment URL:", payErr);
+                    message.error("Cannot connect to VNPay. Please try paying again later.");
                     if (onSuccess) onSuccess();
                     onCancel();
                 }
@@ -172,13 +183,13 @@ const SubscriptionRegistrationModal = ({ visible, onCancel, onSuccess, initialVe
                     {monthlyFee !== null && (
                         <div style={{ margin: '16px 0', padding: '16px', background: '#e6f7ff', border: '1px solid #91d5ff', borderRadius: '6px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <Text strong>Phí đăng ký vé tháng (Monthly Fee):</Text>
+                                <Text strong>Monthly Subscription Fee:</Text>
                                 <Text strong style={{ fontSize: '16px', color: '#1890ff' }}>
-                                    {monthlyFee.toLocaleString()} ₫
+                                    {monthlyFee.toLocaleString()} VND
                                 </Text>
                             </div>
                             <Text type="secondary" style={{ fontSize: '12px' }}>
-                                Ghi chú: Sau khi nhấn Đăng ký, bạn sẽ được chuyển đến trang thanh toán VNPay. Vé tháng sẽ được tự động kích hoạt ngay sau khi thanh toán thành công.
+                                Note: After clicking Register, you will be redirected to the VNPay payment page. The subscription will be automatically activated upon successful payment.
                             </Text>
                         </div>
                     )}
