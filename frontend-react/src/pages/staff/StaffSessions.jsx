@@ -265,7 +265,7 @@ const StaffSessions = () => {
           calculatedFee = feeRes.data.data.finalFee;
         } catch (e) {
           console.error("Fee calculation failed", e);
-          message.error("Lỗi tính phí từ Backend: " + (e.response?.data?.message || e.message));
+          message.error("Backend billing error: " + (e.response?.data?.message || e.message));
         }
       }
 
