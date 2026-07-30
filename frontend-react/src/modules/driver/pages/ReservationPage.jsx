@@ -631,7 +631,7 @@ const ReservationPage = () => {
                                     return subVid === vId && (status === 'ACTIVE' || status === 'PENDING');
                                 });
                                 return (
-                                    <Select.Option key={vId} value={vId} disabled={hasSub || isBicycle}>
+                                    <Select.Option key={vId} value={vId} disabled={isBicycle}>
                                         {v.licensePlate} ({v.brand || 'N/A'}) {hasSub ? ' (Has Monthly Pass)' : isBicycle ? ' (Bicycles cannot be reserved)' : ''}
                                     </Select.Option>
                                 );
