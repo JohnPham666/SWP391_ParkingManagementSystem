@@ -86,6 +86,13 @@ export const driverService = {
             throw error;
         }
     },
+    searchAvailableSlots: async (startTime, endTime) => {
+        try {
+            return await driverApi.searchAvailableSlots(startTime, endTime);
+        } catch (error) {
+            throw error;
+        }
+    },
     loadSessions: async () => {
         try {
             return await driverApi.getSessions();

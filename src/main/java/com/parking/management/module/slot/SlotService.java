@@ -55,6 +55,17 @@ public class SlotService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<SlotResponse> searchAvailableSlots(Integer buildingIdParam, java.time.LocalDateTime startTime, java.time.LocalDateTime endTime) {
+        Integer userBuildingId = securityUtils.getBuildingId();
+        Integer finalBuildingId = userBuildingId != null ? userBuildingId : buildingIdParam;
+
+        return repository.findAvailableSlotsForTimeRange(finalBuildingId, startTime, endTime)
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public SlotResponse update(Integer id, SlotRequest request) {
         validateSlot(request, id);
