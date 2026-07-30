@@ -109,7 +109,7 @@ public class SessionService {
             throw new IllegalArgumentException("This reservation has expired.");
         }
         if (slot.getCurrentOccupancy() >= slot.getCapacity()) {
-            throw new IllegalArgumentException("Rất tiếc, ô đỗ đã bị xe vãng lai lấn chiếm (vượt sức chứa)!");
+            throw new IllegalArgumentException("Sorry, the parking slot has been occupied beyond capacity by walk-in vehicles!");
         }
 
         // Increment occupancy
@@ -130,15 +130,15 @@ public class SessionService {
         session.setEstimatedFee(BigDecimal.ZERO);
         session.setFinalFee(null);
 
-        // Gán thẻ từ nếu staff scan thẻ khi check-in reservation
-        if (request.getCardId() != null && !request.getCardId().isBlank()) {
-            ParkingCard card = parkingCardRepository.findByCardIdAndStatus(request.getCardId(), "ACTIVE")
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Thẻ từ không hợp lệ hoặc đang được sử dụng: " + request.getCardId()));
-            card.setStatus("IN_USE");
-            parkingCardRepository.save(card);
-            session.setCard(card);
+        if (request.getCardId() == null || request.getCardId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Card ID is required for reservation check-in.");
         }
+        ParkingCard card = parkingCardRepository.findByCardIdAndStatus(request.getCardId(), "ACTIVE")
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Parking card is invalid or already in use: " + request.getCardId()));
+        card.setStatus("IN_USE");
+        parkingCardRepository.save(card);
+        session.setCard(card);
 
         ParkingSession savedSession = parkingSessionRepository.save(session);
 
@@ -172,7 +172,7 @@ public class SessionService {
         Vehicle vehicle = vehicleRepository.findByLicensePlate(request.getLicensePlate())
                 .orElseGet(() -> {
                     if (!configService.getBoolean("ALLOW_GUEST_PARKING", true)) {
-                        throw new IllegalArgumentException("Hệ thống hiện không nhận khách vãng lai. Vui lòng đăng ký tài khoản.");
+                        throw new IllegalArgumentException("The system currently does not accept walk-in guests. Please register an account.");
                     }
                     VehicleType type = vehicleTypeRepository.findById(request.getVehicleTypeId())
                             .orElseThrow(() -> new ResourceNotFoundException(
@@ -185,7 +185,7 @@ public class SessionService {
                 });
 
         if (!configService.getBoolean("ALLOW_GUEST_PARKING", true) && vehicle.getUser() == null) {
-            throw new IllegalArgumentException("Hệ thống hiện không nhận khách vãng lai. Vui lòng đăng ký tài khoản.");
+            throw new IllegalArgumentException("The system currently does not accept walk-in guests. Please register an account.");
         }
 
         // 2. Kiểm tra xem xe có vé tháng ACTIVE không
@@ -193,15 +193,11 @@ public class SessionService {
                 .stream()
                 .anyMatch(sub -> "ACTIVE".equals(sub.getStatus()) && !sub.getStartDate().isAfter(java.time.LocalDate.now()));
 
-        ParkingCard card = null;
-        if (!hasActiveSubscription) {
-            // Nếu không có vé tháng, bắt buộc phải có CardID
-            if (request.getCardId() == null || request.getCardId().trim().isEmpty()) {
-                throw new IllegalArgumentException("Card ID is required for walk-in check-in without a monthly subscription.");
-            }
-            card = parkingCardRepository.findByCardIdAndStatus(request.getCardId(), "ACTIVE")
-                    .orElseThrow(() -> new IllegalArgumentException("Parking card is invalid or already in use"));
+        if (request.getCardId() == null || request.getCardId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Card ID is required for check-in.");
         }
+        ParkingCard card = parkingCardRepository.findByCardIdAndStatus(request.getCardId(), "ACTIVE")
+                .orElseThrow(() -> new IllegalArgumentException("Parking card is invalid or already in use"));
 
         // 3. Kiểm tra xe đã có session active chưa
         parkingSessionRepository
@@ -213,11 +209,11 @@ public class SessionService {
         // 4. Tìm Slot trống đầu tiên phù hợp với loại xe
         ParkingSlot slot = parkingSlotRepository
                 .findFirstAvailableSlot(request.getVehicleTypeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chỗ trống phù hợp cho loại xe này."));
+                .orElseThrow(() -> new ResourceNotFoundException("No suitable available slot found for this vehicle type."));
 
         // 5. Kiểm tra lại capacity trước khi tăng
         if (slot.getCurrentOccupancy() >= slot.getCapacity()) {
-            throw new IllegalArgumentException("Ô đỗ đã đầy, vui lòng thử lại.");
+            throw new IllegalArgumentException("The parking slot is full, please try again.");
         }
 
         // 6. Cập nhật trạng thái Slot
@@ -696,24 +692,10 @@ public class SessionService {
         String fileName = prefix + sessionId + "_" + UUID.randomUUID() + extension;
 
         try {
-            // 6. Lấy đường dẫn gốc lưu ảnh (uploadDir) và tự động tạo toàn bộ thư mục nếu folder chưa tồn tại trên đĩa
-            Path uploadPath = Paths.get(uploadDir);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
+            // 6. Tải file thẳng lên đám mây AWS S3 thay vì lưu cục bộ để đảm bảo an toàn dữ liệu trên Production
+            String imageUrl = s3Service.uploadFile(file, "sessions", fileName);
 
-            // 7. Nối thư mục gốc với tên file (.resolve tự động điều chỉnh dấu gạch chéo tương thích Windows hoặc Linux)
-            Path filePath = uploadPath.resolve(fileName);
-
-            // 8. Lưu luồng dữ liệu (Input Stream) xuống đĩa với chế độ cho phép ghi đè (REPLACE_EXISTING):
-            // Copy bằng Stream giúp tiết kiệm bộ nhớ RAM, không cần đọc trọn tệp ảnh vài MB vào RAM trước khi lưu xuống đĩa
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            // 9. Chỉ lưu đường dẫn tương đối vào DB (VD: /uploads/sessions/entry_10.jpg):
-            // Ngăn lỗi mất ảnh khi thay đổi máy chủ hoặc đổi đường dẫn thư mục vật lý sau này
-            String imageUrl = "/uploads/sessions/" + fileName;
-
-            // 10. Gán đường dẫn ảnh mới lưu vào cột Entry hoặc Exit trong DB theo loại sự kiện
+            // 7. Gán đường dẫn URL public của AWS S3 vào cột Entry hoặc Exit trong DB theo loại sự kiện
             if ("exit".equalsIgnoreCase(type)) {
                 session.setExitImage(imageUrl);
             } else {
