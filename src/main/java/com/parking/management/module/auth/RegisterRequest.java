@@ -8,21 +8,21 @@ import java.time.LocalDate;
 
 @Data
 public class RegisterRequest {
-    @NotBlank(message = "Họ tên không được để trống")
+    @NotBlank(message = "Full name cannot be empty")
     private String fullName;
 
-    @NotBlank(message = "Email không được để trống")
-    @Email(message = "Email không hợp lệ")
+    @NotBlank(message = "Email cannot be empty")
+    @Email(message = "Invalid email format")
     private String email;
 
-    @NotBlank(message = "Số điện thoại không được để trống")
+    @NotBlank(message = "Phone number cannot be empty")
     private String phoneNumber;
 
     private LocalDate dateOfBirth;
 
     private String address;
 
-    @NotBlank(message = "Mật khẩu không được để trống")
-    @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
+    @NotBlank(message = "Password cannot be empty")
+    @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 }

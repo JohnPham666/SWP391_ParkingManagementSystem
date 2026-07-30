@@ -26,7 +26,7 @@ public class AuthController {
     @PostMapping("/login")
     public ApiResponse<JwtResponse> login(@Valid @RequestBody LoginRequest request) {
         JwtResponse response = authService.login(request);
-        return ApiResponse.success("Đăng nhập thành công", response);
+        return ApiResponse.success("Login successful", response);
     }
 
     /**
@@ -39,21 +39,21 @@ public class AuthController {
     @PostMapping("/register")
     public ApiResponse<JwtResponse> register(@Valid @RequestBody RegisterRequest request) {
         JwtResponse response = authService.register(request);
-        return ApiResponse.success("Đăng ký thành công", response);
+        return ApiResponse.success("Registration successful", response);
     }
 
     @Operation(summary = "Google Login", description = "Authenticate user using Google ID token")
     @PostMapping("/google")
     public ApiResponse<Object> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
         Object response = authService.googleLogin(request.getCredential());
-        return ApiResponse.success("Xử lý đăng nhập Google thành công", response);
+        return ApiResponse.success("Google login successful", response);
     }
 
     @Operation(summary = "Google Register", description = "Register a new user from Google using phone number")
     @PostMapping("/google/register")
     public ApiResponse<JwtResponse> googleRegister(@Valid @RequestBody GoogleRegisterRequest request) {
         JwtResponse response = authService.googleRegister(request.getCredential(), request.getPhoneNumber());
-        return ApiResponse.success("Đăng ký Google thành công", response);
+        return ApiResponse.success("Google registration successful", response);
     }
 
     /**
@@ -67,7 +67,7 @@ public class AuthController {
     public ApiResponse<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request.getEmail());
         return ApiResponse.success(
-                "Nếu email tồn tại trong hệ thống, chúng tôi đã gửi link đặt lại mật khẩu đến email của bạn.", null);
+                "If the email exists in our system, we have sent a password reset link to your email.", null);
     }
 
     /**
@@ -80,7 +80,7 @@ public class AuthController {
     @PostMapping("/reset-password")
     public ApiResponse<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request.getToken(), request.getNewPassword());
-        return ApiResponse.success("Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.", null);
+        return ApiResponse.success("Password reset successful. Please login again.", null);
     }
 
     /**
@@ -97,6 +97,6 @@ public class AuthController {
             Authentication authentication) {
         String email = authentication.getName();
         authService.changePassword(email, request.getOldPassword(), request.getNewPassword());
-        return ApiResponse.success("Đổi mật khẩu thành công", null);
+        return ApiResponse.success("Password changed successfully", null);
     }
 }
