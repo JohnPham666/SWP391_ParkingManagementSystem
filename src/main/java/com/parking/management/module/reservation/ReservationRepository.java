@@ -10,6 +10,7 @@ import java.util.List;
 public interface ReservationRepository extends JpaRepository<Reservation, Integer> {
     boolean existsByVehicle_VehicleId(Integer vehicleId);
     boolean existsByVehicle_VehicleIdAndStatusIn(Integer vehicleId, List<String> statuses);
+    boolean existsByVehicle_VehicleIdAndStatusInAndReservationIdNot(Integer vehicleId, List<String> statuses, Integer reservationId);
     Optional<Reservation> findFirstByVehicle_VehicleIdAndSlot_SlotIdAndStatus(Integer vehicleId, Integer slotId, String status);
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"user", "vehicle", "vehicleType", "slot", "slot.zone", "slot.zone.floor", "slot.zone.floor.building"})
     List<Reservation> findAll();
