@@ -602,6 +602,9 @@ const StaffSessions = () => {
           <Form.Item name="reservationId" label="Reservation ID" rules={[{ required: true, message: 'Please enter reservation ID' }]}>
             <Input type="number" placeholder="e.g. 12345" />
           </Form.Item>
+          <Form.Item name="cardId" label="Card ID" rules={[{ required: true, message: 'Please enter card ID' }]}>
+            <Input placeholder="e.g. 001" style={{ textTransform: 'uppercase' }} />
+          </Form.Item>
           <Form.Item name="entryGate" label="Entry Gate" initialValue="Gate A">
             <Select>
               <Option value="Gate A">Gate A</Option>
