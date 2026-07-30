@@ -198,8 +198,9 @@ const StaffSessions = () => {
       const payload = {
         reservationId: parseInt(values.reservationId, 10),
         entryGate: values.entryGate,
+        cardId: values.cardId,
       };
-      const res = await sessionApi.walkIn(payload); // Usually walkIn maps to check-in
+      const res = await sessionApi.checkIn(payload); // Usually walkIn maps to check-in
       const sessionData = res.data.data;
 
       message.success('Reservation Check-in Successful!');
@@ -600,6 +601,9 @@ const StaffSessions = () => {
         <Form form={resCheckInForm} layout="vertical" onFinish={handleResCheckInSubmit} size="large">
           <Form.Item name="reservationId" label="Reservation ID" rules={[{ required: true, message: 'Please enter reservation ID' }]}>
             <Input type="number" placeholder="e.g. 12345" />
+          </Form.Item>
+          <Form.Item name="cardId" label="Card ID" rules={[{ required: true, message: 'Please enter card ID' }]}>
+            <Input placeholder="e.g. 001" style={{ textTransform: 'uppercase' }} />
           </Form.Item>
           <Form.Item name="entryGate" label="Entry Gate" initialValue="Gate A">
             <Select>
