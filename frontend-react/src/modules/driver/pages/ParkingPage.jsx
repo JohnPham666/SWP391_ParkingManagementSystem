@@ -129,7 +129,7 @@ const ParkingPage = () => {
 
         const canReserveSlot = (slot) => {
             const vType = String(slot.vehicleTypeName || '').toLowerCase();
-            return slot && slot.status === 'AVAILABLE' && !vType.includes('motor') && !vType.includes('xe máy');
+            return slot && slot.status === 'AVAILABLE' && (vType.includes('car') || vType.includes('truck'));
         };
 
         const sortAndRecommendSlots = (slotsToProcess) => {
