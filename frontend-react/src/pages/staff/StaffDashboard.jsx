@@ -239,7 +239,7 @@ const StaffDashboard = () => {
       (r.reservationId.toString() === searchFallback ||
         (r.userFullName && r.userFullName.toLowerCase().includes(searchFallback.toLowerCase()))) &&
       r.status === 'CONFIRMED' &&
-      now.isAfter(dayjs(r.reservationStart).subtract(30, 'minute')) &&
+      now.isAfter(dayjs(r.reservationStart).subtract(earlyCheckinBuffer, 'minute')) &&
       now.isBefore(dayjs(r.reservationEnd))
     );
     if (match) {
@@ -683,7 +683,7 @@ const StaffDashboard = () => {
                   {subStatus === 'ACTIVE' && (
                     <div style={{ marginBottom: 16 }}>
                       <Tag color="green" icon={<SafetyCertificateOutlined />} style={{ fontSize: '14px', padding: '6px 12px' }}>
-                        Active Monthly Subscription - No card required
+                        Active Monthly Subscription
                       </Tag>
                     </div>
                   )}
@@ -705,7 +705,7 @@ const StaffDashboard = () => {
                   <Form.Item
                     name="cardId"
                     label="Card ID"
-                    rules={[{ required: !hasSub, message: 'Please select Card ID' }]}
+                    rules={[{ required: true, message: 'Please select Card ID' }]}
                     style={{ marginBottom: 16 }}
                   >
                     <Select
