@@ -144,7 +144,10 @@ const VehiclePage = () => {
             message.success('Vehicle deleted successfully');
             fetchData();
         } catch (error) {
-            message.error('Failed to delete vehicle');
+            const errMsg = typeof error.response?.data === 'string' 
+                ? error.response.data 
+                : (error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to delete vehicle');
+            message.error(errMsg);
         }
     };
 
