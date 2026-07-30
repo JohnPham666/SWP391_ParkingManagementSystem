@@ -311,7 +311,7 @@ const PaymentPage = () => {
                     );
                 }
                 
-                return <Button type="link" icon={<DownloadOutlined />} size="small">Receipt</Button>;
+                return null;
             }
         }
     ];
