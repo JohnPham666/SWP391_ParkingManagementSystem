@@ -60,6 +60,10 @@ public class ReservationService {
             throw new IllegalArgumentException("This vehicle type does not support reservations.");
         }
 
+        if (reservationRepository.existsByVehicle_VehicleIdAndStatusIn(request.getVehicleId(), List.of("PENDING", "CONFIRMED"))) {
+            throw new IllegalArgumentException("This vehicle already has an active reservation. Please complete or cancel it before making a new one.");
+        }
+
         ParkingSlot slot;
         if (request.getSlotId() == null) {
             // Đặt nhanh: Tìm chỗ trống đầu tiên
@@ -170,6 +174,10 @@ public class ReservationService {
         }
         if (!slot.getVehicleType().getIsReservable()) {
             throw new IllegalArgumentException("This slot does not support reservations for this vehicle type.");
+        }
+
+        if (reservationRepository.existsByVehicle_VehicleIdAndStatusInAndReservationIdNot(request.getVehicleId(), List.of("PENDING", "CONFIRMED"), id)) {
+            throw new IllegalArgumentException("This vehicle already has an active reservation. Please complete or cancel it before making a new one.");
         }
 
         // Kiểm tra Double Booking (Overlap)
