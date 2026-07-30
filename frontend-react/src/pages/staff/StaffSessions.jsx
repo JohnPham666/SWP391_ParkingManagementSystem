@@ -198,8 +198,9 @@ const StaffSessions = () => {
       const payload = {
         reservationId: parseInt(values.reservationId, 10),
         entryGate: values.entryGate,
+        cardId: values.cardId,
       };
-      const res = await sessionApi.walkIn(payload); // Usually walkIn maps to check-in
+      const res = await sessionApi.checkIn(payload);
       const sessionData = res.data.data;
 
       message.success('Reservation Check-in Successful!');
