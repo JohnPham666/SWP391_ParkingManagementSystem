@@ -201,6 +201,11 @@ public class ReservationService {
             securityUtils.checkDataOwnership(reservation.getUser().getUserId());
         }
 
+        String currentStatus = reservation.getStatus();
+        if (!"PENDING".equals(currentStatus) && !"CONFIRMED".equals(currentStatus)) {
+            throw new IllegalArgumentException("Cannot cancel this reservation because it is already " + currentStatus);
+        }
+
         reservation.setStatus("CANCELLED");
 
         ParkingSlot slot = reservation.getSlot();

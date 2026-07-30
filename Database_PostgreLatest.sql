@@ -195,7 +195,7 @@ CREATE TABLE Reservations (
     SlotID           INT NOT NULL,
     ReservationStart TIMESTAMP NOT NULL,
     ReservationEnd   TIMESTAMP NOT NULL,
-    Status           VARCHAR(20) CHECK (Status IN ('PENDING', 'CONFIRMED', 'CANCELLED', 'EXPIRED', 'COMPLETED')),
+    Status           VARCHAR(20) CHECK (Status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN', 'CANCELLED', 'EXPIRED', 'COMPLETED')),
     CreatedAt        TIMESTAMP DEFAULT NOW(),
     GuestName        VARCHAR(100) NULL,
     CONSTRAINT FK_Reservations_Users FOREIGN KEY (UserID) REFERENCES Users(UserID),

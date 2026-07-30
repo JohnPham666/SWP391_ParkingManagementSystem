@@ -141,6 +141,10 @@ public class SessionService {
         session.setCard(card);
 
         ParkingSession savedSession = parkingSessionRepository.save(session);
+        
+        // Cập nhật trạng thái Reservation thành CHECKED_IN để block tính năng Cancel
+        reservation.setStatus("CHECKED_IN");
+        reservationRepository.save(reservation);
 
         return mapEntityToResponse(savedSession);
     }
@@ -304,7 +308,7 @@ public class SessionService {
                 .findFirstByVehicle_VehicleIdAndSlot_SlotIdAndStatus(
                         session.getVehicle().getVehicleId(),
                         slot.getSlotId(),
-                        "CONFIRMED");
+                        "CHECKED_IN");
 
         //Khởi tạo FinalFee
         BigDecimal calculatedFinalFee;
