@@ -552,6 +552,9 @@ const VehiclePage = () => {
                                 </>
                             )}
                             <Descriptions.Item label="Mfg Year">{viewingVehicle.manufactureYear || 'N/A'}</Descriptions.Item>
+                            <Descriptions.Item label="Registered Date">
+                                {viewingVehicle.registrationDate ? new Date(viewingVehicle.registrationDate).toLocaleDateString() : 'N/A'}
+                            </Descriptions.Item>
                             <Descriptions.Item label="Status">
                                                 <Tag color={
                                                     viewingVehicle.status === 'APPROVED' ? 'green' : 

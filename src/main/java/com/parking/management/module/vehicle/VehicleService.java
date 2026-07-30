@@ -238,7 +238,26 @@ public class VehicleService {
             securityUtils.checkDataOwnership(vehicle.getUser().getUserId());
         }
 
-        // Kiểm tra xe có dữ liệu liên quan trong các bảng khác không
+        // 1. NGĂN CHẶN XÓA nếu xe đang có hoạt động ACTIVE/PENDING
+        boolean hasActiveSession = parkingSessionRepository.existsByVehicle_VehicleIdAndStatusIn(
+                id, java.util.Arrays.asList("PARKING", "UNPAID"));
+        if (hasActiveSession) {
+            throw new IllegalArgumentException("Cannot delete vehicle that is currently parking or has unpaid fees.");
+        }
+
+        boolean hasActiveReservation = reservationRepository.existsByVehicle_VehicleIdAndStatusIn(
+                id, java.util.Arrays.asList("PENDING", "CONFIRMED"));
+        if (hasActiveReservation) {
+            throw new IllegalArgumentException("Cannot delete vehicle with an active reservation.");
+        }
+
+        boolean hasActiveSubscription = subscriptionRepository.existsByVehicle_VehicleIdAndStatusIn(
+                id, java.util.Arrays.asList("ACTIVE", "PENDING"));
+        if (hasActiveSubscription) {
+            throw new IllegalArgumentException("Cannot delete vehicle with an active or pending monthly subscription.");
+        }
+
+        // 2. Kiểm tra xe có dữ liệu liên quan trong các bảng khác không để Soft Delete
         boolean hasParkingSessions = parkingSessionRepository.existsByVehicle_VehicleId(id);
         boolean hasReservations = reservationRepository.existsByVehicle_VehicleId(id);
         boolean hasSubscriptions = subscriptionRepository.existsByVehicle_VehicleId(id);
