@@ -87,9 +87,9 @@ public class SubscriptionService {
             subscription.setZone(zone);
         }
 
-        // Set ngày bắt đầu và ngày kết thúc (30 ngày)
-        subscription.setStartDate(request.getStartDate());
-        subscription.setEndDate(request.getStartDate().plusDays(30));
+        // Set ngày bắt đầu và ngày kết thúc (30 ngày) - Bắt buộc là ngày hiện tại
+        subscription.setStartDate(java.time.LocalDate.now());
+        subscription.setEndDate(java.time.LocalDate.now().plusDays(30));
 
         // 7. Lấy giá MonthlyPrice từ PricingPolicy đang active
         // Lưu ý: Không tin tưởng monthlyFee gửi từ Frontend (request.getMonthlyFee()) để chống hack đổi giá
