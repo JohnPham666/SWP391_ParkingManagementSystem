@@ -78,7 +78,7 @@ export const sessionApi = {
 };
 
 export const vehicleApi = {
-  getVehicles: (buildingId) => api.get('/vehicles' + (buildingId ? `?buildingId=${buildingId}` : '')),
+  getVehicles: () => api.get('/vehicles'),
   getVehicle: (id) => api.get(`/vehicles/${id}`),
   createVehicle: (data) => api.post('/vehicles', data),
   updateVehicle: (id, data) => api.put(`/vehicles/${id}`, data),
