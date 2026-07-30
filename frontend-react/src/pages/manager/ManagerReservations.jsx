@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Select, Tag, message, Card, Space, Input, Typography, Modal } from 'antd';
 import { SearchOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
-import { reservationApi } from '../../services/api';
+import { reservationApi, buildingApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -10,15 +10,34 @@ const ManagerReservations = () => {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({ plate: '', name: '', status: '' });
+  const [buildings, setBuildings] = useState([]);
+  const [selectedBuilding, setSelectedBuilding] = useState(null);
+
+  useEffect(() => {
+    fetchBuildings();
+  }, []);
+
+  const fetchBuildings = async () => {
+    try {
+      const res = await buildingApi.getBuildings();
+      setBuildings(res.data?.data || []);
+    } catch (e) {
+      console.error('Failed to fetch buildings', e);
+    }
+  };
 
   useEffect(() => {
     fetchReservations();
-  }, []);
+    const interval = setInterval(() => {
+      fetchReservations(true);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [selectedBuilding]);
 
-  const fetchReservations = async () => {
-    setLoading(true);
+  const fetchReservations = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
-      const res = await reservationApi.getReservations();
+      const res = await reservationApi.getReservations(selectedBuilding);
       let data = res.data?.success ? res.data.data : res.data;
       if (Array.isArray(data)) {
         // Sort descending by startTime
@@ -31,7 +50,7 @@ const ManagerReservations = () => {
       console.error('Error fetching reservations:', error);
       message.error('Failed to load reservations');
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
@@ -139,7 +158,18 @@ const ManagerReservations = () => {
             <Option value="CONFIRMED">Confirmed</Option>
             <Option value="COMPLETED">Completed</Option>
             <Option value="CANCELLED">Cancelled</Option>
-            <Option value="EXPIRED">Expired</Option>
+            <Option value="CHECKED_IN">Checked-in</Option>
+          </Select>
+          <Select
+            allowClear
+            placeholder="Filter by Building"
+            style={{ width: 180 }}
+            value={selectedBuilding}
+            onChange={(value) => setSelectedBuilding(value)}
+          >
+            {buildings.map(b => (
+              <Option key={b.buildingId} value={b.buildingId}>{b.buildingName}</Option>
+            ))}
           </Select>
         </Space>
       </div>

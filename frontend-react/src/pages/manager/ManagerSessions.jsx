@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Upload, Row, Col, Typography, Divider, DatePicker, Alert, Spin } from 'antd';
 import { SearchOutlined, CarOutlined, CreditCardOutlined, UploadOutlined, SafetyCertificateOutlined, CheckCircleFilled } from '@ant-design/icons';
-import { sessionApi, paymentApi, vehicleApi, pricingApi } from '../../services/api';
+import { sessionApi, paymentApi, vehicleApi, pricingApi, buildingApi } from '../../services/api';
 import { getImageUrl } from '../../utils/helpers';
 import dayjs from 'dayjs';
 
@@ -12,6 +12,8 @@ const SessionManagement = () => {
   const [sessions, setSessions] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [buildings, setBuildings] = useState([]);
+  const [selectedBuilding, setSelectedBuilding] = useState(null);
   
   const [filters, setFilters] = useState({
     search: '',
@@ -41,9 +43,22 @@ const SessionManagement = () => {
   const [summaryData, setSummaryData] = useState(null);
 
   useEffect(() => {
-    fetchSessions();
     fetchVehicleTypes();
+    fetchBuildings();
   }, []);
+
+  const fetchBuildings = async () => {
+    try {
+      const res = await buildingApi.getBuildings();
+      setBuildings(res.data?.data || []);
+    } catch (e) {
+      console.error('Failed to fetch buildings', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchSessions();
+  }, [selectedBuilding]);
 
   const fetchVehicleTypes = async () => {
     try {
@@ -56,7 +71,7 @@ const SessionManagement = () => {
   const fetchSessions = async () => {
     setLoading(true);
     try {
-      const res = await sessionApi.getSessions();
+      const res = await sessionApi.getSessions(selectedBuilding);
       let data = res.data?.success ? res.data.data : res.data;
       if (Array.isArray(data)) {
         data.sort((a, b) => new Date(b.checkInTime || 0) - new Date(a.checkInTime || 0));
@@ -253,7 +268,7 @@ const SessionManagement = () => {
       session.licensePlate?.toLowerCase().includes(filters.search.toLowerCase()) ||
       session.sessionId?.toString().includes(filters.search);
     const statusMatch = !filters.status || session.status === filters.status || (filters.status === 'ACTIVE' && session.status === 'PARKING');
-    const typeMatch = !filters.vehicleType || (session.vehicleTypeName || session.vehicleType?.typeName || 'Ô tô') === filters.vehicleType;
+    const typeMatch = !filters.vehicleType || (session.vehicleTypeName || session.vehicleType?.typeName || 'Car') === filters.vehicleType;
     const dateMatch = !filters.date || dayjs(session.checkInTime || session.checkinTime || session.entryTime).format('MM/DD/YYYY') === filters.date;
     return searchMatch && statusMatch && typeMatch && dateMatch;
   });
@@ -391,6 +406,19 @@ const SessionManagement = () => {
               onChange={(date, dateString) => setFilters({ ...filters, date: dateString })}
               style={{ width: 130 }}
             />
+            {!isStaff && (
+              <Select
+                allowClear
+                placeholder="Filter by Building"
+                style={{ width: 180 }}
+                value={selectedBuilding}
+                onChange={(value) => setSelectedBuilding(value)}
+              >
+                {buildings.map(b => (
+                  <Option key={b.buildingId} value={b.buildingId}>{b.buildingName}</Option>
+                ))}
+              </Select>
+            )}
           </Space>
         </div>
 
@@ -670,7 +698,7 @@ const SessionManagement = () => {
             <Card style={{ backgroundColor: '#f8fafc', marginBottom: '20px' }} bodyStyle={{ padding: '16px', textAlign: 'center' }}>
                 <p><strong>Exit Time:</strong> {dayjs(checkoutSessionData.exitTime).format('DD/MM/YYYY HH:mm:ss')}</p>
                 <div style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold', marginTop: '10px' }}>
-                  Fee: {checkoutSessionData.totalFee.toLocaleString()} ₫
+                  Fee: {checkoutSessionData.totalFee.toLocaleString()} VND
                 </div>
             </Card>
 

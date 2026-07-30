@@ -61,8 +61,8 @@ export const roleApi = {
 };
 
 export const sessionApi = {
-  getSessions: () => api.get('/sessions'),
-  getSession: (id) => api.get(`/sessions/${id}`),
+  getSessions: (buildingId) => api.get('/sessions' + (buildingId ? `?buildingId=${buildingId}` : '')),
+  getSessionById: (id) => api.get(`/sessions/${id}`),
   checkIn: (data) => api.post('/sessions/check-in', data),
   walkIn: (data) => api.post('/sessions/walk-in', data),
   checkOut: (sessionId, data) => api.post(`/sessions/${sessionId}/check-out`, data),
@@ -78,7 +78,7 @@ export const sessionApi = {
 };
 
 export const vehicleApi = {
-  getVehicles: () => api.get('/vehicles'),
+  getVehicles: (buildingId) => api.get('/vehicles' + (buildingId ? `?buildingId=${buildingId}` : '')),
   getVehicle: (id) => api.get(`/vehicles/${id}`),
   createVehicle: (data) => api.post('/vehicles', data),
   updateVehicle: (id, data) => api.put(`/vehicles/${id}`, data),
@@ -87,8 +87,8 @@ export const vehicleApi = {
 };
 
 export const reservationApi = {
-  getReservations: () => api.get('/reservations'),
-  getReservation: (id) => api.get(`/reservations/${id}`),
+  getReservations: (buildingId) => api.get('/reservations' + (buildingId ? `?buildingId=${buildingId}` : '')),
+  getReservationById: (id) => api.get(`/reservations/${id}`),
   createReservation: (data) => api.post('/reservations', data),
   updateReservation: (id, data) => api.put(`/reservations/${id}`, data),
   updateReservationStatus: (id, status) => api.patch(`/reservations/${id}/status?status=${status}`),
@@ -104,7 +104,7 @@ export const paymentApi = {
 };
 
 export const incidentApi = {
-  getIncidents: () => api.get('/incidents'),
+  getIncidents: (buildingId) => api.get('/incidents' + (buildingId ? `?buildingId=${buildingId}` : '')),
   getIncident: (id) => api.get(`/incidents/${id}`),
   createIncident: (data) => api.post('/incidents', data),
   updateIncident: (id, data) => api.put(`/incidents/${id}`, data),
@@ -189,7 +189,7 @@ export const monitoringApi = {
 };
 
 export const slotApi = {
-  getSlots: () => api.get('/slots'),
+  getSlots: (buildingId) => api.get('/slots' + (buildingId ? `?buildingId=${buildingId}` : '')),
   updateSlotStatus: (id, status) => api.patch(`/slots/${id}/status`, { status }),
 };
 

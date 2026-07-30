@@ -120,8 +120,9 @@ public class VehicleService {
     // ========== LẤY TẤT CẢ XE (cho Admin/Staff) ==========
     // Trả về tất cả xe có isActive = true (loại trừ xe đã soft delete)
     // Query: SELECT * FROM vehicles → filter Java-side bằng stream
-    public List<VehicleResponse> getAll() {
-        return vehicleRepository.findAll()
+    public List<VehicleResponse> getAll(Integer reqBuildingId) {
+        Integer buildingId = reqBuildingId != null ? reqBuildingId : securityUtils.getBuildingId();
+        return vehicleRepository.findAllWithBuildingFilter(buildingId)
                 .stream()
                 .filter(v -> Boolean.TRUE.equals(v.getIsActive()))  // Chỉ lấy xe chưa bị soft delete
                 .map(VehicleResponse::fromEntity)                   // Convert entity → DTO

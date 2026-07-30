@@ -31,8 +31,8 @@ public class ReservationController {
 
     @Operation(summary = "Get all reservations", description = "Retrieve a list of all reservations")
     @GetMapping
-    public ApiResponse<?> getAll() {
-        return ApiResponse.success("Fetched all successfully", reservationService.getAll());
+    public ApiResponse<?> getAll(@RequestParam(required = false) Integer buildingId) {
+        return ApiResponse.success("Fetched all successfully", reservationService.getAll(buildingId));
     }
 
     @Operation(summary = "Update a reservation", description = "Update an existing reservation by its ID")

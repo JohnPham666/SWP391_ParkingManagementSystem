@@ -91,9 +91,9 @@ const ManagerPricing = () => {
   const columns = [
     { title: 'ID', dataIndex: 'pricingPolicyId', key: 'id' },
     { title: 'Policy Name', dataIndex: 'policyName', key: 'policyName', render: text => <strong>{text}</strong> },
-    { title: 'Base Hourly Rate', dataIndex: 'basePrice', key: 'basePrice', render: (val) => `${val?.toLocaleString() || 0} ₫` },
-    { title: 'Monthly Price', dataIndex: 'monthlyPrice', key: 'monthlyPrice', render: (val) => `${val?.toLocaleString() || 0} ₫` },
-    { title: 'Max Daily Rate', dataIndex: 'maxDailyRate', key: 'maxDailyRate', render: (val) => `${val?.toLocaleString() || 0} ₫` },
+    { title: 'Base Hourly Rate', dataIndex: 'basePrice', key: 'basePrice', render: (val) => `${val?.toLocaleString() || 0} VND` },
+    { title: 'Monthly Price', dataIndex: 'monthlyPrice', key: 'monthlyPrice', render: (val) => `${val?.toLocaleString() || 0} VND` },
+    { title: 'Max Daily Rate', dataIndex: 'maxDailyRate', key: 'maxDailyRate', render: (val) => `${val?.toLocaleString() || 0} VND` },
   ];
 
   if (isAdmin) {

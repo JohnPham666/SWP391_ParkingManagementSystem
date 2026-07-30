@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Card, Space, Input, Select, Tag, message, Typography, DatePicker } from 'antd';
 import { SearchOutlined, CalendarOutlined } from '@ant-design/icons';
-import { reservationApi } from '../../services/api';
+import { reservationApi, buildingApi } from '../../services/api';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -12,6 +12,21 @@ const StaffReservations = () => {
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({ search: '', status: null });
   const [selectedDate, setSelectedDate] = useState(null); // Default: all
+  const [buildings, setBuildings] = useState([]);
+  const [selectedBuilding, setSelectedBuilding] = useState(null);
+
+  useEffect(() => {
+    fetchBuildings();
+  }, []);
+
+  const fetchBuildings = async () => {
+    try {
+      const res = await buildingApi.getBuildings();
+      setBuildings(res.data?.data || []);
+    } catch (e) {
+      console.error('Failed to fetch buildings', e);
+    }
+  };
 
   useEffect(() => {
     fetchReservations();
@@ -19,12 +34,12 @@ const StaffReservations = () => {
       fetchReservations(true);
     }, 10000);
     return () => clearInterval(interval);
-  }, [selectedDate]);
+  }, [selectedDate, selectedBuilding]);
 
   const fetchReservations = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await reservationApi.getReservations();
+      const res = await reservationApi.getReservations(selectedBuilding);
       let data = res.data?.success ? res.data.data : res.data;
       if (!Array.isArray(data) && data && Array.isArray(data.content)) {
         data = data.content;
@@ -67,7 +82,7 @@ const StaffReservations = () => {
       render: (text) => <strong>#{text}</strong>
     },
     {
-      title: 'Customer',
+      title: 'Customer Name',
       key: 'customer',
       render: (_, record) => (
         <div>
@@ -137,14 +152,25 @@ const StaffReservations = () => {
         />
         <Select 
           placeholder="All statuses" 
-          style={{ width: 160 }} 
+          style={{ width: 150 }} 
           allowClear 
           onChange={(val) => setFilters({ ...filters, status: val })}
         >
-          <Option value="CONFIRMED">Confirmed</Option>
-          <Option value="COMPLETED">Completed</Option>
           <Option value="PENDING">Pending</Option>
+          <Option value="CONFIRMED">Confirmed</Option>
+          <Option value="CHECKED_IN">Checked-in</Option>
           <Option value="CANCELLED">Cancelled</Option>
+        </Select>
+        <Select
+          allowClear
+          placeholder="Filter by Building"
+          style={{ width: 180 }}
+          value={selectedBuilding}
+          onChange={(value) => setSelectedBuilding(value)}
+        >
+          {buildings.map(b => (
+            <Option key={b.buildingId} value={b.buildingId}>{b.buildingName}</Option>
+          ))}
         </Select>
       </Space>
 

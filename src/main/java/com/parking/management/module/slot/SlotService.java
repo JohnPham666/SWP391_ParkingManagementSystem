@@ -36,8 +36,9 @@ public class SlotService {
     }
 
     @Transactional(readOnly = true)
-    public List<SlotResponse> getAll(Integer zoneId, Integer vehicleTypeId) {
-        Integer buildingId = securityUtils.getBuildingId();
+    public List<SlotResponse> getAll(Integer reqBuildingId, Integer zoneId, Integer vehicleTypeId) {
+        Integer userBuildingId = securityUtils.getBuildingId();
+        Integer buildingId = reqBuildingId != null ? reqBuildingId : userBuildingId;
         
         List<ParkingSlot> slots = repository.findSlotsForMonitoring(buildingId, null, zoneId, vehicleTypeId);
         

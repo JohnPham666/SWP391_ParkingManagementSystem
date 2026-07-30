@@ -164,7 +164,7 @@ const ManagerSubscriptions = () => {
       title: 'Monthly Fee',
       dataIndex: 'monthlyFee',
       key: 'monthlyFee',
-      render: (fee) => fee ? `${fee.toLocaleString()} ₫` : '-'
+      render: (fee) => fee ? `${fee.toLocaleString()} VND` : '-'
     },
     {
       title: 'Status',

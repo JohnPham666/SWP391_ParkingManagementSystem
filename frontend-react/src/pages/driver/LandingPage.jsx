@@ -99,7 +99,7 @@ const LandingPage = () => {
           const availableMotorSlots = bSlots
             .filter(s => {
               const typeName = (s.vehicleType?.name || s.vehicleTypeName || '').toLowerCase();
-              return typeName.includes('motor') || typeName.includes('xe máy');
+              return typeName.includes('motor') || typeName.includes('motorcycle');
             })
             .reduce((sum, s) => {
               const cap = s.capacity || 1;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Input, Select, Space, Tag, Typography, message, Spin, Modal, Descriptions, Button, Table } from 'antd';
 import { SearchOutlined, CarOutlined, UnorderedListOutlined, AppstoreOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
-import { slotApi } from '../../services/api';
+import { slotApi, buildingApi } from '../../services/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -9,6 +9,8 @@ const { Option } = Select;
 const ManagerSlots = () => {
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [buildings, setBuildings] = useState([]);
+  const [selectedBuilding, setSelectedBuilding] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   
   const [filters, setFilters] = useState({
@@ -26,13 +28,26 @@ const ManagerSlots = () => {
   };
 
   useEffect(() => {
-    fetchSlots();
+    fetchBuildings();
   }, []);
+
+  const fetchBuildings = async () => {
+    try {
+      const res = await buildingApi.getBuildings();
+      setBuildings(res.data?.data || []);
+    } catch (e) {
+      console.error('Failed to fetch buildings', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchSlots();
+  }, [selectedBuilding]);
 
   const fetchSlots = async () => {
     setLoading(true);
     try {
-      const res = await slotApi.getSlots();
+      const res = await slotApi.getSlots(selectedBuilding);
       let data = res.data?.success ? res.data.data : res.data;
       if (Array.isArray(data)) {
         setSlots(data);
@@ -124,10 +139,10 @@ const ManagerSlots = () => {
   const getVehicleIcon = (type) => {
     if (!type) return '🚗';
     const lowerType = type.toLowerCase();
-    if (lowerType.includes('motor') || lowerType.includes('máy')) return '🏍️';
-    if (lowerType.includes('bike') || lowerType.includes('đạp')) return '🏍️';
-    if (lowerType.includes('bus') || lowerType.includes('khách')) return '🚌';
-    if (lowerType.includes('truck') || lowerType.includes('tải')) return '🚚';
+    if (lowerType.includes('motor') || lowerType.includes('motorcycle')) return '🏍️';
+    if (lowerType.includes('bike') || lowerType.includes('bicycle')) return '🏍️';
+    if (lowerType.includes('bus') || lowerType.includes('passenger')) return '🚌';
+    if (lowerType.includes('truck') || lowerType.includes('truck')) return '🚚';
     return '🚗';
   };
 
@@ -205,13 +220,23 @@ const ManagerSlots = () => {
             </Select>
             <Select 
                 placeholder="All Vehicle Types" 
-                style={{ width: 180 }} 
-                allowClear 
-                size="large"
-                onChange={(val) => setFilters({ ...filters, vehicleType: val })}
+                allowClear
+                style={{ width: 150 }}
+                onChange={v => setFilters({ ...filters, vehicleType: v })}
             >
-                {uniqueVehicleTypes.map(type => (
-                <Option key={type} value={type}>{type}</Option>
+                {uniqueVehicleTypes.map(t => (
+                <Option key={t} value={t}>{t}</Option>
+                ))}
+            </Select>
+            <Select
+                allowClear
+                placeholder="Filter by Building"
+                style={{ width: 180 }}
+                value={selectedBuilding}
+                onChange={(value) => setSelectedBuilding(value)}
+            >
+                {buildings.map(b => (
+                <Option key={b.buildingId} value={b.buildingId}>{b.buildingName}</Option>
                 ))}
             </Select>
             </Space>

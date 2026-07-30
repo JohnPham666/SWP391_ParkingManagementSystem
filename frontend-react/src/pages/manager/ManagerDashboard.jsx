@@ -164,7 +164,7 @@ const ManagerDashboard = () => {
                 title="Total Revenue"
                 value={stats.totalRevenue}
                 prefix={<DollarOutlined />}
-                suffix="₫"
+                suffix="VND"
                 valueStyle={{ color: '#3f8600', fontWeight: 600 }}
               />
             </Card>

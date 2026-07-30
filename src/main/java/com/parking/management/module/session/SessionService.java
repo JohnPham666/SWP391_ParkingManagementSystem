@@ -62,11 +62,13 @@ public class SessionService {
      * 5. Đổi slot RESERVED -> OCCUPIED
      * 6. Tạo ParkingSession mới với status = PARKING
      */
+    // =====================================================================
+    // [BACKEND FLOW] 1. CHECK-IN DÀNH CHO KHÁCH CÓ ĐẶT CHỖ (RESERVATION)
+    // =====================================================================
     @Transactional
     public SessionResponse checkIn(CheckInRequest request) {
         Reservation reservation = reservationRepository.findById(request.getReservationId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Reservation not found with id: " + request.getReservationId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found"));
 
         Vehicle vehicle = reservation.getVehicle();
         ParkingSlot slot = reservation.getSlot();
@@ -122,6 +124,7 @@ public class SessionService {
         }
         parkingSlotRepository.save(slot);
 
+        // BƯỚC B: TẠO PHIÊN ĐỖ XE (SESSION) MỚI
         ParkingSession session = new ParkingSession();
         session.setVehicle(vehicle);
         session.setSlot(slot);
@@ -131,13 +134,14 @@ public class SessionService {
         session.setEstimatedFee(BigDecimal.ZERO);
         session.setFinalFee(null);
 
+        // BƯỚC C: RÀNG BUỘC THẺ TỪ (Để lúc ra lấy thẻ quẹt tính tiền)
         if (request.getCardId() == null || request.getCardId().trim().isEmpty()) {
             throw new IllegalArgumentException("Card ID is required for reservation check-in.");
         }
         ParkingCard card = parkingCardRepository.findByCardIdAndStatus(request.getCardId(), "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Parking card is invalid or already in use: " + request.getCardId()));
-        card.setStatus("IN_USE");
+        card.setStatus("IN_USE"); // Khoá thẻ lại, xe khác không dùng được
         parkingCardRepository.save(card);
         session.setCard(card);
 
@@ -157,12 +161,13 @@ public class SessionService {
         return sessions.stream().map(this::mapEntityToResponse).toList();
     }
 
-    /*
-     * WALK-IN CHECK-IN (Khách vãng lai / Không đặt trước)
-     */
+    // =====================================================================
+    // [BACKEND FLOW] 2. WALK-IN CHECK-IN (KHÁCH VÃNG LAI & VÉ THÁNG)
+    // =====================================================================
     @Transactional
     public SessionResponse checkInWalkIn(WalkInRequest request) {
-        // 0. Xử lý logic Biển số & Thẻ từ
+        // BƯỚC A: Tìm xe theo biển số. Nếu xe lần đầu tới bãi (chưa có trong DB), hệ thống tự tạo xe mới.
+        // Khách vé tháng (Subscription) chắc chắn đã có biển số trong DB, nên sẽ móc ra được ngay.
         if (request.getVehicleTypeId() == 4) { // Bicycle
             if (request.getLicensePlate() == null || request.getLicensePlate().trim().isEmpty()) {
                 request.setLicensePlate("BICYCLE-" + request.getCardId());
@@ -430,11 +435,11 @@ public class SessionService {
         return mapEntityToResponse(session);
     }
 
-    public List<SessionResponse> getAll() {
-        Integer buildingId = securityUtils.getBuildingId();
+    public List<SessionResponse> getAll(Integer reqBuildingId) {
+        Integer buildingId = reqBuildingId != null ? reqBuildingId : securityUtils.getBuildingId();
         return parkingSessionRepository.findAllWithBuildingFilter(buildingId)
                 .stream()
-                .map(this::mapEntityToResponse)
+                .map(s -> mapEntityToResponse(s, false))
                 .toList();
     }
 
@@ -757,6 +762,10 @@ public class SessionService {
 
     // SUPPORTIVE FUNCTION: map entity to response
     private SessionResponse mapEntityToResponse(ParkingSession session) {
+        return mapEntityToResponse(session, true);
+    }
+
+    private SessionResponse mapEntityToResponse(ParkingSession session, boolean calculateLiveFee) {
         SessionResponse response = new SessionResponse();
 
         response.setSessionId(session.getSessionId());
@@ -793,7 +802,7 @@ public class SessionService {
         response.setExitImage(session.getExitImage());
         response.setStatus(session.getStatus());
 
-        if (SessionStatus.PARKING.name().equals(session.getStatus())) {
+        if (SessionStatus.PARKING.name().equals(session.getStatus()) && calculateLiveFee) {
             try {
                 BigDecimal currentExpectedFee = calculateExpectedFee(session, java.time.LocalDateTime.now());
                 response.setEstimatedFee(currentExpectedFee);

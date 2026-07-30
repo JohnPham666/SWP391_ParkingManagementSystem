@@ -30,8 +30,8 @@ public class IncidentController {
 
     @Operation(summary = "Get all incidents")
     @GetMapping
-    public ApiResponse<?> getAll() {
-        return ApiResponse.success("Fetched all successfully", incidentService.getAll());
+    public ApiResponse<?> getAll(@RequestParam(required = false) Integer buildingId) {
+        return ApiResponse.success("Fetched all successfully", incidentService.getAll(buildingId));
     }
 
     @Operation(summary = "Update an incident")

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Input, Select, Space, Tag, Typography, message, Spin, Row, Col, Modal, Descriptions, theme } from 'antd';
 import { SearchOutlined, CarOutlined } from '@ant-design/icons';
-import { slotApi } from '../../services/api';
+import { slotApi, buildingApi } from '../../services/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -19,6 +19,8 @@ const StaffSlots = () => {
 
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [buildings, setBuildings] = useState([]);
+  const [selectedBuilding, setSelectedBuilding] = useState(null);
 
   const handleSlotClick = (slot) => {
     setSelectedSlot(slot);
@@ -26,13 +28,26 @@ const StaffSlots = () => {
   };
 
   useEffect(() => {
-    fetchSlots();
+    fetchBuildings();
   }, []);
+
+  const fetchBuildings = async () => {
+    try {
+      const res = await buildingApi.getBuildings();
+      setBuildings(res.data?.data || []);
+    } catch (e) {
+      console.error('Failed to fetch buildings', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchSlots();
+  }, [selectedBuilding]);
 
   const fetchSlots = async () => {
     setLoading(true);
     try {
-      const res = await slotApi.getSlots();
+      const res = await slotApi.getSlots(selectedBuilding);
       let data = res.data?.success ? res.data.data : res.data;
       if (Array.isArray(data)) {
         setSlots(data);
@@ -82,51 +97,60 @@ const StaffSlots = () => {
     if (!type) return '🚗';
     const lowerType = type.toLowerCase();
     
-    if (lowerType.includes('motor') || lowerType.includes('máy')) return '🏍️';
-    if (lowerType.includes('bike') || lowerType.includes('đạp')) return '🏍️';
-    if (lowerType.includes('bus') || lowerType.includes('khách')) return '🚌';
-    if (lowerType.includes('truck') || lowerType.includes('tải')) return '🚚';
+    if (lowerType.includes('motor') || lowerType.includes('motorcycle')) return '🏍️';
+    if (lowerType.includes('bike') || lowerType.includes('bicycle')) return '🏍️';
+    if (lowerType.includes('bus') || lowerType.includes('passenger')) return '🚌';
+    if (lowerType.includes('truck') || lowerType.includes('truck')) return '🚚';
     
     return '🚗'; // Default to car
   };
 
   if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
+  if (loading && slots.length === 0) return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
 
   return (
     <div>
       <Title level={2} style={{ marginBottom: 24 }}>Building & Slots</Title>
 
       <Card style={{ marginBottom: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-        <Space style={{ display: 'flex', flexWrap: 'wrap' }} size="middle">
+        <Space wrap>
           <Input 
-            placeholder="Search slot code..." 
+            placeholder="Search by Slot Code" 
             prefix={<SearchOutlined />} 
-            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-            style={{ width: 250 }}
-            size="large"
-            allowClear
+            value={filters.search}
+            onChange={e => setFilters({ ...filters, search: e.target.value })}
+            style={{ width: 200 }}
           />
           <Select 
             placeholder="All Statuses" 
-            style={{ width: 160 }} 
-            allowClear 
-            size="large"
-            onChange={(val) => setFilters({ ...filters, status: val })}
+            allowClear
+            style={{ width: 120 }}
+            onChange={v => setFilters({ ...filters, status: v })}
           >
             <Option value="AVAILABLE">Available</Option>
             <Option value="OCCUPIED">Occupied</Option>
             <Option value="RESERVED">Reserved</Option>
-            <Option value="LOCKED">Locked</Option>
+            <Option value="MAINTENANCE">Maintenance</Option>
           </Select>
           <Select 
             placeholder="All Vehicle Types" 
-            style={{ width: 180 }} 
-            allowClear 
-            size="large"
-            onChange={(val) => setFilters({ ...filters, vehicleType: val })}
+            allowClear
+            style={{ width: 150 }}
+            onChange={v => setFilters({ ...filters, vehicleType: v })}
           >
-            {uniqueVehicleTypes.map(type => (
-              <Option key={type} value={type}>{type}</Option>
+            {uniqueVehicleTypes.map(t => (
+              <Option key={t} value={t}>{t}</Option>
+            ))}
+          </Select>
+          <Select
+            allowClear
+            placeholder="Filter by Building"
+            style={{ width: 180 }}
+            value={selectedBuilding}
+            onChange={(value) => setSelectedBuilding(value)}
+          >
+            {buildings.map(b => (
+              <Option key={b.buildingId} value={b.buildingId}>{b.buildingName}</Option>
             ))}
           </Select>
         </Space>
@@ -160,7 +184,7 @@ const StaffSlots = () => {
                           return (
                               <div 
                                 key={s.slotId}
-                                title={`${s.vehicleTypeName} | Sức chứa: ${s.currentOccupancy}/${s.capacity}`}
+                                title={`${s.vehicleTypeName} | Capacity: ${s.currentOccupancy}/${s.capacity}`}
                                 style={{ 
                                   padding: '10px 16px', 
                                   border: `2px solid ${colors.border}`, 
