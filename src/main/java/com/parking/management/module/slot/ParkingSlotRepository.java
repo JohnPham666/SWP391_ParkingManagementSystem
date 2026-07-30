@@ -122,4 +122,35 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
            ORDER BY f.floorName
            """)
     List<com.parking.management.module.report.dto.ZoneOccupancyDto> getFloorOccupancyBreakdown(@Param("buildingId") Integer buildingId);
+
+    @Query("""
+            select slot
+            from ParkingSlot slot
+            join fetch slot.zone zone
+            join fetch zone.floor floor
+            join fetch floor.building building
+            join fetch slot.vehicleType vehicleType
+            where slot.isActive = true
+              and slot.status NOT IN (com.parking.management.module.slot.SlotStatus.MAINTENANCE, com.parking.management.module.slot.SlotStatus.LOCKED, com.parking.management.module.slot.SlotStatus.DISABLED)
+              and (:buildingId is null or building.buildingId = :buildingId)
+              and not exists (
+                  select r from Reservation r
+                  where r.slot = slot
+                    and r.status in ('PENDING', 'CONFIRMED')
+                    and r.reservationStart < :endTime
+                    and r.reservationEnd > :startTime
+              )
+              and not exists (
+                  select s from ParkingSession s
+                  where s.slot = slot
+                    and s.status = 'PARKING'
+                    and s.entryTime < :endTime
+                    and (s.exitTime is null or s.exitTime > :startTime)
+              )
+            order by building.buildingName, floor.floorNumber, zone.zoneName, slot.slotCode
+            """)
+    List<ParkingSlot> findAvailableSlotsForTimeRange(
+            @Param("buildingId") Integer buildingId,
+            @Param("startTime") java.time.LocalDateTime startTime,
+            @Param("endTime") java.time.LocalDateTime endTime);
 }

@@ -24,35 +24,39 @@ const ParkingPage = () => {
     const [, forceRender] = useReducer(x => x + 1, 0);
     const [drawerVisible, setDrawerVisible] = useState(false);
 
-    // Gọi API để lấy dữ liệu về bãi đỗ khi component được render lần đầu
+    // Fetch data whenever startTime or endTime changes (or on mount)
     useEffect(() => {
-        fetchData();
-    }, []);
-
-    // Hàm gọi song song các API lấy danh sách slots, đặt chỗ và các phiên đỗ xe hiện tại
-    const fetchData = async () => {
-        parkingStore.loading = true;
-        forceRender();
-        try {
-            const [slotsRes, resRes, sesRes] = await Promise.all([
-                driverService.loadSlots(),
-                driverService.loadReservations(),
-                driverService.loadSessions()
-            ]);
-
-            parkingStore.slots = Array.isArray(slotsRes?.data || slotsRes) ? (slotsRes?.data || slotsRes) : [];
-            parkingStore.allReservations = Array.isArray(resRes?.data || resRes) ? (resRes?.data || resRes) : [];
-            parkingStore.allSessions = Array.isArray(sesRes?.data || sesRes) ? (sesRes?.data || sesRes) : [];
-        } catch (error) {
-            message.error('Failed to load parking data');
-            parkingStore.slots = [];
-            parkingStore.allReservations = [];
-            parkingStore.allSessions = [];
-        } finally {
-            parkingStore.loading = false;
+        const fetchFilteredData = async () => {
+            parkingStore.loading = true;
             forceRender();
-        }
-    };
+            try {
+                const f = parkingStore.filters;
+                if (f.startTime && f.endTime) {
+                    const reqStart = new Date(f.startTime).getTime();
+                    const reqEnd = new Date(f.endTime).getTime();
+                    if (reqEnd > reqStart) {
+                        const startISO = new Date(f.startTime).toISOString();
+                        const endISO = new Date(f.endTime).toISOString();
+                        const slotsRes = await driverService.searchAvailableSlots(startISO, endISO);
+                        parkingStore.slots = Array.isArray(slotsRes?.data || slotsRes) ? (slotsRes?.data || slotsRes) : [];
+                    } else {
+                        message.warning('End time must be after start time.');
+                    }
+                } else if (!f.startTime && !f.endTime) {
+                    const slotsRes = await driverService.loadSlots();
+                    parkingStore.slots = Array.isArray(slotsRes?.data || slotsRes) ? (slotsRes?.data || slotsRes) : [];
+                }
+            } catch (error) {
+                message.error('Failed to load parking slots');
+                parkingStore.slots = [];
+            } finally {
+                parkingStore.loading = false;
+                forceRender();
+            }
+        };
+
+        fetchFilteredData();
+    }, [parkingStore.filters.startTime, parkingStore.filters.endTime]);
 
     // Xử lý khi người dùng thay đổi các tiêu chí lọc (toà nhà, tầng, loại xe...)
     const handleFilterChange = (key, value) => {
@@ -105,65 +109,21 @@ const ParkingPage = () => {
         };
     }, [slots]);
 
-    // Thuật toán lọc danh sách slot đỗ xe dựa trên các tiêu chí và kiểm tra trùng lặp đặt chỗ theo thời gian
+    // Lọc danh sách slot đỗ xe dựa trên các tiêu chí (logic thời gian đã được Backend xử lý)
     const filteredSlots = useMemo(() => {
-        const isSlotReservedSoon = (slotId, allReservations = []) => {
-            const now = Date.now();
-            const THIRTY_MINUTES_MS = 30 * 60 * 1000;
-            return allReservations.some(r => {
-                if (r.slotId !== slotId) return false;
-                if (r.status === 'CANCELLED' || r.status === 'COMPLETED') return false;
-                const rStart = new Date(r.reservationStart).getTime();
-                const rEnd = new Date(r.reservationEnd).getTime();
-                if (now > rEnd) return false;
-                return (rStart - now) <= THIRTY_MINUTES_MS;
-            });
-        };
-
-        const isReservationOverlap = (slotId, allReservations, reqStart, reqEnd) => {
-            return allReservations.some(r => {
-                if (r.slotId !== slotId) return false;
-                if (r.status === 'CANCELLED' || r.status === 'COMPLETED') return false;
-                const rStart = new Date(r.reservationStart).getTime();
-                const rEnd = new Date(r.reservationEnd).getTime();
-                return rStart < reqEnd && rEnd > reqStart;
-            });
-        };
-
-        const isSessionOverlap = (slotId, allSessions, reqStart, reqEnd) => {
-            return allSessions.some(s => {
-                if (s.slotId !== slotId) return false;
-                if (s.status === 'COMPLETED') return false;
-                const sStart = new Date(s.entryTime).getTime();
-                const sEnd = s.exitTime ? new Date(s.exitTime).getTime() : Infinity;
-                return sStart < reqEnd && sEnd > reqStart;
-            });
-        };
-
-        let processedSlots = slots.map(slot => {
-            let newSlot = { ...slot };
-            if (newSlot.status === 'AVAILABLE') {
-                if (isSlotReservedSoon(newSlot.slotId, parkingStore.allReservations)) {
-                    newSlot.status = 'RESERVED';
-                }
-            }
-            return newSlot;
-        });
-
+        let processedSlots = [...slots];
         const f = parkingStore.filters;
 
+        // Nếu backend trả về slot khi có startTime và endTime, nghĩa là các slot này HỢP LỆ (có thể đỗ).
+        // Ta mặc định trạng thái trên UI cho những slot này là AVAILABLE để hiển thị màu xanh lá cây
         if (f.startTime && f.endTime) {
             const reqStart = new Date(f.startTime).getTime();
             const reqEnd = new Date(f.endTime).getTime();
             if (reqEnd > reqStart) {
-                processedSlots = processedSlots.filter(slot => {
-                    if (slot.status !== 'AVAILABLE') return false;
-                    const isResOverlap = isReservationOverlap(slot.slotId, parkingStore.allReservations, reqStart, reqEnd);
-                    const isSesOverlap = isSessionOverlap(slot.slotId, parkingStore.allSessions, reqStart, reqEnd);
-                    return !isResOverlap && !isSesOverlap;
-                });
-            } else {
-                message.warning('End time must be after start time.');
+                processedSlots = processedSlots.map(slot => ({
+                    ...slot,
+                    status: 'AVAILABLE' 
+                }));
             }
         }
 
