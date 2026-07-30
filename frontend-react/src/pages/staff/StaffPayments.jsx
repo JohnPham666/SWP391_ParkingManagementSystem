@@ -86,7 +86,7 @@ const StaffPayments = () => {
       title: 'Amount',
       dataIndex: 'amount',
       key: 'amount',
-      render: (amount) => <span style={{ fontWeight: 700, color: '#16a34a' }}>{amount.toLocaleString('vi-VN')} ₫</span>
+      render: (amount) => <span style={{ fontWeight: 700, color: '#16a34a' }}>{amount.toLocaleString('en-US')} VND</span>
     },
     {
       title: 'Method',

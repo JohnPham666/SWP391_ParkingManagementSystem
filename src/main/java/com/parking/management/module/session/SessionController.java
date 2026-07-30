@@ -85,8 +85,8 @@ public class SessionController {
 
     @Operation(summary = "Get all sessions", description = "Retrieve a list of all parking sessions")
     @GetMapping
-    public ApiResponse<List<SessionResponse>> getAll() {
-        List<SessionResponse> responses = service.getAll();
+    public ApiResponse<List<SessionResponse>> getAll(@RequestParam(required = false) Integer buildingId) {
+        List<SessionResponse> responses = service.getAll(buildingId);
         return ApiResponse.success("Fetched all successfully", responses);
     }
 

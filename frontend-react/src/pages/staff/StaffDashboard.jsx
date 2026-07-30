@@ -27,6 +27,7 @@ const StaffDashboard = () => {
   // --- Modal States ---
   const [isCheckInVisible, setIsCheckInVisible] = useState(false);
   const [isResCheckInVisible, setIsResCheckInVisible] = useState(false);
+  const [isCheckInSubmitting, setIsCheckInSubmitting] = useState(false);
   const [isCheckOutVisible, setIsCheckOutVisible] = useState(false);
   const [isSummaryVisible, setIsSummaryVisible] = useState(false);
   const [earlyCheckinBuffer, setEarlyCheckinBuffer] = useState(30);
@@ -251,38 +252,54 @@ const StaffDashboard = () => {
     }
   };
 
+  // =====================================================================
+  // [FLOW CHECK-IN TOÀN TẬP TỪ FRONTEND ĐẾN BACKEND]
+  // =====================================================================
+  // Bước 1: Hàm này kích hoạt khi nhân viên bấm nút "Xác nhận Check-in" trên Form
   const handleCheckInSubmit = async (values) => {
+    setIsCheckInSubmitting(true);
     try {
       let sessionData = null;
+      
+      // Bước 2: Phân luồng - Kiểm tra xem passenger này có đặt chỗ trước hay không?
       if (matchedReservation) {
-        // Reservation Check-in Flow
+        // --- TRƯỜNG HỢP 1: KHÁCH CÓ ĐẶT CHỖ TRƯỚC (RESERVATION) ---
+        // Chuẩn bị gói dữ liệu gồm ID Đặt chỗ và Mã thẻ từ vừa quẹt
         const payload = {
           reservationId: matchedReservation.reservationId,
           entryGate: values.entryGate,
           cardId: values.cardId,
         };
-        const res = await sessionApi.checkIn(payload); // Ensure checkIn matches Reservation checkin endpoint
-        sessionData = res.data?.data || { sessionId: matchedReservation.reservationId }; // Mock fallback if API differs
+        // Gọi API Check-in dành riêng cho đơn đặt chỗ.
+        // Backend sẽ kiểm tra trạng thái vé, giờ vào cổng hợp lệ chưa, rồi mới cho qua.
+        const res = await sessionApi.checkIn(payload); 
+        sessionData = res.data?.data || { sessionId: matchedReservation.reservationId }; 
       } else {
-        // Walk-in Flow
+        // --- TRƯỜNG HỢP 2 & 3: KHÁCH VÃNG LAI (WALK-IN) VÀ KHÁCH VÉ THÁNG (SUBSCRIPTION) ---
+        // Vé tháng và vãng lai đi chung một luồng. Backend sẽ tự lấy License Plate đi dò xem xe này có vé tháng không.
         const payload = {
           licensePlate: values.licensePlate,
           vehicleTypeId: parseInt(values.vehicleType, 10),
           entryGate: values.entryGate,
           cardId: values.cardId,
         };
+        // Gọi API Check-in vãng lai. Backend tự tạo Vehicle mới nếu xe lần đầu tới.
         const res = await sessionApi.walkIn(payload);
         sessionData = res.data?.data;
       }
 
+      // Bước 3: Đẩy ảnh lên hệ thống đám mây AWS S3
+      // Bắt buộc phải đợi Bước 2 chạy xong để lấy được cái "sessionId" từ Backend.
+      // Có "sessionId" rồi thì mới kẹp chung với file ảnh gửi gọi API upload ảnh.
       if (values.entryImage && values.entryImage.fileList.length > 0 && sessionData?.sessionId) {
         const file = values.entryImage.fileList[0].originFileObj;
         await sessionApi.uploadSessionImage(sessionData.sessionId, file, 'entry');
       }
 
+      // Bước 4: Cập nhật giao diện (Thành công)
       message.success('Check-in Successful!');
-      setIsCheckInVisible(false);
-      checkInForm.resetFields();
+      setIsCheckInVisible(false); // Tắt popup
+      checkInForm.resetFields();  // Xóa trắng form để đón passenger tiếp theo
       setMatchedReservation(null);
       setSearchFallback('');
 
@@ -292,7 +309,7 @@ const StaffDashboard = () => {
         plate: values.licensePlate,
         type: matchedReservation ? 'Reservation' : values.vehicleType,
         gate: values.entryGate,
-        time: new Date().toLocaleString(),
+        time: dayjs().format('DD/MM/YYYY HH:mm:ss'),
         image: values.entryImage ? URL.createObjectURL(values.entryImage.fileList[0].originFileObj) : null
       });
       setIsSummaryVisible(true);
@@ -300,6 +317,8 @@ const StaffDashboard = () => {
       fetchActiveCards();
     } catch (error) {
       message.error(error.response?.data?.message || 'Check-in failed');
+    } finally {
+        setIsCheckInSubmitting(false);
     }
   };
 
@@ -494,10 +513,6 @@ const StaffDashboard = () => {
     if (t.includes('bicycle') || t.includes('bike')) return <span>🏍️</span>;
     if (t.includes('truck')) return <span>🚚</span>;
     return <CarOutlined />;
-    if (t.includes('motor') || t.includes('mÃ¡y')) return <span>ðŸï¸</span>;
-    if (t.includes('bicycle') || t.includes('bike') || t.includes('Ä‘áº¡p')) return <span>🏍️</span>;
-    if (t.includes('táº£i') || t.includes('truck')) return <span>ðŸšš</span>;
-    return <CarOutlined />;
   };
 
   return (
@@ -651,7 +666,10 @@ const StaffDashboard = () => {
           setMatchedReservation(null);
           setSearchFallback('');
         }}
-        footer={null}
+        footer={[
+          <Button key="cancel" onClick={() => setIsCheckInVisible(false)}>Cancel</Button>,
+          <Button key="submit" type="primary" loading={isCheckInSubmitting} onClick={() => checkInForm.submit()}>Confirm Check-in</Button>
+        ]}
         width={500}
       >
         <div style={{ marginBottom: '24px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
@@ -741,16 +759,16 @@ const StaffDashboard = () => {
 
           {matchedReservation ? (
             <div style={{ padding: '16px', background: '#ecfdf5', border: '1px solid #10b981', borderRadius: '8px', marginBottom: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <SafetyCertificateOutlined style={{ color: '#10b981', fontSize: '20px' }} />
-                <Text strong style={{ color: '#065f46', fontSize: '16px' }}>Reservation Found!</Text>
-              </div>
-              <p style={{ margin: 0 }}><strong>ID:</strong> #{matchedReservation.reservationId}</p>
-              <p style={{ margin: 0 }}><strong>Customer:</strong> {matchedReservation.userFullName || 'Guest'}</p>
-              <p style={{ margin: 0 }}><strong>License Plate:</strong> {matchedReservation.licensePlate}</p>
-              <p style={{ margin: 0 }}><strong>Vehicle Type:</strong> {matchedReservation.vehicleTypeName || 'N/A'}</p>
-              <p style={{ margin: 0 }}><strong>Time:</strong> {dayjs(matchedReservation.reservationStart).format('HH:mm')} - {dayjs(matchedReservation.reservationEnd).format('HH:mm')}</p>
-              <p style={{ margin: 0 }}><strong>Slot:</strong> {matchedReservation.slotCode || 'Any'}</p>
+              <Alert message="Reservation Found" type="success" showIcon style={{ marginBottom: 20 }}
+                description={
+                  <div>
+                    <p><strong>Customer:</strong> {matchedReservation.user?.fullName} ({matchedReservation.user?.phoneNumber})</p>
+                    <p><strong>Time:</strong> {dayjs(matchedReservation.reservationStart).format('DD/MM/YYYY HH:mm')} - {dayjs(matchedReservation.reservationEnd).format('DD/MM/YYYY HH:mm')}</p>
+                    <p><strong>Slot:</strong> {matchedReservation.slot?.slotCode}</p>
+                    <p><strong>Vehicle:</strong> {matchedReservation.vehicle?.licensePlate}</p>
+                  </div>
+                } 
+              />
             </div>
           ) : (
             <div style={{ padding: '16px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '24px' }}>
@@ -776,8 +794,6 @@ const StaffDashboard = () => {
               <Option value="Gate B">Gate B</Option>
             </Select>
           </Form.Item>
-
-          {/* 🎯 NÚT BẤM: Nút xác nhận gửi form Check-in xuống Backend API */}
           <Button
             type="primary"
             htmlType="submit"
@@ -948,7 +964,7 @@ const StaffDashboard = () => {
             <Card style={{ backgroundColor: '#f8fafc', marginBottom: '20px' }} bodyStyle={{ padding: '16px', textAlign: 'center' }}>
               <p><strong>Exit Time:</strong> {dayjs(checkoutSessionData.exitTime).format('DD/MM/YYYY HH:mm:ss')}</p>
               <div style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold', marginTop: '10px' }}>
-                Fee: {checkoutSessionData.totalFee.toLocaleString()} VNĐ
+                Fee: {checkoutSessionData.totalFee.toLocaleString()} VND
               </div>
             </Card>
 

@@ -3,6 +3,9 @@ package com.parking.management.module.incident;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 import java.util.List;
 
 @Repository
@@ -25,7 +28,7 @@ public interface IncidentReportRepository extends JpaRepository<IncidentReport, 
      *           - Từ Driver (không có building) → Hiện cho TẤT CẢ Manager
      *           - Từ Staff (có building) → Hiện cho Manager cùng Building
      */
-    @org.springframework.data.jpa.repository.Query("SELECT i FROM IncidentReport i " +
+    @Query("SELECT i FROM IncidentReport i " +
        "LEFT JOIN i.reportedBy u " +
        "LEFT JOIN u.building ub " +
        "LEFT JOIN i.session s " +
@@ -37,5 +40,5 @@ public interface IncidentReportRepository extends JpaRepository<IncidentReport, 
        "OR (s.sessionId IS NOT NULL AND sb.buildingId = :buildingId) " +
        "OR (s.sessionId IS NULL AND (ub.buildingId IS NULL OR ub.buildingId = :buildingId)) " +
        "ORDER BY i.createdAt DESC")
-    List<IncidentReport> findAllWithBuildingFilter(@org.springframework.data.repository.query.Param("buildingId") Integer buildingId);
+    List<IncidentReport> findAllWithBuildingFilter(@Param("buildingId") Integer buildingId);
 }

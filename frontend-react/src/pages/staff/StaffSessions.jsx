@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Select, Tag, Modal, Form, message, Space, Card, Upload, Row, Col, Typography, Divider, DatePicker, Alert, Spin } from 'antd';
 import { SearchOutlined, CarOutlined, CreditCardOutlined, UploadOutlined, SafetyCertificateOutlined, CheckCircleFilled } from '@ant-design/icons';
-import { sessionApi, paymentApi, vehicleApi, pricingApi, cardApi, subscriptionApi } from '../../services/api';
+import { sessionApi, paymentApi, vehicleApi, pricingApi, cardApi, subscriptionApi, buildingApi } from '../../services/api';
 import { getImageUrl } from '../../utils/helpers';
 import dayjs from 'dayjs';
 
@@ -14,6 +14,10 @@ const StaffSessions = () => {
   const [activeCards, setActiveCards] = useState([]);
   const [activeSubPlates, setActiveSubPlates] = useState(new Map());
   const [loading, setLoading] = useState(false);
+  const [isWalkInSubmitting, setIsWalkInSubmitting] = useState(false);
+
+  const [buildings, setBuildings] = useState([]);
+  const [selectedBuilding, setSelectedBuilding] = useState(null);
 
   const [filters, setFilters] = useState({
     search: '',
@@ -41,7 +45,7 @@ const StaffSessions = () => {
 
   // =====================================================================
   // HOOK LẮNG NGHE TRẠNG THÁI THANH TOÁN VNPAY (POLLING)
-  // - Mục đích: Liên tục gọi API lên server để kiểm tra xem khách hàng đã chuyển khoản/quét mã VNPay thành công hay chưa.
+  // - Mục đích: Liên tục gọi API lên server để kiểm tra xem passenger hàng đã chuyển khoản/quét mã VNPay thành công hay chưa.
   // - Điều kiện chạy: Chỉ chạy khi đang ở Bước 3 (checkOutStep === 3) VÀ đã có mã giao dịch paymentId.
   // - Cơ chế hoạt động: Dùng hàm setInterval của JavaScript để tự động lặp lại hành động kiểm tra mỗi 3 giây.
   // =====================================================================
@@ -89,11 +93,24 @@ const StaffSessions = () => {
   // Summary Data
   const [summaryData, setSummaryData] = useState(null);
 
+  const fetchBuildings = async () => {
+    try {
+      const res = await buildingApi.getBuildings();
+      setBuildings(res.data?.data || []);
+    } catch (e) {
+      console.error('Failed to fetch buildings', e);
+    }
+  };
+
   useEffect(() => {
     fetchSessions();
+  }, [selectedBuilding]);
+
+  useEffect(() => {
     fetchVehicleTypes();
     fetchActiveCards();
     fetchSubscriptions();
+    fetchBuildings();
     // eslint-disable-next-line
   }, []);
 
@@ -138,7 +155,7 @@ const StaffSessions = () => {
   const fetchSessions = async () => {
     setLoading(true);
     try {
-      const res = await sessionApi.getSessions();
+      const res = await sessionApi.getSessions(selectedBuilding);
       let data = res.data?.success ? res.data.data : res.data;
       if (Array.isArray(data)) {
         data.sort((a, b) => new Date(b.checkInTime || 0) - new Date(a.checkInTime || 0));
@@ -155,6 +172,7 @@ const StaffSessions = () => {
   };
 
   const handleWalkInSubmit = async (values) => {
+    setIsWalkInSubmitting(true);
     try {
       // Step 1: WalkIn api
       const payload = {
@@ -190,6 +208,8 @@ const StaffSessions = () => {
       fetchSessions();
     } catch (error) {
       message.error(error.response?.data?.message || 'Check-in failed');
+    } finally {
+      setIsWalkInSubmitting(false);
     }
   };
 
@@ -218,7 +238,7 @@ const StaffSessions = () => {
   // - Nhiệm vụ chính: 
   //   1. Kiểm tra xem xe này có đang đỗ hợp lệ trong bãi không.
   //   2. Lưu giữ hình ảnh xe lúc ra (nếu nhân viên có upload/chụp ảnh).
-  //   3. Tính toán trước số tiền cước phí đỗ xe mà khách hàng cần phải trả.
+  //   3. Tính toán trước số tiền cước phí đỗ xe mà passenger hàng cần phải trả.
   // =====================================================================
   const handleCheckOutSearch = async (values) => {
     try {
@@ -243,7 +263,7 @@ const StaffSessions = () => {
       let exitImageUrl = null;
       let exitImageFile = null;
 
-      // 2. Xử lý hình ảnh xe lúc đi ra (nếu nhân viên có chụp/tải ảnh lên)
+      // 2. Xử lý hình ảnh xe lúc đi ra (nếu nhân viên có chụp/truck ảnh lên)
       if (values.exitImage && values.exitImage.fileList.length > 0) {
         exitImageFile = values.exitImage.fileList[0].originFileObj;
         exitImageUrl = URL.createObjectURL(exitImageFile); // Tạo đường dẫn tạm để hiển thị preview
@@ -320,8 +340,8 @@ const StaffSessions = () => {
       }
 
       // 3. Xử lý trường hợp không cần thanh toán thêm:
-      // (a) Trạng thái đã là COMPLETED (đã thanh toán từ trước)
-      // (b) finalFee bằng 0 (khách sử dụng vé tháng, được miễn phí...)
+      // (a) Status đã là COMPLETED (đã thanh toán từ trước)
+      // (b) finalFee bằng 0 (passenger sử dụng vé tháng, được miễn phí...)
       if (updatedSession.status === 'COMPLETED' || updatedSession.finalFee === 0) {
         message.success('Check-out Successful (Pre-paid / Zero Fee)');
         // Bắn popup xanh lá báo thành công
@@ -358,7 +378,7 @@ const StaffSessions = () => {
           window.open(vnRes.data.data.paymentUrl, '_blank');
           message.info('Opened VNPay Payment Gateway');
 
-          // Cập nhật paymentId vào state và chuyển sang Bước 3 (Chờ thanh toán online từ khách hàng)
+          // Cập nhật paymentId vào state và chuyển sang Bước 3 (Chờ thanh toán online từ passenger hàng)
           setCheckoutSessionData({ ...checkoutSessionData, paymentId });
           setCheckOutStep(3);
         }
@@ -377,7 +397,7 @@ const StaffSessions = () => {
       session.licensePlate?.toLowerCase().includes(filters.search.toLowerCase()) ||
       session.sessionId?.toString().includes(filters.search);
     const statusMatch = !filters.status || session.status === filters.status || (filters.status === 'ACTIVE' && session.status === 'PARKING');
-    const typeMatch = !filters.vehicleType || (session.vehicleTypeName || session.vehicleType?.typeName || 'Ã” tÃ´') === filters.vehicleType;
+    const typeMatch = !filters.vehicleType || (session.vehicleTypeName || session.vehicleType?.typeName || "Car") === filters.vehicleType;
     const dateMatch = !filters.date || dayjs(session.checkInTime || session.checkinTime || session.entryTime).format('MM/DD/YYYY') === filters.date;
     return searchMatch && statusMatch && typeMatch && dateMatch;
   });
@@ -402,7 +422,7 @@ const StaffSessions = () => {
     },
     { title: 'ENTRY GATE', dataIndex: 'entryGate', key: 'entryGate', render: text => text || '-' },
     { title: 'EXIT GATE', dataIndex: 'exitGate', key: 'exitGate', render: text => text || '-' },
-    { title: 'FINAL FEE', dataIndex: 'finalFee', key: 'finalFee', render: text => text != null ? `${text.toLocaleString()} VNĐ` : '-' },
+    { title: 'FINAL FEE', dataIndex: 'finalFee', key: 'finalFee', render: text => text != null ? `${text.toLocaleString()} VND` : '-' },
     { title: 'CUSTOMER', key: 'customer', render: (_, record) => record.customerName || record.userFullName || '-' },
     { title: 'PHONE', key: 'phone', render: (_, record) => record.customerPhone || record.userPhone || '-' },
     { title: 'MONTHLY PASS?', dataIndex: 'hasActiveSubscription', key: 'hasActiveSubscription', render: text => text ? <Tag color="green">Yes</Tag> : <Tag color="default">No</Tag> },
@@ -492,6 +512,19 @@ const StaffSessions = () => {
               style={{ width: 130 }}
             />
           </Space>
+          <Space wrap>
+          <Select
+            allowClear
+            placeholder="Filter by Building"
+            style={{ width: 180 }}
+            value={selectedBuilding}
+            onChange={(value) => setSelectedBuilding(value)}
+          >
+            {buildings.map(b => (
+              <Option key={b.buildingId} value={b.buildingId}>{b.buildingName}</Option>
+            ))}
+          </Select>
+          </Space>
         </div>
 
         <Table
@@ -510,7 +543,10 @@ const StaffSessions = () => {
         title="Walk-in Check-in"
         open={isWalkInVisible}
         onCancel={() => { setIsWalkInVisible(false); walkInForm.resetFields(); }}
-        footer={null}
+        footer={[
+          <Button key="cancel" onClick={() => { setIsWalkInVisible(false); walkInForm.resetFields(); }}>Cancel</Button>,
+          <Button key="submit" type="primary" loading={isWalkInSubmitting} onClick={() => walkInForm.submit()}>Confirm Check-in</Button>
+        ]}
       >
         <Form form={walkInForm} layout="vertical" onFinish={handleWalkInSubmit} size="large">
           <Form.Item name="entryImage" label="Entry Image (Camera)" rules={[{ required: true, message: 'Please upload image' }]}>
@@ -535,21 +571,21 @@ const StaffSessions = () => {
                   {subStatus === 'ACTIVE' && (
                     <div style={{ marginBottom: 16 }}>
                       <Tag color="green" icon={<SafetyCertificateOutlined />} style={{ fontSize: '14px', padding: '6px 12px' }}>
-                        Xe cÃ³ vÃ© thÃ¡ng ACTIVE - KhÃ´ng cáº§n quáº¹t tháº»
+                        Vehicle has ACTIVE subscription - No card swipe required
                       </Tag>
                     </div>
                   )}
                   {subStatus === 'PENDING' && (
                     <div style={{ marginBottom: 16 }}>
                       <Tag color="warning" style={{ fontSize: '14px', padding: '6px 12px' }}>
-                        VÃ© thÃ¡ng xe nÃ y ÄANG CHá»œ DUYá»†T (Cáº§n duyá»‡t trÆ°á»›c)
+                        Subscription for this vehicle is PENDING (Needs approval)
                       </Tag>
                     </div>
                   )}
                   {subStatus === 'CANCELLED' && (
                     <div style={{ marginBottom: 16 }}>
                       <Tag color="error" style={{ fontSize: '14px', padding: '6px 12px' }}>
-                        VÃ© thÃ¡ng xe nÃ y ÄÃƒ Bá»Š HUá»¶
+                        Subscription for this vehicle has been CANCELLED
                       </Tag>
                     </div>
                   )}
@@ -589,9 +625,6 @@ const StaffSessions = () => {
               <Option value="Gate B">Gate B</Option>
             </Select>
           </Form.Item>
-          <Button type="primary" htmlType="submit" block style={{ height: '50px', fontSize: '16px', fontWeight: 'bold' }}>
-            Confirm Check-in
-          </Button>
         </Form>
       </Modal>
 
@@ -698,7 +731,7 @@ const StaffSessions = () => {
                   {summaryData.status === 'PARKING' ? 'Estimated Fee' : 'Final Fee'}
                 </Text>
                 <div style={{ fontSize: 32, fontWeight: 'bold', color: '#ef4444' }}>
-                  {summaryData.finalFee.toLocaleString()} VNĐ
+                  {summaryData.finalFee.toLocaleString()} VND
                 </div>
               </Col>
             </Row>
@@ -807,7 +840,7 @@ const StaffSessions = () => {
               </Col>
               <Col span={12} style={{ textAlign: 'center' }}>
                 <p><strong>Exit Image</strong></p>
-                {/* Hiển thị ảnh biển số xe lúc đi ra mà người dùng vừa tải lên ở Bước 1 */}
+                {/* Hiển thị ảnh biển số xe lúc đi ra mà người dùng vừa truck lên ở Bước 1 */}
                 {checkoutSessionData.exitImageUrl ? (
                   <img src={checkoutSessionData.exitImageUrl} alt="Exit" style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px' }} />
                 ) : (
@@ -853,7 +886,7 @@ const StaffSessions = () => {
             <Card style={{ backgroundColor: '#f8fafc', marginBottom: '20px' }} bodyStyle={{ padding: '16px', textAlign: 'center' }}>
               <p><strong>Exit Time:</strong> {dayjs(checkoutSessionData.exitTime).format('DD/MM/YYYY HH:mm:ss')}</p>
               <div style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold', marginTop: '10px' }}>
-                Fee: {checkoutSessionData.totalFee.toLocaleString()} VNĐ
+                Fee: {checkoutSessionData.totalFee.toLocaleString()} VND
               </div>
             </Card>
 
@@ -894,7 +927,7 @@ const StaffSessions = () => {
 
               <Button type="primary" danger onClick={async () => {
                 try {
-                  // Fallback: Chuyển sang thanh toán bằng tiền mặt nếu khách hàng gặp lỗi hoặc đổi ý không thanh toán online VNPay nữa
+                  // Fallback: Chuyển sang thanh toán bằng tiền mặt nếu passenger hàng gặp lỗi hoặc đổi ý không thanh toán online VNPay nữa
                   await paymentApi.confirmCash(checkoutSessionData.paymentId);
                   message.success('Switched to cash payment. Check-out successful!');
                   setIsCheckOutVisible(false);

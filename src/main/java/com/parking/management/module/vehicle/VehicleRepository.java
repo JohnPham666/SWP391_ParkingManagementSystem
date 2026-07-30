@@ -2,8 +2,10 @@ package com.parking.management.module.vehicle;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import java.util.Optional;
 import java.util.List;
-
 // Repository JPA truy vấn bảng Vehicles trong PostgreSQL
 // Spring Data JPA tự động sinh SQL query từ tên method (Query Derivation)
 @Repository
@@ -23,5 +25,15 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Integer> {
     // ===== Tìm xe theo user =====
     List<Vehicle> findByUserUserId(Integer userId);                       // Tất cả xe của user (kể cả soft deleted)
     List<Vehicle> findByUserUserIdAndIsActiveTrue(Integer userId);         // Xe active của user (dùng chính)
-    java.util.Optional<Vehicle> findByLicensePlate(String licensePlate);  // Tìm xe theo biển số (dùng cho check-in/session)
+    Optional<Vehicle> findByLicensePlate(String licensePlate);  // Tìm xe theo biển số (dùng cho check-in/session)
+
+    /**
+     * Lấy tất cả vehicle có filter theo building của Manager.
+     */
+    @Query("SELECT v FROM Vehicle v " +
+       "JOIN FETCH v.user u " +
+       "LEFT JOIN u.building b " +
+       "WHERE :buildingId IS NULL OR b.buildingId = :buildingId " +
+       "ORDER BY v.vehicleId DESC")
+    List<Vehicle> findAllWithBuildingFilter(@Param("buildingId") Integer buildingId);
 }

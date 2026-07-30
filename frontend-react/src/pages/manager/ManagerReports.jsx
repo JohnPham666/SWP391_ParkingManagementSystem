@@ -109,7 +109,7 @@ const ManagerReports = () => {
         [],
         ['Report Period:', `${start.format('DD/MM/YYYY')} - ${end.format('DD/MM/YYYY')}`],
         ['Generated Date:', generatedOn],
-        ['Total Revenue:', `"${totalRev.toLocaleString('vi-VN')} VNĐ"`],
+        ['Total Revenue:', `"${totalRev.toLocaleString('en-US')} VND"`],
         ['Number of Transactions:', payments.length],
         [],
         ['----------------------------------------------']
@@ -204,7 +204,7 @@ const ManagerReports = () => {
                   <XAxis dataKey="date" />
                   <YAxis />
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <RechartsTooltip formatter={(value) => `${value.toLocaleString()} ₫`} />
+                  <RechartsTooltip formatter={(value) => `${value.toLocaleString()} VND`} />
                   <Area type="monotone" dataKey="revenue" stroke="#ea580c" fillOpacity={1} fill="url(#colorRevenue)" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -279,7 +279,7 @@ const ManagerReports = () => {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="date" />
                   <YAxis />
-                  <RechartsTooltip formatter={(value) => `${value.toLocaleString()} ₫`} />
+                  <RechartsTooltip formatter={(value) => `${value.toLocaleString()} VND`} />
                   <Legend />
                   <Bar dataKey="revenue" fill="#1677ff" name="Revenue (VND)" radius={[4, 4, 0, 0]} />
                 </BarChart>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Select, Modal, Form, message, Space, Card, Popconfirm, Tag, Typography, Row, Col, Divider, Image } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, CarOutlined } from '@ant-design/icons';
-import { vehicleApi } from '../../services/api';
+import { vehicleApi, buildingApi } from '../../services/api';
 import { getImageUrl } from '../../utils/helpers';
 
 const { Option } = Select;
@@ -14,16 +14,31 @@ const ManagerVehicles = () => {
   
   const [form] = Form.useForm();
   const [filters, setFilters] = useState({ plate: '', owner: '', type: '', status: '' });
+  const [buildings, setBuildings] = useState([]);
+  const [selectedBuilding, setSelectedBuilding] = useState(null);
 
 
   useEffect(() => {
-    fetchVehicles();
+    fetchBuildings();
   }, []);
+
+  const fetchBuildings = async () => {
+    try {
+      const res = await buildingApi.getBuildings();
+      setBuildings(res.data?.data || []);
+    } catch (e) {
+      console.error('Failed to fetch buildings', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchVehicles();
+  }, [selectedBuilding]);
 
   const fetchVehicles = async () => {
     setLoading(true);
     try {
-      const res = await vehicleApi.getVehicles();
+      const res = await vehicleApi.getVehicles(selectedBuilding);
       let data = res.data?.success ? res.data.data : res.data;
       if (Array.isArray(data)) {
         setVehicles(data);
@@ -143,6 +158,17 @@ const ManagerVehicles = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '16px' }}>
         <Typography.Title level={4} style={{ margin: 0 }}>Vehicle Management</Typography.Title>
         <Space style={{ flexWrap: 'wrap' }}>
+          <Select
+            allowClear
+            placeholder="Building Filter"
+            style={{ width: 150 }}
+            value={selectedBuilding}
+            onChange={val => setSelectedBuilding(val)}
+          >
+            {buildings.map(b => (
+              <Select.Option key={b.buildingId} value={b.buildingId}>{b.buildingName}</Select.Option>
+            ))}
+          </Select>
           <Input 
             placeholder="Search plate..." 
             onChange={(e) => setFilters({ ...filters, plate: e.target.value })}

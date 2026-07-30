@@ -64,7 +64,7 @@ public class IncidentService {
         return IncidentResponse.fromEntity(incidentReportRepository.save(incident));
     }
 
-    public List<IncidentResponse> getAll() {
+    public List<IncidentResponse> getAll(Integer reqBuildingId) {
         User currentUser = getCurrentAuthenticatedUser();
         String roleName = currentUser.getRole().getRoleName();
 
@@ -86,7 +86,7 @@ public class IncidentService {
 
         // ParkingManager / Admin: xem TẤT CẢ incident trong phạm vi building
         // (Driver không có building → luôn hiện với Manager nhờ query đã fix)
-        Integer buildingId = securityUtils.getBuildingId();
+        Integer buildingId = reqBuildingId != null ? reqBuildingId : securityUtils.getBuildingId();
         return incidentReportRepository.findAllWithBuildingFilter(buildingId)
                 .stream()
                 .map(IncidentResponse::fromEntity)

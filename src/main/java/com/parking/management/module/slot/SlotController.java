@@ -36,9 +36,10 @@ public class SlotController {
     @PreAuthorize("permitAll()")
     @GetMapping
     public ApiResponse<List<SlotResponse>> getAll(
+            @RequestParam(required = false) Integer buildingId,
             @RequestParam(required = false) Integer zoneId,
             @RequestParam(required = false) Integer vehicleTypeId) {
-        return ApiResponse.success("Fetched all successfully", service.getAll(zoneId, vehicleTypeId));
+        return ApiResponse.success("Fetched all successfully", service.getAll(buildingId, zoneId, vehicleTypeId));
     }
 
     @Operation(summary = "Get available slots", description = "Retrieve a list of available parking slots based on optional filters")

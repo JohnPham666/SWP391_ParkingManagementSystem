@@ -79,7 +79,7 @@ const ManagerPayments = () => {
       title: 'Amount',
       dataIndex: 'amount',
       key: 'amount',
-      render: (amount) => <strong style={{ color: '#059669', whiteSpace: 'nowrap' }}>{amount?.toLocaleString()} ₫</strong>
+      render: (amount) => <strong style={{ color: '#059669', whiteSpace: 'nowrap' }}>{amount?.toLocaleString()} VND</strong>
     },
     {
       title: 'Method',

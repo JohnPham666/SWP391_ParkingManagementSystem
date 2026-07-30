@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -39,8 +40,8 @@ public class VehicleController {
     // Output: List<VehicleResponse>
     @Operation(summary = "Get all vehicles", description = "Admin/Staff can get all vehicles")
     @GetMapping
-    public ApiResponse<?> getAll() {
-        return ApiResponse.success("Fetched all successfully", vehicleService.getAll());
+    public ApiResponse<List<VehicleResponse>> getAll(@RequestParam(required = false) Integer buildingId) {
+        return ApiResponse.success("Fetched all successfully", vehicleService.getAll(buildingId));
     }
 
     // [ADMIN/STAFF] Lấy thông tin chi tiết 1 xe theo vehicleId

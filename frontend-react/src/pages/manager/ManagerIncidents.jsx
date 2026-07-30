@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Tag, message, Card, Space, Input, Select, Modal, Form, Descriptions, Image, Badge, Typography, Divider, Upload } from 'antd';
 import { SearchOutlined, AlertOutlined, EyeOutlined, FileImageOutlined, UploadOutlined } from '@ant-design/icons';
-import { incidentApi } from '../../services/api';
+import { incidentApi, buildingApi } from '../../services/api';
 import { getImageUrl } from '../../utils/helpers';
 import dayjs from 'dayjs';
 
@@ -22,7 +22,22 @@ const IncidentManagement = () => {
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [filters, setFilters] = useState({ search: '', status: null });
+  const [buildings, setBuildings] = useState([]);
+  const [selectedBuilding, setSelectedBuilding] = useState(null);
   const [form] = Form.useForm();
+
+  useEffect(() => {
+    fetchBuildings();
+  }, []);
+
+  const fetchBuildings = async () => {
+    try {
+      const res = await buildingApi.getBuildings();
+      setBuildings(res.data?.data || []);
+    } catch (e) {
+      console.error('Failed to fetch buildings', e);
+    }
+  };
 
   useEffect(() => {
     fetchIncidents();
@@ -30,12 +45,12 @@ const IncidentManagement = () => {
       fetchIncidents(true);
     }, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedBuilding]);
 
   const fetchIncidents = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await incidentApi.getIncidents();
+      const res = await incidentApi.getIncidents(selectedBuilding);
       let data = res.data?.success ? res.data.data : res.data;
       if (Array.isArray(data)) {
         data.sort((a, b) => new Date(b.reportTime || b.createdAt || 0) - new Date(a.reportTime || a.createdAt || 0));
@@ -196,6 +211,18 @@ const IncidentManagement = () => {
       }
     >
       <Space style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap' }}>
+        <Select
+          allowClear
+          placeholder="Building Filter"
+          style={{ width: 150 }}
+          size="large"
+          value={selectedBuilding}
+          onChange={val => setSelectedBuilding(val)}
+        >
+          {buildings.map(b => (
+            <Select.Option key={b.buildingId} value={b.buildingId}>{b.buildingName}</Select.Option>
+          ))}
+        </Select>
         <Input
           placeholder="Search ID, title, description..."
           prefix={<SearchOutlined />}

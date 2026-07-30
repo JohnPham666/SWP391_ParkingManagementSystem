@@ -116,12 +116,13 @@ public class ReservationService {
         return mapToResponse(reservationRepository.save(reservation));
     }
 
-    public List<ReservationResponse> getAll() {
+    public List<ReservationResponse> getAll(Integer reqBuildingId) {
         Integer driverId = securityUtils.getDriverUserId();
         
         List<Reservation> reservations;
         if (driverId == null) {
-            reservations = reservationRepository.findAll();
+            Integer buildingId = reqBuildingId != null ? reqBuildingId : securityUtils.getBuildingId();
+            reservations = reservationRepository.findAllWithBuildingFilter(buildingId);
         } else {
             reservations = reservationRepository.findByUser_UserId(driverId);
         }

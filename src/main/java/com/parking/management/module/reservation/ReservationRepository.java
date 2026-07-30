@@ -15,6 +15,10 @@ public interface ReservationRepository extends JpaRepository<Reservation, Intege
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"user", "vehicle", "vehicleType", "slot", "slot.zone", "slot.zone.floor", "slot.zone.floor.building"})
     List<Reservation> findAll();
 
+    @org.springframework.data.jpa.repository.Query("SELECT r FROM Reservation r WHERE (:buildingId IS NULL OR r.slot.zone.floor.building.buildingId = :buildingId)")
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"user", "vehicle", "vehicleType", "slot", "slot.zone", "slot.zone.floor", "slot.zone.floor.building"})
+    List<Reservation> findAllWithBuildingFilter(@org.springframework.data.repository.query.Param("buildingId") Integer buildingId);
+
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"user", "vehicle", "vehicleType", "slot", "slot.zone", "slot.zone.floor", "slot.zone.floor.building"})
     List<Reservation> findByUser_UserId(Integer userId);
     @org.springframework.data.jpa.repository.Query("SELECT r FROM Reservation r WHERE r.slot.slotId = :slotId AND r.status IN ('PENDING', 'CONFIRMED') AND r.reservationStart < :endTime AND r.reservationEnd > :startTime")
