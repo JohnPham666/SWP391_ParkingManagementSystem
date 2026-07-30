@@ -82,6 +82,11 @@ public class ReservationService {
             throw new IllegalArgumentException("This slot does not support reservations for this vehicle type.");
         }
 
+        String vTypeName = slot.getVehicleType().getTypeName().toLowerCase();
+        if (vTypeName.contains("bicycle") || vTypeName.contains("xe đạp") || vTypeName.contains("bike")) {
+            throw new IllegalArgumentException("Bicycle slots cannot be reserved.");
+        }
+
         // Kiểm tra Double Booking (Overlap)
         List<Reservation> overlaps = reservationRepository.findOverlappingReservations(
                 slot.getSlotId(), request.getReservationStart(), request.getReservationEnd()
