@@ -31,9 +31,9 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Integer> {
      * Lấy tất cả vehicle có filter theo building của Manager.
      */
     @Query("SELECT v FROM Vehicle v " +
-       "JOIN FETCH v.user u " +
+       "LEFT JOIN FETCH v.user u " +
        "LEFT JOIN u.building b " +
-       "WHERE :buildingId IS NULL OR b.buildingId = :buildingId " +
+       "WHERE :buildingId IS NULL OR (u.userId IS NOT NULL AND b.buildingId = :buildingId) OR u.userId IS NULL " +
        "ORDER BY v.vehicleId DESC")
     List<Vehicle> findAllWithBuildingFilter(@Param("buildingId") Integer buildingId);
 }
