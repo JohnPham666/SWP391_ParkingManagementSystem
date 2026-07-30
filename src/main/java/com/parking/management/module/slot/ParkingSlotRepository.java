@@ -24,7 +24,7 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM ParkingSlot s WHERE s.vehicleType.vehicleTypeId = :vehicleTypeId " +
-           "AND s.status = com.parking.management.module.slot.SlotStatus.AVAILABLE " +
+           "AND s.status = 'AVAILABLE' " +
            "AND s.isActive = true " +
            "AND s.currentOccupancy < s.capacity " +
            "ORDER BY s.zone.floor.floorNumber DESC, LENGTH(s.slotCode) ASC, s.slotCode ASC LIMIT 1")
@@ -59,7 +59,7 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
     @Query("""
             select slot
             from ParkingSlot slot
-            where slot.status = com.parking.management.module.slot.SlotStatus.AVAILABLE
+            where slot.status = 'AVAILABLE'
               and slot.isActive = true
               and slot.currentOccupancy < slot.capacity
               and (:buildingId is null or slot.zone.floor.building.buildingId = :buildingId)
@@ -100,7 +100,7 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
            )
            FROM ParkingSlot s
            JOIN s.zone z
-           WHERE s.status IN (com.parking.management.module.slot.SlotStatus.OCCUPIED, com.parking.management.module.slot.SlotStatus.RESERVED)
+           WHERE s.status IN ('OCCUPIED', 'RESERVED')
              AND s.isActive = true
              AND (:buildingId IS NULL OR z.floor.building.buildingId = :buildingId)
            GROUP BY z.zoneName
@@ -115,11 +115,42 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Intege
            FROM ParkingSlot s
            JOIN s.zone z
            JOIN z.floor f
-           WHERE s.status IN (com.parking.management.module.slot.SlotStatus.OCCUPIED, com.parking.management.module.slot.SlotStatus.RESERVED)
+           WHERE s.status IN ('OCCUPIED', 'RESERVED')
              AND s.isActive = true
              AND (:buildingId IS NULL OR f.building.buildingId = :buildingId)
            GROUP BY f.floorName
            ORDER BY f.floorName
            """)
     List<com.parking.management.module.report.dto.ZoneOccupancyDto> getFloorOccupancyBreakdown(@Param("buildingId") Integer buildingId);
+
+    @Query("""
+            select slot
+            from ParkingSlot slot
+            join fetch slot.zone zone
+            join fetch zone.floor floor
+            join fetch floor.building building
+            join fetch slot.vehicleType vehicleType
+            where slot.isActive = true
+              and slot.status NOT IN ('MAINTENANCE', 'LOCKED', 'DISABLED')
+              and (:buildingId is null or building.buildingId = :buildingId)
+              and not exists (
+                  select r from Reservation r
+                  where r.slot = slot
+                    and r.status in ('PENDING', 'CONFIRMED')
+                    and r.reservationStart < :endTime
+                    and r.reservationEnd > :startTime
+              )
+              and not exists (
+                  select s from ParkingSession s
+                  where s.slot = slot
+                    and s.status = 'PARKING'
+                    and s.entryTime < :endTime
+                    and (s.exitTime is null or s.exitTime > :startTime)
+              )
+            order by building.buildingName, floor.floorNumber, zone.zoneName, slot.slotCode
+            """)
+    List<ParkingSlot> findAvailableSlotsForTimeRange(
+            @Param("buildingId") Integer buildingId,
+            @Param("startTime") java.time.LocalDateTime startTime,
+            @Param("endTime") java.time.LocalDateTime endTime);
 }

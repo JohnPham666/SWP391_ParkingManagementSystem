@@ -18,6 +18,7 @@ DROP TABLE IF EXISTS Zones CASCADE;
 DROP TABLE IF EXISTS Floors CASCADE;
 DROP TABLE IF EXISTS Buildings CASCADE;
 DROP TABLE IF EXISTS Users CASCADE;
+DROP TABLE IF EXISTS SystemConfigs CASCADE;
 DROP TABLE IF EXISTS Roles CASCADE;
 
 -- =========================================================

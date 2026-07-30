@@ -54,6 +54,13 @@ export const driverApi = {
         const response = await api.get('/slots');
         return response.data;
     },
+    searchAvailableSlots: async (startTime, endTime) => {
+        let url = '/slots/search-available?';
+        if (startTime) url += `startTime=${startTime}&`;
+        if (endTime) url += `endTime=${endTime}`;
+        const response = await api.get(url);
+        return response.data;
+    },
     getSessions: async () => {
         const response = await api.get('/sessions');
         return response.data;
