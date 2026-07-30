@@ -172,7 +172,7 @@ const SubscriptionRegistrationModal = ({ visible, onCancel, onSuccess, initialVe
                         label="Start Date" 
                         rules={[{ required: true }]}
                     >
-                        <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" disabledDate={(current) => current && current < dayjs().startOf('day')} />
+                        <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" disabled />
                     </Form.Item>
 
                     {monthlyFee !== null && (
