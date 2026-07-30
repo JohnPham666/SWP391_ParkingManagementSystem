@@ -86,6 +86,10 @@ public class ReservationService {
             throw new IllegalArgumentException("This slot does not support reservations for this vehicle type.");
         }
 
+        if (!slot.getVehicleType().getVehicleTypeId().equals(vehicleType.getVehicleTypeId())) {
+            throw new IllegalArgumentException("The selected slot's vehicle type does not match your vehicle.");
+        }
+
         String vTypeName = slot.getVehicleType().getTypeName().toLowerCase();
         if (vTypeName.contains("bicycle") || vTypeName.contains("xe đạp") || vTypeName.contains("bike")) {
             throw new IllegalArgumentException("Bicycle slots cannot be reserved.");
@@ -174,6 +178,9 @@ public class ReservationService {
         }
         if (!slot.getVehicleType().getIsReservable()) {
             throw new IllegalArgumentException("This slot does not support reservations for this vehicle type.");
+        }
+        if (!slot.getVehicleType().getVehicleTypeId().equals(vehicleType.getVehicleTypeId())) {
+            throw new IllegalArgumentException("The selected slot's vehicle type does not match your vehicle.");
         }
 
         if (reservationRepository.existsByVehicle_VehicleIdAndStatusInAndReservationIdNot(request.getVehicleId(), List.of("PENDING", "CONFIRMED"), id)) {

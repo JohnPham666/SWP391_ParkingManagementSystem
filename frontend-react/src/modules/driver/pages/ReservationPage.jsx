@@ -495,9 +495,20 @@ const ReservationPage = () => {
         cancelled: safeReservations.filter(r => String(r.status).toUpperCase() === 'CANCELLED').length,
     };
 
+    const selectedVehicleId = form.getFieldValue('vehicleId');
+    const selectedVehicle = safeVehicles.find(v => (v.vehicleId || v.id) === selectedVehicleId);
+    const selectedVehicleTypeId = selectedVehicle ? (selectedVehicle.vehicleType?.vehicleTypeId || selectedVehicle.vehicleTypeId || selectedVehicle.vehicleType?.id) : null;
+
     const filteredSlots = safeSlots.filter(s => {
+        if (String(s.status).toUpperCase() !== 'AVAILABLE') return false;
+        
         const sType = (s.vehicleTypeName || '').toLowerCase();
-        return !sType.includes('motor') && !sType.includes('xe máy') && !sType.includes('bicycle') && !sType.includes('xe đạp') && !sType.includes('bike') && String(s.status).toUpperCase() === 'AVAILABLE';
+        if (sType.includes('motor') || sType.includes('xe máy') || sType.includes('bicycle') || sType.includes('xe đạp') || sType.includes('bike')) return false;
+
+        if (selectedVehicleTypeId != null) {
+            return s.vehicleTypeId === selectedVehicleTypeId;
+        }
+        return true;
     });
 
     // Xử lý logic tự động gán slot hoặc vô hiệu hóa chọn slot dựa vào loại xe (Xe máy không cần chọn slot cụ thể)
@@ -511,13 +522,19 @@ const ReservationPage = () => {
             const isBicycle = vTypeName.includes('bicycle') || vTypeName.includes('xe đạp') || vTypeName.includes('bike');
             
             if (!isMotorbike && !isBicycle) {
+                const newVehicleTypeId = vehicle.vehicleType?.vehicleTypeId || vehicle.vehicleTypeId || vehicle.vehicleType?.id;
+                
+                const validSlotsForNewVehicle = safeSlots.filter(s => 
+                    String(s.status).toUpperCase() === 'AVAILABLE' && 
+                    s.vehicleTypeId === newVehicleTypeId
+                );
+
                 const currentSlotId = form.getFieldValue('slotId');
-                const isValidSlot = currentSlotId && filteredSlots.some(s => (s.slotId || s.id) === currentSlotId);
+                const isValidSlot = currentSlotId && validSlotsForNewVehicle.some(s => (s.slotId || s.id) === currentSlotId);
                 
                 if (!isValidSlot) {
-                    const availableSlots = filteredSlots.filter(s => s.status === 'AVAILABLE');
-                    if (availableSlots.length > 0) {
-                        const highestFloorSlot = availableSlots.reduce((prev, current) => {
+                    if (validSlotsForNewVehicle.length > 0) {
+                        const highestFloorSlot = validSlotsForNewVehicle.reduce((prev, current) => {
                             const nameComparison = (current.floorName || '').localeCompare(prev.floorName || '');
                             if (nameComparison !== 0) return nameComparison > 0 ? current : prev;
                             
